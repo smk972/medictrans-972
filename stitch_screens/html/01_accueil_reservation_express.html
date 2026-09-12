@@ -1,0 +1,741 @@
+<!DOCTYPE html><html lang="fr" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      "colors": {
+        "on-primary-container": "#b5d4ff",
+        "on-primary": "#ffffff",
+        "background": "#f8f9ff",
+        "surface-variant": "#d3e4fe",
+        "surface": "#f8f9ff",
+        "on-surface": "#0b1c30",
+        "on-tertiary-container": "#bcd3fc",
+        "on-error-container": "#93000a",
+        "tertiary-fixed": "#d5e3ff",
+        "on-secondary-fixed-variant": "#005049",
+        "surface-container-lowest": "#ffffff",
+        "surface-container": "#e5eeff",
+        "on-surface-variant": "#414750",
+        "surface-container-highest": "#d3e4fe",
+        "outline": "#727781",
+        "surface-bright": "#f8f9ff",
+        "on-secondary-container": "#006f66",
+        "on-background": "#0b1c30",
+        "primary-fixed-dim": "#a1c9ff",
+        "surface-container-high": "#dce9ff",
+        "on-tertiary-fixed": "#001c3b",
+        "surface-tint": "#1660a3",
+        "inverse-primary": "#a1c9ff",
+        "tertiary-container": "#455b7e",
+        "on-primary-fixed-variant": "#004880",
+        "on-tertiary-fixed-variant": "#314769",
+        "primary": "#004479",
+        "inverse-on-surface": "#eaf1ff",
+        "error-container": "#ffdad6",
+        "secondary-container": "#86f2e4",
+        "tertiary-fixed-dim": "#b1c7f0",
+        "primary-fixed": "#d2e4ff",
+        "surface-dim": "#cbdbf5",
+        "surface-container-low": "#eff4ff",
+        "on-secondary": "#ffffff",
+        "secondary": "#006a61",
+        "primary-container": "#0b5c9e",
+        "outline-variant": "#c1c7d2",
+        "on-tertiary": "#ffffff",
+        "secondary-fixed": "#89f5e7",
+        "secondary-fixed-dim": "#6bd8cb",
+        "on-secondary-fixed": "#00201d",
+        "on-primary-fixed": "#001c37",
+        "on-error": "#ffffff",
+        "tertiary": "#2d4365",
+        "inverse-surface": "#213145",
+        "error": "#ba1a1a"
+      },
+      "borderRadius": {
+        "DEFAULT": "0.25rem",
+        "lg": "0.5rem",
+        "xl": "0.75rem",
+        "full": "9999px"
+      },
+      "spacing": {
+        "space-xs": "0.25rem",
+        "margin-lg": "3rem",
+        "space-sm": "0.5rem",
+        "gutter-lg": "2rem",
+        "margin-md": "2rem",
+        "gutter": "1rem",
+        "space-xl": "2.5rem",
+        "margin": "1rem",
+        "space-lg": "1.5rem",
+        "space-md": "1rem",
+        "gutter-md": "1.5rem"
+      },
+      "fontFamily": {
+        "label-md": ["Plus Jakarta Sans"],
+        "headline-sm": ["Plus Jakarta Sans"],
+        "body-sm": ["Plus Jakarta Sans"],
+        "headline-lg-mobile": ["Plus Jakarta Sans"],
+        "label-sm": ["Plus Jakarta Sans"],
+        "label-lg": ["Plus Jakarta Sans"],
+        "body-lg": ["Plus Jakarta Sans"],
+        "headline-lg": ["Plus Jakarta Sans"],
+        "body-md": ["Plus Jakarta Sans"],
+        "headline-xl-mobile": ["Plus Jakarta Sans"],
+        "headline-xl": ["Plus Jakarta Sans"],
+        "headline-md": ["Plus Jakarta Sans"]
+      },
+      "fontSize": {
+        "label-md": ["0.8125rem", {"lineHeight": "1.125rem", "letterSpacing": "0.02em", "fontWeight": "600"}],
+        "headline-sm": ["1.125rem", {"lineHeight": "1.5rem", "fontWeight": "600"}],
+        "body-sm": ["0.875rem", {"lineHeight": "1.25rem", "fontWeight": "400"}],
+        "headline-lg-mobile": ["1.375rem", {"lineHeight": "1.875rem", "letterSpacing": "0", "fontWeight": "600"}],
+        "label-sm": ["0.6875rem", {"lineHeight": "1rem", "letterSpacing": "0.04em", "fontWeight": "700"}],
+        "label-lg": ["0.9375rem", {"lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "600"}],
+        "body-lg": ["1.125rem", {"lineHeight": "1.75rem", "fontWeight": "400"}],
+        "headline-lg": ["1.75rem", {"lineHeight": "2.25rem", "letterSpacing": "-0.015em", "fontWeight": "700"}],
+        "body-md": ["1rem", {"lineHeight": "1.5rem", "fontWeight": "400"}],
+        "headline-xl-mobile": ["1.75rem", {"lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+        "headline-xl": ["2.25rem", {"lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+        "headline-md": ["1.25rem", {"lineHeight": "1.75rem", "fontWeight": "600"}]
+      }
+    }
+  }
+}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.06)]"><div class="h-20 max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><img alt="Logo Médic'Trans Martinique" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-primary tracking-tight">Médic'Trans</span><span class="font-label-sm text-label-sm text-secondary -mt-1">Martinique 972</span></div></div><nav class="hidden xl:flex items-center gap-space-sm" data-active-classes="bg-primary-container text-on-primary font-bold rounded-lg"><a class="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="accueil-presentation" href="#">Accueil &amp; Présentation</a><a class="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="reserver-un-transport" href="#">Réserver un transport</a><a class="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="mes-demandes" href="#">Mes Demandes</a><a class="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="espace-transporteurs" href="#">Espace Transporteurs</a></nav><div class="flex items-center gap-space-md shrink-0"><div class="hidden md:flex flex-col items-end"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span><span class="font-label-sm text-label-sm text-secondary">Disponible 24/7</span></div><span class="font-label-lg text-label-lg text-primary tracking-tight">05 96 72 00 97</span></div><div class="flex items-center gap-space-sm pl-space-sm"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4Ou_gXxYmMgUKkBpcflANalR_XKHPbHvwsPitIeGO2reHkEGUG103yn97linWcTa61QoMJdDmse0trP1AsufCLlho-yPDuOCqGLeBIVIZT_4DcmQXvYxyG73gclmKMBKdOVXjuBC04Hbop4SaJBiiXnbo_czHLOTKWDm5awphPacifmkMZm_j6Q0sy9g4tnTUta-Q64hDr91Qxby1dLSFHY54zcb_dLnGHO7YAxbylb9SwBxtqB6y"><div class="hidden lg:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface leading-none">Coord. Clinique</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-none mt-1">CHU P. Zobda-Quitman</span></div></div></div></div></header><main class="w-full pt-20 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Dynamic Atmospheric Hero & Express Booking Engine -->
+<section class="relative w-full overflow-hidden bg-surface-container-lowest py-space-xl">
+<!-- Atmospheric ambient light circles -->
+<div class="absolute -top-36 -right-24 w-96 h-96 rounded-full bg-surface-variant/40 blur-3xl pointer-events-none"></div>
+<div class="absolute top-1/2 -left-32 w-80 h-80 rounded-full bg-secondary-container/30 blur-3xl pointer-events-none"></div>
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg relative z-10">
+<!-- Top Badges & Heading Hierarchy -->
+<div class="flex flex-col items-center text-center max-w-3xl mx-auto mb-space-xl">
+
+<h1 class="font-headline-xl text-headline-xl text-primary tracking-tight mb-space-sm">
+          Votre transport médicalisé en Martinique, réservé en toute sérénité.
+        </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+          Service conçu pour les patients, proches aidants et équipes soignantes.</p>
+<!-- Quick island metrics counter bar -->
+<div class="flex items-center flex-wrap justify-center gap-space-lg mt-space-md text-on-surface-variant font-label-md text-label-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: &quot;FILL&quot; 1;">verified_user</span>
+<span class="">85+ Transporteurs Certifiés</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: &quot;FILL&quot; 1;">local_hospital</span>
+<span class="">Tous Établissements 972</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: &quot;FILL&quot; 1;">schedule</span>
+<span class="">Régulation 24h/24 &amp; 7j/7</span>
+</div>
+</div>
+</div>
+<!-- Main Express Reservation Bento Card -->
+<div class="w-full max-w-4xl mx-auto bg-surface-container-lowest rounded-xl shadow-xl p-space-md md:p-space-xl">
+<div class="flex items-center justify-between pb-space-md mb-space-md bg-surface-container-low -mx-space-md md:-mx-space-xl -mt-space-md md:-mt-space-xl px-space-md md:px-space-xl pt-space-md md:pt-space-md rounded-t-xl">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined">speed</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm text-primary block">Réservation Express de Transport</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Prise en charge directe avec prescription médicale (PMT)</span>
+</div>
+</div>
+
+</div>
+<form class="space-y-space-lg" id="expressBookingForm" onsubmit="event.preventDefault(); proceedToStepTwo();">
+<!-- STEP 1: Interactive Transport Mode Selector -->
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-space-xs">
+<span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm flex items-center justify-center">1</span>
+                Sélectionnez le mode de transport prescrit
+              </label>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Indiqué sur le volet 1 de votre bon</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md" id="transportSelectorGroup">
+<!-- Option 1: Taxi conventionné (Selected by default) -->
+<div class="transport-option-card relative cursor-pointer p-space-md rounded-xl transition-all duration-200 bg-surface-container-low ring-2 ring-primary-container shadow-sm hover:shadow-md" onclick="selectTransportMode('taxi', this)">
+<div class="badge-selected absolute top-3 right-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-on-secondary shadow-sm">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-space-sm">
+<span class="material-symbols-outlined text-2xl">local_taxi</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-1">Taxi Conventionné</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">
+  Patient autonome pouvant voyager assis. Transport médicalisé sans brancard.
+</p>
+<div class="flex items-center gap-1.5 pt-space-xs text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base">verified</span>
+<span class="">Patient autonome</span>
+</div>
+</div>
+<!-- Option 2: VSL -->
+<div class="transport-option-card relative cursor-pointer p-space-md rounded-xl transition-all duration-200 bg-surface-container-lowest shadow-sm hover:shadow-md" onclick="selectTransportMode('vsl', this)">
+<div class="badge-selected hidden absolute top-3 right-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-on-secondary shadow-sm">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary mb-space-sm">
+<span class="material-symbols-outlined text-2xl">airport_shuttle</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-1">VSL (Sanitaire Léger)</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">
+                  Transport assis professionnalisé, aide à la marche et accompagnement soignant.
+                </p>
+<div class="flex items-center gap-1.5 pt-space-xs text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base">verified</span>
+<span class="">Aide au transfert</span>
+</div>
+</div>
+<!-- Option 3: Ambulance -->
+<div class="transport-option-card relative cursor-pointer p-space-md rounded-xl transition-all duration-200 bg-surface-container-lowest shadow-sm hover:shadow-md" onclick="selectTransportMode('ambulance', this)">
+<div class="badge-selected hidden absolute top-3 right-3 w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-on-secondary shadow-sm">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<div class="w-12 h-12 rounded-lg bg-error-container flex items-center justify-center text-error mb-space-sm">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">emergency</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-1">Ambulance</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">
+                  Position allongée ou demi-assise, surveillance paramédicale continue &amp; brancardage.
+                </p>
+<div class="flex items-center gap-1.5 pt-space-xs text-error font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base">health_and_safety</span>
+<span class="">Surveillance requise</span>
+</div>
+</div>
+</div>
+<input id="selectedTransportType" type="hidden" value="taxi">
+</div>
+<!-- STEP 2: Trajectory & Timings Form Fields -->
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-space-xs">
+<span class="w-6 h-6 rounded-full bg-primary text-on-primary font-label-sm text-label-sm flex items-center justify-center">2</span>
+                Détails du trajet &amp; Établissement
+              </label>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Martinique 972</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- Départ -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="pickupAddress">
+<span class="material-symbols-outlined text-base text-primary">my_location</span>
+                  Lieu de prise en charge (Départ)
+                </label>
+<div class="relative">
+<input class="w-full h-12 px-4 rounded-lg bg-surface-container-lowest text-on-surface placeholder:text-outline font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" id="pickupAddress" placeholder="Ex: 14 Rue des Flamboyants, Le Lamentin..." required="" type="text">
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-secondary transition-colors" onclick="useGeolocation()" title="Utiliser ma position actuelle" type="button">
+<span class="material-symbols-outlined text-xl">near_me</span>
+</button>
+</div>
+<div class="flex gap-1.5 flex-wrap">
+<button class="px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant" onclick="fillPickup('Le Lamentin')" type="button">Le Lamentin</button>
+<button class="px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant" onclick="fillPickup('Fort-de-France Centre')" type="button">Fort-de-France</button>
+<button class="px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant" onclick="fillPickup('Schoelcher')" type="button">Schoelcher</button>
+<button class="px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant" onclick="fillPickup('Le Marin')" type="button">Le Marin</button>
+</div>
+</div>
+<!-- Destination: Hospital Pre-filled Menu -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="destinationFacility">
+<span class="material-symbols-outlined text-base text-secondary">domain</span>
+                  Établissement de soins de destination
+                </label>
+<div class="relative">
+<select class="w-full h-12 px-4 pr-10 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm appearance-none" id="destinationFacility" required="">
+<option disabled="" selected="" value="">Sélectionnez un hôpital, clinique ou centre...</option>
+<optgroup label="CHU &amp; Hôpitaux Publics">
+<option value="CHU Fort-de-France (P. Zobda-Quitman)">CHU de Martinique - P. Zobda-Quitman (FDF)</option>
+<option value="Hôpital Louis Domergue (Trinité)">Hôpital Louis Domergue (La Trinité)</option>
+<option value="Hôpital Albert Clarac (Fort-de-France)">Hôpital Albert Clarac (Fort-de-France)</option>
+<option value="Centre Hospitalier de Saint-Pierre">Centre Hospitalier de Saint-Pierre</option>
+<option value="Hôpital de Proximité du Marin">Hôpital de Proximité (Le Marin)</option>
+<option value="Hôpital d'Instruction des Armées">Centre Médical Armées (Clairière)</option>
+</optgroup>
+<optgroup label="Cliniques &amp; Centres Spécialisés">
+<option value="Clinique Sainte-Marie (Schoelcher)">Clinique Sainte-Marie (Schoelcher)</option>
+<option value="Clinique Saint-Paul (Clairière)">Clinique Saint-Paul (Clairière FDF)</option>
+<option value="Centre d'Hémodialyse Martinique (Dillon)">Centre d'Hémodialyse AGDUC / Dillon</option>
+<option value="Centre Oncologie &amp; Radiothérapie Clarion">Centre Oncologie Martinique (Clarion)</option>
+<option value="Centre de Rééducation Fonctionnelle La Valériane">CRF La Valériane (Gros-Morne)</option>
+</optgroup>
+<optgroup label="Autre destination">
+<option value="Cabinet Médical Privé">Cabinet Médical / Laboratoire Privé</option>
+<option value="Retour à Domicile">Retour à Domicile (Sortie d'hospitalisation)</option>
+</optgroup>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Accès direct aux zones dépose-minute ambulance &amp; VSL</span>
+</div>
+<!-- Date du Transport -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="transportDate">
+<span class="material-symbols-outlined text-base text-primary">calendar_month</span>
+                  Date du transport
+                </label>
+<input class="w-full h-12 px-4 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm text-center" id="transportDate" required="" type="date">
+</div>
+<!-- Heure souhaitée -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="transportTime">
+<span class="material-symbols-outlined text-base text-primary">schedule</span>
+                  Heure souhaitée sur place
+                </label>
+<input class="w-full h-12 px-4 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm text-center" id="transportTime" required="" type="time" value="09:30">
+</div>
+</div>
+<!-- Aller-Retour Toggle & PMT Check -->
+<div class="mt-space-md bg-surface-container-low rounded-xl p-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+  <div class="flex flex-col sm:flex-row sm:items-center gap-space-md">
+    <span class="font-label-md text-label-md text-on-surface whitespace-nowrap">Type de parcours :</span>
+    <div class="inline-flex items-center p-1 bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant/30 gap-1" role="radiogroup">
+      <label class="flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">
+        <input type="radio" name="tripType" value="aller-simple" class="w-4 h-4 text-primary focus:ring-primary">
+        <span class="">Aller simple</span>
+      </label>
+      <label class="flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer font-label-md text-label-md text-primary font-semibold bg-surface-container transition-colors">
+        <input type="radio" name="tripType" value="aller-retour" checked="" class="w-4 h-4 text-primary focus:ring-primary">
+        <span class="">Aller &amp; Retour</span>
+      </label>
+    </div>
+  </div>
+  <div class="flex items-center gap-2 text-secondary bg-surface-container-lowest px-3 py-2 rounded-lg shadow-sm shrink-0 border border-outline-variant/30 w-fit">
+    <span class="material-symbols-outlined text-xl">description</span>
+    <span class="font-label-sm text-label-sm font-bold">PMT Obligatoire pour Tiers Payant</span>
+  </div>
+</div>
+</div>
+<!-- Action Submission CTA -->
+<div class="pt-space-sm flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+
+
+</div>
+<button class="w-full sm:w-auto px-8 h-14 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-lg text-label-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-space-sm shrink-0" type="submit">
+<span class="">Continuer ma réservation</span>
+<span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</div>
+</form>
+<!-- Dynamic inline booking confirmation preview (hidden initially) -->
+<div class="hidden mt-space-md p-space-md rounded-xl bg-surface-container text-on-surface" id="bookingConfirmationBanner">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-2xl">check_circle</span>
+<div>
+<span class="font-headline-sm text-headline-sm text-primary block">Demande envoyée au réseau de Martinique !</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Attribution du chauffeur en cours. Un SMS de confirmation avec suivi vous a été envoyé.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Reassurance Trust Banner: 100% CPAM & Réseau 972 -->
+<section class="w-full bg-surface-container py-space-lg">
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<div class="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">100% Prise en Charge</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tiers payant intégral avec votre Prescription Médicale (PMT) &amp; ALD.</p>
+</div>
+</div>
+<div class="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined">verified</span>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">Conventionné CPAM</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sécurité Sociale Martinique (CGSS 972) et mutuelles complémentaires.</p>
+</div>
+</div>
+<div class="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container shrink-0">
+<span class="material-symbols-outlined">local_shipping</span>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">85+ Véhicules Actifs</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Flotte couvrant le Nord Caraïbe, Grand Sud, Centre et Atlantique.</p>
+</div>
+</div>
+<div class="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined">support_agent</span>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">Régulateurs Locaux</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Plateforme d'écoute basée en Martinique disponible au 05 96 72 00 97.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3 Étapes Simples -->
+<section class="w-full bg-surface-container-lowest py-space-xl">
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+<div class="text-center max-w-2xl mx-auto mb-space-xl">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-bold">Processus Transparent</span>
+<h2 class="font-headline-lg text-headline-lg text-primary mt-space-xs">
+          Comment ça marche en 3 étapes simples ?
+        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-xs">
+          Une régulation fluide pensée pour vous épargner des heures d'appels téléphoniques aux compagnies d'ambulances.
+        </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-xl relative">
+<!-- Step 1 -->
+<div class="relative bg-surface-container-low rounded-xl p-space-lg flex flex-col shadow-sm">
+<div class="w-12 h-12 rounded-full bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-md">
+            1
+          </div>
+<div class="h-40 rounded-lg overflow-hidden mb-space-md bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A close up photo of a medical transport prescription document on a clean desk with a pen and a smartphone showing a healthcare reservation application, soft warm lighting, professional medical atmosphere with blue tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXTKD_vfkQgLrsf11LAi1kGVyZtORo3EMxwBd-T_cPKAsMVn7PDUy7OqIQrXhbnSTnE9E6HTFz7MSySXCWfQsjp7Tw5u-ouGpNuUO492agDIGSzEc5wHKUsjByyFfN5LewCQ2VAzGRU3kXHh1w8ROdwLhWcvyC3Atq7eoJzAer1IOp1xCUM06Ruu-PYC1ArhaP8nDidm5xjwORqbihRxJ4RTWK11O-gsogUO08PcDRd5KEXDUG8Hb1">
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-space-xs">
+            1. Réservez en ligne avec votre bon
+          </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">
+            Renseignez votre trajet et le type de transport indiqué sur votre Prescription Médicale de Transport (PMT) délivrée par votre médecin.
+          </p>
+<div class="mt-auto flex items-center gap-2 text-primary font-label-sm text-label-sm">
+
+
+</div>
+</div>
+<!-- Step 2 -->
+<div class="relative bg-surface-container-low rounded-xl p-space-lg flex flex-col shadow-sm">
+<div class="w-12 h-12 rounded-full bg-secondary text-on-secondary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-md">
+            2
+          </div>
+<div class="h-40 rounded-lg overflow-hidden mb-space-md bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A modern ambulance fleet dispatcher in Martinique reviewing dispatch coordinates on digital tablets, showing Caribbean transport logistics network with teal and deep blue ambient light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHJ4vXSG4Qc-8m5IOcvtvP7revA6HklNoPuchvrobCVW8rrjUn5q3Fizdf5IOorU6kTRhMfQjaX0Vg1sGmwsmcyhJjz0CrZtm1aZ_HWE-vcldJKPS7ZTw8Vx1SLhFjPJdOL0PvxaO5sms6teZMkH7uCVpkF5_NEg7Et9x6dLqLofnEkUKxhvlrixQQOZOJRfrJBESuypmsnyBuwiYh9HAuOSXwvDNOcU9MjHlFXkcQ5Y_fcdNVM7wH">
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-space-xs">
+            2. Diffusion instantanée aux transporteurs
+          </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">
+            Votre demande est diffusée en direct aux taxis conventionnés, VSL et ambulances certifiés de votre commune et de toute l'île.
+          </p>
+
+</div>
+<!-- Step 3 -->
+<div class="relative bg-surface-container-low rounded-xl p-space-lg flex flex-col shadow-sm">
+<div class="w-12 h-12 rounded-full bg-tertiary text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-md">
+            3
+          </div>
+<div class="h-40 rounded-lg overflow-hidden mb-space-md bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A smiling professional paramedic and medical taxi driver helping an elderly patient comfortably enter a modern, clean sanitized vehicle in Fort-de-France Martinique, sunny day, respectful clinical care." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7d3eJkD--pSELNnYFOOubgpRGMCkMVFxcaPkLUVzj16gMeeBZWkxgpqiCN-mXVWUT86ZK30YOTVBml9Z4ML_cp3n9Vxlryysvg28kZp5Ah-p6C8zFSfp_0-dhRB4z8RYlNvOfwhr-CCIB3lDZFBcDixbhFPXeXEHDKjbaMrt-1us0Q7M2r2nm9q95NmmZ5uE3xXNGeHeWULUzws3ioHmWYTDGdAHWWXELzOTBkbmmsvgc2tsb8nZR">
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-space-xs">
+            3. Confirmation &amp; Suivi en temps réel
+          </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">
+            Dès l'acceptation, recevez le nom de votre chauffeur, son immatriculation, son heure d'arrivée et un lien de suivi GPS pour les proches.
+          </p>
+<div class="mt-auto flex items-center gap-2 text-tertiary font-label-sm text-label-sm">
+
+
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Map & Territory Coverage Preview -->
+<section class="w-full bg-surface-container py-space-xl">
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
+<!-- Left: Contextual Text -->
+<div class="lg:col-span-5 flex flex-col gap-space-sm">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high w-fit">
+<span class="material-symbols-outlined text-secondary text-base">travel_explore</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Territoire 100% Couvert</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">
+            De Grand'Rivière à Sainte-Anne, une régulation sans zone blanche.
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Grâce à notre maillage territorial coordonné avec les groupements de taxis sanitaires et les compagnies ambulancières conventionnées, nous réduisons les temps d'approche même dans les communes du Nord montagneux ou les zones isolées du Sud.
+          </p>
+<div class="grid grid-cols-2 gap-space-sm mt-space-sm">
+<div class="bg-surface-container-lowest p-space-sm rounded-lg shadow-sm">
+<span class="font-headline-md text-headline-md text-primary block">34</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Communes de Martinique desservies</span>
+</div>
+<div class="bg-surface-container-lowest p-space-sm rounded-lg shadow-sm">
+<span class="font-headline-md text-headline-md text-secondary block">&lt; 15 min</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Délai d'approche moyen en agglomération</span>
+</div>
+</div>
+<div class="mt-space-md">
+<a class="inline-flex items-center gap-2 font-label-md text-label-md text-primary hover:text-primary-container transition-colors" href="#">
+
+
+</a>
+</div>
+</div>
+<!-- Right: Map visual component with static map attributes -->
+<div class="lg:col-span-7 relative">
+<div class="w-full h-96 rounded-xl overflow-hidden shadow-lg relative bg-surface-container-highest" data-location="Fort-de-France, Martinique" style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuABPP2vrwu6FK4n5k_ki2JdlVlYG5KiMfnUBVajli3iLbWHF_U5__2RsH_lSRE24bUe73u14-BTNzhgLAz7Nlhte6mBElJ7_OnoGhJLzW27Nji7gS4IizISc_KCopj1kFl79W1fVKlLwPm_jYex398XgIUv3wLgXEbthx8AZpZdlywses5_2CgY_ACAjghLO2xFL9qYEmNy5rYLXoiBtpcV5rrmGiD4OUmp_xgP_01HdmeQVnz4Q6vD&quot;);">
+<!-- Map floating overlay status pins -->
+<div class="absolute inset-0 bg-primary/10 backdrop-blur-[1px] pointer-events-none"></div>
+<div class="absolute top-4 left-4 bg-surface-container-lowest/95 backdrop-blur-md px-3 py-2 rounded-lg shadow-md flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary animate-ping"></span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">Régulation CHU Pierre Zobda-Quitman : Active</span>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Hospital Personnel & Healthcare Professionals Dedicated Section -->
+<section class="w-full bg-primary py-space-xl text-on-primary">
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
+<div class="lg:col-span-7 flex flex-col gap-space-md">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm w-fit">
+<span class="material-symbols-outlined text-sm">badge</span>
+<span class="">Espace Professionnels de Santé</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl tracking-tight text-on-primary">
+            Cadres de santé, médecins, secrétariats : automatisez vos sorties d'hospitalisation.
+          </h2>
+<p class="font-body-lg text-body-lg text-on-primary-container">
+            Gagnez un temps soignant précieux. Finis les multiples coups de fil pour trouver une ambulance disponible. Programmez les départs simples ou réguliers en moins de 60 secondes depuis votre poste de soins.
+          </p>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md mt-space-sm">
+<div class="bg-primary-container/40 p-space-sm rounded-lg backdrop-blur-sm">
+<span class="material-symbols-outlined text-secondary-fixed text-2xl mb-1">domain_verification</span>
+<h4 class="font-label-md text-label-md font-bold mb-1">Bordereau Hospitalier</h4>
+<p class="font-body-sm text-body-sm text-on-primary-container">Rapprochement automatique des prescriptions et bons de transport.</p>
+</div>
+<div class="bg-primary-container/40 p-space-sm rounded-lg backdrop-blur-sm">
+<span class="material-symbols-outlined text-secondary-fixed text-2xl mb-1">alarm_on</span>
+<h4 class="font-label-md text-label-md font-bold mb-1">Priorités Sorties de Lit</h4>
+<p class="font-body-sm text-body-sm text-on-primary-container">Fluidifiez le turn-over de vos lits d'hospitalisation aiguë.</p>
+</div>
+<div class="bg-primary-container/40 p-space-sm rounded-lg backdrop-blur-sm"><div class="flex items-center justify-between mb-1"><span class="material-symbols-outlined text-secondary-fixed text-2xl">security</span><span class="px-2 py-0.5 rounded-full bg-secondary-container/30 text-secondary-fixed font-label-sm text-label-sm">Bientôt disponible</span></div><h4 class="font-label-md text-label-md font-bold mb-1">Connexion Pro Santé</h4><p class="font-body-sm text-body-sm text-on-primary-container">Bientôt disponible · Accès sécurisé par carte CPS, e-CPS ou identifiant certifié CHU.</p></div>
+</div>
+<div class="flex flex-wrap items-center gap-space-md mt-space-sm">
+<a class="px-6 h-12 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors flex items-center gap-2 shadow-sm" href="#">
+<span class="material-symbols-outlined">login</span>
+<span class="">Connexion Portail Établissements</span>
+</a>
+<a class="px-6 h-12 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2" href="#">
+<span class="">Demander une démonstration de service</span>
+</a>
+</div>
+</div>
+<div class="lg:col-span-5">
+<div class="bg-surface-container-lowest text-on-surface p-space-lg rounded-2xl shadow-xl flex flex-col gap-space-md">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Portrait of a female hospital coordination nurse in Fort-de-France Martinique, wearing a medical uniform and warm confident professional smile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDonXDAsgTKFttVu8Jvg6cjdq1YFOPmLCEH7_FjNbUEhHXieLU5Ul5ttpqDeUrL5PRttxIU-kKblowqbLOehH3xyaEdQK2gkfLU7aFBMvQktSrRjpkTEBjmXatjW1EjzAdpLNftM4xBveiNP4GEsl4PqIPR-l0YtrjusGkIQELQaXTS4wA7HNuhJygD2dQgiiZryMD4J5XKIVNPT_SY5-ldpKmi9F0IkLPHylbBO9WNf1PxBjjXPTn9">
+<div>
+<span class="font-label-lg text-label-lg text-primary block">Mme C. Almont</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Cadre de Santé - Service Néphrologie, CHU</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant italic">
+              “Médic'Trans a transformé notre gestion des transports dialyse. Nos patients ne patientent plus des heures dans les couloirs du centre, et notre équipe consacre son temps aux soins plutôt qu'aux recherches d'ambulances.”
+            </p>
+<div class="flex items-center justify-between pt-space-sm bg-surface-container-low rounded-lg p-3">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Indice de satisfaction CHU</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold">98.4%</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-3xl">star</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Community Testimonials & Patient Feedback -->
+<section class="w-full bg-surface py-space-xl">
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+<div class="text-center max-w-xl mx-auto mb-space-xl">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-secondary font-bold">La Voix des Usagers</span>
+<h2 class="font-headline-lg text-headline-lg text-primary mt-space-xs">
+          Ils voyagent sereinement avec Médic'Trans
+        </h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+<!-- Review 1 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              “Maman doit se rendre 3 fois par semaine en radiothérapie à Clarion. Les chauffeurs de taxi conventionné sont toujours à l'heure, bienveillants et l'aident jusqu'à la porte du cabinet.”
+            </p>
+</div>
+<div class="flex items-center gap-3 mt-space-md pt-space-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary">
+              JL
+            </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Jean-Luc B.</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Aidant familial · Sainte-Luce</span>
+</div>
+</div>
+</div>
+<!-- Review 2 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              “J'avais une appréhension pour mon retour d'opération de la hanche à Sainte-Marie. L'ambulance est arrivée avec des ambulanciers très doux, brancardage impeccable au troisième étage sans ascenseur.”
+            </p>
+</div>
+<div class="flex items-center gap-3 mt-space-md pt-space-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary">
+              MV
+            </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Marie-Victoire T.</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Patiente hospitalisée · Schoelcher</span>
+</div>
+</div>
+</div>
+<!-- Review 3 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: &quot;FILL&quot; 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              “En tant que chauffeur de taxi conventionné indépendant au Lamentin, la plateforme me permet d'optimiser mes trajets quotidiens sans paperasse inutile. Tout est clair et réglé en tiers-payant.”
+            </p>
+</div>
+<div class="flex items-center gap-3 mt-space-md pt-space-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-secondary">
+              PT
+            </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Patrice T.</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Artisan Taxi Conventionné · Le Lamentin</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Emergency Dispatch Alert Callout -->
+<section class="w-full bg-surface-container-lowest py-space-xl">
+<div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+<div class="bg-gradient-to-r from-surface-container-low to-surface-container p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-14 h-14 rounded-full bg-error text-on-error flex items-center justify-center shrink-0 shadow-md">
+<span class="material-symbols-outlined text-3xl">phone_in_talk</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Besoin d'une prise en charge urgente non-programmée ?</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Pour toute urgence vitale, contactez immédiatement le SAMU Centre 15. Pour un transfert inter-hospitalier urgent régulé, notre ligne dédiée répond 24/7.</p>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-space-sm shrink-0 w-full md:w-auto">
+<a class="w-full sm:w-auto px-6 h-12 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm transition-all" href="tel:0596720097">
+<span class="material-symbols-outlined">call</span>
+<span class="">05 96 72 00 97</span>
+</a>
+<a class="w-full sm:w-auto px-6 h-12 rounded-lg bg-error hover:bg-error/90 text-on-error font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm transition-all" href="tel:15">
+<span class="material-symbols-outlined">emergency</span>
+<span class="">Composer le 15 (SAMU)</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+</div>
+<script>
+  // Dynamic Transport Selection Logic
+  function selectTransportMode(type, cardElement) {
+    document.getElementById('selectedTransportType').value = type;
+    
+    // Reset all cards
+    const cards = document.querySelectorAll('.transport-option-card');
+    cards.forEach(card => {
+      card.classList.remove('bg-surface-container-low', 'ring-2', 'ring-primary-container');
+      card.classList.add('bg-surface-container-lowest');
+      const badge = card.querySelector('.badge-selected');
+      if (badge) badge.classList.add('hidden');
+    });
+
+    // Highlight selected card
+    cardElement.classList.remove('bg-surface-container-lowest');
+    cardElement.classList.add('bg-surface-container-low', 'ring-2', 'ring-primary-container');
+    const activeBadge = cardElement.querySelector('.badge-selected');
+    if (activeBadge) activeBadge.classList.remove('hidden');
+  }
+
+  // Quick fill helper for departure
+  function fillPickup(city) {
+    const input = document.getElementById('pickupAddress');
+    if (input) {
+      input.value = city + ', Martinique';
+      input.focus();
+    }
+  }
+
+  // Geolocation micro-action
+  function useGeolocation() {
+    const input = document.getElementById('pickupAddress');
+    if (input) {
+      input.value = "Localisation en cours...";
+      setTimeout(() => {
+        input.value = "12 Boulevard de la Marne, Fort-de-France (Position actuelle)";
+      }, 600);
+    }
+  }
+
+  // Pre-set default transport date to tomorrow
+  (function initDate() {
+    const dateInput = document.getElementById('transportDate');
+    if (dateInput) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      dateInput.value = tomorrow.toISOString().split('T')[0];
+    }
+    const timeInput = document.getElementById('transportTime');
+    if (timeInput) {
+      timeInput.value = "09:30";
+    }
+  })();
+
+  // Mock proceed step
+  function proceedToStepTwo() {
+    const banner = document.getElementById('bookingConfirmationBanner');
+    if (banner) {
+      banner.classList.remove('hidden');
+      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+</script></main><footer class="w-full bg-surface-container-low mt-space-xl"><div class="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-xl mb-space-xl"><div class="flex flex-col gap-space-sm"><div class="flex items-center gap-space-sm mb-space-xs"><span class="font-headline-sm text-headline-sm text-primary">Médic'Trans Martinique</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">Plateforme d'intermédiation et de régulation du transport sanitaire conventionné pour toute la Martinique.</p><div class="flex flex-col gap-space-xs mt-space-xs"><span class="font-label-md text-label-md text-on-surface"><br></span><span class="font-body-sm text-body-sm text-on-surface-variant"><br></span><span class="font-body-sm text-body-sm text-on-surface-variant"><br></span></div></div><div class="flex flex-col gap-space-sm"><span class="font-label-lg text-label-lg text-on-surface">Établissements Desservis</span><ul class="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><li class="">CHU de Martinique (P. Zobda-Quitman) - Fort-de-France</li><li class="">Hôpital Louis Domergue - La Trinité</li><li class="">Hôpital Pierre Zobda-Quitman &amp; EHPAD - Le Lamentin</li><li class="">Centre Hospitalier de Saint-Pierre</li><li class="">Hôpital de Proximité - Le Marin</li><li class="">Clinique Sainte-Marie - Schoelcher</li></ul></div><div class="flex flex-col gap-space-sm"><span class="font-label-lg text-label-lg text-on-surface">Services Sanitaires</span><ul class="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><li class="">Ambulances conventionnées (Position allongée/soins)</li><li class="">VSL (Véhicule Sanitaire Léger)</li><li class="">Taxi Conventionné CPAM Martinique</li><li class="">Urgences relatives et rapatriements inter-îles</li><li class="">Transports ALD &amp; Séances régulières (Dialyse, Onco)</li></ul></div><div class="flex flex-col gap-space-sm"><span class="font-label-lg text-label-lg text-on-surface">Assistance &amp; Régulation</span><p class="font-body-sm text-body-sm text-on-surface-variant">Permanence d'accès aux soins et transfert médicalisé 24h/24 et 7j/7.</p><span class="font-headline-sm text-headline-sm text-primary">05 96 72 00 97</span><span class="font-body-sm text-body-sm text-on-surface-variant">regulation@medtrans-mq.fr</span><span class="font-body-sm text-body-sm text-on-surface-variant">Région Martinique (972)</span></div></div><div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><span class="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. Mentions légales</span></div></div></footer>
+
+
+
+</body></html>
