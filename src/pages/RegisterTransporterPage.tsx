@@ -1,260 +1,590 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Truck, 
-  ShieldCheck, 
-  FileText, 
-  CheckCircle2, 
-  ArrowRight, 
-  ArrowLeft, 
-  Building2, 
-  Car, 
-  Ambulance, 
-  Upload 
-} from 'lucide-react';
-import { CommuneSelect } from '../components/CommuneSelect';
 
 export const RegisterTransporterPage: React.FC = () => {
   const navigate = useNavigate();
-  const [submitted, setSubmitted] = useState(false);
 
-  // Form states
-  const [companyName, setCompanyName] = useState('');
-  const [siret, setSiret] = useState('');
-  const [arsLicense, setArsLicense] = useState('');
-  const [cpamNumber, setCpamNumber] = useState('');
-  const [city, setCity] = useState('Le Lamentin');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [fleetAmbulances, setFleetAmbulances] = useState(2);
-  const [fleetVsl, setFleetVsl] = useState(4);
-  const [fleetTaxis, setFleetTaxis] = useState(1);
+  useEffect(() => {
+    window.scrollTo(0, 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
+    // Form submissions
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (window.location.pathname === '/') {
+          navigate('/reserver');
+        } else if (window.location.pathname === '/reserver') {
+          navigate('/confirmation/MT-972-8821');
+        } else if (window.location.pathname.startsWith('/inscription')) {
+          alert("Votre dossier a bien été soumis à la régulation Médic'Trans 972.");
+          navigate('/');
+        }
+      });
+    });
+
+    // Button navigation shortcuts
+    document.querySelectorAll('button').forEach(btn => {
+      const text = btn.textContent || '';
+      if (text.includes('Étape 2') || text.includes('Continuer vers') || text.includes('Continuer ma réservation')) {
+        btn.addEventListener('click', () => navigate('/reserver'));
+      } else if (text.includes('Confirmer') || text.includes('Valider la demande') || text.includes('Valider la réservation')) {
+        btn.addEventListener('click', () => navigate('/confirmation/MT-972-8821'));
+      } else if (text.includes('Suivi') || text.includes('Suivre')) {
+        btn.addEventListener('click', () => navigate('/suivi'));
+      }
+    });
+  }, [navigate]);
 
   return (
-    <div className="bg-surface py-10">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        
-        <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-primary transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Retour à l'accueil
-        </Link>
+    <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
+      <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="h-20 max-w-[1280px] mx-auto px-margin lg:px-margin-lg flex items-center justify-between gap-gutter"><div className="flex items-center gap-space-sm"><img alt="Brand logo. - Primary color: #0b5c9e
+- Font: plusJakartaSans
+- Mode: light
+- Roundness: rounded-md
+" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><div className="flex flex-col"><span className="font-headline-sm text-headline-sm text-primary tracking-tight">Médic'Trans <span className="text-secondary">972</span></span><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Martinique Santé</span></div></div><nav className="hidden xl:flex items-center gap-space-sm" data-active-classes="bg-primary-container text-on-primary font-label-md rounded-lg"><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="accueil" to="/">Accueil</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="reserver" to="/reserver">Réserver</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="suivi-des-demandes" to="/suivi">Suivi des demandes</Link><Link aria-current="page" className="px-space-sm py-space-xs transition-colors bg-primary-container text-on-primary font-label-md rounded-lg" data-path="transporteurs-partenaires" to="/transporteurs">Transporteurs</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="etablissements-de-sante" to="/etablissements">Établissements de santé</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="droits-cpam" to="/droits-cpam">Droits CPAM</Link></nav><div className="flex items-center gap-space-md"><div className="hidden sm:flex items-center gap-space-xs bg-secondary-container/30 px-space-sm py-space-xs rounded-full"><span className="material-symbols-outlined text-secondary text-sm">support_agent</span><span className="font-label-sm text-label-sm text-on-secondary-container">Coordination 972</span></div><a className="flex items-center justify-center px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container hover:text-on-primary transition-colors shadow-[0_1px_3px_rgba(11,37,69,0.05)]" data-path="connexion" href="#">Connexion / Inscription</a><img alt="Profile" className="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1X2YA9RgvL3D8j-HMWVDW68IqlJvZuHDfkgLowkQ2bCiu-vTE0hjy2_vMPyH6btVnFPHqXHU5OMPILuQzBeLmuPP38I1DBdGlYkjhKuwhc50KzYsG3aC14uH2gedrKv4smQqB7xs0Hf1oio4tLtzfKCfYwr5WYtWu4AKSTEBX7wGufC653RKL5_r6n6fv8JY5CsvfTKvvWtYV2fSfIyp8um4rDnKxsk3Fh_lXEJCJwow3LIXBupq14MRZk" /></div></div></header><main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
 
-        {submitted ? (
-          <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-10 h-10" />
+<div className="w-full bg-surface-container-high px-margin lg:px-margin-lg py-space-sm text-on-surface">
+<div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-xs">
+<div className="flex items-center gap-space-xs">
+<span className="material-symbols-outlined text-secondary text-sm">verified_user</span>
+<span className="font-label-sm text-label-sm">Protocole Régional 972 : Déploiement du guichet unique inter-établissements CHU Martinique &amp; Cliniques Conventionnées</span>
+</div>
+<div className="flex items-center gap-space-md text-on-surface-variant font-label-sm text-label-sm">
+<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-secondary inline-block"></span> Serveur HDS Certifié</span>
+<span className="hidden md:inline">|</span>
+<span className="hidden md:inline">Contact Régulateur : 05 96 42 12 12</span>
+</div>
+</div>
+</div>
+
+<section className="w-full bg-surface-container-lowest shadow-sm">
+<div className="max-w-[1280px] mx-auto px-margin lg:px-margin-lg py-space-xl">
+<div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-lg">
+<div className="flex flex-col gap-space-xs max-w-3xl">
+<div className="inline-flex items-center gap-space-xs bg-secondary-container/40 text-on-secondary-container px-space-sm py-space-xs rounded-full w-fit">
+<span className="material-symbols-outlined text-secondary text-base">local_hospital</span>
+<span className="font-label-sm text-label-sm uppercase tracking-wider">Espace Professionnels du Transport Sanitaire - Martinique (972)</span>
+</div>
+<h1 className="font-headline-xl text-headline-xl text-primary tracking-tight">
+            Devenez Partenaire Médic'Trans 972 : Rejoignez le réseau conventionné
+          </h1>
+<p className="font-body-lg text-body-lg text-on-surface-variant">
+            Accédez aux missions régulées du CHU de Fort-de-France, du Centre Hospitalier de Trinité, des cliniques privées, des EHPAD et aux sorties d'hospitalisation programmées sur l'ensemble du territoire martiniquais.
+          </p>
+</div>
+
+<div className="flex items-center gap-space-md bg-surface-container-low p-space-md rounded-xl">
+<div className="flex flex-col">
+<span className="font-headline-lg text-headline-lg text-primary">340+</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Courses régulées / jour</span>
+</div>
+<div className="w-px h-10 bg-outline-variant/30"></div>
+<div className="flex flex-col">
+<span className="font-headline-lg text-headline-lg text-secondary">24h</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Délai d'instruction ARS/972</span>
+</div>
+</div>
+</div>
+
+<div className="mt-space-xl pt-space-lg bg-surface-container-lowest">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+
+<div className="flex items-center gap-space-sm p-space-sm bg-primary-fixed/30 rounded-lg">
+<div className="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md text-label-md shadow-sm shrink-0">
+              1
             </div>
-            <h1 className="text-2xl font-black text-slate-900">
-              Dossier de Conventionnement Enregistré !
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-              Votre demande d'intégration au réseau Médic'Trans Martinique pour <strong>{companyName}</strong> a été transmise à notre cellule de régulation. Nos équipes vérifieront votre agrément ARS ({arsLicense}) sous 24h ouvrées.
-            </p>
-            <div className="pt-4 flex justify-center gap-4">
-              <Link to="/transporteurs" className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs">
-                Accéder au Dispatch de Démonstration
-              </Link>
+<div className="flex flex-col min-w-0">
+<span className="font-label-md text-label-md text-primary truncate">Société &amp; Agréments</span>
+<span className="font-label-sm text-label-sm text-secondary font-semibold">En cours d'enregistrement</span>
+</div>
+</div>
+
+<div className="flex items-center gap-space-sm p-space-sm bg-surface-container rounded-lg opacity-85">
+<div className="w-9 h-9 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-md text-label-md shrink-0">
+              2
             </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-md space-y-8">
-            <div className="border-b border-slate-100 pb-6 space-y-2">
-              <div className="inline-flex items-center gap-2 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold">
-                <ShieldCheck className="w-4 h-4" />
-                Agrément Médic'Trans 972
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                Devenez Partenaire Médic'Trans Martinique
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Rejoignez le réseau unifié des sociétés d'ambulances et taxis conventionnés de l'île.
-              </p>
+<div className="flex flex-col min-w-0">
+<span className="font-label-md text-label-md text-on-surface truncate">Flotte &amp; Équipements</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Ambulances, VSL, TPMR</span>
+</div>
+</div>
+
+<div className="flex items-center gap-space-sm p-space-sm bg-surface-container rounded-lg opacity-85">
+<div className="w-9 h-9 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-md text-label-md shrink-0">
+              3
             </div>
+<div className="flex flex-col min-w-0">
+<span className="font-label-md text-label-md text-on-surface truncate">Chauffeurs &amp; DEA/CCA</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Permis et cartes pro</span>
+</div>
+</div>
 
-            <form onSubmit={handleSubmit} className="space-y-8 text-xs">
-              
-              {/* Section 1: Identification */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-primary" />
-                  1. Identification de l'Entreprise
-                </h3>
+<div className="flex items-center gap-space-sm p-space-sm bg-surface-container rounded-lg opacity-85">
+<div className="w-9 h-9 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-md text-label-md shrink-0">
+              4
+            </div>
+<div className="flex flex-col min-w-0">
+<span className="font-label-md text-label-md text-on-surface truncate">Pièces &amp; Validation</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Kbis, ARS, CGSS 972</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Raison Sociale *</label>
-                    <input
-                      type="text"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      required
-                      placeholder="Ex: Ambulances Madinina Secours SARL"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs"
-                    />
-                  </div>
+<div className="max-w-[1280px] mx-auto px-margin lg:px-margin-lg py-space-xl w-full">
+<div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-start">
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Numéro SIRET (14 chiffres) *</label>
-                    <input
-                      type="text"
-                      value={siret}
-                      onChange={(e) => setSiret(e.target.value)}
-                      required
-                      placeholder="Ex: 481 294 029 00018"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono"
-                    />
-                  </div>
+<form className="lg:col-span-8 flex flex-col gap-space-xl" id="proRegistrationForm" >
 
-                  <div>
-                    <CommuneSelect
-                      label="Commune du Siège d'Exploitation *"
-                      value={city}
-                      onChange={setCity}
-                      required
-                    />
-                  </div>
+<section className="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-lg">
+<div className="flex items-center gap-space-sm pb-space-xs">
+<div className="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span className="material-symbols-outlined">domain</span>
+</div>
+<div className="flex flex-col">
+<h2 className="font-headline-md text-headline-md text-primary">1. Identification de l'entreprise</h2>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Renseignements légaux enregistrés auprès du greffe et de l'ARS Martinique</span>
+</div>
+</div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Adresse Complète *</label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      required
-                      placeholder="Zone Industrielle, Rue, Bâtiment..."
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs"
-                    />
-                  </div>
+<div className="flex flex-col gap-space-xs md:col-span-2">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="companyName">Raison Sociale / Enseigne commerciale <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="companyName" placeholder="Ex: Ambulances Madinina Secours SARL" required type="text" />
+</div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Téléphone de Régulation H24 *</label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                      placeholder="0596 XX XX XX"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs"
-                    />
-                  </div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="siretNumber">Numéro SIRET (14 chiffres) <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="siretNumber" maxLength={14} placeholder="Ex: 849 201 938 00012" required type="text" />
+</div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Email Professionnel *</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="dispatch@entreprise.mq"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="finessNumber">N° FINESS ou Convention CGSS Martinique <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="finessNumber" placeholder="Ex: 970 401 234" required type="text" />
+</div>
 
-              {/* Section 2: Agréments */}
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-secondary" />
-                  2. Licences d'Exploitation & Agréments ARS
-                </h3>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="apeCode">Code APE / NAF <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="apeCode" placeholder="86.90A (Ambulances) ou 49.32Z" required type="text" value="86.90A" />
+</div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">N° d'Agrément ARS Martinique *</label>
-                    <input
-                      type="text"
-                      value={arsLicense}
-                      onChange={(e) => setArsLicense(e.target.value)}
-                      required
-                      placeholder="Ex: 972-AMB-2021-04"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono"
-                    />
-                  </div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="communeSelect">Commune d'implantation / Garage <span className="text-error">*</span></label>
+<div className="relative">
+<select className="h-11 w-full px-space-sm pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="communeSelect" required>
+<option value="">Sélectionnez la commune...</option>
+<option  value="Fort-de-France">Fort-de-France (97200)</option>
+<option value="Le Lamentin">Le Lamentin (97232)</option>
+<option value="Schoelcher">Schoelcher (97233)</option>
+<option value="Le Robert">Le Robert (97231)</option>
+<option value="Ducos">Ducos (97224)</option>
+<option value="Le François">Le François (97240)</option>
+<option value="La Trinité">La Trinité (97220)</option>
+<option value="Sainte-Marie">Sainte-Marie (97230)</option>
+<option value="Le Marin">Le Marin (97290)</option>
+<option value="Rivière-Salée">Rivière-Salée (97215)</option>
+<option value="Saint-Joseph">Saint-Joseph (97212)</option>
+<option value="Saint-Pierre">Saint-Pierre (97250)</option>
+<option value="Les Trois-Îlets">Les Trois-Îlets (97229)</option>
+<option value="Gros-Morne">Gros-Morne (97213)</option>
+</select>
+<span className="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">N° de Conventionnement CPAM *</label>
-                    <input
-                      type="text"
-                      value={cpamNumber}
-                      onChange={(e) => setCpamNumber(e.target.value)}
-                      required
-                      placeholder="Ex: 972-CPAM-881"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono"
-                    />
-                  </div>
-                </div>
+<div className="flex flex-col gap-space-xs md:col-span-2">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="addressInput">Adresse du siège social / Dépôt des véhicules <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="addressInput" placeholder="Zone Industrielle ou Voie, Code Postal, Commune" required type="text" />
+</div>
 
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center bg-slate-50">
-                  <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                  <div className="font-bold text-slate-700">Déposer copie de l'arrêté d'agrément ARS & Attestation CPAM</div>
-                  <div className="text-[10px] text-slate-500">Formats acceptés : PDF, PNG (Max 10 Mo)</div>
-                </div>
-              </div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="phoneEmergency">Ligne d'astreinte &amp; régulation 24/7 <span className="text-error">*</span></label>
+<div className="relative">
+<input className="h-11 w-full pl-10 pr-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="phoneEmergency" placeholder="05 96 00 00 00" required type="tel" />
+<span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant">phone_in_talk</span>
+</div>
+</div>
 
-              {/* Section 3: Flotte */}
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-primary" />
-                  3. Flotte de Véhicules Conventionnés
-                </h3>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="emailPro">Courriel professionnel de dispatch <span className="text-error">*</span></label>
+<div className="relative">
+<input className="h-11 w-full pl-10 pr-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="emailPro" placeholder="regulation@ambulances-martinique.fr" required type="email" />
+<span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant">mail</span>
+</div>
+</div>
+</div>
+</section>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                    <label className="block font-bold text-slate-700 mb-1">Ambulances</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fleetAmbulances}
-                      onChange={(e) => setFleetAmbulances(Number(e.target.value))}
-                      className="w-16 px-2 py-1 bg-white border border-slate-300 rounded text-center text-xs font-bold mx-auto block"
-                    />
-                  </div>
+<section className="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-lg">
+<div className="flex items-center gap-space-sm pb-space-xs">
+<div className="w-10 h-10 rounded-lg bg-secondary-container/50 flex items-center justify-center text-secondary shrink-0">
+<span className="material-symbols-outlined">badge</span>
+</div>
+<div className="flex flex-col">
+<h2 className="font-headline-md text-headline-md text-primary">2. Licences d'exploitation &amp; Agréments</h2>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Cochez les catégories pour lesquelles votre structure dispose d'autorisations en cours de validité</span>
+</div>
+</div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md" id="licenceSelectionGrid">
 
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                    <label className="block font-bold text-slate-700 mb-1">VSL</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fleetVsl}
-                      onChange={(e) => setFleetVsl(Number(e.target.value))}
-                      className="w-16 px-2 py-1 bg-white border border-slate-300 rounded text-center text-xs font-bold mx-auto block"
-                    />
-                  </div>
+<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all relative">
+<input defaultChecked className="mt-1 w-5 h-5 text-primary rounded focus:ring-primary accent-primary" type="checkbox" />
+<div className="flex flex-col gap-1">
+<div className="flex items-center gap-space-xs">
+<span className="material-symbols-outlined text-primary text-xl">ambulance</span>
+<span className="font-headline-sm text-headline-sm text-primary">Ambulance de Secours &amp; Soins</span>
+</div>
+<span className="font-label-sm text-label-sm text-secondary font-semibold">Type A / B (Norme EN 1789)</span>
+<p className="font-body-sm text-body-sm text-on-surface-variant">Transport allongé sous surveillance constante, oxygénothérapie, transferts inter-hospitaliers CHU/Trinité.</p>
+</div>
+</label>
 
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
-                    <label className="block font-bold text-slate-700 mb-1">Taxis Conventionnés</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fleetTaxis}
-                      onChange={(e) => setFleetTaxis(Number(e.target.value))}
-                      className="w-16 px-2 py-1 bg-white border border-slate-300 rounded text-center text-xs font-bold mx-auto block"
-                    />
-                  </div>
-                </div>
-              </div>
+<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all relative">
+<input defaultChecked className="mt-1 w-5 h-5 text-primary rounded focus:ring-primary accent-primary" type="checkbox" />
+<div className="flex flex-col gap-1">
+<div className="flex items-center gap-space-xs">
+<span className="material-symbols-outlined text-primary text-xl">directions_car</span>
+<span className="font-headline-sm text-headline-sm text-primary">VSL (Véhicule Sanitaire Léger)</span>
+</div>
+<span className="font-label-sm text-label-sm text-secondary font-semibold">Catégorie D - Agrément ARS</span>
+<p className="font-body-sm text-body-sm text-on-surface-variant">Transport assis professionnalisé, consultations spécialisées, hémodialyse, radiothérapie.</p>
+</div>
+</label>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="w-full py-3.5 bg-secondary hover:bg-secondary/90 text-white font-black rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Valider mon Inscription Partenaire Médic'Trans 972</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all relative">
+<input className="mt-1 w-5 h-5 text-primary rounded focus:ring-primary accent-primary" type="checkbox" />
+<div className="flex flex-col gap-1">
+<div className="flex items-center gap-space-xs">
+<span className="material-symbols-outlined text-primary text-xl">local_taxi</span>
+<span className="font-headline-sm text-headline-sm text-primary">Taxi Conventionné CPAM / CGSS</span>
+</div>
+<span className="font-label-sm text-label-sm text-secondary font-semibold">Autorisation de Stationnement (ADS) Locale</span>
+<p className="font-body-sm text-body-sm text-on-surface-variant">Conventionnement direct CGSS Martinique actif pour télétransmission des bons de transport prescrit.</p>
+</div>
+</label>
 
-      </div>
+<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all relative">
+<input className="mt-1 w-5 h-5 text-primary rounded focus:ring-primary accent-primary" type="checkbox" />
+<div className="flex flex-col gap-1">
+<div className="flex items-center gap-space-xs">
+<span className="material-symbols-outlined text-primary text-xl">accessible</span>
+<span className="font-headline-sm text-headline-sm text-primary">Véhicule Adapté TPMR (Fauteuil)</span>
+</div>
+<span className="font-label-sm text-label-sm text-secondary font-semibold">Rampe &amp; Ancrages certifiés</span>
+<p className="font-body-sm text-body-sm text-on-surface-variant">Prise en charge de patients en fauteuil roulant manuel ou électrique sans transfert de siège.</p>
+</div>
+</label>
+</div>
+</section>
+
+<section className="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-lg">
+<div className="flex items-center gap-space-sm pb-space-xs">
+<div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<span className="material-symbols-outlined">commute</span>
+</div>
+<div className="flex flex-col">
+<h2 className="font-headline-md text-headline-md text-primary">3. Flotte de transport &amp; Équipements</h2>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Capacités matérielles déclarées sous contrôle de régulation sanitaire</span>
+</div>
+</div>
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-space-md">
+
+<div className="flex flex-col gap-space-xs bg-surface-container-low p-space-md rounded-lg">
+<span className="font-label-md text-label-md text-on-surface">Nombre d'Ambulances</span>
+<div className="flex items-center justify-between mt-space-xs">
+<button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
+<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" id="ambCount" min="0" type="number" value="3" />
+<button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
+</div>
+</div>
+
+<div className="flex flex-col gap-space-xs bg-surface-container-low p-space-md rounded-lg">
+<span className="font-label-md text-label-md text-on-surface">Nombre de VSL</span>
+<div className="flex items-center justify-between mt-space-xs">
+<button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
+<input className="w-16 text-center font-headline-md text-headline-md bg-primary font-bold focus:outline-none text-on-primary rounded" id="vslCount" min="0" type="number" value="4" />
+<button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
+</div>
+</div>
+
+<div className="flex flex-col gap-space-xs bg-surface-container-low p-space-md rounded-lg">
+<span className="font-label-md text-label-md text-on-surface">Taxis Conventionnés</span>
+<div className="flex items-center justify-between mt-space-xs">
+<button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
+<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" id="taxiCount" min="0" type="number" value="1" />
+<button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
+</div>
+</div>
+</div>
+
+<div className="flex flex-col gap-space-sm pt-space-xs">
+<span className="font-label-lg text-label-lg text-on-surface">Équipements embarqués et télématique</span>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<label className="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-low cursor-pointer">
+<input defaultChecked className="w-4 h-4 accent-secondary rounded" type="checkbox" />
+<span className="font-body-sm text-body-sm text-on-surface">Système de géolocalisation GPS temps réel (API Médic'Trans)</span>
+</label>
+<label className="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-low cursor-pointer">
+<input defaultChecked className="w-4 h-4 accent-secondary rounded" type="checkbox" />
+<span className="font-body-sm text-body-sm text-on-surface">Défibrillateur Automatisé Externe (DAE) certifié</span>
+</label>
+<label className="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-low cursor-pointer">
+<input defaultChecked className="w-4 h-4 accent-secondary rounded" type="checkbox" />
+<span className="font-body-sm text-body-sm text-on-surface">Oxygénothérapie fixe et mobile vérifiée</span>
+</label>
+<label className="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-low cursor-pointer">
+<input defaultChecked className="w-4 h-4 accent-secondary rounded" type="checkbox" />
+<span className="font-body-sm text-body-sm text-on-surface">Matériel de désinfection COVID / Arboviroses renforcé</span>
+</label>
+</div>
+</div>
+</section>
+
+<section className="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-lg">
+<div className="flex items-center justify-between">
+<div className="flex items-center gap-space-sm">
+<div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary shrink-0">
+<span className="material-symbols-outlined">cloud_upload</span>
+</div>
+<div className="flex flex-col">
+<h2 className="font-headline-md text-headline-md text-primary">4. Pièces justificatives réglementaires</h2>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Formats acceptés : PDF, JPG, PNG cryptés (Max. 15 Mo par document)</span>
+</div>
+</div>
+<span className="font-label-sm text-label-sm bg-surface-container px-space-sm py-1 rounded text-primary font-bold">HDS Crypté</span>
+</div>
+
+<div className="p-space-xl rounded-xl bg-surface-container-low/60 flex flex-col items-center justify-center text-center gap-space-sm cursor-pointer hover:bg-surface-container-high/40 transition-colors">
+<div className="w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm text-primary">
+<span className="material-symbols-outlined text-3xl">upload_file</span>
+</div>
+<div className="flex flex-col">
+<span className="font-label-lg text-label-lg text-on-surface font-semibold">Glissez-déposez vos documents officiels ici</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">ou cliquez pour explorer vos fichiers locaux</span>
+</div>
+<button className="mt-space-xs px-space-md py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-md text-label-md hover:bg-primary-fixed-dim transition-colors" type="button">
+              Sélectionner les pièces du dossier
+            </button>
+</div>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
+<div className="flex items-center gap-space-xs min-w-0">
+<span className="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Extrait Kbis (moins de 3 mois)</span>
+</div>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
+</div>
+<div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
+<div className="flex items-center gap-space-xs min-w-0">
+<span className="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Agrément Sanitaire ARS Martinique</span>
+</div>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
+</div>
+<div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
+<div className="flex items-center gap-space-xs min-w-0">
+<span className="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Convention CGSS 972 signée</span>
+</div>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
+</div>
+<div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
+<div className="flex items-center gap-space-xs min-w-0">
+<span className="material-symbols-outlined text-secondary text-base">check_circle</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Cartes grises &amp; Contrôles conformité</span>
+</div>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
+</div>
+</div>
+</section>
+
+<section className="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-lg">
+<div className="flex items-center gap-space-sm pb-space-xs">
+<div className="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container shrink-0">
+<span className="material-symbols-outlined">admin_panel_settings</span>
+</div>
+<div className="flex flex-col">
+<h2 className="font-headline-md text-headline-md text-primary">5. Gérant &amp; Référent d'exploitation Médic'Trans Pro</h2>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Identifiants d'accès au portail de dispatching en temps réel</span>
+</div>
+</div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="adminLastName">Nom du titulaire / représentant légal <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="adminLastName" placeholder="Ex: CÉLESTE" required type="text" />
+</div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="adminFirstName">Prénom <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="adminFirstName" placeholder="Ex: Jean-Marc" required type="text" />
+</div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="adminFunction">Qualité / Fonction <span className="text-error">*</span></label>
+<select className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="adminFunction" required>
+<option value="Gerant">Gérant / Directeur d'exploitation</option>
+<option value="ChefDeParc">Responsable de flotte / Régulateur principal</option>
+<option value="Artisan">Artisan Taxi Conventionné indépendant</option>
+</select>
+</div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="adminDirectPhone">Téléphone mobile direct <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="adminDirectPhone" placeholder="06 96 00 00 00" required type="tel" />
+</div>
+<div className="flex flex-col gap-space-xs md:col-span-2">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="adminPassword">Créer un mot de passe sécurisé (Portail Pro) <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="adminPassword" placeholder="12 caractères minimum, majuscule, chiffre et symbole" required type="password" />
+<span className="font-label-sm text-label-sm text-on-surface-variant">Conforme exigences ANS (Agence du Numérique en Santé)</span>
+</div>
+</div>
+
+<div className="flex flex-col gap-space-xs pt-space-sm">
+<label className="flex items-start gap-space-sm cursor-pointer">
+<input className="mt-1 w-5 h-5 accent-primary rounded" required type="checkbox" />
+<span className="font-body-sm text-body-sm text-on-surface">
+                Je certifie l'exactitude des informations fournies et accepte la Charte d'Éthique &amp; de Déontologie du Transport Sanitaire Médic'Trans 972, ainsi que le contrôle aléatoire de géolocalisation pour l'optimisation des prises en charge urgentes.
+              </span>
+</label>
+</div>
+
+<div className="pt-space-md flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<button className="w-full sm:w-auto px-space-xl py-3 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm shadow-md transition-all flex items-center justify-center gap-space-xs" type="submit">
+<span className="">Soumettre le dossier d'agrément</span>
+<span className="material-symbols-outlined">arrow_forward</span>
+</button>
+<div className="flex items-center gap-space-xs text-secondary font-label-md text-label-md">
+<span className="material-symbols-outlined text-lg">timer</span>
+<span className="">Validation sous 24h ouvrées par la régulation 972</span>
+</div>
+</div>
+</section>
+</form>
+
+<aside className="lg:col-span-4 flex flex-col gap-space-lg">
+
+<div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-md">
+<div className="flex items-center gap-space-xs">
+<span className="material-symbols-outlined text-primary text-2xl">trending_up</span>
+<h3 className="font-headline-sm text-headline-sm text-primary">Pourquoi rejoindre Médic'Trans 972 ?</h3>
+</div>
+<p className="font-body-sm text-body-sm text-on-surface-variant">
+            Une interface unique pensée pour décongestionner le trafic sanitaire en Martinique et rentabiliser vos tournées.
+          </p>
+<div className="flex flex-col gap-space-sm pt-space-xs">
+<div className="flex items-start gap-space-sm">
+<div className="w-7 h-7 rounded-full bg-secondary-container/40 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+<span className="material-symbols-outlined text-sm">hub</span>
+</div>
+<div className="flex flex-col">
+<span className="font-label-md text-label-md text-on-surface font-semibold">Flux garanti de réservations</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Accès prioritaire aux demandes CHUM (Clarac, Meynard, Mangot Vulcin) et Cliniques.</span>
+</div>
+</div>
+<div className="flex items-start gap-space-sm">
+<div className="w-7 h-7 rounded-full bg-secondary-container/40 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+<span className="material-symbols-outlined text-sm">receipt_long</span>
+</div>
+<div className="flex flex-col">
+<span className="font-label-md text-label-md text-on-surface font-semibold">Télétransmission BPEC / CGSS simplifiée</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Génération instantanée des bordereaux dématérialisés avec signature patient sur mobile.</span>
+</div>
+</div>
+<div className="flex items-start gap-space-sm">
+<div className="w-7 h-7 rounded-full bg-secondary-container/40 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+<span className="material-symbols-outlined text-sm">route</span>
+</div>
+<div className="flex flex-col">
+<span className="font-label-md text-label-md text-on-surface font-semibold">Zéro retour à vide sur l'île</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Algorithme d'appariement Nord / Centre / Sud évitant les retours sans passager.</span>
+</div>
+</div>
+</div>
+</div>
+
+<div className="bg-surface-container-high/40 p-space-lg rounded-xl flex flex-col gap-space-sm relative overflow-hidden">
+<div className="flex items-center gap-space-sm">
+<img className="w-12 h-12 rounded-full object-cover" data-alt="A professional Caribbean healthcare ambulance manager in Martinique smiling in uniform beside modern medical vehicles under tropical morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDL43qTR8PuHPqrcFUmEhzxdL3oviriB4zds8vuBdoqu30Xm8UPVgb5Wrry_36KUBce117OaPGWD8QosSudfaoAUbE4iFTPp_tY3KthWxjr8tXOqRr2uXCT39Oa7L-H6tikHkoJU9IPnLnym9T1PhZcY1DirYIQHSDgYImnNoA_BdRnTb7H3PQsXkt3u5zVgVpfDwmLMgxkF3fvKaWPj_uF89ELaVpVEUvnaRtM4Sc3ClSqiWnr1LXI" />
+<div className="flex flex-col">
+<span className="font-headline-sm text-headline-sm text-primary">Patrick M.</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Gérant de 6 ambulances (Trinité &amp; Fort-de-France)</span>
+</div>
+</div>
+<p className="font-body-sm text-body-sm text-on-surface italic mt-space-xs">
+            "Depuis notre conventionnement avec Médic'Trans 972, nous avons réduit nos temps d'attente à la sortie des urgences de 40%. La traçabilité pour la CGSS nous évite des semaines de litiges de facturation."
+          </p>
+<div className="flex items-center gap-1 text-secondary">
+<span className="material-symbols-outlined text-sm" >star</span>
+<span className="material-symbols-outlined text-sm" >star</span>
+<span className="material-symbols-outlined text-sm" >star</span>
+<span className="material-symbols-outlined text-sm" >star</span>
+<span className="material-symbols-outlined text-sm" >star</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant ml-1 font-bold">Partenaire depuis 3 ans</span>
+</div>
+</div>
+
+<div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-sm">
+<span className="font-label-md text-label-md text-primary uppercase font-bold tracking-wider">Couverture Territoriale 972</span>
+<div className="w-full h-44 rounded-lg bg-cover bg-center relative overflow-hidden flex items-end p-space-sm shadow-inner" data-location="Fort-de-France, Martinique" >
+<div className="bg-surface-container-lowest/95 backdrop-blur-sm p-space-xs rounded-md shadow-sm w-full flex items-center justify-between">
+<div className="flex items-center gap-1.5">
+<span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
+<span className="font-label-sm text-label-sm text-primary font-semibold">Hub Fort-de-France &amp; Baie</span>
+</div>
+<span className="font-label-sm text-label-sm text-on-surface-variant">34 Communes reliées</span>
+</div>
+</div>
+<div className="grid grid-cols-2 gap-space-xs pt-1 text-on-surface-variant font-label-sm text-label-sm">
+<div className="flex items-center gap-1">
+<span className="material-symbols-outlined text-secondary text-sm">check</span>
+              CHU Pierre Zobda-Quitman
+            </div>
+<div className="flex items-center gap-1">
+<span className="material-symbols-outlined text-secondary text-sm">check</span>
+              Hôpital Louis Domergue
+            </div>
+<div className="flex items-center gap-1">
+<span className="material-symbols-outlined text-secondary text-sm">check</span>
+              Clinique Saint-Paul
+            </div>
+<div className="flex items-center gap-1">
+<span className="material-symbols-outlined text-secondary text-sm">check</span>
+              Centre Emmaüs Sud
+            </div>
+</div>
+</div>
+
+<div className="bg-surface-container-low p-space-md rounded-xl flex flex-col gap-space-xs text-on-surface-variant">
+<div className="flex items-center gap-space-xs text-primary font-label-md text-label-md">
+<span className="material-symbols-outlined text-lg">shield</span>
+<span className="">Sécurité des Données Médicales</span>
+</div>
+<p className="font-body-sm text-body-sm text-on-surface-variant">
+            Les données transmises lors de l'enregistrement de votre entreprise sont chiffrées selon les normes de l'Agence Régionale de Santé (ARS) de Martinique et hébergées sur des serveurs souverains HDS.
+          </p>
+<div className="pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface">
+<span className="">Agrément R. 6312 CSP</span>
+<span className="text-secondary font-bold">Conforme RGPD Santé</span>
+</div>
+</div>
+
+<div className="p-space-md rounded-xl bg-primary text-on-primary flex items-center gap-space-sm">
+<div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+<span className="material-symbols-outlined text-xl">headset_mic</span>
+</div>
+<div className="flex flex-col">
+<span className="font-label-md text-label-md font-semibold">Assistance Installation &amp; API</span>
+<span className="font-body-sm text-body-sm text-primary-fixed-dim">Nos régulateurs vous assistent de 6h à 20h : 05 96 42 12 15</span>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</main><footer className="w-full bg-surface-container-low shadow-[0_-1px_8px_rgba(0,0,0,0.03)]"><div className="max-w-[1280px] mx-auto px-margin lg:px-margin-lg py-space-xl"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-lg"><div className="flex flex-col gap-space-sm"><div className="flex items-center gap-space-sm"><span className="font-headline-sm text-headline-sm text-primary">Médic'Trans 972</span></div><p className="font-body-sm text-body-sm text-on-surface-variant">Portail coordonné de transport sanitaire d'urgence et programmé (Ambulance, VSL, Taxi Conventionné) pour le territoire de la Martinique.</p><div className="flex items-center gap-space-xs pt-space-xs"><span className="font-label-sm text-label-sm bg-surface-container-high text-on-surface px-space-sm py-space-xs rounded">Zone 972 Antilles</span></div></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Régulation &amp; Cadre Légal</span><span className="font-body-sm text-body-sm text-on-surface-variant">Autorité de régulation : ARS Martinique</span><span className="font-body-sm text-body-sm text-on-surface-variant">Prise en charge : CGSS Martinique (Sécurité Sociale)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Agrément Transport Sanitaire R. 6312</span><span className="font-body-sm text-body-sm text-on-surface-variant">Conformité Hébergement Données de Santé (HDS)</span></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Centres Hospitaliers Connectés</span><span className="font-body-sm text-body-sm text-on-surface-variant">CHU de Martinique (Fort-de-France)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Hôpital de Trinité - Nord Atlantique</span><span className="font-body-sm text-body-sm text-on-surface-variant">Clinique Sainte-Marie (Schoelcher)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Hôpital du Marin - Pôle Sud</span></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Assistance &amp; Régulation 7j/7</span><p className="font-body-sm text-body-sm text-on-surface-variant">Plateforme d'aide aux usagers et prescripteurs médicaux.</p><div className="bg-surface-container-lowest p-space-sm rounded-lg shadow-[0_1px_3px_rgba(11,37,69,0.05)]"><div className="font-label-md text-label-md text-primary">Permanence 972 : 05 96 00 00 00</div><div className="font-label-sm text-label-sm text-on-surface-variant">Urgences vitales : Composer le 15 (SAMU 972)</div></div></div></div><div className="mt-space-xl pt-space-md bg-surface-container flex flex-col md:flex-row items-center justify-between gap-space-sm px-space-md py-space-sm rounded-lg"><div className="flex flex-col md:flex-row items-center justify-between w-full gap-space-sm"><span className="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. <a className="underline hover:text-on-surface transition-colors" data-path="mentions-legales" href="#">Mentions légales</a></span></div></div></div></footer>
+
+
     </div>
   );
 };
