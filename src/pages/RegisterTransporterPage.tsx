@@ -295,7 +295,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-label-md text-label-md text-on-surface">Nombre d'Ambulances</span>
 <div className="flex items-center justify-between mt-space-xs">
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
-<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" id="ambCount" min="0" type="number" value="3" />
+<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" defaultValue={3} id="ambCount" min="0" type="number" />
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
 </div>
 </div>
@@ -304,7 +304,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-label-md text-label-md text-on-surface">Nombre de VSL</span>
 <div className="flex items-center justify-between mt-space-xs">
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
-<input className="w-16 text-center font-headline-md text-headline-md bg-primary font-bold focus:outline-none text-on-primary rounded" id="vslCount" min="0" type="number" value="4" />
+<input className="w-16 text-center font-headline-md text-headline-md bg-primary font-bold focus:outline-none text-on-primary rounded" defaultValue={4} id="vslCount" min="0" type="number" />
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
 </div>
 </div>
@@ -313,7 +313,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-label-md text-label-md text-on-surface">Taxis Conventionnés</span>
 <div className="flex items-center justify-between mt-space-xs">
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
-<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" id="taxiCount" min="0" type="number" value="1" />
+<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" defaultValue={1} id="taxiCount" min="0" type="number" />
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
 </div>
 </div>
