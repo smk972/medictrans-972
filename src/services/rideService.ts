@@ -1,4 +1,4 @@
-import { Ride, RideStatus, TransportType, Transporter, Facility } from '../types';
+import { Ride, RideStatus, TransportType, Transporter, Facility, AssignedTransporter } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const STORAGE_KEY_RIDES = 'medictrans_rides_972';
@@ -27,6 +27,210 @@ export const MAJOR_FACILITIES: { name: string; city: string; address: string }[]
   { name: 'Polyclinique Saint-Paul', city: 'Fort-de-France', address: 'Clairière' },
 ];
 
+export const INITIAL_TRANSPORTERS: Transporter[] = [
+  {
+    id: 'transporter-1',
+    companyName: 'Ambulances Madinina Secours',
+    siret: '48129402900018',
+    arsLicense: '972-AMB-2021-04',
+    cpamConventionNumber: '972-CPAM-881',
+    phone: '0596 75 20 20',
+    email: 'dispatch@madinina-secours.mq',
+    address: 'Zone Industrielle Lézarde',
+    city: 'Le Lamentin',
+    fleetAmbulances: 6,
+    fleetVsl: 8,
+    fleetTaxis: 4,
+    verified: true,
+    status: 'ACTIVE',
+    avgApproachMinutes: 14,
+    complianceRate: 98.4,
+    zone: 'Centre & Agglomération (Lamentin, FDF, Schœlcher, Ducos)',
+    assignedMissionsCount: 18
+  },
+  {
+    id: 'transporter-2',
+    companyName: 'Caraïbes Transports Sanitaires',
+    siret: '51293819200024',
+    arsLicense: '972-AMB-2019-12',
+    cpamConventionNumber: '972-CPAM-654',
+    phone: '0596 63 45 45',
+    email: 'dispatch@caraibes-transports.mq',
+    address: 'Route de la Folie',
+    city: 'Fort-de-France',
+    fleetAmbulances: 4,
+    fleetVsl: 6,
+    fleetTaxis: 2,
+    verified: true,
+    status: 'ACTIVE',
+    avgApproachMinutes: 12,
+    complianceRate: 99.1,
+    zone: 'Centre & Nord Caraïbe (FDF, Case-Pilote, St-Pierre)',
+    assignedMissionsCount: 14
+  },
+  {
+    id: 'transporter-3',
+    companyName: 'Ambulances Trinité Express',
+    siret: '62918401200031',
+    arsLicense: '972-AMB-2022-09',
+    cpamConventionNumber: '972-CPAM-412',
+    phone: '0596 58 11 22',
+    email: 'contact@trinite-express.mq',
+    address: 'Rue de la Gare Maritime',
+    city: 'La Trinité',
+    fleetAmbulances: 5,
+    fleetVsl: 4,
+    fleetTaxis: 3,
+    verified: true,
+    status: 'ACTIVE',
+    avgApproachMinutes: 18,
+    complianceRate: 96.8,
+    zone: 'Nord Atlantique (Trinité, Ste-Marie, Robert, Gros-Morne)',
+    assignedMissionsCount: 11
+  },
+  {
+    id: 'transporter-4',
+    companyName: 'Taxis Médicaux Sud Caraïbes',
+    siret: '71829340100015',
+    arsLicense: '972-TAXI-2020-03',
+    cpamConventionNumber: '972-CPAM-903',
+    phone: '0596 74 33 00',
+    email: 'coordination@taxismed-sud.mq',
+    address: 'Avenue des Cocotiers',
+    city: 'Le Marin',
+    fleetAmbulances: 2,
+    fleetVsl: 5,
+    fleetTaxis: 8,
+    verified: true,
+    status: 'ACTIVE',
+    avgApproachMinutes: 16,
+    complianceRate: 97.5,
+    zone: 'Sud Martinique (Marin, Ste-Luce, Rivière-Salée, Diamant)',
+    assignedMissionsCount: 12
+  },
+  {
+    id: 'transporter-5',
+    companyName: 'Ambulances Alizés 972',
+    siret: '81239402900042',
+    arsLicense: '972-AMB-2023-01',
+    cpamConventionNumber: '972-CPAM-731',
+    phone: '0596 61 90 90',
+    email: 'alizes972@gmail.com',
+    address: 'Chemin Enclos',
+    city: 'Schœlcher',
+    fleetAmbulances: 3,
+    fleetVsl: 4,
+    fleetTaxis: 2,
+    verified: false,
+    status: 'PENDING',
+    avgApproachMinutes: 15,
+    complianceRate: 94.0,
+    zone: 'Centre & Schœlcher',
+    assignedMissionsCount: 3
+  }
+];
+
+export const INITIAL_FACILITIES: Facility[] = [
+  {
+    id: 'fac-1',
+    name: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    finess: '970200021',
+    type: 'HOSPITAL',
+    address: 'Route de Châteauboeuf, CS 90632',
+    city: 'Fort-de-France',
+    contactName: 'Dr. Alix Célestine',
+    contactRole: 'Cadre Supérieur de Santé - Régulation Sorties',
+    contactPhone: '0596 55 20 00',
+    contactEmail: 'direction@chu-martinique.fr',
+    departments: ['Néphrologie & Dialyse', 'Oncologie & Chimiothérapie', 'Cardiologie', 'Chirurgie Ambulatoire', 'Urgences Adultes', 'Maternité'],
+    dropoffPoints: [
+      { name: 'Quai Ambulances Niveau 0', type: 'BRANCARDAGE', notes: 'Sas Urgences & Réanimation' },
+      { name: 'Dépose Minute Entrée Sud', type: 'VSL_TAXI', notes: 'Consultations externes & Dialyse' },
+      { name: 'Rampe Bâtiment Mère-Enfant', type: 'MIXTE', notes: 'Niveau R+1 Maternité' }
+    ],
+    activeDischargesCount: 84,
+    authorizedStaffCount: 42,
+    rating: 4.9
+  },
+  {
+    id: 'fac-2',
+    name: 'Clinique Sainte-Marie',
+    finess: '970200088',
+    type: 'CLINIC',
+    address: 'Chemin des Rochers',
+    city: 'Schœlcher',
+    contactName: 'Marie-Paule Valaire',
+    contactRole: 'Responsable Régulation des Sorties de Lit',
+    contactPhone: '0596 61 41 00',
+    contactEmail: 'admissions@clinique-stemarie.mq',
+    departments: ['Chirurgie Orthopédique', 'Maternité & Obstétrique', 'Chirurgie Ambulatoire', 'Endoscopie'],
+    dropoffPoints: [
+      { name: 'Porche Principal Ambulances', type: 'BRANCARDAGE', notes: 'Accès direct ascenseur brancard' },
+      { name: 'Dépose Visiteurs & Taxis', type: 'VSL_TAXI', notes: 'Parking P1 devant hall d\'accueil' }
+    ],
+    activeDischargesCount: 32,
+    authorizedStaffCount: 18,
+    rating: 4.8
+  },
+  {
+    id: 'fac-3',
+    name: 'Centre d\'Hémodialyse de Dillon',
+    finess: '970200153',
+    type: 'DIALYSIS',
+    address: 'Avenue Salvador Allende',
+    city: 'Fort-de-France',
+    contactName: 'Julien Montrose',
+    contactRole: 'Coordinateur des Soins & Planification Transport',
+    contactPhone: '0596 79 12 34',
+    contactEmail: 'dialyse.dillon@sante-972.fr',
+    departments: ['Hémodialyse Adulte', 'Néphrologie Consultations', 'Éducation Thérapeutique'],
+    dropoffPoints: [
+      { name: 'Sas Dépose Fauteuils Roulants', type: 'MIXTE', notes: 'Entrée de plain-pied sans marche' }
+    ],
+    activeDischargesCount: 48,
+    authorizedStaffCount: 12,
+    rating: 4.9
+  },
+  {
+    id: 'fac-4',
+    name: 'Hôpital Louis Domergue',
+    finess: '970200047',
+    type: 'HOSPITAL',
+    address: 'Route de Tartane',
+    city: 'La Trinité',
+    contactName: 'Sylvie Brival',
+    contactRole: 'Cadre de Santé Urgences & Médecine',
+    contactPhone: '0596 66 46 00',
+    contactEmail: 'admissions@hopital-trinite.fr',
+    departments: ['Urgences Nord Atlantique', 'Médecine Polyvalente', 'Soins de Suite & Réadaptation'],
+    dropoffPoints: [
+      { name: 'Quai Ambulances Urgences', type: 'BRANCARDAGE', notes: 'Accès prioritaire 24/7' }
+    ],
+    activeDischargesCount: 26,
+    authorizedStaffCount: 16,
+    rating: 4.7
+  },
+  {
+    id: 'fac-5',
+    name: 'Hôpital du Marin',
+    finess: '970200062',
+    type: 'HOSPITAL',
+    address: 'Morne Calebasse',
+    city: 'Le Marin',
+    contactName: 'Serge Gauthier',
+    contactRole: 'Responsable des Soins Sud',
+    contactPhone: '0596 74 92 05',
+    contactEmail: 'soins@hopital-marin.fr',
+    departments: ['Urgences & Déchoquage', 'Médecine Gériatrique', 'SSR Sud'],
+    dropoffPoints: [
+      { name: 'Cour Intérieure Médicale', type: 'MIXTE', notes: 'Dépose ambulances et VSL' }
+    ],
+    activeDischargesCount: 19,
+    authorizedStaffCount: 10,
+    rating: 4.6
+  }
+];
+
 const INITIAL_RIDES: Ride[] = [
   {
     id: 'ride-1',
@@ -37,7 +241,7 @@ const INITIAL_RIDES: Ride[] = [
     dropoffAddress: 'Avenue Salvador Allende',
     dropoffCity: 'Fort-de-France',
     facilityName: 'Centre d\'Hémodialyse de Dillon',
-    pickupDateTime: new Date(Date.now() + 1800000).toISOString(), // dans 30 min
+    pickupDateTime: new Date(Date.now() + 1800000).toISOString(),
     isRoundTrip: true,
     returnDateTime: new Date(Date.now() + 16200000).toISOString(),
     transportType: 'VSL',
@@ -164,6 +368,144 @@ const INITIAL_RIDES: Ride[] = [
       vehicleModel: 'Toyota Prius Hybride Conventionnée'
     },
     source: 'PATIENT'
+  },
+  {
+    id: 'ride-4',
+    reference: 'MT-972-8904',
+    createdAt: new Date(Date.now() - 1800000).toISOString(),
+    pickupAddress: 'Service Cardiologie Interventionnelle, 2ème étage',
+    pickupCity: 'Fort-de-France',
+    dropoffAddress: 'Quartier Balata, Route de la Trace',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    pickupDateTime: new Date(Date.now() + 1200000).toISOString(),
+    isRoundTrip: false,
+    transportType: 'AMBULANCE',
+    status: 'PENDING',
+    patient: {
+      firstName: 'Gaston',
+      lastName: 'Mavounzy',
+      birthDate: '1952-09-14',
+      nir: '1 52 09 97 201 033 18',
+      phone: '0696 92 14 55',
+      email: 'famille.mavounzy@wanadoo.fr',
+      address: 'Route de la Trace',
+      city: 'Fort-de-France',
+      postalCode: '97200',
+      isAld: true,
+      aldReason: 'ALD 13 - Insuffisance cardiaque grave',
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Thierry Négrier',
+      pmtDate: '2026-09-12'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: true,
+      oxygen: true,
+      stairsWithoutElevator: true,
+      floorNumber: 1,
+      needsEscort: true,
+      notes: 'ALERTE PRIORITAIRE: Transfert post-coronarographie sous oxygène 3L/min.'
+    },
+    source: 'FACILITY',
+    facilityDepartment: 'Cardiologie & USIC',
+    bedDischargeNumber: 'CARD-2026-89'
+  },
+  {
+    id: 'ride-5',
+    reference: 'MT-972-8712',
+    createdAt: new Date(Date.now() - 21600000).toISOString(),
+    pickupAddress: '18 Rue Jean Jaurès',
+    pickupCity: 'Le Lamentin',
+    dropoffAddress: 'Chemin des Rochers',
+    dropoffCity: 'Schœlcher',
+    facilityName: 'Clinique Sainte-Marie',
+    pickupDateTime: new Date(Date.now() - 1800000).toISOString(),
+    isRoundTrip: true,
+    returnDateTime: new Date(Date.now() + 7200000).toISOString(),
+    transportType: 'VSL',
+    status: 'PICKED_UP',
+    patient: {
+      firstName: 'Rosalie',
+      lastName: 'Lémery',
+      birthDate: '1965-02-18',
+      nir: '2 65 02 97 210 074 29',
+      phone: '0696 14 28 99',
+      email: 'r.lemery@gmail.com',
+      address: '18 Rue Jean Jaurès',
+      city: 'Le Lamentin',
+      postalCode: '97232',
+      isAld: false,
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Claudie Bellemare',
+      pmtDate: '2026-09-08'
+    },
+    mobility: {
+      wheelchair: true,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Fauteuil roulant pliant dans le coffre, assistance installation à bord.'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Madinina Secours',
+      driverName: 'Sébastien Almont',
+      driverPhone: '0696 33 11 00',
+      vehiclePlate: 'EF-972-GH',
+      etaMinutes: 5,
+      vehicleModel: 'Citroën Berlingo TPMR'
+    },
+    source: 'PATIENT'
+  },
+  {
+    id: 'ride-6',
+    reference: 'MT-972-8930',
+    createdAt: new Date(Date.now() - 28800000).toISOString(),
+    pickupAddress: 'Quartier Tartane',
+    pickupCity: 'La Trinité',
+    dropoffAddress: 'Route de Châteauboeuf',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    pickupDateTime: new Date(Date.now() - 7200000).toISOString(),
+    isRoundTrip: false,
+    transportType: 'AMBULANCE',
+    status: 'COMPLETED',
+    patient: {
+      firstName: 'Henri',
+      lastName: 'Duchamp',
+      birthDate: '1940-06-30',
+      nir: '1 40 06 97 215 012 33',
+      phone: '0696 87 23 11',
+      email: 'famille.duchamp@orange.fr',
+      address: 'Quartier Tartane',
+      city: 'La Trinité',
+      postalCode: '97220',
+      isAld: true,
+      aldReason: 'ALD 30 - Fractures multiples',
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Patrice Rémilien',
+      pmtDate: '2026-09-05'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: true,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: true,
+      notes: 'Course effectuée ce matin, patient transféré en chambre.'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Trinité Express',
+      driverName: 'David Marceau',
+      driverPhone: '0696 22 88 44',
+      vehiclePlate: 'CD-972-EF',
+      etaMinutes: 0,
+      vehicleModel: 'Renault Master Sanitaire Type B'
+    },
+    source: 'FACILITY',
+    facilityDepartment: 'Traumatologie & Orthopédie',
+    bedDischargeNumber: 'TRIN-2026-12'
   }
 ];
 
@@ -218,7 +560,7 @@ export const rideService = {
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('rides').insert({
-          reference: newRide.reference,
+          reference,
           pickup_address: newRide.pickupAddress,
           pickup_city: newRide.pickupCity,
           dropoff_address: newRide.dropoffAddress,
@@ -260,7 +602,7 @@ export const rideService = {
     return newRide;
   },
 
-  // Mettre à jour le statut d'une course (ex: Transporteur accepte)
+  // Mettre à jour le statut d'une course
   async updateRideStatus(
     reference: string, 
     status: RideStatus, 
@@ -296,6 +638,133 @@ export const rideService = {
 
     localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));
     return rides[index];
+  },
+
+  // Réassigner une course (Back-Office / Régulation)
+  async reassignRide(
+    reference: string, 
+    assignment: AssignedTransporter, 
+    newStatus: RideStatus = 'ACCEPTED'
+  ): Promise<Ride | null> {
+    return this.updateRideStatus(reference, newStatus, assignment);
+  },
+
+  // Annuler une course
+  async cancelRide(reference: string, reason?: string): Promise<Ride | null> {
+    const rides = await this.getAllRides();
+    const index = rides.findIndex(r => r.reference.toUpperCase() === reference.trim().toUpperCase());
+    if (index === -1) return null;
+
+    rides[index].status = 'CANCELLED';
+    if (reason) {
+      rides[index].mobility.notes = `${rides[index].mobility.notes || ''} [Annulé: ${reason}]`;
+    }
+
+    localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));
+    return rides[index];
+  },
+
+  // ==========================================
+  // GESTION TRANSPORTEURS (Back-Office)
+  // ==========================================
+  async getAllTransporters(): Promise<Transporter[]> {
+    const stored = localStorage.getItem(STORAGE_KEY_TRANSPORTERS);
+    if (!stored) {
+      localStorage.setItem(STORAGE_KEY_TRANSPORTERS, JSON.stringify(INITIAL_TRANSPORTERS));
+      return INITIAL_TRANSPORTERS;
+    }
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return INITIAL_TRANSPORTERS;
+    }
+  },
+
+  async getTransporterById(id: string): Promise<Transporter | null> {
+    const list = await this.getAllTransporters();
+    return list.find(t => t.id === id) || null;
+  },
+
+  async updateTransporter(id: string, updates: Partial<Transporter>): Promise<Transporter | null> {
+    const list = await this.getAllTransporters();
+    const index = list.findIndex(t => t.id === id);
+    if (index === -1) return null;
+
+    list[index] = { ...list[index], ...updates };
+    localStorage.setItem(STORAGE_KEY_TRANSPORTERS, JSON.stringify(list));
+    return list[index];
+  },
+
+  async updateTransporterVerification(id: string, verified: boolean): Promise<Transporter | null> {
+    return this.updateTransporter(id, { 
+      verified, 
+      status: verified ? 'ACTIVE' : 'SUSPENDED' 
+    });
+  },
+
+  // ==========================================
+  // GESTION ÉTABLISSEMENTS (Back-Office)
+  // ==========================================
+  async getAllFacilities(): Promise<Facility[]> {
+    const stored = localStorage.getItem(STORAGE_KEY_FACILITIES);
+    if (!stored) {
+      localStorage.setItem(STORAGE_KEY_FACILITIES, JSON.stringify(INITIAL_FACILITIES));
+      return INITIAL_FACILITIES;
+    }
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return INITIAL_FACILITIES;
+    }
+  },
+
+  async getFacilityById(id: string): Promise<Facility | null> {
+    const list = await this.getAllFacilities();
+    return list.find(f => f.id === id) || null;
+  },
+
+  async updateFacility(id: string, updates: Partial<Facility>): Promise<Facility | null> {
+    const list = await this.getAllFacilities();
+    const index = list.findIndex(f => f.id === id);
+    if (index === -1) return null;
+
+    list[index] = { ...list[index], ...updates };
+    localStorage.setItem(STORAGE_KEY_FACILITIES, JSON.stringify(list));
+    return list[index];
+  },
+
+  // ==========================================
+  // STATISTIQUES TOUR DE CONTRÔLE (Régulation)
+  // ==========================================
+  async getDashboardStats() {
+    const rides = await this.getAllRides();
+    const transporters = await this.getAllTransporters();
+
+    const pending = rides.filter(r => r.status === 'PENDING');
+    const enRoute = rides.filter(r => r.status === 'EN_ROUTE' || r.status === 'ACCEPTED' || r.status === 'PICKED_UP');
+    const completed = rides.filter(r => r.status === 'COMPLETED');
+    const urgentAlerts = rides.filter(r => r.status === 'PENDING' && (r.mobility.stretcher || r.mobility.oxygen || r.transportType === 'AMBULANCE'));
+
+    const totalAmbulances = transporters.reduce((acc, t) => acc + (t.fleetAmbulances || 0), 0);
+    const totalVsl = transporters.reduce((acc, t) => acc + (t.fleetVsl || 0), 0);
+    const totalTaxis = transporters.reduce((acc, t) => acc + (t.fleetTaxis || 0), 0);
+
+    return {
+      totalActiveRides: pending.length + enRoute.length,
+      pendingCount: pending.length,
+      enRouteCount: enRoute.length,
+      completedTodayCount: completed.length,
+      urgentAlertsCount: urgentAlerts.length,
+      avgAttributionMinutes: 4.25,
+      totalFleetsCount: totalAmbulances + totalVsl + totalTaxis,
+      fleetBreakdown: {
+        ambulances: totalAmbulances,
+        vsl: totalVsl,
+        taxis: totalTaxis
+      },
+      transportersCount: transporters.length,
+      verifiedTransportersCount: transporters.filter(t => t.verified).length
+    };
   },
 
   // Mapper Supabase DB Record vers Ride

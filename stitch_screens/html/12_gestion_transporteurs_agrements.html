@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#00201d", "outline": "#727781", "inverse-on-surface": "#eaf1ff", "primary": "#004479", "surface-container-lowest": "#ffffff", "on-primary-fixed-variant": "#004880", "tertiary-fixed": "#d5e3ff", "surface-tint": "#1660a3", "on-primary-container": "#b5d4ff", "inverse-surface": "#213145", "surface": "#f8f9ff", "tertiary-fixed-dim": "#b1c7f0", "on-secondary-fixed-variant": "#005049", "on-error": "#ffffff", "surface-dim": "#cbdbf5", "surface-container": "#e5eeff", "on-primary": "#ffffff", "primary-fixed-dim": "#a1c9ff", "on-secondary-container": "#006f66", "surface-bright": "#f8f9ff", "secondary-fixed": "#89f5e7", "on-error-container": "#93000a", "on-tertiary": "#ffffff", "tertiary": "#2d4365", "surface-container-highest": "#d3e4fe", "error-container": "#ffdad6", "secondary-fixed-dim": "#6bd8cb", "on-tertiary-fixed": "#001c3b", "surface-container-low": "#eff4ff", "secondary": "#006a61", "on-surface-variant": "#414750", "on-tertiary-fixed-variant": "#314769", "on-secondary": "#ffffff", "on-surface": "#0b1c30", "outline-variant": "#c1c7d2", "surface-variant": "#d3e4fe", "tertiary-container": "#455b7e", "on-background": "#0b1c30", "inverse-primary": "#a1c9ff", "secondary-container": "#86f2e4", "error": "#ba1a1a", "on-tertiary-container": "#bcd3fc", "primary-container": "#0b5c9e", "background": "#f8f9ff", "surface-container-high": "#dce9ff", "on-primary-fixed": "#001c37", "primary-fixed": "#d2e4ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin-md": "2rem", "space-sm": "0.5rem", "space-md": "1rem", "space-xl": "2.5rem", "space-lg": "1.5rem", "margin-lg": "3rem", "gutter": "1rem", "margin": "1rem", "space-xs": "0.25rem", "gutter-md": "1.5rem", "gutter-lg": "2rem" }, "fontFamily": { "label-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"] }, "fontSize": { "label-lg": ["0.9375rem", { "lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "600" }], "label-md": ["0.8125rem", { "lineHeight": "1.125rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-md": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "headline-lg-mobile": ["1.375rem", { "lineHeight": "1.875rem", "letterSpacing": "0", "fontWeight": "600" }], "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "fontWeight": "600" }], "headline-xl": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.015em", "fontWeight": "700" }], "label-sm": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.04em", "fontWeight": "700" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" }], "body-lg": ["1.125rem", { "lineHeight": "1.75rem", "fontWeight": "400" }], "headline-xl-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-sm": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-screen w-72 bg-inverse-surface z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.08)]"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center justify-between bg-primary"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[22px]">local_hospital</span></div><div><span class="font-headline-sm text-headline-sm text-on-primary tracking-tight block">Médic'Trans</span><span class="font-label-sm text-label-sm text-on-primary-container block">Martinique 972 · Régulation</span></div></div></div><div class="px-space-md py-space-sm bg-surface-container-highest/10"><div class="flex items-center justify-between px-space-sm py-space-xs"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-secondary-container animate-pulse"></span><span class="font-label-sm text-label-sm text-surface-variant uppercase tracking-wider">Réseau Territorial</span></div><span class="font-label-sm text-label-sm bg-secondary text-on-secondary px-space-xs py-0.5 rounded-full">Opérationnel</span></div></div><nav class="flex flex-col gap-space-xs px-space-md mt-space-md" data-active-classes="bg-primary-container text-on-primary font-label-md rounded-lg shadow-sm"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="vue-densemble" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-md text-label-md">Vue d'ensemble</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="demandes-et-regulation" href="#"><span class="material-symbols-outlined text-[20px]">crisis_alert</span><span class="font-label-md text-label-md">Demandes &amp; Régulation</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="transporteurs-et-agrements" href="#"><span class="material-symbols-outlined text-[20px]">minor_crash</span><span class="font-label-md text-label-md">Transporteurs &amp; Agréments</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="etablissements-de-soins" href="#"><span class="material-symbols-outlined text-[20px]">domain</span><span class="font-label-md text-label-md">Établissements de Soins</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="securite-et-journaux-daudit" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span class="font-label-md text-label-md">Sécurité &amp; Journaux d'audit</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="parametres-et-tarification-cgss" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-md text-label-md">Paramètres &amp; CGSS</span></a></nav></div><div class="p-space-md bg-surface-container-highest/5 m-space-md rounded-xl"><div class="flex items-center justify-between mb-space-xs"><span class="font-label-sm text-label-sm text-surface-variant">Disponibilité Île</span><span class="font-label-sm text-label-sm text-secondary-fixed font-bold">84%</span></div><div class="w-full h-1.5 bg-surface-container/20 rounded-full overflow-hidden"><div class="w-[84%] h-full bg-secondary-fixed rounded-full"></div></div><div class="flex justify-between items-center mt-space-sm text-inverse-on-surface/70"><span class="font-label-sm text-label-sm">Ambulances: 42</span><span class="font-label-sm text-label-sm">VSL: 78</span></div></div></aside><div class="pl-72 flex flex-col min-h-screen"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md"><span class="text-primary font-bold">Médic'Trans 972</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span>Back-Office Régulation</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span class="text-on-surface font-semibold">Supervision Territoriale</span></div><div class="hidden xl:flex items-center gap-space-xs px-space-sm py-1 bg-surface-container-low rounded-full"><span class="w-2 h-2 rounded-full bg-secondary"></span><span class="font-label-sm text-label-sm text-on-surface-variant">Fort-de-France · Trinité · Le Marin</span></div></div><div class="flex items-center gap-space-md"><button class="flex items-center gap-space-xs px-space-sm py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px] text-error">warning</span><span class="font-label-sm text-label-sm font-bold text-error">3 Litiges</span></button><button aria-label="Notifications" class="p-space-xs rounded-lg hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="h-6 w-px bg-outline-variant/40"></div><div class="flex items-center gap-space-sm"><div class="text-right hidden sm:block"><span class="font-label-md text-label-md text-on-surface block leading-tight">Super-Régulateur Martinique</span><span class="font-label-sm text-label-sm text-primary font-semibold block">Pôle Régional ARS / CGSS</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface flex-1"><div class="flex flex-col w-full">
+<!-- Top Territorial Banner / Audit Cockpit Status -->
+<div class="px-gutter-lg pt-space-lg pb-space-md">
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-space-md">
+<div>
+<div class="flex items-center gap-space-xs text-secondary font-label-sm uppercase tracking-wider mb-1">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span>Délégation Territoriale ARS 972 &amp; CPAM Martinique</span>
+</div>
+<div class="flex items-baseline gap-space-sm flex-wrap">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Sociétés Conventionnées &amp; Agréments</h1>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm">Réf. Décret 2023-112/DOM</span>
+</div>
+</div>
+<!-- Quick Island KPIs -->
+<div class="flex items-center gap-space-sm flex-wrap">
+<div class="flex items-center gap-space-sm bg-surface-container-lowest px-space-md py-space-xs rounded-xl shadow-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">local_shipping</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface leading-tight">142</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Véhicules Actifs</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm bg-surface-container-lowest px-space-md py-space-xs rounded-xl shadow-sm">
+<div class="w-8 h-8 rounded-lg bg-secondary-container/40 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-secondary leading-tight">99.1%</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Conformité SIV</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm bg-surface-container-lowest px-space-md py-space-xs rounded-xl shadow-sm">
+<div class="w-8 h-8 rounded-lg bg-error-container/60 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[20px]">pending_actions</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-error leading-tight">4</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Instructions Urgentes</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tab Navigation Segment -->
+<div class="flex items-center gap-space-xs mt-space-lg overflow-x-auto pb-1">
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-xl bg-primary text-on-primary font-label-md shadow-sm whitespace-nowrap transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]">folder_special</span>
+<span>Dossiers en attente d'agrément</span>
+<span class="ml-1 px-2 py-0.5 rounded-full bg-on-primary text-primary font-label-sm">4</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md shadow-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span>Transporteurs Conventionnés Actifs</span>
+<span class="ml-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm">38</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md shadow-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[18px]">update</span>
+<span>Dossiers à renouveler</span>
+<span class="ml-1 px-2 py-0.5 rounded-full bg-error-container text-error font-label-sm">3</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant hover:text-on-surface font-label-md shadow-sm whitespace-nowrap transition-all">
+<span class="material-symbols-outlined text-[18px]">block</span>
+<span>Suspendus / Bloqués</span>
+<span class="ml-1 px-2 py-0.5 rounded-full bg-surface-container-highest text-outline font-label-sm">1</span>
+</button>
+</div>
+</div>
+<!-- Primary Workspace Bento: Instruction Panel & General List -->
+<div class="px-gutter-lg pb-space-xl grid grid-cols-1 xl:grid-cols-12 gap-gutter-lg">
+<!-- LEFT & MAIN: Selected Carrier Dossier Instruction Card (7 Cols) -->
+<div class="xl:col-span-8 flex flex-col gap-space-lg">
+<!-- Company Header Dossier Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden relative">
+<div class="h-2 bg-gradient-to-r from-primary via-primary-container to-secondary"></div>
+<div class="p-space-lg">
+<!-- Top Tag & Registration Code -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="px-2.5 py-1 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Prioritaire SMR / Urgence
+              </span>
+<span class="font-label-sm text-outline uppercase tracking-wider">Dossier ARS-972-2024-0089</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary">schedule</span> Reçu il y a 3h (Fort-de-France)
+            </div>
+</div>
+<!-- Hero Identity Block -->
+<div class="flex flex-col sm:flex-row items-start gap-space-md">
+<div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center shrink-0 shadow-inner">
+<span class="material-symbols-outlined text-primary text-[36px]">emergency</span>
+</div>
+<div class="flex-1">
+<div class="flex flex-wrap items-center gap-space-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface">Ambulances Madinina Secours SARL</h2>
+<span class="px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-sm font-bold">SASU Santé</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                Zone d'intervention principale : Grand Fort-de-France, Schoelcher, Lamentin &amp; liaisons Nord Caraïbe.
+              </p>
+<!-- Micro Badges Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-xs mt-space-md">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline block">N° FINESS</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">970401234</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline block">Commune d'attache</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">Fort-de-France</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline block">Flotte Déclarée</span>
+<span class="font-label-md text-label-md text-primary font-bold">3 Amb. / 4 VSL / 1 Taxi</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-label-sm text-outline block">Convention CGSS</span>
+<span class="font-label-md text-label-md text-secondary font-bold">CPAM 972 Active</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 1: Visualiseur Pièces Justificatives -->
+<div class="px-space-lg pt-space-md pb-space-lg bg-surface/50">
+<div class="flex items-center justify-between mb-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">assignment_turned_in</span>
+<span>Contrôle Réglementaire des Pièces Justificatives</span>
+</h3>
+<span class="font-label-sm text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">check_circle</span> 4/4 Pièces vérifiées par l'IA ARS
+            </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<!-- Doc 1 -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[22px]">description</span>
+</div>
+<div class="truncate">
+<span class="font-label-md text-label-md text-on-surface block truncate">Extrait Kbis (moins de 3 mois)</span>
+<span class="font-label-sm text-label-sm text-outline block">SIREN 894 123 901 · RCS FDF</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm">Validé</span>
+<button aria-label="Aperçu document" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Doc 2 -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[22px]">verified</span>
+</div>
+<div class="truncate">
+<span class="font-label-md text-label-md text-on-surface block truncate">Agrément Sanitaire ARS 972</span>
+<span class="font-label-sm text-label-sm text-outline block">Arrêté n°2023-ARS-TR-042</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm">Validé</span>
+<button aria-label="Aperçu document" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Doc 3 -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/30 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[22px]">contract</span>
+</div>
+<div class="truncate">
+<span class="font-label-md text-label-md text-on-surface block truncate">Convention CGSS 972 (Tiers-Payant)</span>
+<span class="font-label-sm text-label-sm text-outline block">Échéance : 31/12/2026</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm">Validé</span>
+<button aria-label="Aperçu document" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Doc 4 -->
+<div class="p-space-sm rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[22px]">minor_crash</span>
+</div>
+<div class="truncate">
+<span class="font-label-md text-label-md text-on-surface block truncate">Contrôles Techniques &amp; Assurances</span>
+<span class="font-label-sm text-label-sm text-outline block">8 Certificats conformes SIV</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-sm">Conforme</span>
+<button aria-label="Aperçu document" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Immatriculations déclarées & Interconnexion SIV -->
+<div class="p-space-lg">
+<div class="flex items-center justify-between mb-space-sm">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">badge</span>
+<span>Flotte et Synchronisation SIV (Système d'Immatriculation des Véhicules)</span>
+</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Vérification en temps réel auprès du registre des véhicules sanitaires ARS Martinique</p>
+</div>
+<span class="hidden md:inline-flex px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm">
+              API Hub SIV Connecté
+            </span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm uppercase">
+<th class="py-2.5 px-3 rounded-l-lg">Plaque &amp; Catégorie</th>
+<th class="py-2.5 px-3">Modèle / Marque</th>
+<th class="py-2.5 px-3">Statut SIV</th>
+<th class="py-2.5 px-3">Contrôle Sanitaire</th>
+<th class="py-2.5 px-3 rounded-r-lg text-right">Télémétrie</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 text-body-sm">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-mono bg-surface-container px-2 py-0.5 rounded">AA-342-MQ</span>
+<span class="px-1.5 py-0.5 rounded bg-primary-container text-on-primary font-label-sm">Ambulance A</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">Renault Master III DCI 150</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Conforme SIV
+                    </span>
+</td>
+<td class="py-3 px-3 text-on-surface-variant font-label-sm">Valide jusqu'au 11/2025</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container/50 text-on-secondary-container font-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> GPS Fixé
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-mono bg-surface-container px-2 py-0.5 rounded">1234 W 972</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm">VSL</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">Peugeot 3008 Hybride</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Conforme SIV
+                    </span>
+</td>
+<td class="py-3 px-3 text-on-surface-variant font-label-sm">Valide jusqu'au 06/2025</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container/50 text-on-secondary-container font-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> GPS Fixé
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-mono bg-surface-container px-2 py-0.5 rounded">EZ-891-TY</span>
+<span class="px-1.5 py-0.5 rounded bg-primary-container text-on-primary font-label-sm">Ambulance C</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">Mercedes Sprinter SAMU Type B</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Conforme SIV
+                    </span>
+</td>
+<td class="py-3 px-3 text-on-surface-variant font-label-sm">Valide jusqu'au 03/2026</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container/50 text-on-secondary-container font-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> GPS Fixé
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-md text-label-md text-on-surface font-mono bg-surface-container px-2 py-0.5 rounded">TX-504-MQ</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm">Taxi Conv.</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">Toyota RAV4 Électrique</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Conforme SIV
+                    </span>
+</td>
+<td class="py-3 px-3 text-on-surface-variant font-label-sm">Valide jusqu'au 09/2025</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container/50 text-on-secondary-container font-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> GPS Fixé
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Section 3: Équipements obligatoires vérifiés -->
+<div class="px-space-lg py-space-md bg-surface-container-low/60">
+<div class="font-label-sm uppercase tracking-wider text-outline mb-space-sm">Équipements Obligatoires Réglementation DOM/TOM</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-sm">
+<div class="flex items-center gap-space-sm bg-surface-container-lowest p-space-sm rounded-xl shadow-sm">
+<div class="w-9 h-9 rounded-lg bg-secondary-container/40 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">monitor_heart</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">DAE Révisé &lt; 6 mois</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Certificat Zoll Conforme</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm bg-surface-container-lowest p-space-sm rounded-xl shadow-sm">
+<div class="w-9 h-9 rounded-lg bg-secondary-container/40 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">air</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Oxygénothérapie Médicale</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Bouteille B5 Air Liquide Santé</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm bg-surface-container-lowest p-space-sm rounded-xl shadow-sm">
+<div class="w-9 h-9 rounded-lg bg-secondary-container/40 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">near_me</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block">Balise GPS Régul Médic'</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Flux Télémétrique 972 OK</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 4: Action Buttons for the Regional Regulator -->
+<div class="p-space-lg bg-surface-container-lowest flex flex-col sm:flex-row items-center justify-between gap-space-md shadow-inner">
+<div class="flex items-center gap-space-xs text-on-surface-variant text-body-sm">
+<span class="material-symbols-outlined text-[18px] text-primary">security</span>
+<span>Signature électronique ARS enregistrée sous protocole eIDAS</span>
+</div>
+<div class="flex items-center gap-space-sm w-full sm:w-auto flex-wrap justify-end">
+<button class="px-space-md py-2.5 rounded-xl bg-error-container text-error hover:bg-error hover:text-on-error font-label-md transition-all flex items-center gap-1 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+<span>Rejeter avec motif motivé</span>
+</button>
+<button class="px-space-md py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md transition-all flex items-center gap-1 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">contact_support</span>
+<span>Demander un complément</span>
+</button>
+<button class="px-space-lg py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container font-label-md shadow-md transition-all flex items-center gap-space-xs active:scale-95">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+<span>Valider l'agrément &amp; activer l'accès Pro</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Quick Document Audit Previewer Modal/Inline Pane -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[22px]">quick_reference</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Visualiseur Rapide de Pièce d'Instruction</h3>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container/50 text-secondary font-label-sm font-bold">Document certifié conforme</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<div class="md:col-span-2 rounded-xl overflow-hidden bg-surface-container shadow-inner p-space-sm flex flex-col justify-between">
+<div class="flex items-center justify-between pb-space-xs text-on-surface-variant font-label-sm">
+<span>Arrêté Préfectoral &amp; ARS n°2023-ARS-TR-042.pdf</span>
+<span class="text-secondary font-bold">Signature Numérique Valide</span>
+</div>
+<!-- Document Visual Placeholder with aesthetic gradient & prompt -->
+<div class="relative w-full h-56 rounded-lg overflow-hidden flex items-center justify-center bg-surface-container-highest">
+<div class="bg-cover bg-center w-full h-full opacity-90" data-alt="Close up view of an official French administrative health agency document with golden stamps, Marianne emblem, and medical transport certification signatures on heavy parchment paper, cinematic natural desk lighting" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAiMzoiGFwUlmyF3OSnXs0i4xpDXGc6vKIDkDA9Z7Ef_hxPBoJuFocGOBN_QWg4zeYWZBhFuZF4THsWGiYhnuq0CEfoB0sQTMkjXTKwBaj_ph5U-PSOFTPM7MCJLx-WOzLZOQUp1m8hpdtpnBpSy3C5cm6OLd5VLdMCvJtTtCo_KN-T1WE5wxhZKnds7VitJwGakhsC8WZM7i2kYTWhGTJpJINfC5RCJzoqX4Z_EGEzkXu_2RDtJpTp')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-transparent to-transparent flex items-end p-space-md">
+<div class="text-on-primary">
+<div class="font-label-md text-label-md font-bold">Autorisation de mise en exploitation sanitaire Martinique</div>
+<div class="font-label-sm text-label-sm opacity-90">Délivré par le Directeur Général de l'ARS Martinique</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Audit Checklist Column -->
+<div class="flex flex-col justify-between bg-surface-container-low p-space-md rounded-xl">
+<div>
+<div class="font-label-sm uppercase tracking-wider text-outline mb-space-xs">Métadonnées de Contrôle</div>
+<ul class="space-y-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<li class="flex items-center justify-between">
+<span>Horodatage :</span>
+<span class="font-bold text-on-surface">Aujourd'hui, 08:42</span>
+</li>
+<li class="flex items-center justify-between">
+<span>Contrôle Anti-Fraude :</span>
+<span class="text-secondary font-bold">100% Intègre</span>
+</li>
+<li class="flex items-center justify-between">
+<span>Opérateur ARS :</span>
+<span class="font-bold text-on-surface">G. DUVAL (Pôle 972)</span>
+</li>
+<li class="flex items-center justify-between">
+<span>Empreinte SHA256 :</span>
+<span class="font-mono text-[11px] text-outline truncate max-w-[110px]">e3b0c44298fc1c14...</span>
+</li>
+</ul>
+</div>
+<div class="pt-space-sm mt-space-sm bg-surface-container-lowest p-space-sm rounded-lg shadow-sm">
+<div class="flex items-center gap-space-xs text-secondary font-label-sm font-bold">
+<span class="material-symbols-outlined text-[16px]">verified</span> Validité 5 ans reconductible
+              </div>
+<p class="text-[12px] text-on-surface-variant mt-0.5">Aucune sanction administrative au casier sanitaire territorial.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT: Island Dispatch Coverage & Fast Pending Queue (4 Cols) -->
+<div class="xl:col-span-4 flex flex-col gap-space-lg">
+<!-- Island Map Overview Widget -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden p-space-md">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">explore</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Bassin Territorial 972</h3>
+</div>
+<span class="font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed font-bold px-2 py-0.5 rounded">Zone Centre / CHU</span>
+</div>
+<!-- Location Map Trigger -->
+<div class="w-full h-44 bg-cover bg-center rounded-xl relative shadow-inner overflow-hidden" data-location="Fort-de-France, Martinique" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD9bHCGz6cEvfkE2k1Ns6OOlYUQYO_I27IhRctZXCPNT9pMVOdhpJBd7nQTXezk8s4-acnMCkkgrD3Y-hNfkJYuo4Mjly5YwgJcm2Kcfjr6YIOm4gKa6y7xOOUL4K3zMJpIHdgZFbNjtBSpwbQdjQCiKhqgt0NL_4t_b4Ps3RzUyFUYWtjjs0dyDDu2jfE6HYLHkrNNJ6g5emDX3-DkEUrZrVHhw2iFRcGf6M0xnTEXf6_F5T_om-JA')">
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/85 via-inverse-surface/20 to-transparent flex flex-col justify-between p-space-sm">
+<div class="flex justify-end">
+<span class="px-2 py-1 rounded bg-surface-container-lowest/90 text-on-surface font-label-sm font-bold shadow-sm">
+                Hub CHU La Meynard
+              </span>
+</div>
+<div>
+<span class="text-on-primary font-label-md block">Fort-de-France &amp; Baie des Flamands</span>
+<span class="text-inverse-on-surface/80 font-label-sm block">12 Véhicules en mission active dans ce secteur</span>
+</div>
+</div>
+</div>
+<div class="mt-space-sm grid grid-cols-2 gap-space-xs text-center">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-outline block">Délai Réponse Moyen</span>
+<span class="font-headline-sm text-headline-sm text-primary">14 min</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="font-label-sm text-outline block">Taux d'affectation</span>
+<span class="font-headline-sm text-headline-sm text-secondary">96.8%</span>
+</div>
+</div>
+</div>
+<!-- Pending Applications List (Queue) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md p-space-md flex-1">
+<div class="flex items-center justify-between mb-space-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">hourglass_top</span>
+<span>Autres Dossiers en Attente</span>
+</h3>
+<span class="font-label-sm text-primary font-bold">3 en file</span>
+</div>
+<div class="flex flex-col gap-space-sm">
+<!-- Queue Item 1 -->
+<div class="p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Caraïbes Ambulances Express</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-tertiary font-label-sm">Le Lamentin</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm">
+<span>FINESS : 970409871 · 2 Amb. / 2 VSL</span>
+<span class="text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Consulter
+              </span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full w-3/4"></div>
+</div>
+<div class="flex justify-between text-[11px] text-outline mt-1">
+<span>3/4 pièces vérifiées</span>
+<span>Attente extrait Kbis</span>
+</div>
+</div>
+<!-- Queue Item 2 -->
+<div class="p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Transports Sanitaires du Nord</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-tertiary font-label-sm">Trinité</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm">
+<span>FINESS : 970404321 · 1 Amb. / 3 VSL</span>
+<span class="text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Consulter
+              </span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full w-4/4"></div>
+</div>
+<div class="flex justify-between text-[11px] text-outline mt-1">
+<span>Complet</span>
+<span class="text-secondary font-bold">Prêt pour visa</span>
+</div>
+</div>
+<!-- Queue Item 3 -->
+<div class="p-space-sm rounded-xl bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Alizés Médical Taxi</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-tertiary font-label-sm">Le Marin</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm">
+<span>FINESS : 970407765 · 2 Taxis Conv.</span>
+<span class="text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Consulter
+              </span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full mt-2 overflow-hidden">
+<div class="bg-error h-full rounded-full w-1/4"></div>
+</div>
+<div class="flex justify-between text-[11px] text-outline mt-1">
+<span>Pièce expirée</span>
+<span class="text-error font-bold">Assurance caduque</span>
+</div>
+</div>
+</div>
+<!-- Audit Activity Micro-Feed -->
+<div class="mt-space-md pt-space-sm bg-surface-container-low/40 p-space-sm rounded-xl">
+<span class="font-label-sm uppercase tracking-wider text-outline block mb-space-xs">Dernières Décisions de Régulation</span>
+<div class="space-y-space-xs text-[12px] text-on-surface-variant">
+<div class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[16px] mt-0.5">check_circle</span>
+<div>
+<span class="font-semibold text-on-surface">Ambulance du Sud SARL</span> agrément validé (Pôle Régulateur 972).
+                <div class="text-outline">Il y a 2h · Réf #2024-91</div>
+</div>
+</div>
+<div class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-error text-[16px] mt-0.5">block</span>
+<div>
+<span class="font-semibold text-on-surface">VTC Médic 972</span> dossier suspendu pour défaut d'agrément ARS.
+                <div class="text-outline">Il y a 5h · Réf #2024-88</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- BOTTOM SECTION: Comprehensive Partner Directory Table with Integrated Filters -->
+<div class="px-gutter-lg pb-space-xl">
+<div class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden">
+<!-- Table Header & Controls -->
+<div class="p-space-lg flex flex-col lg:flex-row lg:items-center justify-between gap-space-md bg-surface-container-low/50">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Annuaire des Sociétés Partenaires Conventionnées</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Supervision de la ponctualité, des volumes et de la conformité territoriale sur l'île de la Martinique</p>
+</div>
+<!-- Filter Bar -->
+<div class="flex items-center gap-space-xs flex-wrap">
+<!-- Type Filter -->
+<div class="flex items-center bg-surface-container-lowest px-3 py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-outline text-[18px] mr-1.5">filter_alt</span>
+<select class="bg-transparent text-on-surface font-label-md text-label-md focus:outline-none cursor-pointer">
+<option>Tous les types (Ambulance, VSL, Taxi)</option>
+<option>Ambulances uniquement (Cat. A/C)</option>
+<option>VSL uniquement</option>
+<option>Taxis conventionnés CGSS</option>
+</select>
+</div>
+<!-- Commune Filter -->
+<div class="flex items-center bg-surface-container-lowest px-3 py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-outline text-[18px] mr-1.5">location_on</span>
+<select class="bg-transparent text-on-surface font-label-md text-label-md focus:outline-none cursor-pointer">
+<option>Toutes les communes (34)</option>
+<option>Fort-de-France</option>
+<option>Le Lamentin</option>
+<option>Schoelcher</option>
+<option>Trinité</option>
+<option>Le Marin</option>
+<option>Saint-Pierre</option>
+</select>
+</div>
+<!-- Search Input -->
+<div class="flex items-center bg-surface-container-lowest px-3 py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-outline text-[18px] mr-1.5">search</span>
+<input class="bg-transparent text-on-surface font-body-sm text-body-sm focus:outline-none w-44" placeholder="Recherche nom, FINESS..." type="text"/>
+</div>
+<!-- Export Button -->
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md transition-colors flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Rapport CGSS</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container text-on-surface-variant font-label-sm uppercase tracking-wider">
+<th class="py-3 px-space-md">Société de Transport</th>
+<th class="py-3 px-space-md">Commune Principale</th>
+<th class="py-3 px-space-md">Types Autorisés</th>
+<th class="py-3 px-space-md text-center">Taux Ponctualité</th>
+<th class="py-3 px-space-md text-center">Missions Traitées (Mois)</th>
+<th class="py-3 px-space-md">Statut Convention</th>
+<th class="py-3 px-space-md text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 text-body-sm">
+<!-- Partner Row 1 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-primary-fixed flex items-center justify-center text-primary font-bold text-sm">
+                    MS
+                  </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold block">Madinina Secours SARL</span>
+<span class="font-label-sm text-label-sm text-outline">FINESS 970401234 · 8 Véhicules</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-on-surface">Fort-de-France</span>
+<span class="text-[11px] text-outline block">Secteur Centre / CHU</span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-primary-container text-on-primary font-label-sm">Ambulance</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm">VSL</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm">Taxi</span>
+</div>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-md font-bold">
+                  98.4%
+                </span>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">342</span>
+<span class="text-[11px] text-secondary block font-bold">+12% vs M-1</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Actif &amp; Audité
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Partner Row 2 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-primary font-bold text-sm">
+                    TA
+                  </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold block">Trans-Alizés Urgences</span>
+<span class="font-label-sm text-label-sm text-outline">FINESS 970408821 · 5 Véhicules</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-on-surface">Le Lamentin</span>
+<span class="text-[11px] text-outline block">Zone Aéroport / Acajou</span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-primary-container text-on-primary font-label-sm">Ambulance</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm">VSL</span>
+</div>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-md font-bold">
+                  96.1%
+                </span>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">218</span>
+<span class="text-[11px] text-outline block">Stable</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Actif &amp; Audité
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Partner Row 3 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-primary font-bold text-sm">
+                    ST
+                  </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold block">Sud Transport Santé SARL</span>
+<span class="font-label-sm text-label-sm text-outline">FINESS 970403322 · 6 Véhicules</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-on-surface">Le Marin</span>
+<span class="text-[11px] text-outline block">Secteur Sud Caraïbes</span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm">VSL</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm">Taxi</span>
+</div>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-md font-bold">
+                  99.0%
+                </span>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">184</span>
+<span class="text-[11px] text-secondary block font-bold">+5% vs M-1</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 font-label-sm text-secondary font-bold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Actif &amp; Audité
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Partner Row 4 (Warning / Pending Renewal) -->
+<tr class="hover:bg-surface-container-low/40 transition-colors bg-error-container/10">
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-error-container flex items-center justify-center text-error font-bold text-sm">
+                    AN
+                  </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold block">Ambulances du Nord Atlantique</span>
+<span class="font-label-sm text-label-sm text-outline">FINESS 970407119 · 4 Véhicules</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-space-md">
+<span class="font-body-sm text-body-sm text-on-surface">Trinité</span>
+<span class="text-[11px] text-outline block">Bassin Hôpital Louis Domergue</span>
+</td>
+<td class="py-3 px-space-md">
+<div class="flex items-center gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-primary-container text-on-primary font-label-sm">Ambulance</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm">VSL</span>
+</div>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-error-container text-error font-label-md font-bold">
+                  88.2%
+                </span>
+</td>
+<td class="py-3 px-space-md text-center">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">97</span>
+<span class="text-[11px] text-error block font-bold">-14% vs M-1</span>
+</td>
+<td class="py-3 px-space-md">
+<span class="inline-flex items-center gap-1 font-label-sm text-error font-bold">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span> Renouvellement Requis
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination / Registry Counter -->
+<div class="p-space-md flex flex-col sm:flex-row items-center justify-between gap-space-sm bg-surface-container-low/30 border-t-0">
+<div class="font-label-sm text-label-sm text-on-surface-variant">
+          Affichage de <span class="font-bold text-on-surface">1 à 4</span> sur <span class="font-bold text-on-surface">38 transporteurs conventionnés</span> en Martinique
+        </div>
+<div class="flex items-center gap-space-xs">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container text-on-surface-variant disabled:opacity-50 font-label-sm" disabled="">Précédent</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-on-primary font-label-sm font-bold">1</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm">2</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm">3</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm">Suivant</button>
+</div>
+</div>
+</div>
+</div>
+</div></main><footer class="w-full bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] py-space-md"><div class="w-full px-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-sm"><p class="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. Mentions légales</p><div class="flex items-center gap-space-md"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">shield</span> Infrastructure Santé Certifiée HDS</span></div></div></footer></div></body></html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+<html lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed": "#00201d", "outline": "#727781", "inverse-on-surface": "#eaf1ff", "primary": "#004479", "surface-container-lowest": "#ffffff", "on-primary-fixed-variant": "#004880", "tertiary-fixed": "#d5e3ff", "surface-tint": "#1660a3", "on-primary-container": "#b5d4ff", "inverse-surface": "#213145", "surface": "#f8f9ff", "tertiary-fixed-dim": "#b1c7f0", "on-secondary-fixed-variant": "#005049", "on-error": "#ffffff", "surface-dim": "#cbdbf5", "surface-container": "#e5eeff", "on-primary": "#ffffff", "primary-fixed-dim": "#a1c9ff", "on-secondary-container": "#006f66", "surface-bright": "#f8f9ff", "secondary-fixed": "#89f5e7", "on-error-container": "#93000a", "on-tertiary": "#ffffff", "tertiary": "#2d4365", "surface-container-highest": "#d3e4fe", "error-container": "#ffdad6", "secondary-fixed-dim": "#6bd8cb", "on-tertiary-fixed": "#001c3b", "surface-container-low": "#eff4ff", "secondary": "#006a61", "on-surface-variant": "#414750", "on-tertiary-fixed-variant": "#314769", "on-secondary": "#ffffff", "on-surface": "#0b1c30", "outline-variant": "#c1c7d2", "surface-variant": "#d3e4fe", "tertiary-container": "#455b7e", "on-background": "#0b1c30", "inverse-primary": "#a1c9ff", "secondary-container": "#86f2e4", "error": "#ba1a1a", "on-tertiary-container": "#bcd3fc", "primary-container": "#0b5c9e", "background": "#f8f9ff", "surface-container-high": "#dce9ff", "on-primary-fixed": "#001c37", "primary-fixed": "#d2e4ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin-md": "2rem", "space-sm": "0.5rem", "space-md": "1rem", "space-xl": "2.5rem", "space-lg": "1.5rem", "margin-lg": "3rem", "gutter": "1rem", "margin": "1rem", "space-xs": "0.25rem", "gutter-md": "1.5rem", "gutter-lg": "2rem" }, "fontFamily": { "label-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "headline-xl": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"] }, "fontSize": { "label-lg": ["0.9375rem", { "lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "600" }], "label-md": ["0.8125rem", { "lineHeight": "1.125rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-md": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "headline-lg-mobile": ["1.375rem", { "lineHeight": "1.875rem", "letterSpacing": "0", "fontWeight": "600" }], "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "fontWeight": "600" }], "headline-xl": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.015em", "fontWeight": "700" }], "label-sm": ["0.6875rem", { "lineHeight": "1rem", "letterSpacing": "0.04em", "fontWeight": "700" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" }], "body-lg": ["1.125rem", { "lineHeight": "1.75rem", "fontWeight": "400" }], "headline-xl-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-sm": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-screen w-72 bg-inverse-surface z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.08)]"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center justify-between bg-primary"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[22px]">local_hospital</span></div><div><span class="font-headline-sm text-headline-sm text-on-primary tracking-tight block">Médic'Trans</span><span class="font-label-sm text-label-sm text-on-primary-container block">Martinique 972 · Régulation</span></div></div></div><div class="px-space-md py-space-sm bg-surface-container-highest/10"><div class="flex items-center justify-between px-space-sm py-space-xs"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-secondary-container animate-pulse"></span><span class="font-label-sm text-label-sm text-surface-variant uppercase tracking-wider">Réseau Territorial</span></div><span class="font-label-sm text-label-sm bg-secondary text-on-secondary px-space-xs py-0.5 rounded-full">Opérationnel</span></div></div><nav class="flex flex-col gap-space-xs px-space-md mt-space-md" data-active-classes="bg-primary-container text-on-primary font-label-md rounded-lg shadow-sm"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="vue-densemble" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-md text-label-md">Vue d'ensemble</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="demandes-et-regulation" href="#"><span class="material-symbols-outlined text-[20px]">crisis_alert</span><span class="font-label-md text-label-md">Demandes &amp; Régulation</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="transporteurs-et-agrements" href="#"><span class="material-symbols-outlined text-[20px]">minor_crash</span><span class="font-label-md text-label-md">Transporteurs &amp; Agréments</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="etablissements-de-soins" href="#"><span class="material-symbols-outlined text-[20px]">domain</span><span class="font-label-md text-label-md">Établissements de Soins</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="securite-et-journaux-daudit" href="#"><span class="material-symbols-outlined text-[20px]">verified_user</span><span class="font-label-md text-label-md">Sécurité &amp; Journaux d'audit</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-surface-container-highest hover:bg-tertiary hover:text-on-tertiary transition-all" data-path="parametres-et-tarification-cgss" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-md text-label-md">Paramètres &amp; CGSS</span></a></nav></div><div class="p-space-md bg-surface-container-highest/5 m-space-md rounded-xl"><div class="flex items-center justify-between mb-space-xs"><span class="font-label-sm text-label-sm text-surface-variant">Disponibilité Île</span><span class="font-label-sm text-label-sm text-secondary-fixed font-bold">84%</span></div><div class="w-full h-1.5 bg-surface-container/20 rounded-full overflow-hidden"><div class="w-[84%] h-full bg-secondary-fixed rounded-full"></div></div><div class="flex justify-between items-center mt-space-sm text-inverse-on-surface/70"><span class="font-label-sm text-label-sm">Ambulances: 42</span><span class="font-label-sm text-label-sm">VSL: 78</span></div></div></aside><div class="pl-72 flex flex-col min-h-screen"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md"><span class="text-primary font-bold">Médic'Trans 972</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span>Back-Office Régulation</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span class="text-on-surface font-semibold">Supervision Territoriale</span></div><div class="hidden xl:flex items-center gap-space-xs px-space-sm py-1 bg-surface-container-low rounded-full"><span class="w-2 h-2 rounded-full bg-secondary"></span><span class="font-label-sm text-label-sm text-on-surface-variant">Fort-de-France · Trinité · Le Marin</span></div></div><div class="flex items-center gap-space-md"><button class="flex items-center gap-space-xs px-space-sm py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px] text-error">warning</span><span class="font-label-sm text-label-sm font-bold text-error">3 Litiges</span></button><button aria-label="Notifications" class="p-space-xs rounded-lg hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="h-6 w-px bg-outline-variant/40"></div><div class="flex items-center gap-space-sm"><div class="text-right hidden sm:block"><span class="font-label-md text-label-md text-on-surface block leading-tight">Super-Régulateur Martinique</span><span class="font-label-sm text-label-sm text-primary font-semibold block">Pôle Régional ARS / CGSS</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface flex-1"><div class="flex flex-col w-full">
+<!-- Interactive & Territorial Header Section -->
+<div class="px-space-lg py-space-md bg-surface-container-lowest shadow-sm">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div>
+<div class="flex items-center gap-space-xs mb-1">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider font-bold">Territoire Martinique 972</span>
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Réseau Santé &amp; Transports Sanitaires</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Établissements de Soins &amp; Cadres Habilités</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Supervision des 28 structures hospitalières et médico-sociales conventionnées ARS / CGSS Martinique.</p>
+</div>
+<!-- Main Territorial Actions -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">download</span>
+<span class="font-label-md text-label-md">Exporter bordereaux mensuels</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-secondary">local_shipping</span>
+<span class="font-label-md text-label-md">Consignes accès quais</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">add_business</span>
+<span class="font-label-md text-label-md">Conventionner un établissement</span>
+</button>
+</div>
+</div>
+<!-- Quick Metric Ribbons -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-md mt-space-md pt-space-md border-t-0">
+<div class="p-space-sm rounded-xl bg-surface-container-low flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">domain</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold leading-none block">28</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Établissements Actifs</span>
+</div>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-container-low flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[22px]">badge</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold leading-none block">142</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Cadres Certifiés</span>
+</div>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-container-low flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[22px]">hub</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold leading-none block">56</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Points de Dépose SAS</span>
+</div>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-container-low flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[22px]">verified</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm text-secondary font-bold leading-none block">100%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Conformes RGPD / HDS</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Split Grid Workspace -->
+<div class="px-space-lg py-space-lg grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
+<!-- Left Column: Filterable List of Facilities (5 cols) -->
+<div class="xl:col-span-5 flex flex-col gap-space-md">
+<!-- Filter Bar Card -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface">Filtres territoriaux</span>
+<button class="font-label-sm text-label-sm text-primary hover:underline" type="button">Réinitialiser</button>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-xs">
+<!-- Search box -->
+<div class="sm:col-span-2 relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[20px]">search</span>
+<input class="w-full h-11 pl-10 pr-3 rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-lowest focus:shadow-sm" placeholder="Rechercher nom, FINESS ou commune..." type="text" value="CHU Pierre Zobda-Quitman"/>
+</div>
+<!-- Category filter -->
+<div>
+<select class="w-full h-10 px-2 rounded-lg bg-surface-container-low text-on-surface font-label-sm text-label-sm focus:outline-none">
+<option value="all">Toutes Catégories</option>
+<option selected="" value="mco">Public MCO</option>
+<option value="prive">Clinique Privée</option>
+<option value="ssr">SSR / Rééducation</option>
+<option value="dialyse">Centre Dialyse</option>
+<option value="ehpad">EHPAD</option>
+</select>
+</div>
+<!-- Commune filter -->
+<div>
+<select class="w-full h-10 px-2 rounded-lg bg-surface-container-low text-on-surface font-label-sm text-label-sm focus:outline-none">
+<option value="all">Toutes Communes</option>
+<option selected="" value="fdf">Fort-de-France (97200)</option>
+<option value="trinite">La Trinité (97220)</option>
+<option value="marin">Le Marin (97290)</option>
+<option value="schoelcher">Schœlcher (97233)</option>
+<option value="lamentin">Le Lamentin (97232)</option>
+</select>
+</div>
+</div>
+<!-- Convention pills -->
+<div class="flex items-center gap-1.5 pt-1 overflow-x-auto">
+<button class="px-2.5 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm">Tous (28)</button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm">Conventionné ARS (26)</button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm">En Renouvellement (2)</button>
+</div>
+</div>
+<!-- Facilities List -->
+<div class="flex flex-col gap-space-xs">
+<!-- Active Selected Facility: CHU Pierre Zobda-Quitman -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-md cursor-pointer transition-all hover:shadow-lg bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center font-headline-sm text-headline-sm">
+                PZ
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-snug">CHU Pierre Zobda-Quitman</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Fort-de-France · FINESS 970211145</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-on-secondary"></span> Conventionné
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2 border-t-0">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1 text-primary"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 3 SAS Actifs</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 18 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm font-bold text-secondary">84 trajets / sem.</span>
+</div>
+</div>
+<!-- Facility 2: Hôpital Louis Domergue (Trinité) -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex items-center justify-center font-headline-sm text-headline-sm">
+                LD
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-snug">Hôpital Louis Domergue</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">La Trinité (Pôle Nord) · FINESS 970210089</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+              Conventionné
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 2 SAS</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 7 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">36 trajets / sem.</span>
+</div>
+</div>
+<!-- Facility 3: Hôpital du Marin -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex items-center justify-center font-headline-sm text-headline-sm">
+                HM
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-snug">Hôpital du Marin</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Le Marin (Pôle Sud) · FINESS 970210342</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+              Conventionné
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 1 SAS</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 4 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">21 trajets / sem.</span>
+</div>
+</div>
+<!-- Facility 4: Clinique Sainte-Marie -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed text-tertiary flex items-center justify-center font-headline-sm text-headline-sm">
+                SM
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-snug">Clinique Sainte-Marie</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Schœlcher · Clinique Privée · FINESS 970210771</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+              Conventionné
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 2 SAS</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 9 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">44 trajets / sem.</span>
+</div>
+</div>
+<!-- Facility 5: Centre de Dialyse Clairière -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-secondary-fixed text-secondary flex items-center justify-center font-headline-sm text-headline-sm">
+                CD
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-snug">Centre de Dialyse Clairière</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Fort-de-France · Pôle Rénal · FINESS 970210515</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+              Conventionné
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 1 SAS</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 3 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">52 trajets / sem.</span>
+</div>
+</div>
+<!-- Facility 6: Clinique Saint-Paul -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed text-tertiary flex items-center justify-center font-headline-sm text-headline-sm">
+                SP
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-snug">Clinique Saint-Paul</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Fort-de-France · Chirurgie &amp; SSR · FINESS 970210602</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
+              Conventionné
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 1 SAS</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 6 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">29 trajets / sem.</span>
+</div>
+</div>
+<!-- Facility 7: EHPAD Les Manguiers -->
+<div class="p-space-md bg-surface-container-lowest rounded-xl shadow-sm cursor-pointer hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-space-sm mb-2">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center font-headline-sm text-headline-sm">
+                LM
+              </div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold leading-snug">EHPAD Les Manguiers</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Le Lamentin · Médico-Social · FINESS 970211822</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">
+              Audit Requis
+            </span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant pt-2">
+<div class="flex items-center gap-space-md text-label-sm font-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">local_shipping</span> 1 SAS</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">group</span> 2 Cadres</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">11 trajets / sem.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: In-Depth Facility & Clinical Ward Dashboard (7 cols) -->
+<div class="xl:col-span-7 flex flex-col gap-space-md">
+<!-- Selected Center Header Profile Card with Imagery -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm relative overflow-hidden">
+<!-- Visual header strip with backdrop & illustration -->
+<div class="flex flex-col md:flex-row gap-space-md items-start justify-between relative z-10">
+<div class="flex gap-space-md">
+<img class="w-24 h-24 rounded-xl object-cover shadow-sm" data-alt="Modern facade of the regional hospital center Pierre Zobda-Quitman in Fort-de-France Martinique, blue sky, tropical palm trees, ambulances parked in orderly bays, clear clinical architecture with clean cyan and deep navy lighting, high-end editorial photo style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCWtEdOV4SnAiSoaZ196kfoy6jaLMqCdRXAfeT5EPXICt2L4koDed4b2xsKkOZ81C43inacnI7DcbHWoAKO2ewGHdJt0i_Ub01P9D-meTxOQ5Unul_n57fjvOvthV0ymIbpWK2lvu67ODQPD0TRrKcQijjv3imB0y9ycnuXmeF1BtRSCpHSf6-hghsasmDEFBLKLm29vZMmwnhtCIV-ZBHL_xfYgm2V4fpQlViU-6qC_IwIPCbo2xQ"/>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold">Centre Hospitalier Universitaire</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Secteur Public MCO</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">CHU Pierre Zobda-Quitman</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[18px] text-primary">location_on</span>
+                Route de Châteaubœuf, BP 632, 97261 Fort-de-France Cedex
+              </p>
+</div>
+</div>
+<div class="flex md:flex-col items-end gap-1">
+<span class="font-label-sm text-label-sm text-outline">Statut Régulation</span>
+<span class="px-3 py-1 rounded-full bg-secondary text-on-secondary font-label-md text-label-md font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary-fixed animate-pulse"></span> Référencé Actif
+            </span>
+</div>
+</div>
+<!-- Administrative Codes Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm mt-space-md p-space-sm bg-surface-container-low rounded-lg">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">FINESS Géographique</span>
+<span class="font-label-md text-label-md text-on-surface font-mono font-bold">970211145</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">FINESS Juridique</span>
+<span class="font-label-md text-label-md text-on-surface font-mono font-bold">970200023</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Numéro SIRET</span>
+<span class="font-label-md text-label-md text-on-surface font-mono font-bold">269 720 021 00018</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Convention CGSS 972</span>
+<span class="font-label-md text-label-md text-secondary font-bold">Valide · 2024-2027</span>
+</div>
+</div>
+<!-- Key Realtime Performance KPIs with Visual Sparkline Bar -->
+<div class="grid grid-cols-3 gap-space-sm mt-space-md">
+<div class="p-space-sm bg-surface-container rounded-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Flux Semaine</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-primary font-bold">84</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">+12% vs S-1</span>
+</div>
+<!-- Miniature Inline Activity Bar Chart -->
+<div class="h-5 flex items-end gap-1 mt-2">
+<div class="w-full bg-primary-container h-[40%] rounded-xs"></div>
+<div class="w-full bg-primary-container h-[65%] rounded-xs"></div>
+<div class="w-full bg-primary-container h-[85%] rounded-xs"></div>
+<div class="w-full bg-primary-container h-[70%] rounded-xs"></div>
+<div class="w-full bg-primary h-[100%] rounded-xs"></div>
+<div class="w-full bg-primary-container h-[55%] rounded-xs"></div>
+<div class="w-full bg-primary-container h-[30%] rounded-xs"></div>
+</div>
+</div>
+<div class="p-space-sm bg-surface-container rounded-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Prise en charge &lt; 10 min</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-secondary font-bold">92%</span>
+<span class="font-label-sm text-label-sm text-outline">Objectif 90%</span>
+</div>
+<!-- Inline Progress Ring / Indicator -->
+<div class="w-full bg-surface-container-highest rounded-full h-2 mt-3 overflow-hidden">
+<div class="bg-secondary h-full rounded-full w-[92%]"></div>
+</div>
+</div>
+<div class="p-space-sm bg-surface-container rounded-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Satisfaction Soignants</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-on-surface font-bold">4.9<span class="text-label-sm text-outline font-normal">/5</span></span>
+<span class="flex items-center text-amber-500">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline block mt-2">Sur 142 évaluations</span>
+</div>
+</div>
+</div>
+<!-- Configured Pick-up Points (Points de dépose et prise en charge) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">pin_drop</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Points de Dépose &amp; Prise en Charge Paramétrés</h3>
+</div>
+<button class="text-primary hover:underline font-label-sm text-label-sm flex items-center gap-0.5" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span> Configurer un SAS
+          </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+<!-- Point 1 -->
+<div class="p-space-sm bg-surface-container-low rounded-lg flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Quai Ambulances - Niveau 0</span>
+<span class="px-1.5 py-0.5 rounded bg-secondary text-on-secondary text-[10px] font-bold">Actif</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Accès direct brancards lourds, code barrière électronique validé VSL/Ambulances conventionnées.</p>
+</div>
+<div class="mt-space-sm pt-space-xs border-t-0 flex items-center justify-between text-outline text-label-sm font-label-sm">
+<span>Capacité : 4 vecteurs</span>
+<span class="text-primary font-bold">Bip auto</span>
+</div>
+</div>
+<!-- Point 2 -->
+<div class="p-space-sm bg-surface-container-low rounded-lg flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Sas Urgences Adultes</span>
+<span class="px-1.5 py-0.5 rounded bg-secondary text-on-secondary text-[10px] font-bold">Priorité 1</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Dépose SMUR / Urgences vitales avec sas de décontamination immédiat.</p>
+</div>
+<div class="mt-space-sm pt-space-xs border-t-0 flex items-center justify-between text-outline text-label-sm font-label-sm">
+<span>Capacité : 3 vecteurs</span>
+<span class="text-primary font-bold">Interphone H24</span>
+</div>
+</div>
+<!-- Point 3 -->
+<div class="p-space-sm bg-surface-container-low rounded-lg flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Accueil Pédiatrique</span>
+<span class="px-1.5 py-0.5 rounded bg-secondary text-on-secondary text-[10px] font-bold">Actif</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Bâtiment Mère-Enfant Niveau 1, dépose minute VSL et taxis conventionnés pédiatrie.</p>
+</div>
+<div class="mt-space-sm pt-space-xs border-t-0 flex items-center justify-between text-outline text-label-sm font-label-sm">
+<span>Capacité : 2 vecteurs</span>
+<span class="text-primary font-bold">Code Badge</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Configured Clinical Wards & Associated Senior Nurses (Cadres Référents) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">medical_services</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Pôles &amp; Services Hospitaliers Actifs</h3>
+</div>
+<span class="font-label-sm text-label-sm text-outline">5 Services régulés</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-xs">
+<!-- Service Oncologie -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-bold">Oncologie / Hémato</span>
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Cadre : Edwige B.</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-outline flex items-center justify-between">
+<span>VSL &amp; TPMR majoritaires</span>
+<span class="text-primary font-bold">Ext. 4108</span>
+</div>
+</div>
+<!-- Service Cardiologie -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-bold">Cardiologie / USIC</span>
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Cadre : Marc-André D.</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-outline flex items-center justify-between">
+<span>Ambulances type A / B</span>
+<span class="text-primary font-bold">Ext. 4220</span>
+</div>
+</div>
+<!-- Service Néphrologie -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-bold">Néphrologie / Dialyse</span>
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Cadre : Laurence M.</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-outline flex items-center justify-between">
+<span>Transports récurrents</span>
+<span class="text-primary font-bold">Ext. 4315</span>
+</div>
+</div>
+<!-- Service Chirurgie Ambulatoire -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-bold">Chirurgie Ambulatoire</span>
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Cadre : Julien T.</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-outline flex items-center justify-between">
+<span>Sorties programmées</span>
+<span class="text-primary font-bold">Ext. 4450</span>
+</div>
+</div>
+<!-- Service Réanimation Polyvalente -->
+<div class="p-space-sm rounded-lg bg-surface-container-low flex flex-col justify-between sm:col-span-2 lg:col-span-2">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-bold">Réanimation Polyvalente &amp; Grands Brûlés</span>
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Cadre : Dr. Célia V. / Cadre Sup. Valérie P.</span>
+</div>
+<div class="mt-2 text-label-sm font-label-sm text-outline flex items-center justify-between">
+<span>Évacuations sanitaires héliportées / TIH</span>
+<span class="text-primary font-bold">Ligne Directe SAS 4999</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Cadres de Santé Habilités Accounts List -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs mb-space-md">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Cadres de Santé Habilités au Déclenchement</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Personnels autorisés à émettre et valider les prescriptions de transport sanitaire</span>
+</div>
+<button class="px-space-md py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center gap-space-xs shadow-sm self-start sm:self-auto" type="button">
+<span class="material-symbols-outlined text-[18px]">person_add</span>
+            Ajouter un cadre / référent
+          </button>
+</div>
+<!-- Table of Healthcare Officers -->
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+<th class="py-2.5 px-3 rounded-l-lg">Cadre / Identité</th>
+<th class="py-2.5 px-3">Pôle d'Affectation</th>
+<th class="py-2.5 px-3">Numéro RPPS</th>
+<th class="py-2.5 px-3">Statut Compte</th>
+<th class="py-2.5 px-3 rounded-r-lg text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 font-body-sm text-body-sm">
+<!-- Row 1: Active Officer -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Close-up professional portrait of a senior French Caribbean female head nurse smiling in hospital scrubs, warm lighting, clinical environment, realistic photo with soft lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF7Ui6tiYd2BcwmwdfbFO-mWB0yVtqGs0iRY1_hkGPngmlVYuU157IZjyqw_hPsXIxUmYN1T5QAVT4abFSQjbK09BX8PGbZ7YOFTD0-oWk5F3NwzSP_pmRAhtOVztvaY73T-M64xtdWXfQ3H6VRKhLT4SV_ct_JEIT8whi-05ujpRliR85qssKE9TskAuEghkxFntOqk-Z8Q6dEOjAZKOQBFNwjpU7rhOAI_99InOPKd4K4d74Q2kB"/>
+<div>
+<span class="font-label-md text-label-md text-on-surface block font-semibold leading-tight">Edwige BAPTIMON</span>
+<span class="font-label-sm text-label-sm text-outline block">e.baptimon@chu-martinique.fr</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 font-label-sm text-label-sm text-on-surface">Pôle Cancérologie &amp; Onco</td>
+<td class="py-3 px-3 font-mono text-label-sm text-outline">10098421455</td>
+<td class="py-3 px-3">
+<span class="px-2 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-semibold">Actif</span>
+</td>
+<td class="py-3 px-3 text-right">
+<button class="p-1 rounded hover:bg-surface-container text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Active Officer -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait of a focused male healthcare coordinator in a hospital office in Martinique, wearing a white clinical coat, daylight, warm natural skin tones, professional medical setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFr5AnSm5mh_zVFDQ38IWx88atzWw0YRchGbUR5Y3Awud-mffAN4DQBd_1IUKNKEXr7p27zV0GZB4DZPOdexCKWzZaqabTvJE5Uaejr4P4z9LhLI-zkMa8YLOsJBlU_KXdMWpHuZrbTIJl9B9Z8U4e5ZGMxV9hfS_7DQdGCAPDZ9luCI4EpZUZvTh0eOeQxhmeVWgluK-e7BnYxsgjsU3v-J28V6qZNwvIx-ZjatjpkUmAzZyuAuu7"/>
+<div>
+<span class="font-label-md text-label-md text-on-surface block font-semibold leading-tight">Marc-André DUVAL</span>
+<span class="font-label-sm text-label-sm text-outline block">ma.duval@chu-martinique.fr</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 font-label-sm text-label-sm text-on-surface">Cardiologie &amp; Soins Intensifs</td>
+<td class="py-3 px-3 font-mono text-label-sm text-outline">10045233190</td>
+<td class="py-3 px-3">
+<span class="px-2 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-semibold">Actif</span>
+</td>
+<td class="py-3 px-3 text-right">
+<button class="p-1 rounded hover:bg-surface-container text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Pending Validation -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label-sm text-label-sm text-primary font-bold">
+                      LM
+                    </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block font-semibold leading-tight">Laurence MONROSE</span>
+<span class="font-label-sm text-label-sm text-outline block">l.monrose@chu-martinique.fr</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 font-label-sm text-label-sm text-on-surface">Néphrologie / Hémodialyse</td>
+<td class="py-3 px-3 font-mono text-label-sm text-outline">10129088421</td>
+<td class="py-3 px-3">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold flex items-center gap-1 w-max">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Validation Admin
+                  </span>
+</td>
+<td class="py-3 px-3 text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="px-2 py-1 rounded bg-primary text-on-primary font-label-sm text-label-sm hover:bg-primary-container" type="button">Valider</button>
+<button class="p-1 rounded hover:bg-surface-container text-outline hover:text-error transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">block</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Suspended Account -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2 opacity-60">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center font-label-sm text-label-sm text-outline font-bold">
+                      JT
+                    </div>
+<div>
+<span class="font-label-md text-label-md text-on-surface block font-semibold leading-tight">Julien THEOBALD</span>
+<span class="font-label-sm text-label-sm text-outline block">j.theobald@chu-martinique.fr</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 font-label-sm text-label-sm text-on-surface opacity-60">Chirurgie Ambulatoire</td>
+<td class="py-3 px-3 font-mono text-label-sm text-outline opacity-60">10087123901</td>
+<td class="py-3 px-3">
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">Suspendu</span>
+</td>
+<td class="py-3 px-3 text-right">
+<button class="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm" type="button">Réactiver</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- Territorial Live Dispatch Map Bottom Banner -->
+<div class="px-space-lg pb-space-lg">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col lg:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[28px]">map</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">Carte de Couverture Médicale Territoriale (Nord / Centre / Sud)</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Visualisation géospatiale de l'ensemble des CHU, hôpitaux périphériques et temps d'accès VSL/Ambulances.</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm w-full lg:w-auto">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Trinité : 14m
+          <span class="w-2 h-2 rounded-full bg-secondary ml-2"></span> Fort-de-France : 8m
+          <span class="w-2 h-2 rounded-full bg-secondary ml-2"></span> Le Marin : 19m
+        </div>
+<button class="px-space-md py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md transition-colors shadow-sm whitespace-nowrap" type="button">
+          Ouvrir le SIG Sanitaire
+        </button>
+</div>
+</div>
+</div>
+<script>
+    // Simple micro-interaction for active selection
+    document.addEventListener('DOMContentLoaded', () => {
+      const facilityCards = document.querySelectorAll('.xl\\:col-span-5 .cursor-pointer');
+      facilityCards.forEach(card => {
+        card.addEventListener('click', () => {
+          facilityCards.forEach(c => {
+            c.classList.remove('shadow-md', 'bg-gradient-to-r', 'from-primary/5');
+            c.classList.add('shadow-sm');
+          });
+          card.classList.add('shadow-md', 'bg-gradient-to-r', 'from-primary/5');
+          card.classList.remove('shadow-sm');
+        });
+      });
+    });
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] py-space-md"><div class="w-full px-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-sm"><p class="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. Mentions légales</p><div class="flex items-center gap-space-md"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">shield</span> Infrastructure Santé Certifiée HDS</span></div></div></footer></div></body></html>

@@ -12,6 +12,10 @@ import { RegisterTransporterPage } from './pages/RegisterTransporterPage';
 import { RegisterFacilityPage } from './pages/RegisterFacilityPage';
 import { LoginPage } from './pages/LoginPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminSupervisionPage } from './pages/AdminSupervisionPage';
+import { AdminTransportersPage } from './pages/AdminTransportersPage';
+import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage';
 
 function ScrollToTop() {
   const { pathname } = window.location;
@@ -40,6 +44,13 @@ export const App: React.FC = () => {
           <Route path="/transporteurs" element={<TransporterPortalPage />} />
           <Route path="/inscription/transporteur" element={<RegisterTransporterPage />} />
           <Route path="/inscription/etablissement" element={<RegisterFacilityPage />} />
+          
+          {/* Back-Office & Régulation Régionale 972 */}
+          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
+          <Route path="/admin/transporteurs" element={<AdminTransportersPage />} />
+          <Route path="/admin/etablissements" element={<AdminFacilitiesPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

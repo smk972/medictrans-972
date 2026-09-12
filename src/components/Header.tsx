@@ -28,10 +28,9 @@ export const Header: React.FC = () => {
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 rounded-lg font-label-md text-label-md transition-all duration-150 ${
-      isActive
-        ? 'bg-primary-container text-on-primary font-bold shadow-xs'
-        : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+    `px-3 py-2 rounded-lg font-label-md text-label-md transition-all duration-150 ${isActive
+      ? 'bg-primary-container text-on-primary font-bold shadow-xs'
+      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
     }`;
 
   const getRoleBadge = () => {
@@ -338,6 +337,14 @@ export const Header: React.FC = () => {
               className="px-4 py-2.5 rounded-lg font-label-md text-on-surface hover:bg-surface-container transition-colors"
             >
               Espace Transporteurs (Dispatch)
+            </Link>
+            <Link
+              to="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-4 py-2.5 rounded-lg font-label-md font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-colors flex items-center justify-between"
+            >
+              <span>Tour de Contrôle & Régulation 972</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
           </nav>
           <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between">

@@ -81,6 +81,11 @@ export interface Transporter {
   fleetVsl: number;
   fleetTaxis: number;
   verified: boolean;
+  status?: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
+  avgApproachMinutes?: number;
+  complianceRate?: number;
+  zone?: string;
+  assignedMissionsCount?: number;
 }
 
 export interface Facility {
@@ -95,6 +100,10 @@ export interface Facility {
   contactPhone: string;
   contactEmail: string;
   departments: string[];
+  dropoffPoints?: { name: string; type: string; notes: string }[];
+  activeDischargesCount?: number;
+  authorizedStaffCount?: number;
+  rating?: number;
 }
 
 export type UserRole = 'PATIENT' | 'FACILITY' | 'TRANSPORTER' | 'ADMIN';

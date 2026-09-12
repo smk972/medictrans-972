@@ -8,13 +8,13 @@ import { UserRole } from '../types';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { 
-    loginWithEmail, 
-    registerWithEmail, 
-    loginWithGoogle, 
-    loginAsDemo, 
-    isLoading, 
-    error: authError 
+  const {
+    loginWithEmail,
+    registerWithEmail,
+    loginWithGoogle,
+    loginAsDemo,
+    isLoading,
+    error: authError
   } = useAuth();
 
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
@@ -139,22 +139,20 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setMode('LOGIN'); setFormError(null); }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                  mode === 'LOGIN'
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'LOGIN'
                     ? 'bg-surface-container-lowest text-primary shadow-sm'
                     : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+                  }`}
               >
                 Se connecter
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('REGISTER'); setFormError(null); }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                  mode === 'REGISTER'
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'REGISTER'
                     ? 'bg-surface-container-lowest text-primary shadow-sm'
                     : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+                  }`}
               >
                 Créer un compte
               </button>
@@ -169,11 +167,10 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedRole('PATIENT')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${
-                    selectedRole === 'PATIENT'
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${selectedRole === 'PATIENT'
                       ? 'border-primary bg-primary/5 text-primary shadow-xs ring-2 ring-primary/20'
                       : 'border-outline-variant/40 hover:border-primary/40 bg-surface-container-lowest text-on-surface-variant'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-2xl mb-1 text-primary">
                     personal_injury
@@ -185,11 +182,10 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedRole('FACILITY')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${
-                    selectedRole === 'FACILITY'
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${selectedRole === 'FACILITY'
                       ? 'border-secondary bg-secondary/5 text-secondary shadow-xs ring-2 ring-secondary/20'
                       : 'border-outline-variant/40 hover:border-secondary/40 bg-surface-container-lowest text-on-surface-variant'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-2xl mb-1 text-secondary">
                     local_hospital
@@ -201,11 +197,10 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedRole('TRANSPORTER')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${
-                    selectedRole === 'TRANSPORTER'
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${selectedRole === 'TRANSPORTER'
                       ? 'border-amber-600 bg-amber-500/5 text-amber-700 shadow-xs ring-2 ring-amber-500/20'
                       : 'border-outline-variant/40 hover:border-amber-600/40 bg-surface-container-lowest text-on-surface-variant'
-                  }`}
+                    }`}
                 >
                   <span className="material-symbols-outlined text-2xl mb-1 text-amber-600">
                     ambulance
@@ -373,8 +368,8 @@ export const LoginPage: React.FC = () => {
                       selectedRole === 'FACILITY'
                         ? 'coordination@chu-martinique.fr'
                         : selectedRole === 'TRANSPORTER'
-                        ? 'dispatch@ambulances-972.mq'
-                        : 'patient@exemple.mq'
+                          ? 'dispatch@ambulances-972.mq'
+                          : 'patient@exemple.mq'
                     }
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm bg-surface-container-lowest text-on-surface outline-none transition-all"
                   />
