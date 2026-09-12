@@ -1,15 +1,33 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { whatsappService } from '../services/whatsappService';
 
 export const ConfirmationPage: React.FC = () => {
   const { ref } = useParams<{ ref: string }>();
   const reservationRef = ref || 'MT-972-8821';
 
+  const [bookingData, setBookingData] = useState<any>(null);
+  const [storedDoc, setStoredDoc] = useState<any>(null);
+  const [showDocModal, setShowDocModal] = useState(false);
+
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    try {
+      const rawBooking = localStorage.getItem('medictrans_last_booking');
+      if (rawBooking) {
+        setBookingData(JSON.parse(rawBooking));
+      }
+      const rawDoc = localStorage.getItem('booking_pmt_document');
+      if (rawDoc) {
+        setStoredDoc(JSON.parse(rawDoc));
+      }
+    } catch {
+      // ignore
+    }
 
     // Launch celebratory confetti
     try {
@@ -181,10 +199,10 @@ export const ConfirmationPage: React.FC = () => {
                         Identité Patient
                       </span>
                       <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                        Aimé GLISSANT
+                        {bookingData?.patientName || 'Aimé GLISSANT'}
                       </span>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        70 ans (Né le 12/04/1954)
+                        {bookingData?.phone ? `Tél : +596 ${bookingData.phone}` : '70 ans (Né le 12/04/1954)'}
                       </span>
                     </div>
 
@@ -192,8 +210,8 @@ export const ConfirmationPage: React.FC = () => {
                       <span className="font-label-sm text-label-sm text-on-surface-variant uppercase text-[10px]">
                         N° Sécurité Sociale (NIR)
                       </span>
-                      <span className="font-label-lg text-label-lg font-bold text-on-surface tracking-wide text-xs">
-                        1 54 08 97 213 456 82
+                      <span className="font-label-lg text-label-lg font-bold text-on-surface tracking-wide text-xs font-mono">
+                        {bookingData?.nir || '1 54 08 97 213 456 82'}
                       </span>
                       <span className="font-body-sm text-body-sm text-secondary font-bold text-xs">
                         Régime Général - CGSS 972
@@ -208,8 +226,14 @@ export const ConfirmationPage: React.FC = () => {
                         <span className="material-symbols-outlined text-[18px] text-primary">
                           directions_car
                         </span>
-                        <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm">
-                          VSL Conventionné
+                        <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm capitalize">
+                          {bookingData?.transportType
+                            ? bookingData.transportType === 'taxi'
+                              ? 'Taxi Conventionné'
+                              : bookingData.transportType === 'ambulance'
+                              ? 'Ambulance A/C'
+                              : 'VSL Sanitaire Léger'
+                            : 'VSL Conventionné'}
                         </span>
                       </div>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
@@ -229,7 +253,7 @@ export const ConfirmationPage: React.FC = () => {
                       </h2>
                     </div>
                     <span className="font-label-md text-label-md text-primary font-bold bg-surface-container-high px-3 py-1 rounded-lg text-xs">
-                      Mardi 24 Octobre 2024
+                      {bookingData?.transportDate || 'Mardi 24 Octobre 2024'}
                     </span>
                   </div>
 
@@ -243,7 +267,7 @@ export const ConfirmationPage: React.FC = () => {
                           Rendez-vous départ
                         </span>
                         <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                          Prise en charge à 08h30
+                          Prise en charge à {bookingData?.transportTime || '08h30'}
                         </span>
                       </div>
                     </div>
@@ -273,13 +297,13 @@ export const ConfirmationPage: React.FC = () => {
                         </div>
                         <div className="flex flex-col">
                           <span className="font-label-sm text-label-sm text-primary font-bold uppercase text-[10px]">
-                            Lieu de départ
+                            Lieu de départ (Prise en charge)
                           </span>
                           <span className="font-label-lg text-label-lg font-bold text-on-surface text-sm">
-                            Résidence Les Alizés, Bat C
+                            {bookingData?.pickupAddress || 'Résidence Les Alizés, Bat C'}
                           </span>
                           <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                            Quartier Cluny, 97233 Schoelcher
+                            Martinique 972
                           </span>
                         </div>
                       </div>
@@ -298,10 +322,10 @@ export const ConfirmationPage: React.FC = () => {
                             Établissement d'accueil
                           </span>
                           <span className="font-label-lg text-label-lg font-bold text-on-surface text-sm">
-                            CHU Pierre Zobda-Quitman
+                            {bookingData?.destinationFacility || 'CHU Pierre Zobda-Quitman'}
                           </span>
                           <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                            Pôle Néphrologie &amp; Dialyse (Entrée VSL Bât. A)
+                            Entrée VSL &amp; Ambulances
                           </span>
                         </div>
                       </div>
@@ -311,10 +335,107 @@ export const ConfirmationPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Card PMT Document Téléversé */}
+                {(storedDoc || bookingData?.uploadedPmtDoc) && (
+                  <div className="bg-surface-container-lowest rounded-2xl p-space-md md:p-space-lg shadow-sm flex flex-col gap-space-sm border border-outline-variant/30 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-surface-container pb-space-sm">
+                      <div className="flex items-center gap-space-xs">
+                        <span className="material-symbols-outlined text-[24px] text-primary">
+                          description
+                        </span>
+                        <h2 className="font-headline-md text-headline-md text-on-surface font-bold text-base">
+                          Prescription Médicale de Transport (PMT)
+                        </h2>
+                      </div>
+                      <span className="bg-secondary-container/40 text-on-secondary-container px-3 py-1 rounded-full font-label-sm text-label-sm font-bold flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-secondary"></span> Télétransmis HDS
+                      </span>
+                    </div>
+
+                    <div className="p-space-md bg-surface-container-low rounded-xl flex items-center justify-between gap-space-sm border border-outline-variant/20">
+                      <div className="flex items-center gap-space-sm">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-2xl">
+                            {(storedDoc || bookingData?.uploadedPmtDoc)?.type?.includes('pdf')
+                              ? 'picture_as_pdf'
+                              : 'image'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-xs text-on-surface">
+                            {(storedDoc || bookingData?.uploadedPmtDoc)?.name || 'PMT_Cerfa_S3138.pdf'}
+                          </span>
+                          <span className="text-[11px] text-on-surface-variant">
+                            {storedDoc
+                              ? `${(storedDoc.size / (1024 * 1024)).toFixed(2)} MB · Téléversé le ${new Date(
+                                  storedDoc.uploadedAt
+                                ).toLocaleDateString('fr-FR')}`
+                              : '1.24 MB · Certificat médical d’ALD téléversé'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {(storedDoc || bookingData?.uploadedPmtDoc)?.dataUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setShowDocModal(true)}
+                          className="px-3 py-1.5 rounded-lg bg-surface-container-highest text-primary hover:bg-surface-variant font-bold text-xs flex items-center gap-1 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">visibility</span>
+                          <span>Consulter</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Col: Actions & Contact */}
               <aside className="lg:col-span-4 flex flex-col gap-space-md">
+                {/* WhatsApp Automation Direct Trigger Card */}
+                <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-space-md shadow-xs flex flex-col gap-space-sm">
+                  <div className="flex items-center gap-space-xs">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[18px]">chat</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-label-sm text-label-sm text-emerald-900 font-bold uppercase text-[10px]">
+                        Canal WhatsApp Médic'Trans
+                      </span>
+                      <span className="font-headline-sm text-headline-sm text-emerald-950 font-bold text-xs">
+                        Récapitulatif &amp; Suivi en direct
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-emerald-800 leading-relaxed">
+                    Recevez immédiatement le récapitulatif de votre course et les alertes d'approche du véhicule sur WhatsApp.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const phoneToUse = bookingData?.whatsappPhone || bookingData?.phone || '06 96 44 20 18';
+                      whatsappService.openWhatsAppDirect(
+                        phoneToUse,
+                        'BOOKING_CONFIRMATION',
+                        {
+                          patientName: bookingData?.patientName || 'Aimé GLISSANT',
+                          bookingRef: reservationRef,
+                          pickupAddress: bookingData?.pickupAddress || 'Résidence Les Alizés, Schoelcher',
+                          facilityName: bookingData?.destinationFacility || 'CHU Pierre Zobda-Quitman',
+                          transportType: (bookingData?.transportType || 'vsl').toUpperCase(),
+                          pickupTime: bookingData?.transportTime || '08:30',
+                          pickupDate: bookingData?.transportDate || '2026-10-24',
+                        }
+                      );
+                    }}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-sm">open_in_new</span>
+                    <span>Ouvrir ma confirmation sur WhatsApp</span>
+                  </button>
+                </div>
+
                 {/* Live Tracking Card */}
                 <div className="bg-surface-container-lowest rounded-2xl p-space-md md:p-space-lg shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
                   <div className="flex items-center gap-space-sm">
@@ -328,14 +449,17 @@ export const ConfirmationPage: React.FC = () => {
                         Régulation Active
                       </span>
                       <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                        Notification SMS activée
+                        Notification SMS &amp; WhatsApp
                       </span>
                     </div>
                   </div>
 
                   <p className="font-body-sm text-body-sm text-on-surface-variant text-xs leading-relaxed">
-                    Un SMS contenant la géolocalisation en temps réel de votre véhicule sera envoyé au{' '}
-                    <strong className="text-on-surface">06 96 44 20 18</strong> 20 minutes avant le départ.
+                    Un lien contenant la géolocalisation en temps réel de votre véhicule sera envoyé au{' '}
+                    <strong className="text-on-surface">
+                      {bookingData?.whatsappPhone || bookingData?.phone || '06 96 44 20 18'}
+                    </strong>{' '}
+                    20 minutes avant le départ.
                   </p>
 
                   <Link
@@ -397,6 +521,53 @@ export const ConfirmationPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Document Modal Preview */}
+        {showDocModal && (storedDoc || bookingData?.uploadedPmtDoc) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+            <div className="relative w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-4 border-b border-outline-variant/20 bg-surface-container-low">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">description</span>
+                  <span className="font-bold text-sm text-on-surface">
+                    {(storedDoc || bookingData?.uploadedPmtDoc)?.name}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDocModal(false)}
+                  className="p-1 text-on-surface-variant hover:text-on-surface rounded-lg"
+                >
+                  <span className="material-symbols-outlined text-xl">close</span>
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-surface-container-lowest">
+                {(storedDoc || bookingData?.uploadedPmtDoc)?.type?.includes('pdf') ? (
+                  <iframe
+                    src={(storedDoc || bookingData?.uploadedPmtDoc)?.dataUrl}
+                    title="Aperçu PDF Cerfa PMT"
+                    className="w-full h-[60vh] rounded-lg border border-outline-variant/20"
+                  />
+                ) : (
+                  <img
+                    src={(storedDoc || bookingData?.uploadedPmtDoc)?.dataUrl}
+                    alt="Aperçu document PMT"
+                    className="max-h-[60vh] max-w-full object-contain rounded-lg border border-outline-variant/20"
+                  />
+                )}
+              </div>
+              <div className="p-3 border-t border-outline-variant/20 bg-surface-container-low flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowDocModal(false)}
+                  className="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold"
+                >
+                  Fermer l'aperçu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { whatsappService } from '../services/whatsappService';
 
 export const TrackingPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -353,13 +354,35 @@ export const TrackingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <a
-                      className="w-full h-10 px-3 rounded-xl bg-secondary text-on-secondary text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95 transition-all truncate"
-                      href="tel:0696884422"
-                    >
-                      <span className="material-symbols-outlined text-base shrink-0">call</span>
-                      <span className="truncate">Appeler chauffeur (06 96 88 44 22)</span>
-                    </a>
+                    <div className="flex flex-col gap-2 mt-1">
+                      <a
+                        className="w-full h-10 px-3 rounded-xl bg-secondary text-on-secondary text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95 transition-all truncate"
+                        href="tel:0696884422"
+                      >
+                        <span className="material-symbols-outlined text-base shrink-0">call</span>
+                        <span className="truncate">Appeler chauffeur (06 96 88 44 22)</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          whatsappService.openWhatsAppDirect(
+                            '0696884422',
+                            'DRIVER_APPROACHING',
+                            {
+                              patientName: 'Aimé GLISSANT',
+                              driverName: 'Frantz M.',
+                              vehiclePlate: 'GK-428-MQ',
+                              etaMinutes: '15',
+                              trackingUrl: window.location.href,
+                            }
+                          );
+                        }}
+                        className="w-full h-10 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all truncate"
+                      >
+                        <span className="material-symbols-outlined text-base shrink-0">chat</span>
+                        <span className="truncate">Échanger sur WhatsApp</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

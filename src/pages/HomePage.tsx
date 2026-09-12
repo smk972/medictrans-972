@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -240,132 +241,40 @@ export const HomePage: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                       {/* Prise en charge */}
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          className="font-label-md text-label-md text-on-surface flex items-center gap-1 font-semibold"
-                          htmlFor="pickupAddress"
-                        >
-                          <span className="material-symbols-outlined text-base text-primary">
-                            my_location
-                          </span>
-                          Lieu de prise en charge (Départ)
-                        </label>
-                        <div className="relative">
-                          <input
-                            className="w-full h-12 px-4 pr-11 rounded-xl bg-surface-container-lowest text-on-surface placeholder:text-outline font-body-md text-body-md border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
-                            id="pickupAddress"
-                            placeholder="Ex: 14 Rue des Flamboyants, Le Lamentin..."
-                            required
-                            type="text"
-                            value={pickupAddress}
-                            onChange={(e) => setPickupAddress(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleGeolocation}
-                            disabled={geoLocating}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-secondary transition-colors p-1"
-                            title="Utiliser ma position GPS actuelle"
-                          >
-                            <span
-                              className={`material-symbols-outlined text-xl ${
-                                geoLocating ? 'animate-spin' : ''
-                              }`}
-                            >
-                              near_me
-                            </span>
-                          </button>
-                        </div>
-                        <div className="flex gap-1.5 flex-wrap mt-1">
-                          {['Le Lamentin', 'Fort-de-France', 'Schoelcher', 'Le Marin', 'La Trinité'].map(
-                            (c) => (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => handleQuickCommune(c)}
-                                className="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant hover:text-primary transition-colors border border-outline-variant/30 text-xs"
-                              >
-                                {c}
-                              </button>
-                            )
-                          )}
-                        </div>
-                      </div>
+                      <AddressAutocomplete
+                        id="pickupAddress"
+                        label="Lieu de prise en charge (Départ Martinique)"
+                        placeholder="Ex : 14 Rue des Flamboyants, Cluny, Schoelcher..."
+                        value={pickupAddress}
+                        onChange={setPickupAddress}
+                        required
+                        icon="my_location"
+                        helperText="Saisissez librement ou choisissez une adresse suggérée (Google Maps / BAN 972)"
+                        allowManualEntry={true}
+                        showCategories={false}
+                        showQuickCommunes={true}
+                        onSelectSuggestion={(s) => setPickupAddress(s.label)}
+                      />
 
                       {/* Établissement destination */}
-                      <div className="flex flex-col gap-1.5">
-                        <label
-                          className="font-label-md text-label-md text-on-surface flex items-center gap-1 font-semibold"
-                          htmlFor="destinationFacility"
-                        >
-                          <span className="material-symbols-outlined text-base text-secondary">
-                            domain
-                          </span>
-                          Établissement de soins de destination
-                        </label>
-                        <div className="relative">
-                          <select
-                            className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary shadow-sm appearance-none"
-                            id="destinationFacility"
-                            required
-                            value={destinationFacility}
-                            onChange={(e) => setDestinationFacility(e.target.value)}
-                          >
-                            <optgroup label="CHU & Hôpitaux Publics">
-                              <option value="CHU Fort-de-France (P. Zobda-Quitman)">
-                                CHU de Martinique - P. Zobda-Quitman (FDF)
-                              </option>
-                              <option value="Hôpital Louis Domergue (Trinité)">
-                                Hôpital Louis Domergue (La Trinité)
-                              </option>
-                              <option value="Hôpital Albert Clarac (Fort-de-France)">
-                                Hôpital Albert Clarac (Fort-de-France)
-                              </option>
-                              <option value="Centre Hospitalier de Saint-Pierre">
-                                Centre Hospitalier de Saint-Pierre
-                              </option>
-                              <option value="Hôpital de Proximité du Marin">
-                                Hôpital de Proximité (Le Marin)
-                              </option>
-                              <option value="Hôpital d'Instruction des Armées">
-                                Centre Médical Armées (Clairière)
-                              </option>
-                            </optgroup>
-                            <optgroup label="Cliniques & Centres Spécialisés">
-                              <option value="Clinique Sainte-Marie (Schoelcher)">
-                                Clinique Sainte-Marie (Schoelcher)
-                              </option>
-                              <option value="Clinique Saint-Paul (Clairière)">
-                                Clinique Saint-Paul (Clairière FDF)
-                              </option>
-                              <option value="Centre d'Hémodialyse Martinique (Dillon)">
-                                Centre d'Hémodialyse AGDUC / Dillon
-                              </option>
-                              <option value="Centre Oncologie & Radiothérapie Clarion">
-                                Centre Oncologie Martinique (Clarion)
-                              </option>
-                              <option value="Centre de Rééducation Fonctionnelle La Valériane">
-                                CRF La Valériane (Gros-Morne)
-                              </option>
-                            </optgroup>
-                            <optgroup label="Autre destination">
-                              <option value="Cabinet Médical Privé">
-                                Cabinet Médical / Laboratoire Privé
-                              </option>
-                              <option value="Retour à Domicile">
-                                Retour à Domicile (Sortie d'hospitalisation)
-                              </option>
-                            </optgroup>
-                          </select>
-                          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">
-                            arrow_drop_down
-                          </span>
-                        </div>
-                        <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
-                          Accès direct aux zones dépose-minute ambulance &amp; VSL
-                        </span>
-                      </div>
+                      <AddressAutocomplete
+                        id="destinationFacility"
+                        label="Établissement de soins ou destination"
+                        placeholder="Ex : CHU Zobda-Quitman, Clinique Sainte-Marie, Cabinet médical..."
+                        value={destinationFacility}
+                        onChange={setDestinationFacility}
+                        required
+                        icon="domain"
+                        defaultFilter="etablissement"
+                        helperText="Sélectionnez un hôpital, clinique, dialyse, ou écrivez une adresse libre"
+                        allowManualEntry={true}
+                        showCategories={true}
+                        showQuickCommunes={false}
+                        onSelectSuggestion={(s) => setDestinationFacility(s.label)}
+                      />
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md mt-space-md">
                       {/* Date */}
                       <div className="flex flex-col gap-1.5">
                         <label
