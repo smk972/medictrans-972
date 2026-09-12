@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
 
 export const FacilityPortalPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,11 +40,8 @@ export const FacilityPortalPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
-      <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,37,69,0.06)]"><div className="h-20 max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg flex items-center justify-between gap-space-md"><div className="flex items-center gap-space-sm"><img alt="Brand logo. - Primary color: #0b5c9e
-- Font: plusJakartaSans
-- Mode: light
-- Roundness: rounded-md
-" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><div className="flex flex-col"><span className="font-headline-sm text-headline-sm text-primary leading-tight tracking-tight">Médic'Trans 972</span><span className="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Régulation Sanitaire Martinique</span></div></div><nav className="hidden xl:flex items-center gap-space-xs" data-active-classes="bg-surface-container-high text-primary font-label-lg rounded-lg"><Link className="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="accueil-presentation" to="/">Accueil &amp; Présentation</Link><Link className="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="reserver-un-transport" to="/reserver">Réserver un transport</Link><Link className="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="mes-demandes" to="/suivi">Mes Demandes</Link><Link className="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="portail-etablissements" to="/etablissements">Portail Établissements</Link><Link className="px-space-sm py-space-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="espace-transporteurs" to="/transporteurs">Espace Transporteurs</Link></nav><div className="flex items-center gap-space-md"><div className="hidden sm:flex items-center gap-space-xs bg-secondary-container/30 px-space-sm py-space-xs rounded-full shadow-[0_1px_3px_rgba(11,37,69,0.05)]"><span className="inline-block w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span><div className="flex flex-col leading-none"><span className="font-label-sm text-label-sm text-on-secondary-container font-bold uppercase">Astreinte 24/7</span><span className="font-label-sm text-label-sm text-on-surface-variant">Régulation Active</span></div></div><div className="flex items-center gap-space-sm pl-space-xs"><div className="hidden md:flex flex-col text-right"><span className="font-label-md text-label-md text-on-surface font-bold">Dr. V. Lamartine</span><span className="font-label-sm text-label-sm text-on-surface-variant">CHU Zobda-Quitman</span></div><img alt="Profile" className="w-8 h-8 rounded-full object-cover shadow-[0_1px_3px_rgba(11,37,69,0.08)]" src="https://lh3.googleusercontent.com/aida/AEtjO1X2YA9RgvL3D8j-HMWVDW68IqlJvZuHDfkgLowkQ2bCiu-vTE0hjy2_vMPyH6btVnFPHqXHU5OMPILuQzBeLmuPP38I1DBdGlYkjhKuwhc50KzYsG3aC14uH2gedrKv4smQqB7xs0Hf1oio4tLtzfKCfYwr5WYtWu4AKSTEBX7wGufC653RKL5_r6n6fv8JY5CsvfTKvvWtYV2fSfIyp8um4rDnKxsk3Fh_lXEJCJwow3LIXBupq14MRZk" /></div></div></div></header><main className="w-full pt-20 bg-background min-h-screen"><div className="flex flex-col w-full">
+      <Header />
+      <main className="w-full pt-20 bg-background min-h-screen"><div className="flex flex-col w-full">
 
 <section className="w-full bg-surface-container-lowest shadow-sm">
 <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-space-md">
@@ -449,18 +448,36 @@ export const FacilityPortalPage: React.FC = () => {
 <div className="flex flex-col gap-1">
 <label className="font-label-md text-label-md text-on-surface font-bold">N° IPP / Dossier Patient *</label>
 <div className="relative">
-<input className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" placeholder="Ex: 972-0488219" required type="text" value="972-0812903" />
+                  <input
+                    className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm"
+                    defaultValue="972-0812903"
+                    placeholder="Ex: 972-0488219"
+                    required
+                    type="text"
+                  />
 <button className="absolute right-2 top-2.5 text-primary text-[18px] material-symbols-outlined" title="Rapprocher avec DPI / Sillage" type="button">search</button>
 </div>
 <span className="font-label-sm text-label-sm text-secondary">Rapprochement DPI CHU actif</span>
 </div>
 <div className="flex flex-col gap-1">
 <label className="font-label-md text-label-md text-on-surface font-bold">Nom &amp; Prénom du Patient *</label>
-<input className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" placeholder="NOM Prénom" required type="text" value="BERNARD Éliane" />
+                <input
+                  className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm"
+                  defaultValue="BERNARD Éliane"
+                  placeholder="NOM Prénom"
+                  required
+                  type="text"
+                />
 </div>
 <div className="flex flex-col gap-1">
 <label className="font-label-md text-label-md text-on-surface font-bold">Chambre / N° de Lit *</label>
-<input className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" placeholder="Ex: Ch 312 - Lit A" required type="text" value="Chambre 318 - Lit B" />
+                <input
+                  className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm"
+                  defaultValue="Chambre 318 - Lit B"
+                  placeholder="Ex: Ch 312 - Lit A"
+                  required
+                  type="text"
+                />
 </div>
 </div>
 </div>
@@ -472,42 +489,42 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 
 <div className="grid grid-cols-1 sm:grid-cols-3 gap-space-md">
-<label className="cursor-pointer">
-<input defaultChecked className="peer sr-only" name="transportMode" type="radio" value="ambulance" />
-<div className="p-space-md rounded-xl bg-surface-container-low peer-defaultChecked:bg-surface-container peer-defaultChecked:shadow-md transition-all flex flex-col gap-space-xs relative">
-<div className="flex items-center justify-between">
-<span className="material-symbols-outlined text-primary text-[28px]">airline_seat_flat</span>
-<span className="material-symbols-outlined text-secondary text-[20px] hidden peer-defaultChecked:block">check_circle</span>
-</div>
-<span className="font-headline-sm text-headline-sm font-bold text-on-surface">Ambulance</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">Position allongée ou demi-assise, surveillance constante</span>
-<span className="font-label-sm text-label-sm text-primary font-bold mt-1">100% Pris en Charge</span>
-</div>
-</label>
-<label className="cursor-pointer">
-<input className="peer sr-only" name="transportMode" type="radio" value="vsl" />
-<div className="p-space-md rounded-xl bg-surface-container-low peer-defaultChecked:bg-surface-container peer-defaultChecked:shadow-md transition-all flex flex-col gap-space-xs relative">
-<div className="flex items-center justify-between">
-<span className="material-symbols-outlined text-secondary text-[28px]">directions_car</span>
-<span className="material-symbols-outlined text-secondary text-[20px] hidden peer-defaultChecked:block">check_circle</span>
-</div>
-<span className="font-headline-sm text-headline-sm font-bold text-on-surface">VSL Médicalisé</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">Position assise, aide technique à la marche requise</span>
-<span className="font-label-sm text-label-sm text-secondary font-bold mt-1">Conventionné CPAM</span>
-</div>
-</label>
-<label className="cursor-pointer">
-<input className="peer sr-only" name="transportMode" type="radio" value="taxi" />
-<div className="p-space-md rounded-xl bg-surface-container-low peer-defaultChecked:bg-surface-container peer-defaultChecked:shadow-md transition-all flex flex-col gap-space-xs relative">
-<div className="flex items-center justify-between">
-<span className="material-symbols-outlined text-tertiary text-[28px]">local_taxi</span>
-<span className="material-symbols-outlined text-secondary text-[20px] hidden peer-defaultChecked:block">check_circle</span>
-</div>
-<span className="font-headline-sm text-headline-sm font-bold text-on-surface">Taxi Conventionné</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">Patient autonome pouvant voyager assis sans aide soignante</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant font-bold mt-1">Agrément 972</span>
-</div>
-</label>
+            <label className="cursor-pointer">
+              <input defaultChecked className="peer sr-only" name="transportMode" type="radio" value="ambulance" />
+              <div className="p-space-md rounded-xl bg-surface-container-low peer-checked:bg-surface-container peer-checked:ring-2 peer-checked:ring-primary shadow-sm transition-all flex flex-col gap-space-xs relative">
+                <div className="flex items-center justify-between">
+                  <span className="material-symbols-outlined text-primary text-[28px]">airline_seat_flat</span>
+                  <span className="material-symbols-outlined text-secondary text-[20px] hidden peer-checked:block">check_circle</span>
+                </div>
+                <span className="font-headline-sm text-headline-sm font-bold text-on-surface">Ambulance</span>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">Position allongée ou demi-assise, surveillance constante</span>
+                <span className="font-label-sm text-label-sm text-primary font-bold mt-1">100% Pris en Charge</span>
+              </div>
+            </label>
+            <label className="cursor-pointer">
+              <input className="peer sr-only" name="transportMode" type="radio" value="vsl" />
+              <div className="p-space-md rounded-xl bg-surface-container-low peer-checked:bg-surface-container peer-checked:ring-2 peer-checked:ring-primary shadow-sm transition-all flex flex-col gap-space-xs relative">
+                <div className="flex items-center justify-between">
+                  <span className="material-symbols-outlined text-secondary text-[28px]">directions_car</span>
+                  <span className="material-symbols-outlined text-secondary text-[20px] hidden peer-checked:block">check_circle</span>
+                </div>
+                <span className="font-headline-sm text-headline-sm font-bold text-on-surface">VSL Médicalisé</span>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">Position assise, aide technique à la marche requise</span>
+                <span className="font-label-sm text-label-sm text-secondary font-bold mt-1">Conventionné CPAM</span>
+              </div>
+            </label>
+            <label className="cursor-pointer">
+              <input className="peer sr-only" name="transportMode" type="radio" value="taxi" />
+              <div className="p-space-md rounded-xl bg-surface-container-low peer-checked:bg-surface-container peer-checked:ring-2 peer-checked:ring-primary shadow-sm transition-all flex flex-col gap-space-xs relative">
+                <div className="flex items-center justify-between">
+                  <span className="material-symbols-outlined text-tertiary text-[28px]">local_taxi</span>
+                  <span className="material-symbols-outlined text-secondary text-[20px] hidden peer-checked:block">check_circle</span>
+                </div>
+                <span className="font-headline-sm text-headline-sm font-bold text-on-surface">Taxi Conventionné</span>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">Patient autonome pouvant voyager assis sans aide soignante</span>
+                <span className="font-label-sm text-label-sm text-on-surface-variant font-bold mt-1">Agrément 972</span>
+              </div>
+            </label>
 </div>
 </div>
 
@@ -520,8 +537,8 @@ export const FacilityPortalPage: React.FC = () => {
 <div className="flex flex-col gap-1">
 <label className="font-label-md text-label-md text-on-surface font-bold">Heure de départ souhaitée du service *</label>
 <div className="grid grid-cols-2 gap-space-xs">
-<input className="h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" required type="date" value="2024-10-28" />
-<input className="h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" required type="time" value="13:30" />
+<input className="h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" defaultValue="2024-10-28" required type="date" />
+<input className="h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" defaultValue="13:30" required type="time" />
 </div>
 </div>
 <div className="flex flex-col gap-1">
@@ -536,7 +553,7 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 <div className="sm:col-span-2 flex flex-col gap-1">
 <label className="font-label-md text-label-md text-on-surface font-bold">Adresse Complète de Prise en Charge à l'Arrivée *</label>
-<input className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" placeholder="Numéro, Rue, Résidence, Bâtiment, Ville, Code Postal" required type="text" value="Résidence Les Balisiers, Apt 24, 97233 Schoelcher" />
+<input className="w-full h-11 px-space-sm rounded-lg bg-surface-container text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest shadow-sm" defaultValue="Résidence Les Balisiers, Apt 24, 97233 Schoelcher" placeholder="Numéro, Rue, Résidence, Bâtiment, Ville, Code Postal" required type="text" />
 </div>
 </div>
 
@@ -729,13 +746,8 @@ export const FacilityPortalPage: React.FC = () => {
 </section>
 
 
-</div></main><footer className="w-full bg-surface-container-lowest shadow-[0_1px_8px_rgba(11,37,69,0.04)] py-space-xl"><div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-lg mb-space-xl"><div className="flex flex-col gap-space-sm"><div className="flex items-center gap-space-xs"><img alt="Brand logo. - Primary color: #0b5c9e
-- Font: plusJakartaSans
-- Mode: light
-- Roundness: rounded-md
-" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><span className="font-headline-sm text-headline-sm text-primary font-bold">Médic'Trans 972</span></div><p className="font-body-sm text-body-sm text-on-surface-variant">Dispositif territorial de coordination et régulation des transports sanitaires d'urgence et programmés de l'île de la Martinique.</p><div className="flex items-center gap-space-xs text-secondary font-label-md text-label-md"><span className="material-symbols-outlined text-[18px]">verified</span><span className="">Opérateur Conventionné ARS Martinique</span></div></div><div className="flex flex-col gap-space-sm"><h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">Régulation &amp; Urgences 972</h3><ul className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><li className="flex items-center gap-space-xs"><span className="material-symbols-outlined text-[18px] text-primary">phone_in_talk</span><span className="font-bold text-on-surface">05 96 55 20 00</span> (Ligne directe 24/7)</li><li className="flex items-center gap-space-xs"><span className="material-symbols-outlined text-[18px] text-secondary">support_agent</span>SAMU Centre 15 Martinique</li><li className="flex items-center gap-space-xs"><span className="material-symbols-outlined text-[18px] text-on-surface-variant">mail</span>coordination@medictrans972.fr</li><li className="flex items-center gap-space-xs"><span className="material-symbols-outlined text-[18px] text-on-surface-variant">location_on</span>Plateau Technique, CHU Zobda-Quitman, 97200 Fort-de-France</li></ul></div><div className="flex flex-col gap-space-sm"><h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">Pôles Hospitaliers Desservis</h3><ul className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><li className="">CHU de Martinique (Zobda-Quitman / Mère-Enfant)</li><li className="">Hôpital Louis Domergue (La Trinité)</li><li className="">Hôpital du Saint-Esprit &amp; Pôle Sud Martinique</li><li className="">Clinique Sainte-Marie (Schoelcher)</li><li className="">Centre de Convalescence du Carbet</li></ul></div><div className="flex flex-col gap-space-sm"><h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">Cadre Légal &amp; Conformité</h3><div className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><div className="bg-surface-container-low p-space-sm rounded-lg"><span className="font-label-md text-label-md text-primary font-bold block">CPAM Martinique 972</span><span className="font-label-sm text-label-sm">Télétransmission BBD &amp; PECSE Titre Subrogatoire</span></div><div className="bg-surface-container-low p-space-sm rounded-lg"><span className="font-label-md text-label-md text-secondary font-bold block">Agrément ARS N° 972-2024-SAN</span><span className="font-label-sm text-label-sm">Ambulances Catégorie A &amp; VSL Catégorie D</span></div></div></div></div><div className="pt-space-md bg-surface-container-low/50 rounded-lg p-space-md flex flex-col md:flex-row items-center justify-between gap-space-md"><span className="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. Mentions légales</span></div></div></footer>
-
-
+</div></main>
+<Footer />
     </div>
   );
 };

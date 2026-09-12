@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
 
 export const RegisterFacilityPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,11 +40,8 @@ export const RegisterFacilityPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
-      <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="h-20 max-w-[1280px] mx-auto px-margin lg:px-margin-lg flex items-center justify-between gap-gutter"><div className="flex items-center gap-space-sm"><img alt="Brand logo. - Primary color: #0b5c9e
-- Font: plusJakartaSans
-- Mode: light
-- Roundness: rounded-md
-" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><div className="flex flex-col"><span className="font-headline-sm text-headline-sm text-primary tracking-tight">Médic'Trans <span className="text-secondary">972</span></span><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Martinique Santé</span></div></div><nav className="hidden xl:flex items-center gap-space-sm" data-active-classes="bg-primary-container text-on-primary font-label-md rounded-lg"><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="accueil" to="/">Accueil</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="reserver" to="/reserver">Réserver</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="suivi-des-demandes" to="/suivi">Suivi des demandes</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="transporteurs-partenaires" to="/transporteurs">Transporteurs</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="etablissements-de-sante" to="/etablissements">Établissements de santé</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="droits-cpam" to="/droits-cpam">Droits CPAM</Link></nav><div className="flex items-center gap-space-md"><div className="hidden sm:flex items-center gap-space-xs bg-secondary-container/30 px-space-sm py-space-xs rounded-full"><span className="material-symbols-outlined text-secondary text-sm">support_agent</span><span className="font-label-sm text-label-sm text-on-secondary-container">Coordination 972</span></div><a className="flex items-center justify-center px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container hover:text-on-primary transition-colors shadow-[0_1px_3px_rgba(11,37,69,0.05)]" data-path="connexion" href="#">Connexion / Inscription</a><img alt="Profile" className="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1X2YA9RgvL3D8j-HMWVDW68IqlJvZuHDfkgLowkQ2bCiu-vTE0hjy2_vMPyH6btVnFPHqXHU5OMPILuQzBeLmuPP38I1DBdGlYkjhKuwhc50KzYsG3aC14uH2gedrKv4smQqB7xs0Hf1oio4tLtzfKCfYwr5WYtWu4AKSTEBX7wGufC653RKL5_r6n6fv8JY5CsvfTKvvWtYV2fSfIyp8um4rDnKxsk3Fh_lXEJCJwow3LIXBupq14MRZk" /></div></div></header><main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
+      <Header />
+      <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
 
 <div className="relative w-full overflow-hidden">
 <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent rounded-full blur-3xl pointer-events-none"></div>
@@ -181,23 +180,25 @@ export const RegisterFacilityPage: React.FC = () => {
 <span className="material-symbols-outlined text-primary text-lg">badge</span>
 <h2 className="font-headline-sm text-headline-sm text-on-surface">Identification Administrative &amp; Géolocalisation</h2>
 </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-<div className="flex flex-col gap-space-xs md:col-span-2">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="etabName">Nom officiel de l'établissement <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="etabName" placeholder="Ex: Centre Hospitalier Universitaire de Martinique - Site Pierre Zobda-Quitman" required type="text" value="CHU de Martinique - Hôpital Pierre Zobda-Quitman" />
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="etabName">Nom Officiel de la Structure de Soins <span className="text-error">*</span></label>
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="CHU de Martinique - Hôpital Pierre Zobda-Quitman" id="etabName" placeholder="Ex: Centre Hospitalier Universitaire de Martinique - Site Pierre Zobda-Quitman" required type="text" />
 </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="finessGeo">N° FINESS Géographique (9 chiffres) <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="finessGeo" maxLength={9} placeholder="970200000" required type="text" value="970211145" />
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="970211145" id="finessGeo" maxLength={9} placeholder="970200000" required type="text" />
 </div>
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="siret">Numéro SIRET (14 chiffres) <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="siret" maxLength={14} placeholder="26972000000000" required type="text" value="26972008500018" />
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="26972008500018" id="siret" maxLength={14} placeholder="26972000000000" required type="text" />
 </div>
-<div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="communeSelect">Commune d'implantation (Martinique) <span className="text-error">*</span></label>
-<select className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="communeSelect" required>
-<option  value="Fort-de-France">Fort-de-France (97200)</option>
+</div>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<div className="md:col-span-2 flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="commune">Commune d'implantation en Martinique <span className="text-error">*</span></label>
+<select className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="Fort-de-France" id="commune">
+<option value="Fort-de-France">Fort-de-France (97200)</option>
 <option value="La Trinité">La Trinité (97220)</option>
 <option value="Le Marin">Le Marin (97290)</option>
 <option value="Schoelcher">Schoelcher (97233)</option>
@@ -211,13 +212,13 @@ export const RegisterFacilityPage: React.FC = () => {
 </div>
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="codePostal">Code Postal <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="codePostal" required type="text" value="97200" />
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="97200" id="codePostal" required type="text" />
 </div>
-<div className="flex flex-col gap-space-xs md:col-span-2">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="pickupPoint">Point de prise en charge prioritaire pour les ambulanciers <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="pickupPoint" placeholder="Ex: Hall Principal / Quai Ambulances - Sas Urgences Adultes / Bâtiment Femme-Mère-Enfant" required type="text" value="Quai Ambulances - Niveau 0, Sas Régulation Urgences" />
+</div>
+<div className="flex flex-col gap-space-xs">
+<label className="font-label-md text-label-md text-on-surface" htmlFor="pickupPoint">Point d'Enlèvement &amp; Sas Ambulancier Précis <span className="text-error">*</span></label>
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="Quai Ambulances - Niveau 0, Sas Régulation Urgences" id="pickupPoint" placeholder="Ex: Hall Principal / Quai Ambulances - Sas Urgences Adultes / Bâtiment Femme-Mère-Enfant" required type="text" />
 <span className="font-label-sm text-label-sm text-on-surface-variant">Cette consigne précise s'affichera directement sur le terminal embarqué de l'ambulancier ou chauffeur VSL.</span>
-</div>
 </div>
 </div>
 
@@ -268,13 +269,13 @@ export const RegisterFacilityPage: React.FC = () => {
 <p className="font-body-sm text-body-sm text-on-surface-variant">Cette personne recevra les accès administrateur pour inviter les soignants, secrétaires et chefs de service.</p>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="cadreName">Nom &amp; Prénom du Cadre Référent <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="cadreName" placeholder="Mme Céline DEGRAS" required type="text" value="Céline DEGRAS-MONTOUT" />
+<label className="font-label-md text-label-md text-on-surface" htmlFor="cadreName">Nom &amp; Prénom du Cadre / Responsable <span className="text-error">*</span></label>
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="Céline DEGRAS-MONTOUT" id="cadreName" placeholder="Mme Céline DEGRAS" required type="text" />
 </div>
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="cadreFunction">Fonction dans l'établissement <span className="text-error">*</span></label>
-<select className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="cadreFunction" required>
-<option  value="Cadre Supérieur de Santé">Cadre Supérieur de Santé / Gestion des lits</option>
+<label className="font-label-md text-label-md text-on-surface" htmlFor="cadreFonction">Fonction au sein de l'établissement <span className="text-error">*</span></label>
+<select className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="Cadre Supérieur de Santé" id="cadreFonction">
+<option value="Cadre Supérieur de Santé">Cadre Supérieur de Santé / Gestion des lits</option>
 <option value="Cadre de Santé de Service">Cadre de Santé de Service</option>
 <option value="Régulateur Interne des Transports">Régulateur Interne des Transports</option>
 <option value="Directeur des Soins">Direction des Soins Infirmiers (DSI)</option>
@@ -282,14 +283,15 @@ export const RegisterFacilityPage: React.FC = () => {
 <option value="Responsable Admissions">Responsable Bureau des Entrées &amp; Sorties</option>
 </select>
 </div>
+</div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="cadreEmail">Courriel professionnel de l'établissement <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="cadreEmail" placeholder="nom.prenom@ch-martinique.fr" required type="email" value="celine.degras@ch-martinique.fr" />
-<span className="font-label-sm text-label-sm text-on-surface-variant">Privilégiez l'adresse institutionnelle (@ch-martinique.fr ou domaine clinique).</span>
+<label className="font-label-md text-label-md text-on-surface" htmlFor="cadreEmail">Courriel Professionnel Sécurisé <span className="text-error">*</span></label>
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="celine.degras@ch-martinique.fr" id="cadreEmail" placeholder="nom.prenom@ch-martinique.fr" required type="email" />
 </div>
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="cadrePhone">Ligne directe / DECT Cadre <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" id="cadrePhone" placeholder="05 96 XX XX XX" required type="tel" value="05 96 55 20 44" />
+<label className="font-label-md text-label-md text-on-surface" htmlFor="cadrePhone">Ligne Téléphonique Directe / DECT <span className="text-error">*</span></label>
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="05 96 55 20 44" id="cadrePhone" placeholder="05 96 XX XX XX" required type="tel" />
 </div>
 </div>
 </div>
@@ -482,9 +484,8 @@ export const RegisterFacilityPage: React.FC = () => {
 </div>
 </div>
 </div>
-</main><footer className="w-full bg-surface-container-low shadow-[0_-1px_8px_rgba(0,0,0,0.03)]"><div className="max-w-[1280px] mx-auto px-margin lg:px-margin-lg py-space-xl"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-lg"><div className="flex flex-col gap-space-sm"><div className="flex items-center gap-space-sm"><span className="font-headline-sm text-headline-sm text-primary">Médic'Trans 972</span></div><p className="font-body-sm text-body-sm text-on-surface-variant">Portail coordonné de transport sanitaire d'urgence et programmé (Ambulance, VSL, Taxi Conventionné) pour le territoire de la Martinique.</p><div className="flex items-center gap-space-xs pt-space-xs"><span className="font-label-sm text-label-sm bg-surface-container-high text-on-surface px-space-sm py-space-xs rounded">Zone 972 Antilles</span></div></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Régulation &amp; Cadre Légal</span><span className="font-body-sm text-body-sm text-on-surface-variant">Autorité de régulation : ARS Martinique</span><span className="font-body-sm text-body-sm text-on-surface-variant">Prise en charge : CGSS Martinique (Sécurité Sociale)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Agrément Transport Sanitaire R. 6312</span><span className="font-body-sm text-body-sm text-on-surface-variant">Conformité Hébergement Données de Santé (HDS)</span></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Centres Hospitaliers Connectés</span><span className="font-body-sm text-body-sm text-on-surface-variant">CHU de Martinique (Fort-de-France)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Hôpital de Trinité - Nord Atlantique</span><span className="font-body-sm text-body-sm text-on-surface-variant">Clinique Sainte-Marie (Schoelcher)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Hôpital du Marin - Pôle Sud</span></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Assistance &amp; Régulation 7j/7</span><p className="font-body-sm text-body-sm text-on-surface-variant">Plateforme d'aide aux usagers et prescripteurs médicaux.</p><div className="bg-surface-container-lowest p-space-sm rounded-lg shadow-[0_1px_3px_rgba(11,37,69,0.05)]"><div className="font-label-md text-label-md text-primary">Permanence 972 : 05 96 00 00 00</div><div className="font-label-sm text-label-sm text-on-surface-variant">Urgences vitales : Composer le 15 (SAMU 972)</div></div></div></div><div className="mt-space-xl pt-space-md bg-surface-container flex flex-col md:flex-row items-center justify-between gap-space-sm px-space-md py-space-sm rounded-lg"><span className="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. <a className="hover:text-on-surface transition-colors underline" data-path="mentions-legales" href="#">Mentions légales</a></span></div></div></footer>
-
-
+</main>
+      <Footer />
     </div>
   );
 };

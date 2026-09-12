@@ -38,7 +38,63 @@ export const TransporterPortalPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
-      <aside className="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col pt-space-md pb-space-lg shadow-[0_1px_8px_rgba(11,28,48,0.04)]"><div className="px-space-md pb-space-md flex items-center gap-space-sm"><img alt="Logo Médic'Trans Martinique" className="h-7 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><div className="flex flex-col"><span className="font-headline-sm text-headline-sm text-primary">Médic'Trans</span><span className="font-label-sm text-label-sm text-secondary">Plateforme Régionale 972</span></div></div><nav className="flex-1 px-space-sm flex flex-col gap-space-xs mt-space-sm" data-active-classes="bg-primary-container text-on-primary font-bold rounded-lg"><Link className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="suivi-des-courses" to="/suivi"><span className="material-symbols-outlined">alt_route</span><span className="font-label-md text-label-md">Suivi des courses</span></Link><a className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="planning-et-disponibilites" href="#"><span className="material-symbols-outlined">calendar_month</span><span className="font-label-md text-label-md">Planning Véhicules</span></a><a className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="flotte-ambulances" href="#"><span className="material-symbols-outlined">airport_shuttle</span><span className="font-label-md text-label-md">Flotte sanitaire</span></a></nav><div className="px-space-md pt-space-md bg-surface-container-low mx-space-sm rounded-lg"><div className="flex items-center gap-space-xs mb-1"><span className="w-2 h-2 rounded-full bg-secondary"></span><span className="font-label-sm text-label-sm text-secondary font-bold">Permanence Régul. 972</span></div><p className="font-body-sm text-body-sm text-on-surface-variant mb-1">CHU Zobda-Quitman &amp; SAMU</p><span className="font-label-md text-label-md text-primary font-bold">05 96 72 00 97</span></div></aside><div className="pl-72"><header className="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.04)] z-40 flex items-center justify-between px-space-lg"><div className="flex items-center gap-space-sm"><span className="font-label-md text-label-md text-on-surface-variant">Secteur Régional :</span><span className="font-label-md text-label-md text-primary font-bold">Martinique Centre &amp; Nord/Sud</span></div><div className="flex items-center gap-space-md"><div className="flex items-center gap-space-xs"><span className="w-2 h-2 rounded-full bg-secondary"></span><span className="font-label-sm text-label-sm text-secondary">24/7 En ligne</span></div><img alt="Profile" className="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4Ou_gXxYmMgUKkBpcflANalR_XKHPbHvwsPitIeGO2reHkEGUG103yn97linWcTa61QoMJdDmse0trP1AsufCLlho-yPDuOCqGLeBIVIZT_4DcmQXvYxyG73gclmKMBKdOVXjuBC04Hbop4SaJBiiXnbo_czHLOTKWDm5awphPacifmkMZm_j6Q0sy9g4tnTUta-Q64hDr91Qxby1dLSFHY54zcb_dLnGHO7YAxbylb9SwBxtqB6y" /><div className="flex flex-col text-left"><span className="font-label-md text-label-md text-on-surface leading-none">Coord. Zobda-Quitman</span><span className="font-label-sm text-label-sm text-on-surface-variant leading-none mt-1">CHU Martinique</span></div></div></header><main className="relative pt-16 bg-surface w-full px-space-lg py-space-lg min-h-screen"><div className="flex flex-col w-full gap-space-lg">
+      <aside className="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col pt-space-md pb-space-lg shadow-[0_1px_8px_rgba(11,28,48,0.04)]">
+        <div className="px-space-md pb-space-md flex items-center gap-space-sm">
+          <Link to="/" className="flex items-center gap-space-sm">
+            <img alt="Logo Médic'Trans Martinique" className="h-7 w-auto object-contain" src="/assets/logo-icon.svg" />
+            <div className="flex flex-col">
+              <span className="font-headline-sm text-headline-sm text-primary">Médic'Trans</span>
+              <span className="font-label-sm text-label-sm text-secondary">Plateforme Régionale 972</span>
+            </div>
+          </Link>
+        </div>
+        <nav className="flex-1 px-space-sm flex flex-col gap-space-xs mt-space-sm" data-active-classes="bg-primary-container text-on-primary font-bold rounded-lg">
+          <Link className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="suivi-des-courses" to="/suivi">
+            <span className="material-symbols-outlined">alt_route</span>
+            <span className="font-label-md text-label-md">Suivi des courses</span>
+          </Link>
+          <Link className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" to="/etablissements">
+            <span className="material-symbols-outlined">domain</span>
+            <span className="font-label-md text-label-md">Portail Établissements</span>
+          </Link>
+          <Link className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" to="/inscription/transporteur">
+            <span className="material-symbols-outlined">app_registration</span>
+            <span className="font-label-md text-label-md">Inscription Société</span>
+          </Link>
+          <Link to="/" className="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-primary hover:bg-primary/10 transition-colors font-medium text-sm mt-4">
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <span>Retour au site public</span>
+          </Link>
+        </nav>
+        <div className="px-space-md pt-space-md bg-surface-container-low mx-space-sm rounded-lg">
+          <div className="flex items-center gap-space-xs mb-1">
+            <span className="w-2 h-2 rounded-full bg-secondary"></span>
+            <span className="font-label-sm text-label-sm text-secondary font-bold">Permanence Régul. 972</span>
+          </div>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mb-1">CHU Zobda-Quitman &amp; SAMU</p>
+          <a href="tel:0596720097" className="font-label-md text-label-md text-primary font-bold hover:underline">05 96 72 00 97</a>
+        </div>
+      </aside>
+      <div className="pl-72">
+        <header className="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.04)] z-40 flex items-center justify-between px-space-lg">
+          <div className="flex items-center gap-space-sm">
+            <span className="font-label-md text-label-md text-on-surface-variant">Secteur Régional :</span>
+            <span className="font-label-md text-label-md text-primary font-bold">Martinique Centre &amp; Nord/Sud</span>
+          </div>
+          <div className="flex items-center gap-space-md">
+            <div className="flex items-center gap-space-xs">
+              <span className="w-2 h-2 rounded-full bg-secondary"></span>
+              <span className="font-label-sm text-label-sm text-secondary">24/7 En ligne</span>
+            </div>
+            <img alt="Profile" className="w-8 h-8 rounded-full object-cover border border-outline-variant/30" src="/assets/headshot.png" />
+            <div className="flex flex-col text-left">
+              <span className="font-label-md text-label-md text-on-surface leading-none">Coord. Zobda-Quitman</span>
+              <span className="font-label-sm text-label-sm text-on-surface-variant leading-none mt-1">CHU Martinique</span>
+            </div>
+          </div>
+        </header>
+        <main className="relative pt-16 bg-surface w-full px-space-lg py-space-lg min-h-screen">
+          <div className="flex flex-col w-full gap-space-lg">
 <div className="w-full bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md">
 <div className="flex flex-col gap-space-xs">
 <div className="flex items-center gap-space-sm flex-wrap">
@@ -482,7 +538,7 @@ export const TransporterPortalPage: React.FC = () => {
 </div>
 </div>
 <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center gap-space-md">
-<img className="w-16 h-16 rounded-xl object-cover shrink-0 shadow" data-alt="Photo professionnelle d'un ambulancier antillais souriant et équipé en uniforme d'intervention sanitaire en Martinique, tenant une tablette de télétransmission numérique devant une ambulance blanche et bleue Caraïbes Express" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAS_Cx5oWrcoUc6yLbuS3kFZZM2ubrxZg96tS8rLHoZuebV1akbgJtuuUbqDQ4zxKWNmTnSguktqcgKxkWn8rpY-GlIG16ElalhHDzdAaIlGzOEQTYPh_-vNb8PpMjB_v_iyoyqDN5OMSSGbjkduMBVH1b5IljgFhD8is0A77VCMkfc6iiM68Er1pUS2isZSZp0_XsBtOWetJ3nJ0U61ZHT2_ptARlWHJM1rUgciWW_A-wfyU5KST-T" />
+<img className="w-16 h-16 rounded-xl object-cover shrink-0 shadow border border-outline-variant/30" alt="Ambulancier conventionné Martinique" src="/assets/step2_dispatch.jpg" />
 <div className="flex flex-col min-w-0">
 <span className="font-label-md text-label-md text-on-surface font-bold">Permanence de Garde 972</span>
 <span className="font-body-sm text-body-sm text-on-surface-variant truncate">Astricte préfecture week-end activée</span>

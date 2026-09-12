@@ -1,393 +1,728 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
+import { rideService } from '../services/rideService';
 
 export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Retrieve initial state from home page or defaults
+  const stateData = location.state || {};
+  let storedDraft: any = {};
+  try {
+    const raw = localStorage.getItem('medictrans_draft_booking');
+    if (raw) storedDraft = JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+
+  const initialTransport = stateData.transportType || storedDraft.transportType || 'vsl';
+  const initialPickup = stateData.pickupAddress || storedDraft.pickupAddress || 'Résidence Les Alizés, Cluny, Schoelcher';
+  const initialDest = stateData.destinationFacility || storedDraft.destinationFacility || 'CHU Pierre Zobda-Quitman - Pôle Oncologie, FdF';
+  const initialDate = stateData.transportDate || storedDraft.transportDate || '2026-10-24';
+  const initialTime = stateData.transportTime || storedDraft.transportTime || '08:30';
+
+  // Form states
+  const [lastName, setLastName] = useState('GLISSANT');
+  const [firstName, setFirstName] = useState('Aimé');
+  const [nir, setNir] = useState('1 54 08 97 213 456 82');
+  const [phone, setPhone] = useState('06 96 44 20 18');
+  const [birthDate, setBirthDate] = useState('1954-08-14');
+  const [isAld, setIsAld] = useState(true);
+  const [mobility, setMobility] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
+  const [oxygen, setOxygen] = useState(false);
+  const [floor, setFloor] = useState('Rez-de-chaussée / Plain-pied');
+  const [hasElevator, setHasElevator] = useState(true);
+  const [hasCompanion, setHasCompanion] = useState(true);
+  const [hasPmt, setHasPmt] = useState<'already' | 'later'>('already');
+  const [motif, setMotif] = useState('Consultation spécialisée / Bilan');
+  const [doctor, setDoctor] = useState('Dr. J-M Lafontaine - Oncologie CHU');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
 
-    // Form submissions
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (window.location.pathname === '/') {
-          navigate('/reserver');
-        } else if (window.location.pathname === '/reserver') {
-          navigate('/confirmation/MT-972-8821');
-        } else if (window.location.pathname.startsWith('/inscription')) {
-          alert("Votre dossier a bien été soumis à la régulation Médic'Trans 972.");
-          navigate('/');
-        }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const ref = `MT-972-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+      const createdRide = await rideService.createRide({
+        pickupAddress: initialPickup,
+        pickupCity: initialPickup.includes(',') ? initialPickup.split(',')[1].trim() : 'Schœlcher',
+        dropoffAddress: initialDest,
+        dropoffCity: 'Fort-de-France',
+        facilityName: initialDest,
+        pickupDateTime: `${initialDate}T${initialTime}:00`,
+        isRoundTrip: true,
+        returnDateTime: `${initialDate}T17:00:00`,
+        transportType: initialTransport === 'taxi' ? 'TAXI_CONVENTIONNE' : initialTransport === 'ambulance' ? 'AMBULANCE' : 'VSL',
+        patient: {
+          firstName,
+          lastName,
+          birthDate,
+          nir,
+          phone,
+          email: `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
+          address: initialPickup,
+          city: initialPickup.includes(',') ? initialPickup.split(',')[1].trim() : 'Schœlcher',
+          postalCode: '97233',
+          isAld,
+          hasPmt: hasPmt === 'already',
+          pmtPrescriberDoctor: doctor,
+        },
+        mobility: {
+          wheelchair: mobility === 'fauteuil',
+          stretcher: mobility === 'allonge',
+          oxygen,
+          stairsWithoutElevator: !hasElevator && floor !== 'Rez-de-chaussée / Plain-pied',
+          floorNumber: floor === 'Rez-de-chaussée / Plain-pied' ? 0 : 2,
+          needsEscort: hasCompanion,
+          notes: `Motif: ${motif}`,
+        },
+        source: 'PATIENT',
       });
-    });
 
-    // Button navigation shortcuts
-    document.querySelectorAll('button').forEach(btn => {
-      const text = btn.textContent || '';
-      if (text.includes('Étape 2') || text.includes('Continuer vers') || text.includes('Continuer ma réservation')) {
-        btn.addEventListener('click', () => navigate('/reserver'));
-      } else if (text.includes('Confirmer') || text.includes('Valider la demande') || text.includes('Valider la réservation')) {
-        btn.addEventListener('click', () => navigate('/confirmation/MT-972-8821'));
-      } else if (text.includes('Suivi') || text.includes('Suivre')) {
-        btn.addEventListener('click', () => navigate('/suivi'));
-      }
-    });
-  }, [navigate]);
+      setTimeout(() => {
+        navigate(`/confirmation/${createdRide?.reference || ref}`);
+      }, 500);
+    } catch {
+      setTimeout(() => {
+        navigate(`/confirmation/${ref}`);
+      }, 500);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
-      <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.06)]"><div className="h-20 max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg flex items-center justify-between gap-space-md"><div className="flex items-center gap-space-md shrink-0"><img alt="Logo Médic'Trans Martinique" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><div className="flex flex-col"><span className="font-headline-sm text-headline-sm text-primary tracking-tight">Médic'Trans</span><span className="font-label-sm text-label-sm text-secondary -mt-1">Martinique 972</span></div></div><nav className="hidden xl:flex items-center gap-space-sm" data-active-classes="bg-primary-container text-on-primary font-bold rounded-lg"><Link className="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="accueil-presentation" to="/">Accueil &amp; Présentation</Link><Link className="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="reserver-un-transport" to="/reserver">Réserver un transport</Link><Link className="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="mes-demandes" to="/suivi">Mes Demandes</Link><Link className="px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="espace-transporteurs" to="/transporteurs">Espace Transporteurs</Link></nav><div className="flex items-center gap-space-md shrink-0"><div className="hidden md:flex flex-col items-end"><div className="flex items-center gap-space-xs"><span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span><span className="font-label-sm text-label-sm text-secondary">Disponible 24/7</span></div><span className="font-label-lg text-label-lg text-primary tracking-tight">05 96 72 00 97</span></div><div className="flex items-center gap-space-sm pl-space-sm"><img alt="Profile" className="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4Ou_gXxYmMgUKkBpcflANalR_XKHPbHvwsPitIeGO2reHkEGUG103yn97linWcTa61QoMJdDmse0trP1AsufCLlho-yPDuOCqGLeBIVIZT_4DcmQXvYxyG73gclmKMBKdOVXjuBC04Hbop4SaJBiiXnbo_czHLOTKWDm5awphPacifmkMZm_j6Q0sy9g4tnTUta-Q64hDr91Qxby1dLSFHY54zcb_dLnGHO7YAxbylb9SwBxtqB6y" /><div className="hidden lg:flex flex-col text-left"><span className="font-label-md text-label-md text-on-surface leading-none">Coord. Clinique</span><span className="font-label-sm text-label-sm text-on-surface-variant leading-none mt-1">CHU P. Zobda-Quitman</span></div></div></div></div></header><main className="w-full pt-20 bg-surface min-h-screen"><div className="flex flex-col w-full">
+    <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
+      <Header />
 
-<section className="w-full bg-surface-container-low py-space-lg shadow-sm">
-<div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
-<div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-<div className="flex flex-col">
-<span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase">Demande Réf. MT-972-8821</span>
-<h1 className="font-headline-lg text-headline-lg text-primary tracking-tight">Réservation de Transport Sanitaire</h1>
-</div>
-
-<div className="flex items-center gap-space-sm">
-
-<div className="flex items-center gap-space-xs">
-<span className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-md text-label-md">
-<span className="material-symbols-outlined text-[18px]">check</span>
-</span>
-<div className="hidden sm:flex flex-col">
-<span className="font-label-sm text-label-sm text-secondary">Étape 1</span>
-<span className="font-label-md text-label-md text-on-surface">Trajet &amp; Véhicule</span>
-</div>
-</div>
-<div className="w-8 md:w-12 h-0.5 bg-secondary"></div>
-
-<div className="flex items-center gap-space-xs">
-<span className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-md text-label-md shadow-md">
-              2
-            </span>
-<div className="flex flex-col">
-<span className="font-label-sm text-label-sm text-primary">Étape active</span>
-<span className="font-label-md text-label-md text-primary font-bold">Patient &amp; PMT</span>
-</div>
-</div>
-<div className="w-8 md:w-12 h-0.5 bg-surface-container-highest"></div>
-
-<div className="flex items-center gap-space-xs opacity-60">
-<span className="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-label-md text-label-md">
-              3
-            </span>
-<div className="hidden sm:flex flex-col">
-<span className="font-label-sm text-label-sm text-on-surface-variant">Étape 3</span>
-<span className="font-label-md text-label-md text-on-surface-variant">Confirmation</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl w-full">
-<div className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
-
-<form className="lg:col-span-7 flex flex-col gap-space-xl" >
-
-<div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-xl shadow-sm flex flex-col gap-space-lg">
-<div className="flex items-center justify-between">
-<div className="flex items-center gap-space-sm">
-<div className="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
-<span className="material-symbols-outlined">person</span>
-</div>
-<div className="flex flex-col">
-<h2 className="font-headline-sm text-headline-sm text-on-surface">Fiche d'identité du Patient</h2>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Données confidentielles sécurisées HDS / ARS</span>
-</div>
-</div>
-<span className="font-label-sm text-label-sm bg-surface-container text-primary px-2.5 py-1 rounded-full">Requis</span>
-</div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Nom de naissance</label>
-<input className="h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-low transition-colors shadow-[inset_0_0_0_1px_#CBD5E1] focus:shadow-[inset_0_0_0_2px_#0B5C9E]" placeholder="Ex. DUPONT" type="text" value="GLISSANT" />
-</div>
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Prénom usuel</label>
-<input className="h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-low transition-colors shadow-[inset_0_0_0_1px_#CBD5E1] focus:shadow-[inset_0_0_0_2px_#0B5C9E]" placeholder="Ex. Jean" type="text" value="Aimé" />
-</div>
-<div className="md:col-span-2 flex flex-col gap-1.5">
-<div className="flex justify-between items-center">
-<label className="font-label-md text-label-md text-on-surface">Numéro de Sécurité Sociale (NIR)</label>
-<span className="font-label-sm text-label-sm text-secondary font-medium">15 chiffres (Clé comprise)</span>
-</div>
-<div className="relative flex items-center">
-<input className="w-full h-11 px-3 pl-10 bg-surface-container-lowest rounded-lg font-mono text-body-md text-on-surface outline-none focus:bg-surface-container-low transition-colors shadow-[inset_0_0_0_1px_#CBD5E1] focus:shadow-[inset_0_0_0_2px_#0B5C9E]" maxLength={15} placeholder="1 XX XX XX XXX XXX XX" type="text" value="1 54 08 97 213 456 82" />
-<span className="material-symbols-outlined text-outline absolute left-3 text-[20px]">badge</span>
-<span className="material-symbols-outlined text-secondary absolute right-3 text-[20px]">check_circle</span>
-</div>
-</div>
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Téléphone portable (SMS suivi)</label>
-<div className="relative flex items-center">
-<span className="absolute left-3 font-label-md text-label-md text-outline-variant">+596</span>
-<input className="w-full h-11 pl-14 pr-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-low transition-colors shadow-[inset_0_0_0_1px_#CBD5E1] focus:shadow-[inset_0_0_0_2px_#0B5C9E]" type="tel" value="06 96 44 20 18" />
-</div>
-</div>
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Date de naissance</label>
-<input className="h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-low transition-colors shadow-[inset_0_0_0_1px_#CBD5E1] focus:shadow-[inset_0_0_0_2px_#0B5C9E]" type="date" value="1954-08-14" />
-</div>
-</div><div className="p-space-md rounded-xl bg-surface-container-low/60 border-0 flex items-center justify-between gap-space-md hover:bg-surface-container-low transition-colors"><div className="flex items-start sm:items-center gap-space-sm"><div className="w-8 h-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center shrink-0 mt-0.5 sm:mt-0"><span className="material-symbols-outlined text-[18px]">verified_user</span></div><div className="flex flex-col"><div className="flex items-center gap-2 flex-wrap"><span className="font-label-md text-label-md text-on-surface font-semibold">Patient bénéficiaire d'une ALD</span><span className="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-bold">Exonération 100%</span></div><span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Prise en charge intégrale par la Sécurité Sociale / CGSS Martinique au titre de l'ALD 30</span></div></div><label className="relative inline-flex items-center cursor-pointer shrink-0"><input defaultChecked className="sr-only peer" type="checkbox" /><div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-defaultChecked:after:translate-x-full peer-defaultChecked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-defaultChecked:bg-secondary"></div></label></div>
-</div>
-
-<div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-xl shadow-sm flex flex-col gap-space-lg">
-<div className="flex items-center gap-space-sm">
-<div className="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
-<span className="material-symbols-outlined">accessible</span>
-</div>
-<div className="flex flex-col">
-<h2 className="font-headline-sm text-headline-sm text-on-surface">Mobilité &amp; Condition Physique</h2>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Précisions pour adapter l'assistance humaine et l'équipement</span>
-</div>
-</div>
-
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
-<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-low shadow-[inset_0_0_0_2px_#0B5C9E] transition-all">
-<input defaultChecked className="mt-1 accent-primary" name="mobility_mode" type="radio" />
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-primary font-bold">Patient assis autonome</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Marche sans difficulté majeure, montée autonome dans le véhicule.</span>
-</div>
-</label>
-<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-lowest shadow-[inset_0_0_0_1px_#E2E8F0] hover:bg-surface-container-low transition-all">
-<input className="mt-1 accent-primary" name="mobility_mode" type="radio" />
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-on-surface">Aide à la marche / Béquilles</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Déplacement lent, soutien d'un ambulancier nécessaire pour s'installer.</span>
-</div>
-</label>
-<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-lowest shadow-[inset_0_0_0_1px_#E2E8F0] hover:bg-surface-container-low transition-all">
-<input className="mt-1 accent-primary" name="mobility_mode" type="radio" />
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-on-surface">Fauteuil personnel pliable</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Fauteuil transférable dans le coffre, transfert actif ou semi-aidé.</span>
-</div>
-</label>
-<label className="cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-lowest shadow-[inset_0_0_0_1px_#E2E8F0] hover:bg-surface-container-low transition-all">
-<input className="mt-1 accent-primary" name="mobility_mode" type="radio" />
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-on-surface">Position allongée stricte</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Nécessite impérativement ambulance catégorie A ou C avec brancard.</span>
-</div>
-</label>
-</div>
-
-<div className="pt-space-sm flex flex-col gap-space-md">
-
-<div className="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low">
-<div className="flex items-center gap-space-sm">
-<div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
-<span className="material-symbols-outlined text-[18px]">air</span>
-</div>
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-on-surface">Oxygénothérapie continue</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Le patient dispose de sa propre bouteille ou nécessite un appoint embarqué.</span>
-</div>
-</div>
-<label className="relative inline-flex items-center cursor-pointer">
-<input className="sr-only peer" type="checkbox" />
-<div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-defaultChecked:after:translate-x-full peer-defaultChecked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-defaultChecked:bg-secondary"></div>
-</label>
-</div>
-
-<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md bg-surface-container-low/50 p-space-md rounded-lg">
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Étage du départ (domicile)</label>
-<select className="h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none shadow-[inset_0_0_0_1px_#CBD5E1]">
-<option>Rez-de-chaussée / Plain-pied</option>
-<option >1er étage</option>
-<option>2ème étage</option>
-<option>3ème étage ou plus</option>
-</select>
-</div>
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Présence d'ascenseur</label>
-<div className="grid grid-cols-2 gap-space-xs h-11">
-<button className="rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" type="button">Non</button>
-<button className="rounded-lg bg-primary text-on-primary font-label-md text-label-md" type="button">Oui (conforme)</button>
-</div>
-</div>
-</div>
-
-<div className="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low">
-<div className="flex items-center gap-space-sm">
-<div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
-<span className="material-symbols-outlined text-[18px]">group</span>
-</div>
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-on-surface">Accompagnateur autorisé</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Autorisé si enfant mineur ou mention expresse portée sur la PMT.</span>
-</div>
-</div>
-<label className="relative inline-flex items-center cursor-pointer">
-<input defaultChecked className="sr-only peer" type="checkbox" />
-<div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-defaultChecked:after:translate-x-full peer-defaultChecked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-defaultChecked:bg-primary-container"></div>
-</label>
-</div>
-</div>
-</div>
-
-<div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-xl shadow-sm flex flex-col gap-space-lg">
-<div className="flex items-center justify-between">
-<div className="flex items-center gap-space-sm">
-<div className="w-10 h-10 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
-<span className="material-symbols-outlined">description</span>
-</div>
-<div className="flex flex-col">
-<h2 className="font-headline-sm text-headline-sm text-on-surface">Prescription Médicale de Transport (PMT)</h2>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Condition indispensable pour le Tiers-Payant Sécurité Sociale</span>
-</div>
-</div>
-<span className="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded-full font-bold">100% Remboursé</span>
-</div>
-
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm p-1 bg-surface-container-low rounded-xl">
-<button className="py-2.5 px-3 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md shadow-sm text-center" type="button">
-              J'ai déjà mon bon de transport
-            </button>
-<button className="py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md text-center transition-colors" type="button">
-              Le médecin me le remettra à l'hôpital
-            </button>
-</div>
-
-<div className="p-space-lg rounded-xl bg-surface-container-low/40 flex flex-col items-center justify-center text-center gap-space-sm cursor-pointer hover:bg-surface-container-low transition-colors">
-<div className="w-14 h-14 rounded-full bg-surface-container-high text-primary flex items-center justify-center">
-<span className="material-symbols-outlined text-[28px]">cloud_upload</span>
-</div>
-<div className="flex flex-col">
-<span className="font-label-md text-label-md text-primary font-bold">Glissez votre bon de transport signé ou prenez une photo</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Formats acceptés : PDF, JPG, PNG (Max 10 Mo)</span>
-</div>
-<div className="flex items-center gap-space-xs bg-surface-container-lowest px-3 py-1.5 rounded-lg shadow-sm">
-<span className="material-symbols-outlined text-[16px] text-secondary">verified</span>
-<span className="font-label-sm text-label-sm text-on-surface">PMT_Signee_Dr_Lafontaine.pdf (1.2 MB)</span>
-<button className="text-error ml-2 hover:opacity-80" type="button">
-<span className="material-symbols-outlined text-[16px]">close</span>
-</button>
-</div>
-</div>
-
-<div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Motif de la prise en charge</label>
-<select className="h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none shadow-[inset_0_0_0_1px_#CBD5E1]">
-<option >Consultation spécialisée / Bilan</option>
-<option>Séance de chimiothérapie / Dialyse</option>
-<option>Entrée en hospitalisation programmée</option>
-<option>Sortie d'hospitalisation</option>
-<option>Séance de rééducation fonctionnelle</option>
-</select>
-</div>
-<div className="flex flex-col gap-1.5">
-<label className="font-label-md text-label-md text-on-surface">Médecin prescripteur / Service</label>
-<input className="h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface outline-none shadow-[inset_0_0_0_1px_#CBD5E1]" placeholder="Nom du médecin ou pôle médical" type="text" value="Dr. J-M Lafontaine - Oncologie CHU" />
-</div>
-</div>
-</div>
-</form>
-
-<aside className="lg:col-span-5 flex flex-col gap-space-lg lg:sticky lg:top-24">
-
-<div className="bg-surface-container-lowest rounded-xl shadow-md p-space-lg flex flex-col gap-space-md">
-<div className="flex items-center justify-between pb-space-xs">
-<h3 className="font-headline-sm text-headline-sm text-primary">Récapitulatif Course</h3>
-<span className="font-label-sm text-label-sm bg-secondary/15 text-secondary px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-              En direct
-            </span>
-</div>
-
-<div className="flex flex-col rounded-xl overflow-hidden bg-surface-container-low shadow-sm">
-<div className="w-full h-36 bg-cover bg-center relative" data-location="Fort-de-France, Martinique" >
-<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-space-sm">
-<span className="font-label-sm text-label-sm text-white flex items-center gap-1">
-<span className="material-symbols-outlined text-[16px]">navigation</span>
-                  Distance estimée : 7.8 km (18 min)
+      <main className="w-full pt-20 bg-surface flex-1">
+        {/* Step Indicator Header */}
+        <section className="w-full bg-surface-container-low py-space-lg shadow-sm border-b border-outline-variant/30">
+          <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+              <div className="flex flex-col">
+                <span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">
+                  Demande Réf. MT-972-8821
                 </span>
-</div>
-</div>
+                <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight font-bold text-2xl md:text-3xl">
+                  Réservation de Transport Sanitaire
+                </h1>
+              </div>
 
-<div className="p-space-md flex flex-col gap-space-md">
-<div className="flex items-start gap-space-sm">
-<div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-<span className="material-symbols-outlined text-[14px]">home</span>
-</div>
-<div className="flex flex-col min-w-0">
-<span className="font-label-sm text-label-sm text-on-surface-variant">Départ (Prise en charge)</span>
-<span className="font-label-md text-label-md text-on-surface truncate">Résidence Les Alizés, Bat C - Cluny, Schoelcher</span>
-</div>
-</div>
-<div className="flex items-start gap-space-sm">
-<div className="w-6 h-6 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0 mt-0.5">
-<span className="material-symbols-outlined text-[14px]">local_hospital</span>
-</div>
-<div className="flex flex-col min-w-0">
-<span className="font-label-sm text-label-sm text-on-surface-variant">Destination</span>
-<span className="font-label-md text-label-md text-on-surface truncate">CHU Pierre Zobda-Quitman - Pôle Oncologie, FdF</span>
-</div>
-</div>
-</div>
-</div>
+              <div className="flex items-center gap-space-sm">
+                <div className="flex items-center gap-space-xs">
+                  <span className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-md text-label-md">
+                    <span className="material-symbols-outlined text-[18px]">check</span>
+                  </span>
+                  <div className="hidden sm:flex flex-col">
+                    <span className="font-label-sm text-label-sm text-secondary font-semibold">Étape 1</span>
+                    <span className="font-label-md text-label-md text-on-surface">Trajet &amp; Véhicule</span>
+                  </div>
+                </div>
 
-<div className="grid grid-cols-2 gap-space-sm">
-<div className="p-space-sm bg-surface-container-low rounded-lg flex flex-col gap-0.5">
-<span className="font-label-sm text-label-sm text-on-surface-variant">Date &amp; Heure</span>
-<span className="font-label-md text-label-md text-on-surface font-bold">Mar. 24 Oct. 2024</span>
-<span className="font-headline-sm text-headline-sm text-primary">08:30</span>
-</div>
-<div className="p-space-sm bg-surface-container-low rounded-lg flex flex-col gap-0.5">
-<span className="font-label-sm text-label-sm text-on-surface-variant">Type de Véhicule</span>
-<span className="font-label-md text-label-md text-on-surface font-bold">VSL Conventionné</span>
-<span className="font-body-sm text-body-sm text-secondary font-medium">Climatisé • 1 valise</span>
-</div>
-</div>
+                <div className="w-8 md:w-12 h-0.5 bg-secondary"></div>
 
-<div className="p-space-md rounded-xl bg-surface-container-high/60 flex flex-col gap-space-xs">
-<div className="flex justify-between items-center">
-<span className="font-label-md text-label-md text-on-surface">Prise en charge Sécurité Sociale</span>
-<span className="font-label-md text-label-md text-secondary font-bold">100% (ALD 30)</span>
-</div>
-<div className="flex justify-between items-center">
-<span className="font-body-sm text-body-sm text-on-surface-variant">Ticket modérateur / Avance</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">0,00 €</span>
-</div>
-<div className="pt-space-xs flex justify-between items-center border-t-0">
-<span className="font-headline-sm text-headline-sm text-on-surface">Reste à charge estimé</span>
-<span className="font-headline-lg text-headline-lg text-secondary font-bold">0,00 €</span>
-</div>
-</div>
+                <div className="flex items-center gap-space-xs">
+                  <span className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-md text-label-md shadow-md font-bold">
+                    2
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-label-sm text-label-sm text-primary font-bold">Étape active</span>
+                    <span className="font-label-md text-label-md text-primary font-bold">Patient &amp; PMT</span>
+                  </div>
+                </div>
 
-<div className="flex flex-col gap-space-sm pt-space-xs">
-<button className="w-full h-14 bg-primary hover:bg-primary-container active:scale-[0.99] transition-all text-on-primary rounded-xl font-label-lg text-label-lg flex items-center justify-center gap-space-sm shadow-lg shadow-primary/20" type="button">
-<span className="material-symbols-outlined text-[24px]">send</span>
-<span className="">Diffuser ma demande aux transporteurs</span>
-</button>
+                <div className="w-8 md:w-12 h-0.5 bg-surface-container-highest"></div>
 
-<div className="flex items-start gap-space-xs p-space-sm bg-surface-container-low rounded-lg">
-<span className="material-symbols-outlined text-[18px] text-secondary shrink-0 mt-0.5">radar</span>
-<p className="font-label-sm text-label-sm text-on-surface-variant leading-relaxed">
-<strong className="text-on-surface">Diffusion instantanée :</strong> Alerte transmise par SMS et console télématique aux&amp;nbsp;<span className="text-primary font-bold">&amp;nbsp;professionnels certifiés</span> du secteur.
-              </p>
-</div>
-</div>
-</div>
+                <div className="flex items-center gap-space-xs opacity-60">
+                  <span className="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-label-md text-label-md">
+                    3
+                  </span>
+                  <div className="hidden sm:flex flex-col">
+                    <span className="font-label-sm text-label-sm text-on-surface-variant">Étape 3</span>
+                    <span className="font-label-md text-label-md text-on-surface-variant">Confirmation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
+        <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl w-full">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
+            {/* Left Column: Patient Details, Mobility & PMT */}
+            <div className="lg:col-span-7 flex flex-col gap-space-xl">
+              {/* Card 1: Fiche d'identité */}
+              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-space-sm">
+                    <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+                      <span className="material-symbols-outlined">person</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                        Fiche d'identité du Patient
+                      </h2>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                        Données confidentielles sécurisées HDS / ARS
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-label-sm text-label-sm bg-surface-container text-primary px-2.5 py-1 rounded-full font-bold">
+                    Requis
+                  </span>
+                </div>
 
-</aside>
-</div>
-</div>
-</div></main><footer className="w-full bg-surface-container-low mt-space-xl"><div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-xl mb-space-xl"><div className="flex flex-col gap-space-sm"><div className="flex items-center gap-space-sm mb-space-xs"><span className="font-headline-sm text-headline-sm text-primary">Médic'Trans Martinique</span></div><p className="font-body-sm text-body-sm text-on-surface-variant">Plateforme d'intermédiation et de régulation du transport sanitaire conventionné pour toute la Martinique.</p><div className="flex flex-col gap-space-xs mt-space-xs"><span className="font-label-md text-label-md text-on-surface">Agréments &amp; Certifications</span><span className="font-body-sm text-body-sm text-on-surface-variant">Agrément ARS Martinique n°972-2024-T</span><span className="font-body-sm text-body-sm text-on-surface-variant">Conventionnement CPAM 100% Tiers Payant</span></div></div><div className="flex flex-col gap-space-sm"><span className="font-label-lg text-label-lg text-on-surface">Établissements Desservis</span><ul className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><li className="">CHU de Martinique (P. Zobda-Quitman) - Fort-de-France</li><li className="">Hôpital Louis Domergue - La Trinité</li><li className="">Hôpital Pierre Zobda-Quitman &amp; EHPAD - Le Lamentin</li><li className="">Centre Hospitalier de Saint-Pierre</li><li className="">Hôpital de Proximité - Le Marin</li><li className="">Clinique Sainte-Marie - Schoelcher</li></ul></div><div className="flex flex-col gap-space-sm"><span className="font-label-lg text-label-lg text-on-surface">Services Sanitaires</span><ul className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><li className="">Ambulances conventionnées (Position allongée/soins)</li><li className="">VSL (Véhicule Sanitaire Léger)</li><li className="">Taxi Conventionné CPAM Martinique</li><li className="">Urgences relatives et rapatriements inter-îles</li><li className="">Transports ALD &amp; Séances régulières (Dialyse, Onco)</li></ul></div><div className="flex flex-col gap-space-sm"><span className="font-label-lg text-label-lg text-on-surface">Assistance &amp; Régulation</span><p className="font-body-sm text-body-sm text-on-surface-variant">Permanence d'accès aux soins et transfert médicalisé 24h/24 et 7j/7.</p><span className="font-headline-sm text-headline-sm text-primary">05 96 72 00 97</span><span className="font-body-sm text-body-sm text-on-surface-variant">regulation@medtrans-mq.fr</span><span className="font-body-sm text-body-sm text-on-surface-variant">Région Martinique (972)</span></div></div><div className="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><span className="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. <a className="hover:text-on-surface transition-colors" href="#">Mentions légales</a></span></div></div></footer>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Nom de naissance
+                    </label>
+                    <input
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                      placeholder="Ex. DUPONT"
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
 
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Prénom usuel
+                    </label>
+                    <input
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                      placeholder="Ex. Jean"
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
 
+                  <div className="md:col-span-2 flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                        Numéro de Sécurité Sociale (NIR)
+                      </label>
+                      <span className="font-label-sm text-label-sm text-secondary font-bold text-xs">
+                        15 chiffres (Clé comprise)
+                      </span>
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        className="w-full h-11 px-3 pl-10 pr-10 bg-surface-container-lowest rounded-xl font-mono text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                        maxLength={21}
+                        placeholder="1 XX XX XX XXX XXX XX"
+                        type="text"
+                        required
+                        value={nir}
+                        onChange={(e) => setNir(e.target.value)}
+                      />
+                      <span className="material-symbols-outlined text-outline absolute left-3 text-[20px]">
+                        badge
+                      </span>
+                      <span className="material-symbols-outlined text-secondary absolute right-3 text-[20px]">
+                        check_circle
+                      </span>
+                    </div>
+                  </div>
 
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Téléphone portable (SMS suivi)
+                    </label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 font-label-md text-label-md text-outline-variant font-bold">
+                        +596
+                      </span>
+                      <input
+                        className="w-full h-11 pl-14 pr-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Date de naissance
+                    </label>
+                    <input
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                      type="date"
+                      required
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* ALD Switch */}
+                <div className="p-space-md rounded-xl bg-surface-container-low/60 border border-outline-variant/30 flex items-center justify-between gap-space-md hover:bg-surface-container-low transition-colors">
+                  <div className="flex items-start sm:items-center gap-space-sm">
+                    <div className="w-8 h-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                      <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-label-md text-label-md text-on-surface font-bold">
+                          Patient bénéficiaire d'une ALD
+                        </span>
+                        <span className="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-bold">
+                          Exonération 100%
+                        </span>
+                      </div>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5 text-xs">
+                        Prise en charge intégrale par la Sécurité Sociale / CGSS Martinique au titre de l'ALD 30
+                      </span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      checked={isAld}
+                      onChange={(e) => setIsAld(e.target.checked)}
+                      className="sr-only peer"
+                      type="checkbox"
+                    />
+                    <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Card 2: Mobilité & Condition Physique */}
+              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+                <div className="flex items-center gap-space-sm">
+                  <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+                    <span className="material-symbols-outlined">accessible</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                      Mobilité &amp; Condition Physique
+                    </h2>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                      Précisions pour adapter l'assistance humaine et l'équipement
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+                  {[
+                    {
+                      id: 'assis',
+                      title: 'Patient assis autonome',
+                      desc: 'Marche sans difficulté majeure, montée autonome dans le véhicule.',
+                    },
+                    {
+                      id: 'marche',
+                      title: 'Aide à la marche / Béquilles',
+                      desc: "Déplacement lent, soutien d'un ambulancier nécessaire pour s'installer.",
+                    },
+                    {
+                      id: 'fauteuil',
+                      title: 'Fauteuil personnel pliable',
+                      desc: 'Fauteuil transférable dans le coffre, transfert actif ou semi-aidé.',
+                    },
+                    {
+                      id: 'allonge',
+                      title: 'Position allongée stricte',
+                      desc: 'Nécessite impérativement ambulance catégorie A ou C avec brancard.',
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => setMobility(item.id as any)}
+                      className={`cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl transition-all border-2 ${
+                        mobility === item.id
+                          ? 'bg-surface-container-low border-primary shadow-xs ring-2 ring-primary/20'
+                          : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="mobility_mode"
+                        checked={mobility === item.id}
+                        onChange={() => setMobility(item.id as any)}
+                        className="mt-1 accent-primary"
+                      />
+                      <div className="flex flex-col">
+                        <span className={`font-label-md text-label-md font-bold ${mobility === item.id ? 'text-primary' : 'text-on-surface'}`}>
+                          {item.title}
+                        </span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">
+                          {item.desc}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Additional assistance toggles */}
+                <div className="pt-space-sm flex flex-col gap-space-md">
+                  {/* Oxygénothérapie */}
+                  <div className="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30">
+                    <div className="flex items-center gap-space-sm">
+                      <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-[18px]">air</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                          Oxygénothérapie continue
+                        </span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                          Le patient dispose de sa propre bouteille ou nécessite un appoint embarqué.
+                        </span>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        checked={oxygen}
+                        onChange={(e) => setOxygen(e.target.checked)}
+                        className="sr-only peer"
+                        type="checkbox"
+                      />
+                      <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+                    </label>
+                  </div>
+
+                  {/* Étage & Ascenseur */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md bg-surface-container-low/50 p-space-md rounded-xl border border-outline-variant/30">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                        Étage du départ (domicile)
+                      </label>
+                      <select
+                        value={floor}
+                        onChange={(e) => setFloor(e.target.value)}
+                        className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none"
+                      >
+                        <option>Rez-de-chaussée / Plain-pied</option>
+                        <option>1er étage</option>
+                        <option>2ème étage</option>
+                        <option>3ème étage ou plus</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                        Présence d'ascenseur
+                      </label>
+                      <div className="grid grid-cols-2 gap-space-xs h-11">
+                        <button
+                          type="button"
+                          onClick={() => setHasElevator(false)}
+                          className={`rounded-xl font-label-md text-label-md transition-colors ${
+                            !hasElevator
+                              ? 'bg-primary text-on-primary font-bold'
+                              : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                          }`}
+                        >
+                          Non
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHasElevator(true)}
+                          className={`rounded-xl font-label-md text-label-md transition-colors ${
+                            hasElevator
+                              ? 'bg-primary text-on-primary font-bold'
+                              : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+                          }`}
+                        >
+                          Oui (conforme)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accompagnateur */}
+                  <div className="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30">
+                    <div className="flex items-center gap-space-sm">
+                      <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-[18px]">group</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                          Accompagnateur autorisé
+                        </span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                          Autorisé si enfant mineur ou mention expresse portée sur la PMT.
+                        </span>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        checked={hasCompanion}
+                        onChange={(e) => setHasCompanion(e.target.checked)}
+                        className="sr-only peer"
+                        type="checkbox"
+                      />
+                      <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Prescription Médicale de Transport (PMT) */}
+              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-space-sm">
+                    <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+                      <span className="material-symbols-outlined">description</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                        Prescription Médicale de Transport (PMT)
+                      </h2>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                        Condition indispensable pour le Tiers-Payant Sécurité Sociale
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded-full font-bold">
+                    100% Remboursé
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHasPmt('already')}
+                    className={`flex-1 py-2.5 px-3 rounded-xl font-label-md text-xs font-bold transition-all border ${
+                      hasPmt === 'already'
+                        ? 'bg-primary text-on-primary border-primary shadow-xs'
+                        : 'bg-surface-container-low text-on-surface-variant border-outline-variant/30'
+                    }`}
+                  >
+                    J'ai déjà mon bon de transport
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHasPmt('later')}
+                    className={`flex-1 py-2.5 px-3 rounded-xl font-label-md text-xs font-bold transition-all border ${
+                      hasPmt === 'later'
+                        ? 'bg-primary text-on-primary border-primary shadow-xs'
+                        : 'bg-surface-container-low text-on-surface-variant border-outline-variant/30'
+                    }`}
+                  >
+                    Le médecin me le remettra à l'hôpital
+                  </button>
+                </div>
+
+                {hasPmt === 'already' && (
+                  <div className="p-space-lg rounded-xl bg-surface-container-low border border-dashed border-primary/40 flex flex-col items-center justify-center gap-2 text-center">
+                    <span className="material-symbols-outlined text-4xl text-primary">cloud_upload</span>
+                    <span className="font-label-md text-on-surface font-semibold text-sm">
+                      Glissez votre bon de transport signé ou prenez une photo
+                    </span>
+                    <span className="text-xs text-on-surface-variant">
+                      Formats acceptés : PDF, JPG, PNG (Max 10 Mo)
+                    </span>
+                    <div className="mt-2 flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-lg border border-outline-variant/30 shadow-xs">
+                      <span className="material-symbols-outlined text-secondary text-sm">check_circle</span>
+                      <span className="font-mono text-xs font-semibold text-primary">
+                        PMT_Signee_Dr_Lafontaine.pdf (1.2 MB)
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Motif de la prise en charge
+                    </label>
+                    <select
+                      value={motif}
+                      onChange={(e) => setMotif(e.target.value)}
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none"
+                    >
+                      <option>Consultation spécialisée / Bilan</option>
+                      <option>Séance d'Hémodialyse / Chimiothérapie (ALD)</option>
+                      <option>Sortie d'hospitalisation / Convalescence</option>
+                      <option>Séance de Radiothérapie</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Médecin prescripteur / Service
+                    </label>
+                    <input
+                      type="text"
+                      value={doctor}
+                      onChange={(e) => setDoctor(e.target.value)}
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Sticky Ride Recap Card & Dispatch Button */}
+            <aside className="lg:col-span-5 flex flex-col gap-space-md lg:sticky lg:top-24">
+              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-lg flex flex-col gap-space-md border border-outline-variant/30">
+                <div className="flex items-center justify-between pb-space-xs">
+                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">
+                    Récapitulatif Course
+                  </h3>
+                  <span className="font-label-sm text-label-sm bg-secondary/15 text-secondary px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-xs">
+                    En direct
+                  </span>
+                </div>
+
+                {/* Martinique Map Preview */}
+                <div className="flex flex-col rounded-xl overflow-hidden bg-surface-container-low shadow-sm border border-outline-variant/20">
+                  <div className="w-full h-36 relative overflow-hidden">
+                    <img
+                      src="/assets/martinique_map.jpg"
+                      alt="Carte Martinique itinéraire"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-space-sm">
+                      <span className="font-label-sm text-label-sm text-white flex items-center gap-1 font-semibold text-xs">
+                        <span className="material-symbols-outlined text-[16px]">navigation</span>
+                        Distance estimée : 7.8 km (18 min)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-space-md flex flex-col gap-space-md bg-surface-container-lowest">
+                    <div className="flex items-start gap-space-sm">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="material-symbols-outlined text-[14px]">home</span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                          Départ (Prise en charge)
+                        </span>
+                        <span className="font-label-md text-label-md text-on-surface font-semibold truncate text-xs">
+                          {initialPickup}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-space-sm">
+                      <div className="w-6 h-6 rounded-full bg-secondary/20 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="material-symbols-outlined text-[14px]">local_hospital</span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                          Destination
+                        </span>
+                        <span className="font-label-md text-label-md text-on-surface font-semibold truncate text-xs">
+                          {initialDest}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details Pills */}
+                <div className="grid grid-cols-2 gap-space-sm">
+                  <div className="p-space-sm bg-surface-container-low rounded-xl flex flex-col gap-0.5 border border-outline-variant/30">
+                    <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                      Date &amp; Heure
+                    </span>
+                    <span className="font-label-md text-label-md text-on-surface font-bold text-xs">
+                      {initialDate}
+                    </span>
+                    <span className="font-headline-sm text-headline-sm text-primary font-bold">
+                      {initialTime}
+                    </span>
+                  </div>
+
+                  <div className="p-space-sm bg-surface-container-low rounded-xl flex flex-col gap-0.5 border border-outline-variant/30">
+                    <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                      Type de Véhicule
+                    </span>
+                    <span className="font-label-md text-label-md text-on-surface font-bold text-xs capitalize">
+                      {initialTransport === 'taxi'
+                        ? 'Taxi Conventionné'
+                        : initialTransport === 'ambulance'
+                        ? 'Ambulance A/C'
+                        : 'VSL Sanitaire Léger'}
+                    </span>
+                    <span className="font-body-sm text-body-sm text-secondary font-semibold text-xs">
+                      Climatisé · 1 valise
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tiers Payant calculation */}
+                <div className="p-space-md rounded-xl bg-surface-container-high/60 flex flex-col gap-space-xs border border-outline-variant/30">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-label-md text-label-md text-on-surface font-semibold">
+                      Prise en charge Sécurité Sociale
+                    </span>
+                    <span className="font-label-md text-label-md text-secondary font-bold">
+                      {isAld ? '100% (ALD 30)' : '65% (Tiers payant mutuelle)'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-body-sm text-body-sm text-on-surface-variant">
+                      Ticket modérateur / Avance
+                    </span>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant">0,00 €</span>
+                  </div>
+                  <div className="pt-space-xs flex justify-between items-center border-t border-outline-variant/30 mt-1">
+                    <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
+                      Reste à charge estimé
+                    </span>
+                    <span className="font-headline-lg text-headline-lg text-secondary font-bold text-xl">
+                      0,00 €
+                    </span>
+                  </div>
+                </div>
+
+                {/* Submit Action */}
+                <div className="flex flex-col gap-space-sm pt-space-xs">
+                  <button
+                    disabled={isSubmitting}
+                    className="w-full h-14 bg-primary hover:bg-primary-container active:scale-[0.99] transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg shadow-primary/20 hover:scale-[1.01]"
+                    type="submit"
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Diffusion en cours...
+                      </span>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[24px]">send</span>
+                        <span>Diffuser ma demande aux transporteurs</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-start gap-space-xs p-space-sm bg-surface-container-low rounded-xl border border-outline-variant/30">
+                    <span className="material-symbols-outlined text-[18px] text-secondary shrink-0 mt-0.5">
+                      radar
+                    </span>
+                    <p className="font-label-sm text-label-sm text-on-surface-variant leading-relaxed text-xs">
+                      <strong className="text-on-surface">Diffusion instantanée :</strong> Alerte
+                      transmise par SMS et console télématique aux{' '}
+                      <span className="text-primary font-bold">professionnels certifiés</span> du secteur.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </form>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 };

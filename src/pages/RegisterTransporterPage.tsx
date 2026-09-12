@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
 
 export const RegisterTransporterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,11 +40,8 @@ export const RegisterTransporterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
-      <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="h-20 max-w-[1280px] mx-auto px-margin lg:px-margin-lg flex items-center justify-between gap-gutter"><div className="flex items-center gap-space-sm"><img alt="Brand logo. - Primary color: #0b5c9e
-- Font: plusJakartaSans
-- Mode: light
-- Roundness: rounded-md
-" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1XfD3evNv8jpKEQassyB67JCw2Z0av_XyxFzLWrX7T_Xx8sMiJ1T5FG_x_xt6Uc30fX_NkOLLu-QUvuyenXhvnYZv6QdHbyqsw8uiohhzRJs6OldzTsjmC8Jc25JWFEbRmRbZlFu9rcUI38KFr99-pARGS5nsX8yJ5qtCzmaS_McFBBZ_ihIZURxVPq-6QZZtNX4KjVd9NjlfYTvY4JmzROZ9rV53JUiOJxdMyuXkVuJZIn_EI-HUt4mw" /><div className="flex flex-col"><span className="font-headline-sm text-headline-sm text-primary tracking-tight">Médic'Trans <span className="text-secondary">972</span></span><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Martinique Santé</span></div></div><nav className="hidden xl:flex items-center gap-space-sm" data-active-classes="bg-primary-container text-on-primary font-label-md rounded-lg"><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="accueil" to="/">Accueil</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="reserver" to="/reserver">Réserver</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="suivi-des-demandes" to="/suivi">Suivi des demandes</Link><Link aria-current="page" className="px-space-sm py-space-xs transition-colors bg-primary-container text-on-primary font-label-md rounded-lg" data-path="transporteurs-partenaires" to="/transporteurs">Transporteurs</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="etablissements-de-sante" to="/etablissements">Établissements de santé</Link><Link className="px-space-sm py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="droits-cpam" to="/droits-cpam">Droits CPAM</Link></nav><div className="flex items-center gap-space-md"><div className="hidden sm:flex items-center gap-space-xs bg-secondary-container/30 px-space-sm py-space-xs rounded-full"><span className="material-symbols-outlined text-secondary text-sm">support_agent</span><span className="font-label-sm text-label-sm text-on-secondary-container">Coordination 972</span></div><a className="flex items-center justify-center px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container hover:text-on-primary transition-colors shadow-[0_1px_3px_rgba(11,37,69,0.05)]" data-path="connexion" href="#">Connexion / Inscription</a><img alt="Profile" className="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1X2YA9RgvL3D8j-HMWVDW68IqlJvZuHDfkgLowkQ2bCiu-vTE0hjy2_vMPyH6btVnFPHqXHU5OMPILuQzBeLmuPP38I1DBdGlYkjhKuwhc50KzYsG3aC14uH2gedrKv4smQqB7xs0Hf1oio4tLtzfKCfYwr5WYtWu4AKSTEBX7wGufC653RKL5_r6n6fv8JY5CsvfTKvvWtYV2fSfIyp8um4rDnKxsk3Fh_lXEJCJwow3LIXBupq14MRZk" /></div></div></header><main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
+      <Header />
+      <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
 
 <div className="w-full bg-surface-container-high px-margin lg:px-margin-lg py-space-sm text-on-surface">
 <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-xs">
@@ -168,7 +167,7 @@ export const RegisterTransporterPage: React.FC = () => {
 
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="apeCode">Code APE / NAF <span className="text-error">*</span></label>
-<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="apeCode" placeholder="86.90A (Ambulances) ou 49.32Z" required type="text" value="86.90A" />
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" defaultValue="86.90A" id="apeCode" placeholder="86.90A (Ambulances) ou 49.32Z" required type="text" />
 </div>
 
 <div className="flex flex-col gap-space-xs">
@@ -505,7 +504,7 @@ export const RegisterTransporterPage: React.FC = () => {
 
 <div className="bg-surface-container-high/40 p-space-lg rounded-xl flex flex-col gap-space-sm relative overflow-hidden">
 <div className="flex items-center gap-space-sm">
-<img className="w-12 h-12 rounded-full object-cover" data-alt="A professional Caribbean healthcare ambulance manager in Martinique smiling in uniform beside modern medical vehicles under tropical morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDL43qTR8PuHPqrcFUmEhzxdL3oviriB4zds8vuBdoqu30Xm8UPVgb5Wrry_36KUBce117OaPGWD8QosSudfaoAUbE4iFTPp_tY3KthWxjr8tXOqRr2uXCT39Oa7L-H6tikHkoJU9IPnLnym9T1PhZcY1DirYIQHSDgYImnNoA_BdRnTb7H3PQsXkt3u5zVgVpfDwmLMgxkF3fvKaWPj_uF89ELaVpVEUvnaRtM4Sc3ClSqiWnr1LXI" />
+<img className="w-12 h-12 rounded-full object-cover border border-outline-variant/30" alt="Patrick M., Gérant d'ambulances" src="/assets/headshot.png" />
 <div className="flex flex-col">
 <span className="font-headline-sm text-headline-sm text-primary">Patrick M.</span>
 <span className="font-label-sm text-label-sm text-on-surface-variant">Gérant de 6 ambulances (Trinité &amp; Fort-de-France)</span>
@@ -526,7 +525,7 @@ export const RegisterTransporterPage: React.FC = () => {
 
 <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-sm">
 <span className="font-label-md text-label-md text-primary uppercase font-bold tracking-wider">Couverture Territoriale 972</span>
-<div className="w-full h-44 rounded-lg bg-cover bg-center relative overflow-hidden flex items-end p-space-sm shadow-inner" data-location="Fort-de-France, Martinique" >
+<div className="w-full h-44 rounded-lg bg-cover bg-center relative overflow-hidden flex items-end p-space-sm shadow-inner" style={{ backgroundImage: "url('/assets/martinique_map.jpg')" }}>
 <div className="bg-surface-container-lowest/95 backdrop-blur-sm p-space-xs rounded-md shadow-sm w-full flex items-center justify-between">
 <div className="flex items-center gap-1.5">
 <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
@@ -582,9 +581,8 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 </div>
 </div>
-</main><footer className="w-full bg-surface-container-low shadow-[0_-1px_8px_rgba(0,0,0,0.03)]"><div className="max-w-[1280px] mx-auto px-margin lg:px-margin-lg py-space-xl"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-lg"><div className="flex flex-col gap-space-sm"><div className="flex items-center gap-space-sm"><span className="font-headline-sm text-headline-sm text-primary">Médic'Trans 972</span></div><p className="font-body-sm text-body-sm text-on-surface-variant">Portail coordonné de transport sanitaire d'urgence et programmé (Ambulance, VSL, Taxi Conventionné) pour le territoire de la Martinique.</p><div className="flex items-center gap-space-xs pt-space-xs"><span className="font-label-sm text-label-sm bg-surface-container-high text-on-surface px-space-sm py-space-xs rounded">Zone 972 Antilles</span></div></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Régulation &amp; Cadre Légal</span><span className="font-body-sm text-body-sm text-on-surface-variant">Autorité de régulation : ARS Martinique</span><span className="font-body-sm text-body-sm text-on-surface-variant">Prise en charge : CGSS Martinique (Sécurité Sociale)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Agrément Transport Sanitaire R. 6312</span><span className="font-body-sm text-body-sm text-on-surface-variant">Conformité Hébergement Données de Santé (HDS)</span></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Centres Hospitaliers Connectés</span><span className="font-body-sm text-body-sm text-on-surface-variant">CHU de Martinique (Fort-de-France)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Hôpital de Trinité - Nord Atlantique</span><span className="font-body-sm text-body-sm text-on-surface-variant">Clinique Sainte-Marie (Schoelcher)</span><span className="font-body-sm text-body-sm text-on-surface-variant">Hôpital du Marin - Pôle Sud</span></div><div className="flex flex-col gap-space-xs"><span className="font-label-lg text-label-lg text-on-surface">Assistance &amp; Régulation 7j/7</span><p className="font-body-sm text-body-sm text-on-surface-variant">Plateforme d'aide aux usagers et prescripteurs médicaux.</p><div className="bg-surface-container-lowest p-space-sm rounded-lg shadow-[0_1px_3px_rgba(11,37,69,0.05)]"><div className="font-label-md text-label-md text-primary">Permanence 972 : 05 96 00 00 00</div><div className="font-label-sm text-label-sm text-on-surface-variant">Urgences vitales : Composer le 15 (SAMU 972)</div></div></div></div><div className="mt-space-xl pt-space-md bg-surface-container flex flex-col md:flex-row items-center justify-between gap-space-sm px-space-md py-space-sm rounded-lg"><div className="flex flex-col md:flex-row items-center justify-between w-full gap-space-sm"><span className="font-body-sm text-body-sm text-on-surface-variant">© 2024 Médic'Trans Martinique (972). Tous droits réservés. <a className="underline hover:text-on-surface transition-colors" data-path="mentions-legales" href="#">Mentions légales</a></span></div></div></div></footer>
-
-
+      </main>
+      <Footer />
     </div>
   );
 };
