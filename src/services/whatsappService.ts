@@ -13,31 +13,59 @@ export interface WhatsAppNotification {
 }
 
 export const whatsappService = {
-  // Normaliser un numéro de téléphone de Martinique vers le format international WhatsApp E.164
-  normalizeMartiniquePhone(phone: string): string {
-    const cleaned = phone.replace(/[\s\.\-\(\)]/g, '');
+  // Normaliser un numéro de téléphone (+33, +596, +590, +594, +262) vers le format international WhatsApp E.164
+  normalizePhoneE164(phone: string): string {
+    const raw = phone.trim();
+    const cleaned = raw.replace(/[\s\.\-\(\)]/g, '');
 
-    // Format local 0696XXXXXX ou 0596XXXXXX
+    // Vérifier les préfixes explicites avec '+' ou '00'
+    const supportedPrefixes = [
+      { prefix: '+596', code: '596' },
+      { prefix: '+590', code: '590' },
+      { prefix: '+594', code: '594' },
+      { prefix: '+262', code: '262' },
+      { prefix: '+33', code: '33' },
+      { prefix: '00596', code: '596' },
+      { prefix: '00590', code: '590' },
+      { prefix: '00594', code: '594' },
+      { prefix: '00262', code: '262' },
+      { prefix: '0033', code: '33' },
+    ];
+
+    for (const item of supportedPrefixes) {
+      if (cleaned.startsWith(item.prefix)) {
+        let remainder = cleaned.substring(item.prefix.length);
+        if (remainder.startsWith('0')) {
+          remainder = remainder.substring(1);
+        }
+        return `${item.code}${remainder}`;
+      }
+    }
+
+    // Détection automatique selon préfixes nationaux (0696, 0690, 0694, 0692/0693, 06/07)
     if (cleaned.startsWith('0696') || cleaned.startsWith('0596')) {
       return `596${cleaned.substring(1)}`;
     }
-
-    // Format 696XXXXXX ou 596XXXXXX
-    if (cleaned.startsWith('696')) {
-      return `596${cleaned}`;
+    if (cleaned.startsWith('0690') || cleaned.startsWith('0590')) {
+      return `590${cleaned.substring(1)}`;
     }
-
-    // Format déjà international +596...
-    if (cleaned.startsWith('+596')) {
-      return cleaned.replace('+', '');
+    if (cleaned.startsWith('0694') || cleaned.startsWith('0594')) {
+      return `594${cleaned.substring(1)}`;
     }
-
-    // Format métropole ou générique 06...
-    if (cleaned.startsWith('06') || cleaned.startsWith('07')) {
+    if (cleaned.startsWith('0692') || cleaned.startsWith('0693') || cleaned.startsWith('0262')) {
+      return `262${cleaned.substring(1)}`;
+    }
+    if (cleaned.startsWith('06') || cleaned.startsWith('07') || cleaned.startsWith('01') || cleaned.startsWith('02') || cleaned.startsWith('03') || cleaned.startsWith('04') || cleaned.startsWith('05')) {
       return `33${cleaned.substring(1)}`;
     }
 
+    // Format déjà sans indicatif ou avec indicatif direct sans '+'
     return cleaned.replace('+', '');
+  },
+
+  // Alias pour rétrocompatibilité
+  normalizeMartiniquePhone(phone: string): string {
+    return this.normalizePhoneE164(phone);
   },
 
   // Générer le message textuel selon le template médical

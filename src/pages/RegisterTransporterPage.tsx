@@ -1,10 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { PhoneInput } from '../components/PhoneInput';
+import { FileUpload } from '../components/FileUpload';
 
 export const RegisterTransporterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [address, setAddress] = useState('Zone Industrielle La Lézarde, 97232 Le Lamentin');
+  const [phoneEmergency, setPhoneEmergency] = useState('05 96 51 00 00');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -195,16 +200,26 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 
 <div className="flex flex-col gap-space-xs md:col-span-2">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="addressInput">Adresse du siège social / Dépôt des véhicules <span className="text-error">*</span></label>
-<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="addressInput" placeholder="Zone Industrielle ou Voie, Code Postal, Commune" required type="text" />
+  <AddressAutocomplete
+    id="transporterAddress"
+    label="Adresse du siège social / Dépôt des véhicules"
+    required
+    value={address}
+    onChange={(val) => setAddress(val)}
+    placeholder="Ex: Voie, Zone Industrielle, Code Postal ou Commune en Martinique..."
+    helperText="Aide à la saisie officielle par la Base Adresse Nationale (BAN)"
+  />
 </div>
 
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="phoneEmergency">Ligne d'astreinte &amp; régulation 24/7 <span className="text-error">*</span></label>
-<div className="relative">
-<input className="h-11 w-full pl-10 pr-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="phoneEmergency" placeholder="05 96 00 00 00" required type="tel" />
-<span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant">phone_in_talk</span>
-</div>
+  <PhoneInput
+    id="phoneEmergency"
+    label="Ligne d'astreinte & régulation 24/7"
+    required
+    value={phoneEmergency}
+    defaultDialCode="+596"
+    onChange={(val) => setPhoneEmergency(val)}
+  />
 </div>
 
 <div className="flex flex-col gap-space-xs">
@@ -356,18 +371,11 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-label-sm text-label-sm bg-surface-container px-space-sm py-1 rounded text-primary font-bold">HDS Crypté</span>
 </div>
 
-<div className="p-space-xl rounded-xl bg-surface-container-low/60 flex flex-col items-center justify-center text-center gap-space-sm cursor-pointer hover:bg-surface-container-high/40 transition-colors">
-<div className="w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm text-primary">
-<span className="material-symbols-outlined text-3xl">upload_file</span>
-</div>
-<div className="flex flex-col">
-<span className="font-label-lg text-label-lg text-on-surface font-semibold">Glissez-déposez vos documents officiels ici</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">ou cliquez pour explorer vos fichiers locaux</span>
-</div>
-<button className="mt-space-xs px-space-md py-2 rounded-lg bg-primary-fixed text-on-primary-fixed font-label-md text-label-md hover:bg-primary-fixed-dim transition-colors" type="button">
-              Sélectionner les pièces du dossier
-            </button>
-</div>
+<FileUpload
+  label="Pièces justificatives réglementaires (Agrément ARS, Kbis, Cartes Grises)"
+  helpText="Formats acceptés : PDF, JPG, PNG cryptés HDS (Max. 15 Mo par document)"
+  storageKey="transporter_reg_documents"
+/>
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
 <div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">

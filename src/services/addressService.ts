@@ -93,32 +93,89 @@ export const addressService = {
 
   // Recherche via l'API Base Adresse Nationale (France & Martinique 972)
   async searchBanAddresses(query: string): Promise<AddressSuggestion[]> {
-    if (!query || query.trim().length < 2) return [];
+    const trimmed = query.trim();
+    if (!trimmed || trimmed.length < 2) return [];
 
     try {
-      // Filtrer sur le département 972 et les coordonnées Martinique
-      const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&postcode=972&lat=14.616&lon=-61.058&limit=6`;
-      const response = await fetch(url);
-      if (!response.ok) return [];
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-      const data = await response.json();
-      if (!data.features) return [];
+      // Détecter un éventuel code postal à 5 chiffres dans la saisie (ex: 97200, 97232)
+      const zipMatch = trimmed.match(/\b(97\d{3}|\d{5})\b/);
+      const zipParam = zipMatch ? `&postcode=${zipMatch[1]}` : '';
 
-      return data.features.map((item: any, index: number) => {
+      // Requête priorisée géographiquement sur la Martinique (lat 14.616, lon -61.058)
+      const primaryUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
+        trimmed
+      )}&lat=14.616&lon=-61.058&limit=8${zipParam}`;
+
+      const primaryPromise = fetch(primaryUrl, { signal: controller.signal })
+        .then((res) => (res.ok ? res.json() : { features: [] }))
+        .catch(() => ({ features: [] }));
+
+      // Si la requête ne mentionne pas déjà Martinique ou 972, requêter également avec 'Martinique'
+      const shouldQueryMartiniqueExplicit =
+        !trimmed.toLowerCase().includes('martinique') && !trimmed.includes('972');
+
+      const secondaryPromise = shouldQueryMartiniqueExplicit
+        ? fetch(
+            `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
+              `${trimmed} Martinique`
+            )}&limit=5`,
+            { signal: controller.signal }
+          )
+            .then((res) => (res.ok ? res.json() : { features: [] }))
+            .catch(() => ({ features: [] }))
+        : Promise.resolve({ features: [] });
+
+      const [primaryData, secondaryData] = await Promise.all([primaryPromise, secondaryPromise]);
+      clearTimeout(timeoutId);
+
+      const allFeatures = [
+        ...(primaryData.features || []),
+        ...(secondaryData.features || []),
+      ];
+
+      if (allFeatures.length === 0) return [];
+
+      const seenIds = new Set<string>();
+      const results: AddressSuggestion[] = [];
+
+      for (const item of allFeatures) {
         const props = item.properties || {};
+        const id = props.id || props.banId || `${props.label}-${props.postcode}`;
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+
+        const isMartinique =
+          props.postcode?.startsWith('972') ||
+          props.context?.includes('972') ||
+          props.context?.toLowerCase().includes('martinique') ||
+          props.city?.toLowerCase().includes('martinique');
+
         const coords = item.geometry?.coordinates;
-        return {
-          id: `ban-${props.id || index}`,
+
+        results.push({
+          id: `ban-${id}`,
           label: props.label || props.name,
-          secondaryText: `${props.postcode || '97200'} ${props.city || 'Martinique'}`,
-          address: props.label || `${props.name}, ${props.city}`,
+          secondaryText: `${props.postcode || ''} ${props.city || ''} • Base Adresse Nationale`,
+          address: props.label || `${props.name}, ${props.postcode || ''} ${props.city || ''}`,
           city: props.city || 'Martinique',
-          postalCode: props.postcode || '97200',
+          postalCode: props.postcode,
           type: 'BAN_ADDRESS',
-          categoryLabel: 'Adresse Martinique',
+          categoryLabel: isMartinique ? 'Base Adresse Nationale (972)' : 'Base Adresse Nationale',
           coordinates: coords ? { lng: coords[0], lat: coords[1] } : undefined,
-        };
+        });
+      }
+
+      // Trier : Martinique (972) en premier, puis pertinence
+      results.sort((a, b) => {
+        const aIs972 = a.postalCode?.startsWith('972') ? 1 : 0;
+        const bIs972 = b.postalCode?.startsWith('972') ? 1 : 0;
+        return bIs972 - aIs972;
       });
+
+      return results.slice(0, 8);
     } catch (err) {
       console.warn('BAN address search error:', err);
       return [];

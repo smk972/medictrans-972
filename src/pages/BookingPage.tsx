@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { FileUpload, UploadedFile } from '../components/FileUpload';
+import { PhoneInput } from '../components/PhoneInput';
 import { whatsappService } from '../services/whatsappService';
 import { rideService } from '../services/rideService';
 
@@ -388,23 +389,19 @@ export const BookingPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                      Téléphone portable (SMS suivi)
-                    </label>
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3 font-label-md text-label-md text-outline-variant font-bold">
-                        +596
-                      </span>
-                      <input
-                        className="w-full h-11 pl-14 pr-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
-                    </div>
-                  </div>
+                  <PhoneInput
+                    id="patientPhone"
+                    label="Téléphone portable (SMS suivi)"
+                    required
+                    value={phone}
+                    defaultDialCode="+596"
+                    onChange={(full) => {
+                      setPhone(full);
+                      if (!whatsappPhone || whatsappPhone === phone) {
+                        setWhatsappPhone(full);
+                      }
+                    }}
+                  />
 
                   <div className="flex flex-col gap-1.5">
                     <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
@@ -747,24 +744,14 @@ export const BookingPage: React.FC = () => {
                 {whatsappOptIn && (
                   <div className="flex flex-col gap-space-md pt-space-xs animate-fadeIn">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md items-center">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm text-emerald-600">smartphone</span>
-                          Numéro WhatsApp (Martinique +596 ou Métropole)
-                        </label>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-3 font-label-md text-label-md text-outline-variant font-bold text-xs">
-                            +596
-                          </span>
-                          <input
-                            className="w-full h-11 pl-14 pr-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-xs"
-                            type="tel"
-                            placeholder="06 96 XX XX XX"
-                            value={whatsappPhone}
-                            onChange={(e) => setWhatsappPhone(e.target.value)}
-                          />
-                        </div>
-                      </div>
+                      <PhoneInput
+                        id="whatsappPhone"
+                        label="Numéro WhatsApp (Alertes temps-réel)"
+                        variant="whatsapp"
+                        value={whatsappPhone}
+                        defaultDialCode="+596"
+                        onChange={(full) => setWhatsappPhone(full)}
+                      />
 
                       <div className="bg-emerald-50/70 border border-emerald-200/60 p-3 rounded-xl flex flex-col gap-1 text-xs">
                         <div className="flex items-center gap-1.5 font-bold text-emerald-900">

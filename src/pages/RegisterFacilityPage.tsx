@@ -1,10 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { PhoneInput } from '../components/PhoneInput';
 
 export const RegisterFacilityPage: React.FC = () => {
   const navigate = useNavigate();
+  const [etabName, setEtabName] = useState('CHU de Martinique - Hôpital Pierre Zobda-Quitman');
+  const [cadrePhone, setCadrePhone] = useState('05 96 55 20 44');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -181,8 +185,16 @@ export const RegisterFacilityPage: React.FC = () => {
 <h2 className="font-headline-sm text-headline-sm text-on-surface">Identification Administrative &amp; Géolocalisation</h2>
 </div>
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="etabName">Nom Officiel de la Structure de Soins <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="CHU de Martinique - Hôpital Pierre Zobda-Quitman" id="etabName" placeholder="Ex: Centre Hospitalier Universitaire de Martinique - Site Pierre Zobda-Quitman" required type="text" />
+  <AddressAutocomplete
+    id="etabName"
+    label="Nom Officiel ou Adresse de la Structure de Soins"
+    required
+    value={etabName}
+    onChange={(val) => setEtabName(val)}
+    showCategoryFilters={true}
+    placeholder="Rechercher ou saisir un établissement / adresse en Martinique..."
+    helperText="Aide officielle : Répertoire Santé 972 & Base Adresse Nationale (BAN)"
+  />
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 <div className="flex flex-col gap-space-xs">
@@ -290,8 +302,14 @@ export const RegisterFacilityPage: React.FC = () => {
 <input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="celine.degras@ch-martinique.fr" id="cadreEmail" placeholder="nom.prenom@ch-martinique.fr" required type="email" />
 </div>
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="cadrePhone">Ligne Téléphonique Directe / DECT <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="05 96 55 20 44" id="cadrePhone" placeholder="05 96 XX XX XX" required type="tel" />
+  <PhoneInput
+    id="cadrePhone"
+    label="Ligne Téléphonique Directe / DECT"
+    required
+    value={cadrePhone}
+    defaultDialCode="+596"
+    onChange={(full) => setCadrePhone(full)}
+  />
 </div>
 </div>
 </div>

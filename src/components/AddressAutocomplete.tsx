@@ -155,9 +155,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           <span>
             {label} {required && <span className="text-error">*</span>}
           </span>
-          <span className="text-xs font-normal text-on-surface-variant flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs text-primary">assistant_navigation</span>
-            Recherche Google Maps &amp; Établissements 972
+          <span className="text-xs font-normal text-on-surface-variant flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+            Base Adresse Nationale (BAN) &amp; Santé 972
           </span>
         </label>
       )}
@@ -335,6 +335,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                       className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                         isFacility
                           ? 'bg-primary-container/20 text-primary'
+                          : suggestion.type === 'BAN_ADDRESS'
+                          ? 'bg-blue-500/15 text-blue-700'
                           : suggestion.type === 'GOOGLE_MAPS'
                           ? 'bg-secondary-container/20 text-secondary'
                           : 'bg-surface-container-high text-on-surface-variant'
@@ -347,6 +349,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                             : suggestion.facility?.category === 'ONCOLOGY'
                             ? 'vital_signs'
                             : 'local_hospital'
+                          : suggestion.type === 'BAN_ADDRESS'
+                          ? 'home_pin'
                           : suggestion.type === 'GOOGLE_MAPS'
                           ? 'share_location'
                           : 'location_on'}
@@ -363,6 +367,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                               isFacility
                                 ? 'bg-primary/10 text-primary'
+                                : suggestion.type === 'BAN_ADDRESS'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
                                 : 'bg-surface-container-high text-on-surface-variant'
                             }`}
                           >
