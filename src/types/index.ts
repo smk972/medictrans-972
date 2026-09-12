@@ -96,3 +96,28 @@ export interface Facility {
   contactEmail: string;
   departments: string[];
 }
+
+export type UserRole = 'PATIENT' | 'FACILITY' | 'TRANSPORTER' | 'ADMIN';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: UserRole;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  avatarUrl?: string;
+  facilityId?: string;
+  facilityName?: string;
+  transporterId?: string;
+  transporterName?: string;
+  nir?: string;
+  createdAt?: string;
+}
+
+export interface AuthState {
+  user: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}

@@ -1,8 +1,31 @@
-import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    setUserDropdownOpen(false);
+    setMobileMenuOpen(false);
+    await logout();
+    navigate('/');
+  };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-2 rounded-lg font-label-md text-label-md transition-all duration-150 ${
@@ -10,6 +33,23 @@ export const Header: React.FC = () => {
         ? 'bg-primary-container text-on-primary font-bold shadow-xs'
         : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
     }`;
+
+  const getRoleBadge = () => {
+    if (!user) return null;
+    switch (user.role) {
+      case 'FACILITY':
+        return { label: 'Établissement', color: 'bg-secondary/15 text-secondary border-secondary/30' };
+      case 'TRANSPORTER':
+        return { label: 'Transporteur', color: 'bg-amber-500/15 text-amber-700 border-amber-500/30' };
+      case 'ADMIN':
+        return { label: 'Régulation', color: 'bg-purple-500/15 text-purple-700 border-purple-500/30' };
+      case 'PATIENT':
+      default:
+        return { label: 'Patient / Famille', color: 'bg-primary/15 text-primary border-primary/30' };
+    }
+  };
+
+  const roleBadge = getRoleBadge();
 
   return (
     <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.06)] border-b border-outline-variant/20">
@@ -34,7 +74,7 @@ export const Header: React.FC = () => {
         {/* Desktop Nav */}
         <nav className="hidden xl:flex items-center gap-1">
           <NavLink to="/" end className={navLinkClass}>
-            Accueil & Présentation
+            Accueil
           </NavLink>
           <NavLink to="/reserver" className={navLinkClass}>
             Réserver un transport
@@ -55,11 +95,11 @@ export const Header: React.FC = () => {
 
         {/* Right Info & Profile */}
         <div className="flex items-center gap-space-md shrink-0">
-          <div className="hidden md:flex flex-col items-end">
+          <div className="hidden lg:flex flex-col items-end">
             <div className="flex items-center gap-space-xs">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
               <span className="font-label-sm text-label-sm text-secondary font-semibold">
-                Disponible 24/7
+                Régulation 24/7
               </span>
             </div>
             <a
@@ -70,21 +110,130 @@ export const Header: React.FC = () => {
             </a>
           </div>
 
-          <div className="flex items-center gap-space-sm pl-space-sm">
-            <img
-              alt="Profile"
-              className="w-9 h-9 rounded-full object-cover shadow-sm ring-1 ring-outline-variant/30"
-              src="/assets/headshot.png"
-            />
-            <div className="hidden lg:flex flex-col text-left">
-              <span className="font-label-md text-label-md text-on-surface font-semibold leading-none">
-                Coord. Clinique
-              </span>
-              <span className="font-label-sm text-label-sm text-on-surface-variant leading-none mt-1">
-                CHU P. Zobda-Quitman
-              </span>
+          {/* User Profile / Login Button */}
+          {isAuthenticated && user ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-2.5 p-1.5 sm:px-2.5 rounded-2xl hover:bg-surface-container transition-all border border-outline-variant/30 text-left"
+              >
+                {user.avatarUrl ? (
+                  <img
+                    alt={user.firstName}
+                    className="w-9 h-9 rounded-full object-cover shadow-xs ring-2 ring-primary/20"
+                    src={user.avatarUrl}
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-xs ring-2 ring-primary/20">
+                    {user.firstName[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+                <div className="hidden md:flex flex-col">
+                  <span className="font-label-md text-label-md text-on-surface font-bold leading-tight">
+                    {user.firstName} {user.lastName}
+                  </span>
+                  <span className="font-label-xs text-[11px] text-on-surface-variant leading-tight mt-0.5 truncate max-w-[140px]">
+                    {user.facilityName || user.transporterName || roleBadge?.label}
+                  </span>
+                </div>
+                <span className="material-symbols-outlined text-lg text-on-surface-variant hidden md:inline">
+                  {userDropdownOpen ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-surface-container-lowest shadow-xl border border-outline-variant/30 py-2 z-50 animate-fadeIn">
+                  <div className="px-4 py-2.5 border-b border-outline-variant/20">
+                    <p className="text-xs font-semibold text-on-surface truncate">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="text-[11px] text-on-surface-variant truncate">
+                      {user.email}
+                    </p>
+                    {roleBadge && (
+                      <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${roleBadge.color}`}>
+                        {roleBadge.label}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="py-1">
+                    {user.role === 'FACILITY' && (
+                      <Link
+                        to="/etablissements"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base text-secondary">
+                          local_hospital
+                        </span>
+                        Portail Établissements (Sorties)
+                      </Link>
+                    )}
+
+                    {user.role === 'TRANSPORTER' && (
+                      <Link
+                        to="/transporteurs"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base text-amber-600">
+                          ambulance
+                        </span>
+                        Espace Dispatch Transporteur
+                      </Link>
+                    )}
+
+                    <Link
+                      to="/suivi"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base text-primary">
+                        history
+                      </span>
+                      Mes Demandes & Trajets
+                    </Link>
+
+                    <Link
+                      to="/reserver"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base text-primary">
+                        add_circle
+                      </span>
+                      Nouvelle réservation
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-outline-variant/20 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-error hover:bg-error/10 transition-colors text-left"
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        logout
+                      </span>
+                      Se déconnecter
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          ) : (
+            <Link
+              to="/connexion"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary font-label-md font-bold shadow-sm hover:bg-primary-container hover:text-on-primary transition-all duration-150 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg">login</span>
+              <span className="hidden sm:inline">Connexion</span>
+              <span className="sm:hidden">Accès</span>
+            </Link>
+          )}
 
           {/* Mobile hamburger button */}
           <button
@@ -102,6 +251,51 @@ export const Header: React.FC = () => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="xl:hidden bg-surface-container-lowest border-t border-outline-variant/30 px-margin py-space-md shadow-lg animate-fadeIn">
+          {isAuthenticated && user ? (
+            <div className="mb-4 p-3 rounded-2xl bg-surface-container flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {user.avatarUrl ? (
+                  <img
+                    alt={user.firstName}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20"
+                    src={user.avatarUrl}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
+                    {user.firstName[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-bold text-on-surface">
+                    {user.firstName} {user.lastName}
+                  </div>
+                  <div className="text-xs text-on-surface-variant">
+                    {user.email}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="p-2 rounded-lg text-error hover:bg-error/10 transition-colors"
+                title="Déconnexion"
+              >
+                <span className="material-symbols-outlined text-xl">logout</span>
+              </button>
+            </div>
+          ) : (
+            <div className="mb-4">
+              <Link
+                to="/connexion"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-sm"
+              >
+                <span className="material-symbols-outlined text-lg">login</span>
+                <span>Se connecter / S'identifier</span>
+              </Link>
+            </div>
+          )}
+
           <nav className="flex flex-col gap-1">
             <Link
               to="/"
@@ -122,7 +316,7 @@ export const Header: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
               className="px-4 py-2.5 rounded-lg font-label-md text-on-surface hover:bg-surface-container transition-colors"
             >
-              Mes Demandes
+              Mes Demandes & Trajets
             </Link>
             <Link
               to="/droits-cpam"
