@@ -231,6 +231,14 @@ export const INITIAL_FACILITIES: Facility[] = [
   }
 ];
 
+// Helper pour générer des dates futures précises pour le planning prévisionnel
+const getFutureIso = (daysAhead: number, hours: number, minutes: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+};
+
 export const INITIAL_RIDES: Ride[] = [
   {
     id: 'ride-demo-1',
@@ -413,6 +421,227 @@ export const INITIAL_RIDES: Ride[] = [
       needsEscort: false,
       notes: 'Consultation ambulatoire orthopédie'
     }
+  },
+  // =========================================================================
+  // COURSES PLANIFIÉES À L'AVANCE (PLANNING & PROGRAMMATION DES TRANSPORTEURS)
+  // =========================================================================
+  {
+    id: 'ride-plan-1',
+    reference: 'MT-972-6214',
+    createdAt: new Date().toISOString(),
+    pickupAddress: '25 Rue des Hibiscus',
+    pickupCity: 'Ducos',
+    dropoffAddress: 'CHU Pierre Zobda-Quitman, Route de Châteauboeuf',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    pickupDateTime: getFutureIso(1, 8, 30),
+    returnDateTime: getFutureIso(1, 12, 30),
+    isRoundTrip: true,
+    transportType: 'AMBULANCE',
+    status: 'PENDING',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Marcel',
+      lastName: 'Ventura',
+      birthDate: '1958-06-14',
+      nir: '1 58 06 97 210 443 21',
+      phone: '0696 31 82 40',
+      email: 'm.ventura@gmail.com',
+      address: '25 Rue des Hibiscus',
+      city: 'Ducos',
+      postalCode: '97224',
+      isAld: true,
+      aldReason: 'ALD 30 - Tumeur maligne (Oncologie)',
+      hasPmt: true,
+      pmtUploaded: true,
+      pmtFileName: 'PMT_Oncologie_Ventura_S3138.pdf',
+      pmtPrescriberDoctor: 'Dr. Cécile Darnal - Oncologue CHU'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: true,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: true,
+      notes: 'Séance de chimiothérapie ambulatoire HDJ - Transport allongé ou demi-assis requis. Course disponible à réserver en avance.'
+    }
+  },
+  {
+    id: 'ride-plan-2',
+    reference: 'MT-972-9032',
+    createdAt: new Date().toISOString(),
+    pickupAddress: '8 Avenue des Alizés',
+    pickupCity: 'Schœlcher',
+    dropoffAddress: 'Clinique Sainte-Marie, Chemin des Rochers',
+    dropoffCity: 'Schœlcher',
+    facilityName: 'Clinique Sainte-Marie',
+    pickupDateTime: getFutureIso(1, 14, 15),
+    isRoundTrip: false,
+    transportType: 'VSL',
+    status: 'ACCEPTED',
+    source: 'FACILITY',
+    facilityDepartment: 'Chirurgie Orthopédique',
+    bedDischargeNumber: 'CH-214',
+    patient: {
+      firstName: 'Josiane',
+      lastName: 'Rose-Helène',
+      birthDate: '1965-11-20',
+      nir: '2 65 11 97 218 554 67',
+      phone: '0696 14 25 36',
+      email: 'josiane.rh@orange.fr',
+      address: '8 Avenue des Alizés',
+      city: 'Schœlcher',
+      postalCode: '97233',
+      isAld: true,
+      hasPmt: true,
+      pmtUploaded: true,
+      pmtFileName: 'PMT_Clinique_SteMarie_Ortho.pdf',
+      pmtPrescriberDoctor: 'Dr. Jean-Marc Vilar'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Sortie post-opératoire prothèse de genou - Station assise autorisée'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Madinina Secours',
+      driverName: 'Patrick Marie-Rose',
+      driverPhone: '0696 33 22 11',
+      vehiclePlate: 'AB-972-MQ',
+      etaMinutes: 15
+    }
+  },
+  {
+    id: 'ride-plan-3',
+    reference: 'MT-972-8419',
+    createdAt: new Date().toISOString(),
+    pickupAddress: 'Résidence Bois d\'Inde',
+    pickupCity: 'Case-Pilote',
+    dropoffAddress: 'Centre d\'Hémodialyse de Dillon, Avenue Salvador Allende',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'Centre d\'Hémodialyse de Dillon',
+    pickupDateTime: getFutureIso(2, 9, 0),
+    returnDateTime: getFutureIso(2, 13, 30),
+    isRoundTrip: true,
+    transportType: 'TAXI_CONVENTIONNE',
+    status: 'PENDING',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Gérard',
+      lastName: 'Théodore',
+      birthDate: '1952-02-17',
+      nir: '1 52 02 97 205 889 12',
+      phone: '0696 78 90 12',
+      email: 'g.theodore@sante-972.fr',
+      address: 'Résidence Bois d\'Inde',
+      city: 'Case-Pilote',
+      postalCode: '97222',
+      isAld: true,
+      aldReason: 'ALD 19 - Néphropathie chronique grave',
+      hasPmt: true,
+      pmtUploaded: false,
+      pmtPrescriberDoctor: 'Dr. Julien Montrose - Néphrologue'
+    },
+    mobility: {
+      wheelchair: true,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Séance d\'hémodialyse récurrente - Fauteuil roulant pliant (TPMR ou Taxi avec coffre adapté). Récupérer PMT papier Cerfa S3138.'
+    }
+  },
+  {
+    id: 'ride-plan-4',
+    reference: 'MT-972-3510',
+    createdAt: new Date().toISOString(),
+    pickupAddress: 'Quartier Morne Poirier',
+    pickupCity: 'Rivière-Pilote',
+    dropoffAddress: 'Hôpital Louis Domergue, Route de Tartane',
+    dropoffCity: 'La Trinité',
+    facilityName: 'Hôpital Louis Domergue',
+    pickupDateTime: getFutureIso(3, 11, 0),
+    isRoundTrip: false,
+    transportType: 'AMBULANCE',
+    status: 'PENDING',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Agnès',
+      lastName: 'Saint-Aimé',
+      birthDate: '1947-08-05',
+      nir: '2 47 08 97 214 776 33',
+      phone: '0696 45 67 89',
+      email: 'agnes.st.aime@dom.mq',
+      address: 'Quartier Morne Poirier',
+      city: 'Rivière-Pilote',
+      postalCode: '97211',
+      isAld: true,
+      aldReason: 'ALD 14 - Insuffisance respiratoire chronique grave',
+      hasPmt: true,
+      pmtUploaded: true,
+      pmtFileName: 'PMT_Pneumo_Trinite_SaintAime.pdf',
+      pmtPrescriberDoctor: 'Dr. Sylvie Brival'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: true,
+      oxygen: true,
+      stairsWithoutElevator: true,
+      floorNumber: 1,
+      needsEscort: true,
+      notes: 'Oxygénothérapie continue 2L/min - Bouteille O2 médicale requise. Brancardage complet avec portage au 1er étage.'
+    }
+  },
+  {
+    id: 'ride-plan-5',
+    reference: 'MT-972-4721',
+    createdAt: new Date().toISOString(),
+    pickupAddress: 'CHU Pierre Zobda-Quitman, Route de Châteauboeuf',
+    pickupCity: 'Fort-de-France',
+    dropoffAddress: 'Quartier Morne Balai',
+    dropoffCity: 'Sainte-Luce',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    pickupDateTime: getFutureIso(5, 8, 0),
+    isRoundTrip: false,
+    transportType: 'VSL',
+    status: 'ACCEPTED',
+    source: 'FACILITY',
+    facilityDepartment: 'Cardiologie Interventionnelle',
+    bedDischargeNumber: 'LIT-CAR-12',
+    patient: {
+      firstName: 'Lucien',
+      lastName: 'Moutamalle',
+      birthDate: '1963-12-28',
+      nir: '1 63 12 97 217 662 90',
+      phone: '0696 99 88 77',
+      email: 'lucien.m@wanadoo.fr',
+      address: 'Quartier Morne Balai',
+      city: 'Sainte-Luce',
+      postalCode: '97228',
+      isAld: true,
+      hasPmt: true,
+      pmtUploaded: true,
+      pmtFileName: 'PMT_Cardio_CHU_Moutamalle.pdf',
+      pmtPrescriberDoctor: 'Dr. Joseph Rénier'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Sortie programmée de cardiologie - Patient marchant, accompagnement jusqu\'au domicile'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Madinina Secours',
+      driverName: 'Loïc Marie-Rose',
+      driverPhone: '0696 75 20 20',
+      vehiclePlate: 'CD-972-MQ',
+      etaMinutes: 20
+    }
   }
 ];
 
@@ -426,7 +655,11 @@ export const rideService = {
           .select('*')
           .order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
-          return data.map(this.mapSupabaseToRide);
+          const fetchedRides = data.map(this.mapSupabaseToRide);
+          // Fusionner avec les courses de démonstration du planning qui ne seraient pas encore dans Supabase
+          const existingRefs = new Set(fetchedRides.map(r => r.reference.toUpperCase()));
+          const missingDemos = INITIAL_RIDES.filter(d => !existingRefs.has(d.reference.toUpperCase()));
+          return [...fetchedRides, ...missingDemos];
         }
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to local store:', err);
@@ -441,6 +674,13 @@ export const rideService = {
     try {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const existingRefs = new Set(parsed.map((r: Ride) => r.reference.toUpperCase()));
+        const missing = INITIAL_RIDES.filter(d => !existingRefs.has(d.reference.toUpperCase()));
+        if (missing.length > 0) {
+          const merged = [...parsed, ...missing];
+          localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(merged));
+          return merged;
+        }
         return parsed;
       }
       localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(INITIAL_RIDES));

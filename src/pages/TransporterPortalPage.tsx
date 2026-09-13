@@ -55,12 +55,19 @@ export const TransporterPortalPage: React.FC = () => {
   // State
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'FLOTTE' | 'HISTORIQUE'>('DISPONIBLES');
+  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'HISTORIQUE'>('DISPONIBLES');
   const [historySubFilter, setHistorySubFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [historySearch, setHistorySearch] = useState('');
   const [sectorFilter, setSectorFilter] = useState<'ALL' | 'CENTRE' | 'SUD' | 'NORD'>('ALL');
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
   const [selectedMissionForDetails, setSelectedMissionForDetails] = useState<Ride | null>(null);
+
+  // États du Planning des courses & Fiche Récapitulative
+  const [planningHorizon, setPlanningHorizon] = useState<'ALL' | 'TODAY' | 'TOMORROW' | 'NEXT_7_DAYS'>('ALL');
+  const [selectedPlanningDate, setSelectedPlanningDate] = useState<string | null>(null);
+  const [planningStatusFilter, setPlanningStatusFilter] = useState<'ALL' | 'PENDING' | 'ACCEPTED'>('ALL');
+  const [planningSearch, setPlanningSearch] = useState('');
+  const [selectedMissionForRecap, setSelectedMissionForRecap] = useState<Ride | null>(null);
   const [missionToAccept, setMissionToAccept] = useState<Ride | null>(null);
   const [missionToDecline, setMissionToDecline] = useState<Ride | null>(null);
   const [declineReason, setDeclineReason] = useState<string>('FLOTTE_INDISPONIBLE');
@@ -196,6 +203,169 @@ export const TransporterPortalPage: React.FC = () => {
     });
   }, [archivedMissions, historySubFilter, historySearch]);
 
+  // Courses éligibles au planning (Courses en attente ou confirmées, triées par date)
+  const plannedMissions = useMemo(() => {
+    return rides
+      .filter((r) => {
+        if (r.status === 'CANCELLED' || r.status === 'COMPLETED') return false;
+        if (r.status === 'PENDING' && declinedRefs.includes(r.reference.trim().toUpperCase())) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime());
+  }, [rides, declinedRefs]);
+
+  // Jours uniques avec décompte pour le sélecteur de dates rapide
+  const planningDaysSummary = useMemo(() => {
+    const map = new Map<string, { dateKey: string; label: string; count: number; date: Date }>();
+
+    plannedMissions.forEach((mission) => {
+      const d = new Date(mission.pickupDateTime);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      const today = new Date();
+      const isToday = today.toDateString() === d.toDateString();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isTomorrow = tomorrow.toDateString() === d.toDateString();
+
+      let label = isToday
+        ? "Aujourd'hui"
+        : isTomorrow
+        ? "Demain"
+        : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+
+      if (!map.has(dateKey)) {
+        map.set(dateKey, { dateKey, label, count: 1, date: d });
+      } else {
+        map.get(dateKey)!.count += 1;
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [plannedMissions]);
+
+  // Filtrage fin des courses pour la vue planning
+  const filteredPlanningMissions = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const in7Days = new Date(today);
+    in7Days.setDate(in7Days.getDate() + 7);
+    in7Days.setHours(23, 59, 59, 999);
+
+    return plannedMissions.filter((mission) => {
+      const d = new Date(mission.pickupDateTime);
+
+      // Filtre de date spécifique ou horizon
+      if (selectedPlanningDate) {
+        const missionDateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (missionDateKey !== selectedPlanningDate) return false;
+      } else if (planningHorizon === 'TODAY') {
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
+        if (d < today || d > endOfToday) return false;
+      } else if (planningHorizon === 'TOMORROW') {
+        const endOfTomorrow = new Date(tomorrow);
+        endOfTomorrow.setHours(23, 59, 59, 999);
+        if (d < tomorrow || d > endOfTomorrow) return false;
+      } else if (planningHorizon === 'NEXT_7_DAYS') {
+        if (d < today || d > in7Days) return false;
+      }
+
+      // Filtre de statut
+      if (planningStatusFilter === 'PENDING' && mission.status !== 'PENDING') return false;
+      if (planningStatusFilter === 'ACCEPTED' && mission.status === 'PENDING') return false;
+
+      // Recherche textuelle
+      if (!planningSearch.trim()) return true;
+      const q = planningSearch.toLowerCase();
+      return (
+        mission.reference.toLowerCase().includes(q) ||
+        mission.patient.firstName.toLowerCase().includes(q) ||
+        mission.patient.lastName.toLowerCase().includes(q) ||
+        mission.patient.nir.includes(q) ||
+        mission.pickupCity.toLowerCase().includes(q) ||
+        mission.dropoffCity.toLowerCase().includes(q) ||
+        (mission.facilityName && mission.facilityName.toLowerCase().includes(q)) ||
+        (mission.assignedTransporter?.driverName && mission.assignedTransporter.driverName.toLowerCase().includes(q)) ||
+        (mission.mobility.notes && mission.mobility.notes.toLowerCase().includes(q))
+      );
+    });
+  }, [plannedMissions, planningHorizon, selectedPlanningDate, planningStatusFilter, planningSearch]);
+
+  // Groupement des courses du planning par jour
+  const planningGroupedByDay = useMemo(() => {
+    const map = new Map<string, Ride[]>();
+
+    filteredPlanningMissions.forEach((mission) => {
+      const d = new Date(mission.pickupDateTime);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!map.has(dateKey)) {
+        map.set(dateKey, []);
+      }
+      map.get(dateKey)!.push(mission);
+    });
+
+    const groups: { dateKey: string; fullTitle: string; rides: Ride[] }[] = [];
+
+    map.forEach((ridesInDay, dateKey) => {
+      const firstDate = new Date(ridesInDay[0].pickupDateTime);
+      const today = new Date();
+      const isToday = today.toDateString() === firstDate.toDateString();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isTomorrow = tomorrow.toDateString() === firstDate.toDateString();
+
+      const prefix = isToday ? "Aujourd'hui • " : isTomorrow ? "Demain • " : "";
+      const formatted = firstDate.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      const fullTitle = `${prefix}${formatted.charAt(0).toUpperCase() + formatted.slice(1)}`;
+
+      groups.push({
+        dateKey,
+        fullTitle,
+        rides: ridesInDay.sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime())
+      });
+    });
+
+    return groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  }, [filteredPlanningMissions]);
+
+  // Handlers Exportation Planning
+  const handleExportPlanningExcel = () => {
+    exportRidesToExcel(filteredPlanningMissions, {
+      filename: `Planning_Previsionnel_Courses_${new Date().toISOString().slice(0, 10)}`,
+      title: 'Planning & Programmation des Transports Sanitaires',
+      userContext: `${transporterName} | Martinique 972`
+    });
+    setToastMessage({
+      title: 'Export Planning Excel réussi',
+      desc: `${filteredPlanningMissions.length} course(s) planifiée(s) exportée(s) pour Excel.`,
+      type: 'success'
+    });
+  };
+
+  const handleExportPlanningPdf = () => {
+    exportRidesToPdf(filteredPlanningMissions, {
+      filename: `Planning_Previsionnel_Courses_${new Date().toISOString().slice(0, 10)}`,
+      title: 'Planning Prévisionnel des Transports Sanitaires',
+      subtitle: `Société : ${transporterName} (${filteredPlanningMissions.length} courses planifiées)`,
+      userContext: `Agréé ARS Martinique · Programmation d'équipage`
+    });
+    setToastMessage({
+      title: 'Planning PDF généré',
+      desc: `Le planning officiel a été exporté en PDF avec succès.`,
+      type: 'success'
+    });
+  };
+
   // Handlers Exportation Transporteur
   const handleExportExcel = () => {
     exportRidesToExcel(filteredArchivedMissions, {
@@ -259,7 +429,7 @@ export const TransporterPortalPage: React.FC = () => {
       type: 'success'
     });
 
-    setActiveTab('ACTIVES');
+    setActiveTab((prev) => (prev === 'PLANNING' ? 'PLANNING' : 'ACTIVES'));
 
     // Sauvegarde en arrière-plan Supabase / Local
     try {
@@ -310,7 +480,7 @@ export const TransporterPortalPage: React.FC = () => {
     });
 
     setMissionToAccept(null);
-    setActiveTab('ACTIVES');
+    setActiveTab((prev) => (prev === 'PLANNING' ? 'PLANNING' : 'ACTIVES'));
 
     try {
       await rideService.updateRideStatus(missionRef, 'ACCEPTED', assignedData);
@@ -669,6 +839,26 @@ export const TransporterPortalPage: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('PLANNING')}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+              activeTab === 'PLANNING'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-lg">calendar_month</span>
+              <span>Planning des courses</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === 'PLANNING' ? 'bg-white text-primary' : 'bg-surface-container-high text-on-surface-variant'
+            }`}>
+              {plannedMissions.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('FLOTTE')}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
               activeTab === 'FLOTTE'
@@ -807,6 +997,15 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             Missions en cours ({activeMissions.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('PLANNING')}
+            className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'PLANNING' ? 'bg-primary text-white' : 'text-on-surface-variant'
+            }`}
+          >
+            Planning ({plannedMissions.length})
           </button>
           <button
             type="button"
@@ -1413,6 +1612,445 @@ export const TransporterPortalPage: React.FC = () => {
                               </button>
                             )}
                           </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VUE 3 : PLANNING & PROGRAMMATION DES COURSES EN AVANCE                    */}
+          {/* ========================================================================= */}
+          {activeTab === 'PLANNING' && (
+            <div className="flex flex-col gap-6 animate-fadeIn">
+              {/* En-tête Planning avec KPIs et Boutons d'Exportation */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                      <span className="material-symbols-outlined text-2xl">calendar_month</span>
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-extrabold text-on-surface">Planning & Programmation des Courses</h2>
+                        <span className="px-2.5 py-0.5 rounded-full bg-primary/15 text-primary font-mono text-xs font-bold">
+                          {plannedMissions.length} planifiée{plannedMissions.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <p className="text-xs text-on-surface-variant mt-0.5 max-w-2xl leading-relaxed">
+                        Anticipez votre activité : acceptez des courses programmées plusieurs jours à l'avance, optimisez les plannings de vos chauffeurs et cliquez sur une course pour ouvrir sa fiche récapitulative.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-outline-variant/15 text-xs">
+                    <span className="px-2.5 py-1 rounded-xl bg-surface-container text-on-surface-variant font-medium flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      <span>Total : <strong>{plannedMissions.length} courses</strong></span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-medium flex items-center gap-1.5 border border-emerald-200/60">
+                      <span className="material-symbols-outlined text-sm text-emerald-600">event_available</span>
+                      <span>À pourvoir en avance : <strong>{plannedMissions.filter(r => r.status === 'PENDING').length}</strong></span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 font-medium flex items-center gap-1.5 border border-blue-200/60">
+                      <span className="material-symbols-outlined text-sm text-blue-600">verified</span>
+                      <span>Confirmées dans votre flotte : <strong>{plannedMissions.filter(r => r.status !== 'PENDING').length}</strong></span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleExportPlanningExcel}
+                    disabled={filteredPlanningMissions.length === 0}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    title="Exporter le planning prévisionnel en Excel (.csv)"
+                  >
+                    <span className="material-symbols-outlined text-base">file_download</span>
+                    <span>Planning Excel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportPlanningPdf}
+                    disabled={filteredPlanningMissions.length === 0}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    title="Exporter le planning prévisionnel officiel en PDF"
+                  >
+                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                    <span>Planning PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Barre de navigation temporelle, Filtres & Recherche */}
+              <div className="p-4 rounded-3xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-3">
+                {/* 1. Sélecteur d'horizon temporel & Dates */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-outline-variant/20">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-bold uppercase text-on-surface-variant mr-1">Horizon :</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanningHorizon('ALL');
+                        setSelectedPlanningDate(null);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        planningHorizon === 'ALL' && selectedPlanningDate === null
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Toutes les dates ({plannedMissions.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanningHorizon('TODAY');
+                        setSelectedPlanningDate(null);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        planningHorizon === 'TODAY'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Aujourd'hui ({planningDaysSummary.find((d) => d.label === "Aujourd'hui")?.count || 0})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanningHorizon('TOMORROW');
+                        setSelectedPlanningDate(null);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        planningHorizon === 'TOMORROW'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Demain ({planningDaysSummary.find((d) => d.label === 'Demain')?.count || 0})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanningHorizon('NEXT_7_DAYS');
+                        setSelectedPlanningDate(null);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        planningHorizon === 'NEXT_7_DAYS'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      7 prochains jours
+                    </button>
+                  </div>
+
+                  {/* Barre de recherche */}
+                  <div className="relative w-full md:w-72 shrink-0">
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-lg">
+                      search
+                    </span>
+                    <input
+                      type="text"
+                      value={planningSearch}
+                      onChange={(e) => setPlanningSearch(e.target.value)}
+                      placeholder="Filtrer réf, patient, NIR, ville..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-lowest border border-outline-variant/30 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-hidden focus:border-primary"
+                    />
+                    {planningSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setPlanningSearch('')}
+                        className="absolute right-2.5 top-2.5 text-on-surface-variant hover:text-on-surface text-xs"
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Bandeau des journées individuelles (Défilement horizontal) & Filtre de statut */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Par jour :</span>
+                    {planningDaysSummary.map((day) => {
+                      const isSelected = selectedPlanningDate === day.dateKey;
+                      return (
+                        <button
+                          key={day.dateKey}
+                          type="button"
+                          onClick={() => setSelectedPlanningDate(isSelected ? null : day.dateKey)}
+                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 ${
+                            isSelected
+                              ? 'bg-secondary text-white shadow-xs'
+                              : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
+                          }`}
+                        >
+                          <span>{day.label}</span>
+                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-surface-container-high text-primary font-mono'
+                          }`}>
+                            {day.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('ALL')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        planningStatusFilter === 'ALL'
+                          ? 'bg-surface-container-high text-on-surface shadow-2xs font-extrabold'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Tous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('PENDING')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                        planningStatusFilter === 'PENDING'
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : 'text-emerald-800 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      <span>À réserver en avance</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('ACCEPTED')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                        planningStatusFilter === 'ACCEPTED'
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'text-blue-800 hover:bg-blue-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      <span>Confirmées</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contenu : Affichage chronologique groupé par journée */}
+              {planningGroupedByDay.length === 0 ? (
+                <div className="p-12 text-center rounded-3xl bg-surface-container-lowest border border-outline-variant/20 flex flex-col items-center justify-center gap-3 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-5xl opacity-40">event_busy</span>
+                  <div className="font-bold text-sm text-on-surface">Aucune course dans le planning</div>
+                  <p className="text-xs max-w-sm">
+                    {planningSearch
+                      ? `Aucune course programmée ne correspond à "${planningSearch}".`
+                      : 'Aucune course planifiée ne correspond aux critères de dates ou de statut choisis.'}
+                  </p>
+                  {(selectedPlanningDate || planningHorizon !== 'ALL' || planningStatusFilter !== 'ALL' || planningSearch) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanningHorizon('ALL');
+                        setSelectedPlanningDate(null);
+                        setPlanningStatusFilter('ALL');
+                        setPlanningSearch('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all mt-2"
+                    >
+                      Réinitialiser tous les filtres
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {planningGroupedByDay.map((group) => {
+                    const pendingCount = group.rides.filter((r) => r.status === 'PENDING').length;
+                    const confirmedCount = group.rides.filter((r) => r.status !== 'PENDING').length;
+
+                    return (
+                      <div key={group.dateKey} className="flex flex-col gap-3">
+                        {/* En-tête de Journée */}
+                        <div className="flex items-center justify-between px-2">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary text-xl">event</span>
+                            <h3 className="font-extrabold text-base text-on-surface tracking-tight">
+                              {group.fullTitle}
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-md bg-surface-container font-mono text-xs font-bold text-on-surface-variant">
+                              {group.rides.length} course{group.rides.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-[11px]">
+                            {pendingCount > 0 && (
+                              <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                {pendingCount} à réserver
+                              </span>
+                            )}
+                            {confirmedCount > 0 && (
+                              <span className="text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                {confirmedCount} confirmée{confirmedCount > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Cartes des courses pour cette journée */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {group.rides.map((mission) => {
+                            const isPending = mission.status === 'PENDING';
+                            const hasPmt = mission.patient.hasPmt || mission.patient.pmtUploaded || mission.patient.pmtFileUrl;
+                            const timeStr = new Date(mission.pickupDateTime).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+
+                            return (
+                              <div
+                                key={mission.id}
+                                onClick={() => setSelectedMissionForRecap(mission)}
+                                className={`p-4 sm:p-5 rounded-3xl border shadow-xs flex flex-col justify-between gap-3.5 transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 group ${
+                                  isPending
+                                    ? 'bg-emerald-50/20 border-emerald-200/80 hover:border-emerald-400'
+                                    : 'bg-surface-container-lowest border-outline-variant/30 hover:border-primary/50'
+                                }`}
+                              >
+                                {/* En-tête de carte : Heure, Réf, Véhicule & Statut */}
+                                <div>
+                                  <div className="flex items-start justify-between gap-2 border-b border-outline-variant/15 pb-2.5">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`px-2.5 py-1 rounded-xl font-mono text-sm font-extrabold flex items-center gap-1 shadow-2xs ${
+                                        isPending ? 'bg-emerald-600 text-white' : 'bg-primary text-white'
+                                      }`}>
+                                        <span className="material-symbols-outlined text-sm">schedule</span>
+                                        <span>{timeStr}</span>
+                                      </div>
+                                      <div>
+                                        <div className="font-mono text-xs font-bold text-primary">
+                                          #{mission.reference}
+                                        </div>
+                                        <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-surface-container text-on-surface-variant">
+                                          {mission.transportType === 'AMBULANCE'
+                                            ? '🚑 Ambulance'
+                                            : mission.transportType === 'VSL'
+                                            ? '🚐 VSL'
+                                            : '🚗 TPMR'}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {isPending ? (
+                                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-300">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                        À réserver en avance
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold flex items-center gap-1 border border-blue-200">
+                                        <span className="material-symbols-outlined text-xs">verified</span>
+                                        Confirmée
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Patient & Trajet */}
+                                  <div className="mt-3 space-y-2 text-xs">
+                                    <div className="flex items-center justify-between">
+                                      <div className="font-bold text-on-surface text-sm group-hover:text-primary transition-colors">
+                                        {mission.patient.firstName} {mission.patient.lastName}
+                                      </div>
+                                      <span className="text-[10px] text-on-surface-variant font-mono">
+                                        NIR: {mission.patient.nir ? `${mission.patient.nir.slice(0, 7)}...` : 'N/A'}
+                                      </span>
+                                    </div>
+
+                                    {/* Trajet résumé */}
+                                    <div className="p-2.5 rounded-2xl bg-surface-container-low/70 space-y-1 text-xs">
+                                      <div className="flex items-center gap-2 text-on-surface">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                        <span className="font-medium truncate">{mission.pickupCity} ({mission.pickupAddress})</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-on-surface">
+                                        <span className="w-2 h-2 rounded-full bg-primary shrink-0"></span>
+                                        <span className="font-bold truncate">
+                                          {mission.facilityName ? mission.facilityName : `${mission.dropoffAddress}, ${mission.dropoffCity}`}
+                                        </span>
+                                      </div>
+                                      {mission.isRoundTrip && (
+                                        <div className="text-[10px] text-secondary font-semibold pt-0.5 flex items-center gap-1">
+                                          <span className="material-symbols-outlined text-xs">sync_alt</span>
+                                          <span>Aller-Retour programmé</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Équipage si confirmée */}
+                                    {mission.assignedTransporter && (
+                                      <div className="text-[11px] text-blue-900 bg-blue-50/60 p-2 rounded-xl border border-blue-100 flex items-center justify-between">
+                                        <span>Chauffeur : <strong>{mission.assignedTransporter.driverName}</strong></span>
+                                        <span className="font-mono font-bold">{mission.assignedTransporter.vehiclePlate}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Pied de carte : Statut PMT et Actions */}
+                                <div className="pt-2.5 border-t border-outline-variant/15 flex items-center justify-between gap-2">
+                                  <div className="text-[11px]">
+                                    {hasPmt ? (
+                                      <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                                        <span className="material-symbols-outlined text-xs">verified</span>
+                                        PMT Jointe
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                                        <span className="material-symbols-outlined text-xs">warning</span>
+                                        PMT Papier
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    {isPending ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => openAcceptModal(mission)}
+                                        className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-xs"
+                                        title="Accepter cette course et lui affecter un chauffeur dès maintenant"
+                                      >
+                                        <span className="material-symbols-outlined text-sm">check</span>
+                                        <span>Accepter</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => openReassignModal(mission)}
+                                        className="px-2 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs transition-colors"
+                                        title="Changer le chauffeur ou véhicule affecté"
+                                      >
+                                        <span>Chauffeur</span>
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedMissionForRecap(mission)}
+                                      className="px-2.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-colors"
+                                      title="Consulter la fiche récapitulative complète et gérer la course"
+                                    >
+                                      <span>Fiche</span>
+                                      <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -2356,6 +2994,333 @@ export const TransporterPortalPage: React.FC = () => {
                 <span className="material-symbols-outlined text-base">campaign</span>
                 <span>Confirmer &amp; Republier</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : FICHE RÉCAPITULATIVE COMPLÈTE DE COURSE & ACTIONS (PLANNING)       */}
+      {/* ========================================================================= */}
+      {selectedMissionForRecap && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+            {/* En-tête de la Fiche Récapitulative */}
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-3">
+                <span className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg ${
+                  selectedMissionForRecap.status === 'PENDING'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-primary/10 text-primary'
+                }`}>
+                  {selectedMissionForRecap.transportType === 'AMBULANCE'
+                    ? '🚑'
+                    : selectedMissionForRecap.transportType === 'VSL'
+                    ? '🚐'
+                    : '🚗'}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-extrabold text-on-surface">
+                      Fiche Récapitulative de Mission
+                    </h3>
+                    <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                      #{selectedMissionForRecap.reference}
+                    </span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-xs">calendar_today</span>
+                    <span className="capitalize">
+                      {new Date(selectedMissionForRecap.pickupDateTime).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </span>
+                    <span>à</span>
+                    <strong className="text-on-surface font-mono">
+                      {new Date(selectedMissionForRecap.pickupDateTime).toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedMissionForRecap(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg hover:bg-surface-container"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Bannière de Statut */}
+            {selectedMissionForRecap.status === 'PENDING' ? (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300/80 text-emerald-950 text-xs flex items-start gap-3">
+                <span className="material-symbols-outlined text-emerald-600 text-xl shrink-0 mt-0.5">event_available</span>
+                <div>
+                  <div className="font-bold text-emerald-900 text-sm">Course disponible à réserver en avance</div>
+                  <p className="text-emerald-800 text-[11px] mt-0.5 leading-relaxed">
+                    Cette course programmée est ouverte à l'acceptation anticipée. Vous pouvez l'attribuer immédiatement à un chauffeur et un véhicule de votre flotte pour sécuriser votre planning.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-3">
+                <span className="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">verified</span>
+                <div>
+                  <div className="font-bold text-blue-900 text-sm">Course confirmée dans votre planning</div>
+                  <p className="text-blue-800 text-[11px] mt-0.5 leading-relaxed">
+                    Assignée à : <strong>{selectedMissionForRecap.assignedTransporter?.driverName || transporterName}</strong> ({selectedMissionForRecap.assignedTransporter?.vehiclePlate || 'Véhicule flotte'}) • Tél : {selectedMissionForRecap.assignedTransporter?.driverPhone || transporterPhone}.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Fiche Patient & Couverture CPAM */}
+            <div className="bg-surface-container-low p-4 rounded-2xl space-y-2.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-sm text-on-surface">
+                  {selectedMissionForRecap.patient.firstName} {selectedMissionForRecap.patient.lastName}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">verified</span>
+                  100% ALD CPAM
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-on-surface-variant">
+                <div>
+                  N° Sécurité Sociale (NIR) : <strong className="font-mono text-on-surface">{selectedMissionForRecap.patient.nir}</strong>
+                </div>
+                <div>
+                  Date de naissance : <strong className="text-on-surface">{selectedMissionForRecap.patient.birthDate}</strong>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span>Téléphone :</span>
+                  <a
+                    href={`tel:${selectedMissionForRecap.patient.phone}`}
+                    className="text-primary font-bold underline flex items-center gap-0.5"
+                  >
+                    <span className="material-symbols-outlined text-xs">call</span>
+                    <span>{selectedMissionForRecap.patient.phone}</span>
+                  </a>
+                </div>
+                {selectedMissionForRecap.patient.aldReason && (
+                  <div>
+                    Prise en charge : <strong className="text-secondary">{selectedMissionForRecap.patient.aldReason}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Trajet Sanitaire & Établissement */}
+            <div className="bg-surface-container-low p-4 rounded-2xl space-y-2 text-xs">
+              <span className="text-[11px] font-bold uppercase text-on-surface-variant block">Itinéraire du transport :</span>
+              <div className="space-y-1.5">
+                <div className="flex items-start gap-2 text-on-surface">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-1"></span>
+                  <div>
+                    <span className="text-on-surface-variant text-[11px] block">Prise en charge :</span>
+                    <strong className="text-sm">{selectedMissionForRecap.pickupAddress}, {selectedMissionForRecap.pickupCity}</strong>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 text-on-surface">
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1"></span>
+                  <div>
+                    <span className="text-on-surface-variant text-[11px] block">Destination médicale :</span>
+                    <strong className="text-sm">
+                      {selectedMissionForRecap.facilityName
+                        ? `${selectedMissionForRecap.facilityName} (${selectedMissionForRecap.dropoffCity})`
+                        : `${selectedMissionForRecap.dropoffAddress}, ${selectedMissionForRecap.dropoffCity}`}
+                    </strong>
+                    {selectedMissionForRecap.facilityDepartment && (
+                      <span className="block text-secondary font-semibold text-[11px] mt-0.5">
+                        Service : {selectedMissionForRecap.facilityDepartment} {selectedMissionForRecap.bedDischargeNumber ? `• Lit/Box : ${selectedMissionForRecap.bedDischargeNumber}` : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {selectedMissionForRecap.isRoundTrip && (
+                <div className="p-2.5 rounded-xl bg-secondary/10 border border-secondary/20 text-secondary text-xs flex items-center justify-between font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">sync_alt</span>
+                    <span>Transport Aller-Retour programmé</span>
+                  </div>
+                  {selectedMissionForRecap.returnDateTime && (
+                    <span className="font-mono text-[11px]">
+                      Retour prévu à {new Date(selectedMissionForRecap.returnDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Carte Google Map interactive du trajet */}
+            <div className="h-40 rounded-2xl overflow-hidden border border-outline-variant/30">
+              <GoogleMapView
+                mode="route"
+                origin={selectedMissionForRecap.pickupCity}
+                destination={selectedMissionForRecap.facilityName || selectedMissionForRecap.dropoffCity}
+                height="100%"
+              />
+            </div>
+
+            {/* Prescription Médicale de Transport (PMT) */}
+            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/25 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-on-surface flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-primary">description</span>
+                  <span>Prescription Médicale de Transport (PMT Cerfa S3138)</span>
+                </span>
+                <span className="font-bold text-xs text-secondary">
+                  Mode : {selectedMissionForRecap.transportType === 'AMBULANCE' ? 'Ambulance' : selectedMissionForRecap.transportType === 'VSL' ? 'VSL' : 'Taxi Conv.'}
+                </span>
+              </div>
+
+              <div className="text-on-surface-variant">
+                Médecin prescripteur : <strong className="text-on-surface">{selectedMissionForRecap.patient.pmtPrescriberDoctor || 'Dr. Régulateur Hospitalier'}</strong>
+              </div>
+
+              {selectedMissionForRecap.patient.pmtUploaded || selectedMissionForRecap.patient.pmtFileUrl ? (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
+                    <span className="font-semibold text-[11px]">
+                      PMT numérique disponible ({selectedMissionForRecap.patient.pmtFileName || 'PMT_Prescription.pdf'})
+                    </span>
+                  </div>
+                  {selectedMissionForRecap.patient.pmtFileUrl && (
+                    <a
+                      href={selectedMissionForRecap.patient.pmtFileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors"
+                    >
+                      Consulter PMT
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center gap-2 text-[11px]">
+                  <span className="material-symbols-outlined text-amber-700 text-base shrink-0">warning</span>
+                  <span>
+                    <strong>PMT Papier requise :</strong> Le volet papier Cerfa S3138 original sera remis à l'équipage le jour de la prise en charge.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Consignes & Besoins de Mobilité */}
+            <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/30 text-xs space-y-2">
+              <span className="text-[11px] font-bold uppercase text-on-surface-variant block">Besoins Spécifiques & Mobilité :</span>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMissionForRecap.mobility.stretcher && (
+                  <span className="px-2.5 py-1 rounded-lg bg-red-100 text-red-800 font-bold text-[11px] flex items-center gap-1">
+                    <span>🛏️</span> Brancardage complet
+                  </span>
+                )}
+                {selectedMissionForRecap.mobility.wheelchair && (
+                  <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 font-bold text-[11px] flex items-center gap-1">
+                    <span>♿</span> Fauteuil roulant
+                  </span>
+                )}
+                {selectedMissionForRecap.mobility.oxygen && (
+                  <span className="px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-800 font-bold text-[11px] flex items-center gap-1">
+                    <span>💨</span> Oxygénothérapie requise
+                  </span>
+                )}
+                {selectedMissionForRecap.mobility.stairsWithoutElevator && (
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center gap-1">
+                    <span>🪜</span> Portage étages (Étage {selectedMissionForRecap.mobility.floorNumber || 1})
+                  </span>
+                )}
+                {selectedMissionForRecap.mobility.needsEscort && (
+                  <span className="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 font-bold text-[11px] flex items-center gap-1">
+                    <span>👥</span> Accompagnateur autorisé
+                  </span>
+                )}
+              </div>
+              <p className="text-on-surface font-medium pt-1 text-[11px]">
+                Consignes complémentaires : {selectedMissionForRecap.mobility.notes || 'Transport sanitaire régulier.'}
+              </p>
+            </div>
+
+            {/* Barre d'Actions Intégrées */}
+            <div className="pt-3 border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSelectedMissionForRecap(null)}
+                className="py-2.5 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Fermer la fiche
+              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedMissionForRecap.status === 'PENDING' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleDirectAccept(selectedMissionForRecap);
+                        setSelectedMissionForRecap(null);
+                      }}
+                      className="py-2.5 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary text-xs font-bold transition-all flex items-center gap-1.5"
+                      title="Affectation automatique du premier véhicule disponible de la flotte"
+                    >
+                      <span className="material-symbols-outlined text-base">bolt</span>
+                      <span>Acceptation rapide (1-clic)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedMissionForRecap;
+                        setSelectedMissionForRecap(null);
+                        openAcceptModal(target);
+                      }}
+                      className="py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-base">person_check</span>
+                      <span>Accepter &amp; Affecter un équipage</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedMissionForRecap;
+                        setSelectedMissionForRecap(null);
+                        openReleaseModal(target);
+                      }}
+                      className="py-2.5 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold border border-rose-200 transition-all flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-base text-rose-600">undo</span>
+                      <span>Annuler / Libérer la course</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedMissionForRecap;
+                        setSelectedMissionForRecap(null);
+                        openReassignModal(target);
+                      }}
+                      className="py-2.5 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-1.5 shadow-xs"
+                    >
+                      <span className="material-symbols-outlined text-base">sync</span>
+                      <span>Modifier l'affectation</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
