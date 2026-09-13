@@ -12,9 +12,13 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}======================================================${NC}"
 echo -e "${BLUE}   Médic'Trans 972 - Déploiement Multi-Plateforme     ${NC}"
 echo -e "${BLUE}======================================================${NC}\n"
+
+# Charger les variables locales si existantes
+if [ -f .env.local ]; then
+    export $(grep -v '^#' .env.local | xargs)
+fi
 
 # 1. BUILD DU SITE
 echo -e "${YELLOW}[1/3] Construction du bundle de production (Vite + TypeScript)...${NC}"
