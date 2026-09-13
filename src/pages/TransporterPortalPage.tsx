@@ -3184,36 +3184,65 @@ export const TransporterPortalPage: React.FC = () => {
                 </span>
               </div>
 
-              <div className="text-on-surface-variant">
-                Médecin prescripteur : <strong className="text-on-surface">{selectedMissionForRecap.patient.pmtPrescriberDoctor || 'Dr. Régulateur Hospitalier'}</strong>
-              </div>
-
-              {selectedMissionForRecap.patient.pmtUploaded || selectedMissionForRecap.patient.pmtFileUrl ? (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
-                    <span className="font-semibold text-[11px]">
-                      PMT numérique disponible ({selectedMissionForRecap.patient.pmtFileName || 'PMT_Prescription.pdf'})
-                    </span>
+              {selectedMissionForRecap.status === 'PENDING' ? (
+                /* PMT NON VISIBLE TANT QUE LA COURSE N'EST PAS ACCEPTÉE */
+                <div className="p-3.5 rounded-2xl bg-surface-container border border-outline-variant/30 text-xs space-y-2">
+                  <div className="flex items-center gap-2 text-on-surface font-bold text-xs">
+                    <span className="material-symbols-outlined text-base text-amber-600">lock</span>
+                    <span>Document PMT confidentiel — Accessible uniquement après acceptation de la course</span>
                   </div>
-                  {selectedMissionForRecap.patient.pmtFileUrl && (
-                    <a
-                      href={selectedMissionForRecap.patient.pmtFileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors"
-                    >
-                      Consulter PMT
-                    </a>
-                  )}
+                  <p className="text-on-surface-variant text-[11px] leading-relaxed">
+                    Conformément aux règles de confidentialité médicale et de régulation, les détails de prescription et le document Cerfa S3138 sont <strong>verrouillés et visibles uniquement après acceptation de la mission</strong>.
+                  </p>
+                  <div className="pt-0.5">
+                    {selectedMissionForRecap.patient.pmtUploaded || selectedMissionForRecap.patient.pmtFileUrl ? (
+                      <span className="inline-flex items-center gap-1.5 text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px]">
+                        <span className="material-symbols-outlined text-xs text-emerald-600">verified</span>
+                        Document PMT téléversé par le client (déverrouillé dès acceptation)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-amber-800 font-semibold bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 text-[11px]">
+                        <span className="material-symbols-outlined text-xs text-amber-600">warning</span>
+                        Avertissement : Pas de PMT téléversée (Cerfa papier original à récupérer lors de la prise en charge)
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center gap-2 text-[11px]">
-                  <span className="material-symbols-outlined text-amber-700 text-base shrink-0">warning</span>
-                  <span>
-                    <strong>PMT Papier requise :</strong> Le volet papier Cerfa S3138 original sera remis à l'équipage le jour de la prise en charge.
-                  </span>
-                </div>
+                /* PMT DÉVERROUILLÉE ET VISIBLE POST-ACCEPTATION */
+                <>
+                  <div className="text-on-surface-variant">
+                    Médecin prescripteur : <strong className="text-on-surface">{selectedMissionForRecap.patient.pmtPrescriberDoctor || 'Dr. Régulateur Hospitalier'}</strong>
+                  </div>
+
+                  {selectedMissionForRecap.patient.pmtUploaded || selectedMissionForRecap.patient.pmtFileUrl ? (
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
+                        <span className="font-semibold text-[11px]">
+                          PMT numérique disponible ({selectedMissionForRecap.patient.pmtFileName || 'PMT_Prescription.pdf'})
+                        </span>
+                      </div>
+                      {selectedMissionForRecap.patient.pmtFileUrl && (
+                        <a
+                          href={selectedMissionForRecap.patient.pmtFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 transition-colors"
+                        >
+                          Consulter PMT
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center gap-2 text-[11px]">
+                      <span className="material-symbols-outlined text-amber-700 text-base shrink-0">warning</span>
+                      <span>
+                        <strong>PMT Papier requise :</strong> Le volet papier Cerfa S3138 original sera remis à l'équipage le jour de la prise en charge.
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
