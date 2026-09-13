@@ -59,6 +59,11 @@ export const TransporterPortalPage: React.FC = () => {
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
   const [selectedMissionForDetails, setSelectedMissionForDetails] = useState<Ride | null>(null);
   const [missionToAccept, setMissionToAccept] = useState<Ride | null>(null);
+  const [missionToDecline, setMissionToDecline] = useState<Ride | null>(null);
+  const [declineReason, setDeclineReason] = useState<string>('FLOTTE_INDISPONIBLE');
+  const [declinedRefs, setDeclinedRefs] = useState<string[]>(() => {
+    return rideService.getDeclinedRideRefs();
+  });
   const [fleet, setFleet] = useState<VehicleFleet[]>(DEFAULT_FLEET);
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type?: 'success' | 'info' | 'error' } | null>(null);
 
@@ -110,10 +115,11 @@ export const TransporterPortalPage: React.FC = () => {
     }
   }, [loadMissions]);
 
-  // Filtrage Bourse aux courses (Status PENDING)
+  // Filtrage Bourse aux courses (Status PENDING et non déclinées)
   const availableMissions = useMemo(() => {
     return rides.filter((r) => {
       if (r.status !== 'PENDING') return false;
+      if (declinedRefs.includes(r.reference.trim().toUpperCase())) return false;
 
       // Filtre Véhicule
       if (vehicleFilter === 'AMBULANCE' && r.transportType !== 'AMBULANCE') return false;
@@ -134,7 +140,7 @@ export const TransporterPortalPage: React.FC = () => {
 
       return true;
     });
-  }, [rides, vehicleFilter, sectorFilter]);
+  }, [rides, vehicleFilter, sectorFilter, declinedRefs]);
 
   // Missions actives en cours de réalisation
   const activeMissions = useMemo(() => {
@@ -162,7 +168,52 @@ export const TransporterPortalPage: React.FC = () => {
     }, 0);
   }, [completedMissions]);
 
-  // Déclencher l'acceptation d'une mission
+  // 1-CLIC ACCEPTATION DIRECTE (Fluidité instantanée)
+  const handleDirectAccept = async (mission: Ride) => {
+    // Sélectionner le véhicule le plus adapté dans la flotte
+    const matchingVehicle =
+      fleet.find((v) => v.type === mission.transportType && v.status === 'DISPONIBLE') ||
+      fleet.find((v) => v.type === mission.transportType) ||
+      fleet[0];
+
+    const assignedData = {
+      companyName: transporterName,
+      driverName: matchingVehicle.driver,
+      driverPhone: transporterPhone,
+      vehiclePlate: matchingVehicle.plate,
+      etaMinutes: 15
+    };
+
+    // Mise à jour optimiste immédiate (0ms)
+    setRides((prev) =>
+      prev.map((r) =>
+        r.reference.toUpperCase() === mission.reference.toUpperCase()
+          ? { ...r, status: 'ACCEPTED' as RideStatus, assignedTransporter: assignedData }
+          : r
+      )
+    );
+
+    setFleet((prev) =>
+      prev.map((v) => (v.plate === matchingVehicle.plate ? { ...v, status: 'EN_MISSION' } : v))
+    );
+
+    setToastMessage({
+      title: 'Course acceptée avec succès !',
+      desc: `Mission #${mission.reference} (${mission.patient.firstName} ${mission.patient.lastName}) affectée à ${matchingVehicle.driver} (${matchingVehicle.plate}).`,
+      type: 'success'
+    });
+
+    setActiveTab('ACTIVES');
+
+    // Sauvegarde en arrière-plan Supabase / Local
+    try {
+      await rideService.updateRideStatus(mission.reference, 'ACCEPTED', assignedData);
+    } catch (err) {
+      console.error('Erreur acceptation directe:', err);
+    }
+  };
+
+  // Déclencher le modal d'affectation manuelle (Chauffeur / Véhicule / ETA personnalisés)
   const openAcceptModal = (mission: Ride) => {
     setMissionToAccept(mission);
     const match = fleet.find((v) => v.type === mission.transportType) || fleet[0];
@@ -173,42 +224,120 @@ export const TransporterPortalPage: React.FC = () => {
 
   const confirmAcceptMission = async () => {
     if (!missionToAccept) return;
+    const missionRef = missionToAccept.reference;
+
+    const assignedData = {
+      companyName: transporterName,
+      driverName: selectedDriver,
+      driverPhone: transporterPhone,
+      vehiclePlate: selectedPlate,
+      etaMinutes: selectedEta
+    };
+
+    // Mise à jour optimiste immédiate
+    setRides((prev) =>
+      prev.map((r) =>
+        r.reference.toUpperCase() === missionRef.toUpperCase()
+          ? { ...r, status: 'ACCEPTED' as RideStatus, assignedTransporter: assignedData }
+          : r
+      )
+    );
+
+    setFleet((prev) =>
+      prev.map((v) => (v.plate === selectedPlate ? { ...v, status: 'EN_MISSION' } : v))
+    );
+
+    setToastMessage({
+      title: 'Mission validée & affectée !',
+      desc: `La course #${missionRef} (${missionToAccept.patient.firstName} ${missionToAccept.patient.lastName}) a été assignée à ${selectedDriver} (${selectedPlate}).`,
+      type: 'success'
+    });
+
+    setMissionToAccept(null);
+    setActiveTab('ACTIVES');
 
     try {
-      await rideService.updateRideStatus(missionToAccept.reference, 'ACCEPTED', {
-        companyName: transporterName,
-        driverName: selectedDriver,
-        driverPhone: transporterPhone,
-        vehiclePlate: selectedPlate,
-        etaMinutes: selectedEta
-      });
-
-      // Mettre à jour le statut de la flotte locale
-      setFleet((prev) =>
-        prev.map((v) => (v.plate === selectedPlate ? { ...v, status: 'EN_MISSION' } : v))
-      );
-
-      setToastMessage({
-        title: 'Mission validée & affectée !',
-        desc: `La course #${missionToAccept.reference} (${missionToAccept.patient.firstName} ${missionToAccept.patient.lastName}) a été assignée à ${selectedDriver} (${selectedPlate}).`,
-        type: 'success'
-      });
-
-      setMissionToAccept(null);
-      setActiveTab('ACTIVES');
-      await loadMissions();
+      await rideService.updateRideStatus(missionRef, 'ACCEPTED', assignedData);
     } catch (err) {
       console.error('Erreur acceptation:', err);
       setToastMessage({
         title: 'Erreur',
-        desc: 'Impossible de valider la mission. Veuillez réessayer.',
+        desc: 'Impossible de synchroniser avec le serveur. Vérifiez votre connexion.',
         type: 'error'
       });
     }
   };
 
-  // Mise à jour du statut d'une mission active
+  // Déclencher le modal de refus de mission
+  const openDeclineModal = (mission: Ride) => {
+    setMissionToDecline(mission);
+    setDeclineReason('FLOTTE_INDISPONIBLE');
+  };
+
+  const confirmDeclineMission = async () => {
+    if (!missionToDecline) return;
+    const cleanRef = missionToDecline.reference.trim().toUpperCase();
+
+    // Mise à jour optimiste : masque immédiatement la course pour ce transporteur
+    const updatedDeclined = [...declinedRefs, cleanRef];
+    setDeclinedRefs(updatedDeclined);
+    localStorage.setItem('medictrans_declined_missions_972', JSON.stringify(updatedDeclined));
+
+    setToastMessage({
+      title: 'Mission déclinée',
+      desc: `La course #${cleanRef} a été retirée de votre console. Elle reste disponible pour les autres transporteurs sanitaires de l'île.`,
+      type: 'info'
+    });
+
+    setMissionToDecline(null);
+
+    try {
+      await rideService.declineRide(cleanRef, transporterName, declineReason);
+    } catch (err) {
+      console.error('Erreur refus:', err);
+    }
+  };
+
+  // Réinitialiser les refus (très utile lors des tests et démonstrations)
+  const handleResetDeclined = () => {
+    rideService.resetDeclinedRides();
+    setDeclinedRefs([]);
+    setToastMessage({
+      title: 'Filtre réinitialisé',
+      desc: 'Toutes les courses déclinées sont à nouveau affichées dans votre bourse.',
+      type: 'info'
+    });
+  };
+
+  // Mise à jour du statut d'une mission active (En approche -> À bord -> Clôturé)
   const handleUpdateActiveStatus = async (mission: Ride, nextStatus: RideStatus) => {
+    // Mise à jour optimiste immédiate
+    setRides((prev) =>
+      prev.map((r) =>
+        r.reference.toUpperCase() === mission.reference.toUpperCase()
+          ? { ...r, status: nextStatus }
+          : r
+      )
+    );
+
+    let statusLabel = 'Statut mis à jour';
+    if (nextStatus === 'EN_ROUTE') statusLabel = 'Chauffeur en route vers le patient !';
+    if (nextStatus === 'PICKED_UP') statusLabel = 'Patient pris en charge à bord !';
+    if (nextStatus === 'COMPLETED') {
+      statusLabel = 'Mission terminée & télétransmise à la CPAM !';
+      setFleet((prev) =>
+        prev.map((v) =>
+          v.plate === mission.assignedTransporter?.vehiclePlate ? { ...v, status: 'DISPONIBLE' } : v
+        )
+      );
+    }
+
+    setToastMessage({
+      title: statusLabel,
+      desc: `Course #${mission.reference} (${mission.patient.firstName} ${mission.patient.lastName}).`,
+      type: 'success'
+    });
+
     try {
       await rideService.updateRideStatus(mission.reference, nextStatus, {
         companyName: mission.assignedTransporter?.companyName || transporterName,
@@ -217,26 +346,6 @@ export const TransporterPortalPage: React.FC = () => {
         vehiclePlate: mission.assignedTransporter?.vehiclePlate || selectedPlate,
         etaMinutes: nextStatus === 'EN_ROUTE' ? 10 : nextStatus === 'PICKED_UP' ? 0 : 0
       });
-
-      let statusLabel = 'Statut mis à jour';
-      if (nextStatus === 'EN_ROUTE') statusLabel = 'Chauffeur en route vers le patient !';
-      if (nextStatus === 'PICKED_UP') statusLabel = 'Patient pris en charge à bord !';
-      if (nextStatus === 'COMPLETED') {
-        statusLabel = 'Mission terminée & télétransmise à la CPAM !';
-        setFleet((prev) =>
-          prev.map((v) =>
-            v.plate === mission.assignedTransporter?.vehiclePlate ? { ...v, status: 'DISPONIBLE' } : v
-          )
-        );
-      }
-
-      setToastMessage({
-        title: statusLabel,
-        desc: `Course #${mission.reference} (${mission.patient.firstName} ${mission.patient.lastName}).`,
-        type: 'success'
-      });
-
-      await loadMissions();
     } catch (err) {
       console.error('Erreur mise à jour statut:', err);
     }
@@ -527,6 +636,25 @@ export const TransporterPortalPage: React.FC = () => {
 
         {/* Dashboard Body */}
         <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto flex flex-col gap-6">
+          {/* Bannière Démo si non connecté en transporteur */}
+          {(!user || user.role !== 'TRANSPORTER') && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-amber-900 text-xs shadow-xs animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-600 text-lg">verified_user</span>
+                <span>
+                  <strong>Mode Démonstration Actif (Ambulances Madinina Secours)</strong> — Vous pouvez tester l'ensemble du flux ou vous connecter avec vos identifiants réels.
+                </span>
+              </div>
+              <Link
+                to="/connexion"
+                state={{ requiredRole: 'TRANSPORTER' }}
+                className="font-bold text-amber-800 hover:text-amber-950 underline shrink-0 whitespace-nowrap"
+              >
+                Se connecter avec mes identifiants ➔
+              </Link>
+            </div>
+          )}
+
           {/* Bannière KPIs Réels */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex items-center justify-between">
@@ -670,6 +798,16 @@ export const TransporterPortalPage: React.FC = () => {
                       <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
                       <span>Écoute active du réseau de régulation Martinique 972</span>
                     </div>
+                    {declinedRefs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleResetDeclined}
+                        className="px-4 py-2 rounded-full border border-outline-variant/40 hover:bg-surface-container text-on-surface text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
+                      >
+                        <span className="material-symbols-outlined text-sm text-primary">restart_alt</span>
+                        <span>Réafficher les missions déclinées ({declinedRefs.length})</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleCreateTestMission}
@@ -785,20 +923,45 @@ export const TransporterPortalPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+                        {/* Actions : Décliner, PMT, Affecter, Accepter */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-outline-variant/20">
+                          {/* Décliner la mission */}
+                          <button
+                            type="button"
+                            onClick={() => openDeclineModal(mission)}
+                            className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                            title="Décliner cette opportunité de transport"
+                          >
+                            <span className="material-symbols-outlined text-base text-rose-600">close</span>
+                            <span>Décliner</span>
+                          </button>
+
+                          {/* Fiche PMT */}
                           <button
                             type="button"
                             onClick={() => setSelectedMissionForDetails(mission)}
-                            className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-on-surface text-xs font-bold hover:bg-surface-container transition-all flex items-center justify-center gap-1.5"
+                            className="py-2 px-3 rounded-xl border border-outline-variant/40 text-on-surface text-xs font-bold hover:bg-surface-container transition-all flex items-center justify-center gap-1.5"
                           >
-                            <span className="material-symbols-outlined text-base">info</span>
+                            <span className="material-symbols-outlined text-base">description</span>
                             <span>Fiche PMT</span>
                           </button>
+
+                          {/* Affectation personnalisée (chauffeur / véhicule) */}
                           <button
                             type="button"
                             onClick={() => openAcceptModal(mission)}
-                            className="flex-1 py-2.5 px-3 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs active:scale-[0.99] flex items-center justify-center gap-1.5"
+                            className="py-2 px-3 rounded-xl border border-secondary/30 text-secondary bg-secondary/5 hover:bg-secondary/15 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                            title="Choisir le chauffeur et le véhicule avant d'accepter"
+                          >
+                            <span className="material-symbols-outlined text-base">badge</span>
+                            <span className="hidden sm:inline">Affecter</span>
+                          </button>
+
+                          {/* 1-Clic Acceptation Directe */}
+                          <button
+                            type="button"
+                            onClick={() => handleDirectAccept(mission)}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs active:scale-[0.99] flex items-center justify-center gap-1.5"
                           >
                             <span className="material-symbols-outlined text-base">check_circle</span>
                             <span>Accepter la course</span>
@@ -1264,6 +1427,105 @@ export const TransporterPortalPage: React.FC = () => {
               >
                 <span className="material-symbols-outlined text-base">check_circle</span>
                 <span>Confirmer l'affectation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : DÉCLINER LA MISSION                                               */}
+      {/* ========================================================================= */}
+      {missionToDecline && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-lg">cancel</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-on-surface">
+                    Décliner la mission
+                  </h3>
+                  <p className="text-xs text-on-surface-variant font-mono">
+                    Course #{missionToDecline.reference}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMissionToDecline(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <div className="bg-surface-container-low p-3.5 rounded-2xl text-xs space-y-1">
+              <div className="font-bold text-on-surface text-sm">
+                {missionToDecline.patient.firstName} {missionToDecline.patient.lastName}
+              </div>
+              <div className="text-on-surface-variant">
+                Trajet : <strong>{missionToDecline.pickupCity}</strong> ➔ <strong>{missionToDecline.facilityName || missionToDecline.dropoffCity}</strong>
+              </div>
+              <div className="text-rose-700 font-semibold">
+                Véhicule requis : {missionToDecline.transportType}
+              </div>
+            </div>
+
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              En déclinant, cette mission sera retirée de votre console dispatch. Elle reste immédiatement disponible pour les autres compagnies sanitaires conventionnées de Martinique.
+            </p>
+
+            <div className="space-y-2 text-xs">
+              <label className="block text-[11px] font-bold uppercase text-on-surface-variant">
+                Motif du refus opérationnel :
+              </label>
+              {[
+                { id: 'FLOTTE_INDISPONIBLE', label: 'Flotte 100% mobilisée / Aucun véhicule disponible' },
+                { id: 'HORS_SECTEUR', label: 'Hors zone géographique prioritaire' },
+                { id: 'DELAI_COURT', label: "Délai d'intervention trop court (< 30 min)" },
+                { id: 'EQUIPAGE_INDISPONIBLE', label: 'Équipage en fin de vacation réglementaire' },
+                { id: 'AUTRE', label: 'Autre contrainte dispatch' }
+              ].map((reason) => (
+                <label
+                  key={reason.id}
+                  onClick={() => setDeclineReason(reason.id)}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                    declineReason === reason.id
+                      ? 'border-rose-300 bg-rose-50/70 text-rose-900 font-semibold'
+                      : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="declineReason"
+                    value={reason.id}
+                    checked={declineReason === reason.id}
+                    onChange={() => setDeclineReason(reason.id)}
+                    className="accent-rose-600"
+                  />
+                  <span>{reason.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setMissionToDecline(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Conserver la mission
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeclineMission}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-xs hover:bg-rose-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+                <span>Confirmer le refus</span>
               </button>
             </div>
           </div>

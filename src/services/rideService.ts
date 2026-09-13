@@ -346,10 +346,17 @@ export const rideService = {
           .update({
             status,
             ...(assigned ? {
+              transporter_name: assigned.companyName || 'Ambulances Madinina Secours',
               driver_name: assigned.driverName,
               driver_phone: assigned.driverPhone,
               vehicle_plate: assigned.vehiclePlate,
               eta_minutes: assigned.etaMinutes
+            } : status === 'PENDING' ? {
+              transporter_name: null,
+              driver_name: null,
+              driver_phone: null,
+              vehicle_plate: null,
+              eta_minutes: null
             } : {})
           })
           .eq('reference', reference);
@@ -360,6 +367,42 @@ export const rideService = {
 
     localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));
     return rides[index];
+  },
+
+  // Décliner une course (masquée pour le transporteur actif)
+  async declineRide(reference: string, transporterName?: string, reason?: string): Promise<boolean> {
+    const STORAGE_KEY_DECLINED = 'medictrans_declined_missions_972';
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_DECLINED);
+      const declined: string[] = stored ? JSON.parse(stored) : [];
+      const cleanRef = reference.trim().toUpperCase();
+      if (!declined.includes(cleanRef)) {
+        declined.push(cleanRef);
+        localStorage.setItem(STORAGE_KEY_DECLINED, JSON.stringify(declined));
+      }
+    } catch (e) {
+      console.warn('Erreur stockage refus:', e);
+    }
+    return true;
+  },
+
+  // Récupérer la liste des références de courses déclinées
+  getDeclinedRideRefs(): string[] {
+    try {
+      const stored = localStorage.getItem('medictrans_declined_missions_972');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Réinitialiser les refus (démo & tests)
+  resetDeclinedRides(): void {
+    try {
+      localStorage.removeItem('medictrans_declined_missions_972');
+    } catch (e) {
+      console.warn('Erreur reset refus:', e);
+    }
   },
 
   // Réassigner une course (Back-Office / Régulation)
