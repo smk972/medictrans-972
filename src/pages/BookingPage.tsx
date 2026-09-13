@@ -11,8 +11,10 @@ import { rideService } from '../services/rideService';
 import { calculateMedicalRidePricing } from '../services/pricingService';
 import { TransportType } from '../types';
 import { SEOHead } from '../components/SEOHead';
+import { useAuth } from '../contexts/AuthContext';
 
 export const BookingPage: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -93,6 +95,18 @@ export const BookingPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      if (user.firstName) setFirstName(user.firstName);
+      if (user.lastName) setLastName(user.lastName);
+      if (user.phone) {
+        setPhone(user.phone);
+        setWhatsappPhone(user.phone);
+      }
+      if (user.nir) setNir(user.nir);
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -116,7 +130,7 @@ export const BookingPage: React.FC = () => {
           birthDate,
           nir,
           phone,
-          email: `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
+          email: user?.email || `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
           address: pickupAddress,
           city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Schœlcher',
           postalCode: '97233',

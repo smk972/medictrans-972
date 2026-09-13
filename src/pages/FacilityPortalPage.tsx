@@ -1,14 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
+import { rideService } from '../services/rideService';
+import { Ride } from '../types';
 
 export const FacilityPortalPage: React.FC = () => {
   const navigate = useNavigate();
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filterText, setFilterText] = useState('');
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    const loadFacilityRides = async () => {
+      setIsLoading(true);
+      try {
+        const all = await rideService.getAllRides();
+        setRides(all);
+      } catch (err) {
+        console.warn('Erreur chargement sorties hôpital:', err);
+        setRides([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFacilityRides();
 
     // Form submissions
     const forms = document.querySelectorAll('form');
@@ -38,6 +58,25 @@ export const FacilityPortalPage: React.FC = () => {
       }
     });
   }, [navigate]);
+
+  const filteredRides = useMemo(() => {
+    if (!filterText.trim()) return rides;
+    const q = filterText.toLowerCase();
+    return rides.filter(
+      (r) =>
+        r.reference.toLowerCase().includes(q) ||
+        r.patient.firstName.toLowerCase().includes(q) ||
+        r.patient.lastName.toLowerCase().includes(q) ||
+        r.patient.nir.includes(q) ||
+        r.dropoffCity.toLowerCase().includes(q) ||
+        r.pickupCity.toLowerCase().includes(q)
+    );
+  }, [rides, filterText]);
+
+  const assignedCount = rides.filter(
+    (r) => r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP'
+  ).length;
+  const pendingCount = rides.filter((r) => r.status === 'PENDING').length;
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
@@ -89,13 +128,13 @@ export const FacilityPortalPage: React.FC = () => {
 <span className="material-symbols-outlined text-primary text-[22px]">calendar_today</span>
 </div>
 <div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-primary font-bold">14</span>
+<span className="font-headline-xl text-headline-xl text-primary font-bold">{rides.length}</span>
 <span className="font-label-md text-label-md text-on-surface-variant">patients programmés</span>
 </div>
 <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
 <div className="bg-primary h-full w-[100%] rounded-full"></div>
 </div>
-<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">Journée du 28 Octobre • Martinique</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">Synchronisation directe réseau 972</span>
 </div>
 
 <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
@@ -104,13 +143,13 @@ export const FacilityPortalPage: React.FC = () => {
 <span className="material-symbols-outlined text-secondary text-[22px]">check_circle</span>
 </div>
 <div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-secondary font-bold">9</span>
+<span className="font-headline-xl text-headline-xl text-secondary font-bold">{assignedCount}</span>
 <span className="font-label-md text-label-md text-secondary">transporteurs confirmés</span>
 </div>
 <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
-<div className="bg-secondary h-full w-[64%] rounded-full"></div>
+<div className="bg-secondary h-full w-[100%] rounded-full"></div>
 </div>
-<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">64% des rotations sécurisées</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">Rotations sécurisées</span>
 </div>
 
 <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
@@ -119,11 +158,11 @@ export const FacilityPortalPage: React.FC = () => {
 <span className="material-symbols-outlined text-tertiary text-[22px] animate-spin">sync</span>
 </div>
 <div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-tertiary font-bold">5</span>
+<span className="font-headline-xl text-headline-xl text-tertiary font-bold">{pendingCount}</span>
 <span className="font-label-md text-label-md text-on-surface-variant">recherches actives</span>
 </div>
 <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
-<div className="bg-tertiary h-full w-[36%] rounded-full"></div>
+<div className="bg-tertiary h-full w-[100%] rounded-full"></div>
 </div>
 <span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">File d'attente automatisée 972</span>
 </div>
@@ -204,7 +243,13 @@ export const FacilityPortalPage: React.FC = () => {
 <p className="font-body-sm text-body-sm text-on-surface-variant">Suivi par télémétrie des véhicules médicalisés conventionnés ARS 972</p>
 </div>
 <div className="flex items-center gap-space-xs">
-<input className="px-space-sm py-1.5 rounded-lg bg-surface-container text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest w-52 sm:w-64 transition-all" placeholder="Filtrer patient, IPP ou ville..." type="text" />
+<input
+  className="px-space-sm py-1.5 rounded-lg bg-surface-container text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest w-52 sm:w-64 transition-all"
+  placeholder="Filtrer patient, IPP ou ville..."
+  type="text"
+  value={filterText}
+  onChange={(e) => setFilterText(e.target.value)}
+/>
 </div>
 </div>
 <div className="overflow-x-auto">
@@ -221,199 +266,138 @@ export const FacilityPortalPage: React.FC = () => {
 </tr>
 </thead>
 <tbody className="text-on-surface">
-
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-headline-sm text-headline-sm font-bold text-primary">10:45</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5">Lit 314-B</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-lg text-label-lg font-bold">Mme CÉLESTINE Ginette</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">IPP: 972-0488219 • 74 ans</span>
-</div>
-</td>
-<td className="py-space-md px-space-md">
-<div className="flex flex-col min-w-[180px]">
-<span className="font-label-md text-label-md font-bold text-on-surface">Domicile • Schoelcher</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant truncate">Anse Madame, 97233</span>
-<span className="font-label-sm text-label-sm text-secondary flex items-center gap-0.5 mt-0.5">
-<span className="material-symbols-outlined text-[14px]">stairs</span> 2ème étage sans ascenseur
-                    </span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<span className="bg-primary-container text-on-primary font-label-md text-label-md px-space-sm py-1 rounded-lg flex items-center gap-1 w-fit">
-<span className="material-symbols-outlined text-[16px]">airline_seat_flat</span>
-                    Ambulance Allongée
-                  </span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-md text-label-md font-bold text-on-surface">Ambulances Caraïbes Santé</span>
-<a className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1" href="tel:0596614420">
-<span className="material-symbols-outlined text-[14px]">phone</span>
-                      05 96 61 44 20 (Équipage B4)
-                    </a>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex items-center gap-space-xs bg-[#D1FAE5] text-[#065F46] px-space-sm py-1 rounded-full font-label-md text-label-md w-fit font-bold shadow-sm">
-<span className="w-2 h-2 rounded-full bg-[#10B981] animate-ping"></span>
-<span className="">En approche (6 min)</span>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant block mt-1">Au rond-point Chavoire</span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap text-right">
-<button className="bg-surface-container hover:bg-surface-container-high text-primary p-2 rounded-lg transition-all" title="Billet de sortie &amp; transmissions">
-<span className="material-symbols-outlined text-[18px]">assignment_turned_in</span>
-</button>
-</td>
-</tr>
-
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-headline-sm text-headline-sm font-bold text-tertiary">11:15</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5">Fauteuil D-04</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-lg text-label-lg font-bold">M. DUBOIS Raymond</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">IPP: 972-0319402 • 62 ans</span>
-</div>
-</td>
-<td className="py-space-md px-space-md">
-<div className="flex flex-col min-w-[180px]">
-<span className="font-label-md text-label-md font-bold text-on-surface">EHPAD Les Hibiscus • Le Lamentin</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant truncate">Quartier Acajou, 97232</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-0.5 mt-0.5">
-<span className="material-symbols-outlined text-[14px]">accessible</span> Patient en fauteuil roulant
-                    </span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<span className="bg-secondary text-on-secondary font-label-md text-label-md px-space-sm py-1 rounded-lg flex items-center gap-1 w-fit">
-<span className="material-symbols-outlined text-[16px]">directions_car</span>
-                    VSL Conventionné
-                  </span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex items-center gap-space-xs text-on-surface-variant">
-<span className="material-symbols-outlined text-[16px] animate-spin text-tertiary">hourglass_top</span>
-<span className="font-label-sm text-label-sm italic">Diffusion réseau 972...</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex items-center gap-space-xs bg-[#FEF3C7] text-[#92400E] px-space-sm py-1 rounded-full font-label-md text-label-md w-fit font-bold shadow-sm">
-<span className="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
-<span className="">En attente d'attribution</span>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant block mt-1">Émis il y a 3 min</span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap text-right">
-<button className="bg-primary hover:bg-primary-container text-on-primary px-space-sm py-1.5 rounded-lg font-label-sm text-label-sm font-bold shadow-sm transition-all">
-                    Relancer
-                  </button>
-</td>
-</tr>
-
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-headline-sm text-headline-sm font-bold text-primary">11:30</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5">Lit 302-A</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-lg text-label-lg font-bold">Mme JOSEPH-MONROSE L.</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">IPP: 972-0921104 • 81 ans</span>
-</div>
-</td>
-<td className="py-space-md px-space-md">
-<div className="flex flex-col min-w-[180px]">
-<span className="font-label-md text-label-md font-bold text-on-surface">SSR Hôpital Louis Domergue • La Trinité</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant truncate">Transfert Inter-Hospitalier CHU</span>
-<span className="font-label-sm text-label-sm text-primary flex items-center gap-0.5 mt-0.5">
-<span className="material-symbols-outlined text-[14px]">medical_services</span> Surveillance O2 requise (2L/min)
-                    </span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<span className="bg-primary-container text-on-primary font-label-md text-label-md px-space-sm py-1 rounded-lg flex items-center gap-1 w-fit">
-<span className="material-symbols-outlined text-[16px]">airline_seat_flat</span>
-                    Ambulance Cat. A
-                  </span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-md text-label-md font-bold text-on-surface">Transports Ambulanciers Madinina</span>
-<a className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1" href="tel:0596541288">
-<span className="material-symbols-outlined text-[14px]">phone</span>
-                      05 96 54 12 88 (Régulateur)
-                    </a>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex items-center gap-space-xs bg-surface-container text-primary px-space-sm py-1 rounded-full font-label-md text-label-md w-fit font-bold shadow-sm">
-<span className="w-2 h-2 rounded-full bg-primary"></span>
-<span className="">Accepté • En transit</span>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant block mt-1">Arrivée estimée 11:22</span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap text-right">
-<button className="bg-surface-container hover:bg-surface-container-high text-primary p-2 rounded-lg transition-all" title="Dossier de liaison">
-<span className="material-symbols-outlined text-[18px]">folder_shared</span>
-</button>
-</td>
-</tr>
-
-<tr className="hover:bg-surface-container-low/40 transition-colors">
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-headline-sm text-headline-sm font-bold text-on-surface-variant">09:15</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5">Dialyse Poste 8</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-lg text-label-lg font-bold text-on-surface-variant line-through">M. BELLAY Thierry</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">IPP: 972-0056122 • 58 ans</span>
-</div>
-</td>
-<td className="py-space-md px-space-md">
-<div className="flex flex-col min-w-[180px]">
-<span className="font-label-md text-label-md font-bold text-on-surface-variant">Domicile • Fort-de-France</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant truncate">Cluny, 97200</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<span className="bg-surface-container-high text-on-surface-variant font-label-md text-label-md px-space-sm py-1 rounded-lg flex items-center gap-1 w-fit">
-<span className="material-symbols-outlined text-[16px]">local_taxi</span>
-                    Taxi Conventionné
-                  </span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex flex-col">
-<span className="font-label-md text-label-md font-medium text-on-surface-variant">Taxi Médical Foyalais #12</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">Chauffeur: A. Rose</span>
-</div>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap">
-<div className="flex items-center gap-space-xs bg-[#D1FAE5] text-[#065F46] px-space-sm py-1 rounded-full font-label-md text-label-md w-fit font-bold shadow-sm">
-<span className="material-symbols-outlined text-[14px]">done_all</span>
-<span className="">Prise en charge effectuée</span>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant block mt-1">Départ brancard 09:18</span>
-</td>
-<td className="py-space-md px-space-md whitespace-nowrap text-right">
-<span className="font-label-sm text-label-sm text-secondary font-bold">Clôturé • PMT OK</span>
-</td>
-</tr>
+{filteredRides.length === 0 ? (
+  <tr>
+    <td colSpan={7} className="py-16 text-center">
+      <div className="flex flex-col items-center justify-center gap-3">
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-1 shadow-xs">
+          <span className="material-symbols-outlined text-3xl">medical_services</span>
+        </div>
+        <h3 className="font-headline-sm text-lg font-bold text-on-surface">
+          Vous n'avez aucune mission en cours.
+        </h3>
+        <p className="font-body-sm text-xs text-on-surface-variant max-w-md mx-auto">
+          Aucune demande de sortie ou de transfert sanitaire n'est actuellement en attente pour votre service.
+        </p>
+        <button
+          onClick={() => navigate('/reserver')}
+          className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-md hover:bg-primary/90 transition-all"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-base">add_circle</span>
+          Programmer une sortie de lit
+        </button>
+      </div>
+    </td>
+  </tr>
+) : (
+  filteredRides.map((ride) => (
+    <tr key={ride.id} className="hover:bg-surface-container-low/40 transition-colors">
+      <td className="py-space-md px-space-md whitespace-nowrap">
+        <div className="flex flex-col">
+          <span className="font-headline-sm text-headline-sm font-bold text-primary">
+            {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+          <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5">
+            {ride.bedDischargeNumber || 'Service Jour'}
+          </span>
+        </div>
+      </td>
+      <td className="py-space-md px-space-md whitespace-nowrap">
+        <div className="flex flex-col">
+          <span className="font-label-lg text-label-lg font-bold">
+            {ride.patient.firstName} {ride.patient.lastName}
+          </span>
+          <span className="font-label-sm text-label-sm text-on-surface-variant">
+            NIR: {ride.patient.nir}
+          </span>
+        </div>
+      </td>
+      <td className="py-space-md px-space-md">
+        <div className="flex flex-col min-w-[180px]">
+          <span className="font-label-md text-label-md font-bold text-on-surface">
+            {ride.dropoffAddress}
+          </span>
+          <span className="font-label-sm text-label-sm text-on-surface-variant truncate">
+            {ride.dropoffCity}
+          </span>
+        </div>
+      </td>
+      <td className="py-space-md px-space-md whitespace-nowrap">
+        <span className="bg-primary-container text-on-primary font-label-md text-label-md px-space-sm py-1 rounded-lg flex items-center gap-1 w-fit">
+          <span className="material-symbols-outlined text-[16px]">
+            {ride.transportType === 'AMBULANCE'
+              ? 'airline_seat_flat'
+              : ride.transportType === 'TAXI_CONVENTIONNE'
+              ? 'local_taxi'
+              : 'directions_car'}
+          </span>
+          {ride.transportType === 'AMBULANCE'
+            ? 'Ambulance'
+            : ride.transportType === 'TAXI_CONVENTIONNE'
+            ? 'Taxi Conventionné'
+            : 'VSL Médicalisé'}
+        </span>
+      </td>
+      <td className="py-space-md px-space-md whitespace-nowrap">
+        <div className="flex flex-col">
+          <span className="font-label-md text-label-md font-bold text-on-surface">
+            {ride.assignedTransporter?.companyName || "En cours d'affectation"}
+          </span>
+          {ride.assignedTransporter && (
+            <a
+              className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1"
+              href={`tel:${ride.assignedTransporter.driverPhone}`}
+            >
+              <span className="material-symbols-outlined text-[14px]">phone</span>
+              {ride.assignedTransporter.driverPhone}
+            </a>
+          )}
+        </div>
+      </td>
+      <td className="py-space-md px-space-md whitespace-nowrap">
+        <div
+          className={`flex items-center gap-space-xs px-space-sm py-1 rounded-full font-label-md text-label-md w-fit font-bold shadow-sm ${
+            ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
+              ? 'bg-[#D1FAE5] text-[#065F46]'
+              : 'bg-[#FEF3C7] text-[#92400E]'
+          }`}
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
+                ? 'bg-[#10B981]'
+                : 'bg-[#F59E0B] animate-pulse'
+            }`}
+          ></span>
+          <span>
+            {ride.status === 'ACCEPTED'
+              ? 'Accepté'
+              : ride.status === 'EN_ROUTE'
+              ? 'En approche'
+              : ride.status === 'PICKED_UP'
+              ? 'Patient à bord'
+              : ride.status === 'COMPLETED'
+              ? 'Terminé'
+              : "En attente d'attribution"}
+          </span>
+        </div>
+      </td>
+      <td className="py-space-md px-space-md whitespace-nowrap text-right">
+        <button
+          onClick={() => navigate('/suivi')}
+          className="bg-surface-container hover:bg-surface-container-high text-primary p-2 rounded-lg transition-all"
+          title="Suivi de la mission"
+        >
+          <span className="material-symbols-outlined text-[18px]">visibility</span>
+        </button>
+      </td>
+    </tr>
+  ))
+)}
 </tbody>
 </table>
 </div>
