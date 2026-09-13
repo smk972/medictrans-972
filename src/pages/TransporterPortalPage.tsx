@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '../services/pricingService';
 import { Ride, RideStatus, TransportType } from '../types';
+import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 
 interface VehicleFleet {
   id: string;
@@ -54,7 +55,9 @@ export const TransporterPortalPage: React.FC = () => {
   // State
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'FLOTTE'>('DISPONIBLES');
+  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'FLOTTE' | 'HISTORIQUE'>('DISPONIBLES');
+  const [historySubFilter, setHistorySubFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
+  const [historySearch, setHistorySearch] = useState('');
   const [sectorFilter, setSectorFilter] = useState<'ALL' | 'CENTRE' | 'SUD' | 'NORD'>('ALL');
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
   const [selectedMissionForDetails, setSelectedMissionForDetails] = useState<Ride | null>(null);
@@ -165,6 +168,61 @@ export const TransporterPortalPage: React.FC = () => {
   const completedMissions = useMemo(() => {
     return rides.filter((r) => r.status === 'COMPLETED');
   }, [rides]);
+
+  // Toutes les anciennes courses (terminées et expressément annulées)
+  const archivedMissions = useMemo(() => {
+    return rides.filter((r) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
+  }, [rides]);
+
+  // Filtrage personnalisé de l'historique transporteur
+  const filteredArchivedMissions = useMemo(() => {
+    return archivedMissions.filter((r) => {
+      if (historySubFilter === 'COMPLETED' && r.status !== 'COMPLETED') return false;
+      if (historySubFilter === 'CANCELLED' && r.status !== 'CANCELLED') return false;
+
+      if (!historySearch.trim()) return true;
+      const q = historySearch.toLowerCase();
+      return (
+        r.reference.toLowerCase().includes(q) ||
+        r.patient.firstName.toLowerCase().includes(q) ||
+        r.patient.lastName.toLowerCase().includes(q) ||
+        r.patient.nir.includes(q) ||
+        r.pickupCity.toLowerCase().includes(q) ||
+        r.dropoffCity.toLowerCase().includes(q) ||
+        (r.facilityName && r.facilityName.toLowerCase().includes(q)) ||
+        (r.assignedTransporter?.driverName && r.assignedTransporter.driverName.toLowerCase().includes(q)) ||
+        (r.mobility.notes && r.mobility.notes.toLowerCase().includes(q))
+      );
+    });
+  }, [archivedMissions, historySubFilter, historySearch]);
+
+  // Handlers Exportation Transporteur
+  const handleExportExcel = () => {
+    exportRidesToExcel(filteredArchivedMissions, {
+      filename: `Registre_Courses_Transporteur_${new Date().toISOString().slice(0, 10)}`,
+      title: 'Registre Officiel des Transports Sanitaires Réalisés & Archivés',
+      userContext: `${transporterName} | Télétransmission CPAM Martinique 972`
+    });
+    setToastMessage({
+      title: 'Export Excel réussi',
+      desc: `${filteredArchivedMissions.length} course(s) archivée(s) exportée(s) au format .csv pour Excel.`,
+      type: 'success'
+    });
+  };
+
+  const handleExportPdf = () => {
+    exportRidesToPdf(filteredArchivedMissions, {
+      filename: `Registre_Courses_Transporteur_${new Date().toISOString().slice(0, 10)}`,
+      title: 'Registre Officiel des Transports Sanitaires',
+      subtitle: `Société : ${transporterName} | Filtre : ${historySubFilter === 'ALL' ? 'Toutes les archives (dont annulées)' : historySubFilter === 'COMPLETED' ? 'Terminées avec succès' : 'Annulées'} (${filteredArchivedMissions.length} courses)`,
+      userContext: `Agréé ARS Martinique · N° Convention CPAM : 972-CPAM-881`
+    });
+    setToastMessage({
+      title: 'Export PDF généré',
+      desc: `Le registre PDF officiel de vos courses a été téléchargé avec succès.`,
+      type: 'success'
+    });
+  };
 
   // 1-CLIC ACCEPTATION DIRECTE (Fluidité instantanée)
   const handleDirectAccept = async (mission: Ride) => {
@@ -624,6 +682,26 @@ export const TransporterPortalPage: React.FC = () => {
             </div>
             <span className="text-[10px] text-emerald-600 font-bold">{fleet.length} actifs</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('HISTORIQUE')}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+              activeTab === 'HISTORIQUE'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-lg">history</span>
+              <span>Historique des courses</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === 'HISTORIQUE' ? 'bg-white text-primary' : 'bg-surface-container-high text-on-surface-variant'
+            }`}>
+              {archivedMissions.length}
+            </span>
+          </button>
         </nav>
 
         {/* Support & Régulation 972 */}
@@ -738,6 +816,15 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             Flotte ({fleet.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('HISTORIQUE')}
+            className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              activeTab === 'HISTORIQUE' ? 'bg-primary text-white' : 'text-on-surface-variant'
+            }`}
+          >
+            Historique ({archivedMissions.length})
           </button>
         </div>
 
@@ -1409,6 +1496,254 @@ export const TransporterPortalPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* ========================================================================= */}
+          {/* VUE 4 : HISTORIQUE COMPLET DES COURSES & ARCHIVES (INCLUANT ANNULÉES)     */}
+          {/* ========================================================================= */}
+          {activeTab === 'HISTORIQUE' && (
+            <div className="flex flex-col gap-6 animate-fadeIn">
+              {/* En-tête Historique avec Exports */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-2xl">history</span>
+                    <h2 className="text-xl font-extrabold text-on-surface">Historique & Registre des Courses</h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-xs font-bold font-mono">
+                      {archivedMissions.length} archivée{archivedMissions.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-1 max-w-2xl leading-relaxed">
+                    Consultez l'ensemble des courses passées (courses réalisées ou annulées avec motif), accédez aux fiches de liaison PMT et exportez votre registre d'activité réglementaire.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    disabled={filteredArchivedMissions.length === 0}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    title="Exporter le registre au format Excel (.csv)"
+                  >
+                    <span className="material-symbols-outlined text-base">file_download</span>
+                    <span>Export Excel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={filteredArchivedMissions.length === 0}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    title="Générer le registre PDF officiel"
+                  >
+                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                    <span>Export PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Barre de recherche et Filtres */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/20 flex flex-col md:flex-row gap-3 md:items-center justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setHistorySubFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      historySubFilter === 'ALL'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    Toutes les archives ({archivedMissions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistorySubFilter('COMPLETED')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      historySubFilter === 'COMPLETED'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    Terminées avec succès ({archivedMissions.filter((r) => r.status === 'COMPLETED').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistorySubFilter('CANCELLED')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      historySubFilter === 'CANCELLED'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    Courses annulées ({archivedMissions.filter((r) => r.status === 'CANCELLED').length})
+                  </button>
+                </div>
+
+                <div className="relative w-full md:w-72">
+                  <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-lg">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="Rechercher réf, patient, NIR, motif..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-lowest border border-outline-variant/30 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-hidden focus:border-primary"
+                  />
+                  {historySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setHistorySearch('')}
+                      className="absolute right-2.5 top-2.5 text-on-surface-variant hover:text-on-surface text-xs"
+                    >
+                      <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Liste des courses archivées */}
+              {filteredArchivedMissions.length === 0 ? (
+                <div className="p-12 text-center rounded-3xl bg-surface-container-lowest border border-outline-variant/20 flex flex-col items-center justify-center gap-3 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-5xl opacity-40">inventory_2</span>
+                  <div className="font-bold text-sm text-on-surface">Aucune course dans l'historique</div>
+                  <p className="text-xs max-w-sm">
+                    {historySearch
+                      ? `Aucune course ne correspond à la recherche "${historySearch}".`
+                      : 'Aucune archive disponible avec les filtres sélectionnés.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredArchivedMissions.map((mission) => {
+                    const isCancelled = mission.status === 'CANCELLED';
+                    const hasPmt = mission.patient.hasPmt || mission.patient.pmtUploaded || mission.patient.pmtFileUrl;
+
+                    return (
+                      <div
+                        key={mission.id}
+                        className={`p-5 rounded-3xl bg-surface-container-lowest border shadow-xs flex flex-col justify-between gap-4 transition-all hover:shadow-md ${
+                          isCancelled
+                            ? 'border-rose-200/80 bg-rose-50/20'
+                            : 'border-outline-variant/25'
+                        }`}
+                      >
+                        {/* En-tête de la carte */}
+                        <div className="flex items-start justify-between gap-2 border-b border-outline-variant/15 pb-3">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs font-extrabold text-primary">
+                                #{mission.reference}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-surface-container text-on-surface-variant">
+                                {mission.transportType === 'AMBULANCE'
+                                  ? '🚑 Ambulance'
+                                  : mission.transportType === 'VSL'
+                                  ? '🚐 VSL'
+                                  : '🚗 TPMR'}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-on-surface-variant mt-1 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs">calendar_today</span>
+                              <span>
+                                {new Date(mission.pickupDateTime).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })} à{' '}
+                                {new Date(mission.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {isCancelled ? (
+                            <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold flex items-center gap-1 border border-rose-200">
+                              <span className="material-symbols-outlined text-xs">cancel</span>
+                              Annulée
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-200">
+                              <span className="material-symbols-outlined text-xs">check_circle</span>
+                              Terminée
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Informations Patient & Trajet */}
+                        <div className="space-y-2.5 text-xs">
+                          <div>
+                            <div className="font-bold text-on-surface text-sm">
+                              {mission.patient.firstName} {mission.patient.lastName}
+                            </div>
+                            <div className="font-mono text-[11px] text-on-surface-variant flex items-center gap-1">
+                              <span>NIR:</span>
+                              <strong className="text-on-surface">{mission.patient.nir}</strong>
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-surface-container-low/70 space-y-1.5 text-xs">
+                            <div className="flex items-center gap-2 text-on-surface">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                              <span className="font-medium truncate">{mission.pickupAddress}, {mission.pickupCity}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-on-surface">
+                              <span className="w-2 h-2 rounded-full bg-primary shrink-0"></span>
+                              <span className="font-bold truncate">
+                                {mission.facilityName ? `${mission.facilityName} (${mission.dropoffCity})` : `${mission.dropoffAddress}, ${mission.dropoffCity}`}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Info Chauffeur & Véhicule affecté */}
+                          {mission.assignedTransporter && (
+                            <div className="text-[11px] text-on-surface-variant flex items-center justify-between px-1">
+                              <span>Chauffeur : <strong>{mission.assignedTransporter.driverName}</strong></span>
+                              <span className="font-mono font-bold text-primary">{mission.assignedTransporter.vehiclePlate}</span>
+                            </div>
+                          )}
+
+                          {/* Zone d'alerte motif d'annulation si annulée */}
+                          {isCancelled && (
+                            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+                              <div className="flex items-center gap-1.5 font-bold text-rose-950 text-[11px]">
+                                <span className="material-symbols-outlined text-sm text-rose-600">info</span>
+                                <span>Motif de l'annulation :</span>
+                              </div>
+                              <p className="text-[11px] text-rose-800 leading-snug">
+                                {mission.mobility.notes || 'Annulée par le régulateur ou le demandeur.'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Pied de carte : Statut PMT et Bouton d'action */}
+                        <div className="pt-3 border-t border-outline-variant/15 flex items-center justify-between gap-2">
+                          <div className="text-[11px]">
+                            {hasPmt ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                                <span className="material-symbols-outlined text-xs">verified</span>
+                                PMT Jointe
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                                <span className="material-symbols-outlined text-xs">warning</span>
+                                PMT Papier
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMissionForDetails(mission)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-sm">visibility</span>
+                            <span>Fiche PMT & Détails</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 
@@ -1650,6 +1985,20 @@ export const TransporterPortalPage: React.FC = () => {
                 <span className="material-symbols-outlined text-xl">close</span>
               </button>
             </div>
+
+            {/* Alerte si course annulée */}
+            {selectedMissionForDetails.status === 'CANCELLED' && (
+              <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-900 text-xs space-y-1.5 animate-fadeIn">
+                <div className="flex items-center gap-2 text-rose-950 font-bold text-sm">
+                  <span className="material-symbols-outlined text-rose-600 text-xl">cancel</span>
+                  <span>Course Annulée</span>
+                </div>
+                <div className="text-rose-900 leading-relaxed text-xs">
+                  <strong>Motif renseigné : </strong>
+                  {selectedMissionForDetails.mobility.notes || 'Course annulée par le régulateur ou le demandeur.'}
+                </div>
+              </div>
+            )}
 
             {/* Fiche Patient */}
             <div className="bg-surface-container-low p-4 rounded-2xl space-y-2 text-xs">

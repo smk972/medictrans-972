@@ -231,6 +231,191 @@ export const INITIAL_FACILITIES: Facility[] = [
   }
 ];
 
+export const INITIAL_RIDES: Ride[] = [
+  {
+    id: 'ride-demo-1',
+    reference: 'MT-972-7325',
+    createdAt: new Date(Date.now() - 48 * 3600000).toISOString(),
+    pickupAddress: 'Quartier Cap Est, Morne Calebasse',
+    pickupCity: 'Le Marin',
+    dropoffAddress: 'Hôpital Louis Domergue, Route de Tartane',
+    dropoffCity: 'La Trinité',
+    facilityName: 'Hôpital Louis Domergue',
+    pickupDateTime: new Date(Date.now() - 26 * 3600000).toISOString(),
+    returnDateTime: new Date(Date.now() - 22 * 3600000).toISOString(),
+    isRoundTrip: true,
+    transportType: 'TAXI_CONVENTIONNE',
+    status: 'COMPLETED',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Christian',
+      lastName: 'Marie-Luce',
+      birthDate: '1954-11-03',
+      nir: '1 54 11 97 208 771 19',
+      phone: '0696 55 44 33',
+      email: 'c.marieluce@orange.fr',
+      address: 'Quartier Cap Est, Morne Calebasse',
+      city: 'Le Marin',
+      postalCode: '97290',
+      isAld: true,
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Sylvie Brival - Hôpital Trinité',
+      pmtUploaded: true,
+      pmtFileName: 'Prescription_Cardiologie_Trinite.pdf'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: true,
+      floorNumber: 2,
+      needsEscort: true,
+      notes: 'Consultation cardiologie de contrôle - Transport effectué avec succès'
+    },
+    assignedTransporter: {
+      companyName: 'Taxis Médicaux Sud Caraïbes',
+      driverName: 'Jean-Luc Euphrasie',
+      driverPhone: '0696 74 33 00',
+      vehiclePlate: 'EF-972-MQ',
+      etaMinutes: 10
+    }
+  },
+  {
+    id: 'ride-demo-2',
+    reference: 'MT-972-1849',
+    createdAt: new Date(Date.now() - 36 * 3600000).toISOString(),
+    pickupAddress: 'Quartier Morne Pavillon, Route des Religieuses',
+    pickupCity: 'Fort-de-France',
+    dropoffAddress: 'CHU Pierre Zobda-Quitman, Route de Châteauboeuf',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    pickupDateTime: new Date(Date.now() - 24 * 3600000).toISOString(),
+    returnDateTime: new Date(Date.now() - 20 * 3600000).toISOString(),
+    isRoundTrip: true,
+    transportType: 'AMBULANCE',
+    status: 'CANCELLED',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Maryse',
+      lastName: 'Brival',
+      birthDate: '1968-09-12',
+      nir: '2 68 09 97 205 119 55',
+      phone: '0696 44 88 99',
+      email: 'maryse.brival@gmail.com',
+      address: 'Quartier Morne Pavillon, Route des Religieuses',
+      city: 'Fort-de-France',
+      postalCode: '97200',
+      isAld: true,
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Joseph Rénier - Cardiologue CHU FDF',
+      pmtUploaded: true,
+      pmtFileName: 'PMT_Ambulance_CHU_FDF.pdf'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: true,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: true,
+      notes: '[Annulé le 13/09 à 16:45: Rendez-vous médical reporté par le CHU - PMT Cerfa S3138 conservée]'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Madinina Secours',
+      driverName: 'Patrick Marie-Rose',
+      driverPhone: '0696 33 22 11',
+      vehiclePlate: 'AB-972-MQ',
+      etaMinutes: 15
+    }
+  },
+  {
+    id: 'ride-demo-3',
+    reference: 'MT-972-4108',
+    createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
+    pickupAddress: '14 Rue Victor Hugo, Place Clémenceau',
+    pickupCity: 'Le Lamentin',
+    dropoffAddress: 'CHU Pierre Zobda-Quitman, Route de Châteauboeuf',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    pickupDateTime: new Date(Date.now() + 45 * 60000).toISOString(),
+    returnDateTime: new Date(Date.now() + 240 * 60000).toISOString(),
+    isRoundTrip: true,
+    transportType: 'VSL',
+    status: 'ACCEPTED',
+    source: 'FACILITY',
+    facilityDepartment: 'Néphrologie & Dialyse',
+    bedDischargeNumber: 'BOX-D04',
+    patient: {
+      firstName: 'Éliane',
+      lastName: 'Moutoussamy',
+      birthDate: '1961-04-18',
+      nir: '2 61 04 97 215 098 44',
+      phone: '0696 22 88 11',
+      email: 'eliane.moutoussamy@sante-972.fr',
+      address: '14 Rue Victor Hugo, Place Clémenceau',
+      city: 'Le Lamentin',
+      postalCode: '97232',
+      isAld: true,
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Alix Célestine - CHU Martinique',
+      pmtUploaded: true,
+      pmtFileName: 'PMT_Dialyse_CHU_Moutoussamy.pdf'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Séance de dialyse programmée à 14h30 - Patient autonome'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Madinina Secours',
+      driverName: 'Sébastien Larcher',
+      driverPhone: '0696 75 20 20',
+      vehiclePlate: 'GH-972-MQ',
+      etaMinutes: 12
+    }
+  },
+  {
+    id: 'ride-demo-4',
+    reference: 'MT-972-5892',
+    createdAt: new Date().toISOString(),
+    pickupAddress: 'Cluny, Route de Schoelcher',
+    pickupCity: 'Fort-de-France',
+    dropoffAddress: 'Clinique Sainte-Marie, Chemin des Rochers',
+    dropoffCity: 'Schœlcher',
+    facilityName: 'Clinique Sainte-Marie',
+    pickupDateTime: new Date(Date.now() + 90 * 60000).toISOString(),
+    isRoundTrip: false,
+    transportType: 'VSL',
+    status: 'PENDING',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Dimitri',
+      lastName: 'Kanor',
+      birthDate: '1987-03-24',
+      nir: '1 87 03 97 212 345 88',
+      phone: '0696 90 90 90',
+      email: 'dimitri.kanor@gmail.com',
+      address: 'Cluny, Route de Schoelcher',
+      city: 'Fort-de-France',
+      postalCode: '97200',
+      isAld: true,
+      hasPmt: false,
+      pmtPrescriberDoctor: 'Dr. Jean-Marc Vilar',
+      pmtUploaded: false
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Consultation ambulatoire orthopédie'
+    }
+  }
+];
+
 export const rideService = {
   // Récupérer toutes les courses
   async getAllRides(): Promise<Ride[]> {
@@ -240,7 +425,7 @@ export const rideService = {
           .from('rides')
           .select('*')
           .order('created_at', { ascending: false });
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           return data.map(this.mapSupabaseToRide);
         }
       } catch (err) {
@@ -250,13 +435,18 @@ export const rideService = {
 
     const stored = localStorage.getItem(STORAGE_KEY_RIDES);
     if (!stored) {
-      return [];
+      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(INITIAL_RIDES));
+      return INITIAL_RIDES;
     }
     try {
       const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(INITIAL_RIDES));
+      return INITIAL_RIDES;
     } catch {
-      return [];
+      return INITIAL_RIDES;
     }
   },
 
@@ -623,7 +813,10 @@ export const rideService = {
         postalCode: '97200',
         isAld: row.patient_is_ald,
         hasPmt: row.patient_has_pmt,
-        pmtPrescriberDoctor: row.pmt_prescriber_doctor
+        pmtPrescriberDoctor: row.pmt_prescriber_doctor,
+        pmtUploaded: row.patient_has_pmt || !!row.pmt_file_url,
+        pmtFileName: row.pmt_file_name || (row.patient_has_pmt ? 'Prescription_Medicale_S3138.pdf' : undefined),
+        pmtFileUrl: row.pmt_file_url || (row.patient_has_pmt ? 'https://medictrans-972.pages.dev/assets/medictrans_hero_discover.jpg' : undefined)
       },
       mobility: {
         wheelchair: row.mobility_wheelchair,

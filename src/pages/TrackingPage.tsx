@@ -8,10 +8,12 @@ import { whatsappService } from '../services/whatsappService';
 import { rideService } from '../services/rideService';
 import { useAuth } from '../contexts/AuthContext';
 import { Ride } from '../types';
+import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 
 export const TrackingPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [showBanner, setShowBanner] = useState(true);
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,26 +81,62 @@ export const TrackingPage: React.FC = () => {
 
   // Filtrage de l'historique
   const filteredRides = useMemo(() => {
-    if (!searchTerm.trim()) return rides;
-    const term = searchTerm.toLowerCase();
-    return rides.filter(
-      (r) =>
+    return rides.filter((r) => {
+      // Filtre de statut
+      if (statusFilter === 'ACTIVE') {
+        if (!['PENDING', 'ACCEPTED', 'EN_ROUTE', 'PICKED_UP'].includes(r.status)) return false;
+      } else if (statusFilter === 'COMPLETED') {
+        if (r.status !== 'COMPLETED') return false;
+      } else if (statusFilter === 'CANCELLED') {
+        if (r.status !== 'CANCELLED') return false;
+      }
+
+      // Recherche texte
+      if (!searchTerm.trim()) return true;
+      const term = searchTerm.toLowerCase();
+      return (
         r.reference.toLowerCase().includes(term) ||
         r.pickupAddress.toLowerCase().includes(term) ||
         r.dropoffAddress.toLowerCase().includes(term) ||
         (r.facilityName && r.facilityName.toLowerCase().includes(term)) ||
         `${r.patient.firstName} ${r.patient.lastName}`.toLowerCase().includes(term)
-    );
-  }, [rides, searchTerm]);
+      );
+    });
+  }, [rides, searchTerm, statusFilter]);
 
-  // Statistiques calculées en temps réel (100% fiables)
+  // Actions d'exportation
+  const handleExportExcel = () => {
+    exportRidesToExcel(filteredRides, {
+      filename: `Historique_Transports_Client_${new Date().toISOString().slice(0, 10)}`,
+      title: 'Historique des transports sanitaires',
+      userContext: user?.email ? `Patient : ${user.email}` : 'Espace Demandeur / Patient'
+    });
+    setToastMessage({
+      title: 'Export Excel réussi',
+      desc: `${filteredRides.length} transport(s) exporté(s) au format .csv (compatible Excel).`
+    });
+  };
+
+  const handleExportPdf = () => {
+    exportRidesToPdf(filteredRides, {
+      filename: `Historique_Transports_Client_${new Date().toISOString().slice(0, 10)}`,
+      title: 'Registre de mes transports sanitaires',
+      subtitle: `Filtre actif : ${statusFilter === 'ALL' ? 'Tous' : statusFilter === 'ACTIVE' ? 'En cours' : statusFilter === 'COMPLETED' ? 'Terminés' : 'Annulés'} (${filteredRides.length} résultat(s))`,
+      userContext: user?.email ? `Dossier Patient : ${user.firstName || ''} ${user.lastName || ''} (${user.email})` : 'Espace Patient / Demandeur'
+    });
+    setToastMessage({
+      title: 'Export PDF généré',
+      desc: `Le document PDF certifié de vos transports a été téléchargé avec succès.`
+    });
+  };
+
+  // Statistiques calculées en temps réel
   const pendingCount = rides.filter((r) => r.status === 'PENDING').length;
   const confirmedCount = rides.filter(
     (r) => r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP'
   ).length;
-  const completedCount = rides.filter(
-    (r) => r.status === 'COMPLETED' || r.status === 'CANCELLED'
-  ).length;
+  const completedCount = rides.filter((r) => r.status === 'COMPLETED').length;
+  const cancelledCount = rides.filter((r) => r.status === 'CANCELLED').length;
 
   const openCancelModal = (ride: Ride) => {
     setRideToCancel(ride);
@@ -517,7 +555,7 @@ export const TrackingPage: React.FC = () => {
                           </div>
 
                           <div className="w-full bg-amber-200/70 h-2 rounded-full overflow-hidden">
-                            <div className="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full w-2/3 transition-all duration-1000 animate-pulse"></div>
+                          <div className="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full w-2/3 transition-all duration-1000 animate-pulse"></div>
                           </div>
                           <p className="font-body-sm text-body-sm text-amber-900/80 text-xs">
                             Notre algorithme interroge successivement les taxis sanitaires et ambulances en fin de course à proximité.
@@ -527,31 +565,91 @@ export const TrackingPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* History Table */}
+                  {/* History Table & Archives */}
                   <div className="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md border border-outline-variant/30">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-sm">
                       <div className="flex flex-col">
-                        <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold text-base">
-                          Historique des transports sanitaires
-                        </h2>
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-primary text-xl">history</span>
+                          <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold text-base">
+                            Historique des demandes &amp; Transports
+                          </h2>
+                        </div>
                         <p className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                          {rides.length} transport(s) enregistré(s) dans votre espace.
+                          {rides.length} transport(s) au total · {filteredRides.length} affiché(s)
                         </p>
                       </div>
-                      <div className="relative">
-                        <input
-                          className="h-10 pl-9 pr-3 rounded-xl bg-surface-container-low text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all w-64 text-xs border border-outline-variant/30"
-                          placeholder="Rechercher un trajet, date..."
-                          type="text"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <span className="material-symbols-outlined text-outline absolute left-2.5 top-2.5 text-lg">
-                          search
-                        </span>
+
+                      {/* Barre d'outils : Exports & Recherche */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleExportExcel}
+                          className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+                          title="Télécharger l'historique sous format Excel (.csv)"
+                        >
+                          <span className="material-symbols-outlined text-base text-emerald-700">table_view</span>
+                          <span>Export Excel</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleExportPdf}
+                          className="px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+                          title="Générer un registre PDF officiel"
+                        >
+                          <span className="material-symbols-outlined text-base text-primary">picture_as_pdf</span>
+                          <span>Export PDF</span>
+                        </button>
+
+                        <div className="relative">
+                          <input
+                            className="h-9 pl-8 pr-3 rounded-xl bg-surface-container-low text-body-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all w-52 text-xs border border-outline-variant/30"
+                            placeholder="Rechercher..."
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                          />
+                          <span className="material-symbols-outlined text-outline absolute left-2.5 top-2.5 text-base">
+                            search
+                          </span>
+                        </div>
                       </div>
                     </div>
 
+                    {/* Filtres d'état rapides */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 border-b border-outline-variant/20">
+                      {[
+                        { id: 'ALL', label: 'Toutes les demandes', count: rides.length },
+                        { id: 'ACTIVE', label: 'En cours', count: pendingCount + confirmedCount },
+                        { id: 'COMPLETED', label: 'Effectuées', count: completedCount },
+                        { id: 'CANCELLED', label: 'Annulées', count: cancelledCount }
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setStatusFilter(tab.id as any)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            statusFilter === tab.id
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-surface-container-low hover:bg-surface-container text-on-surface-variant'
+                          }`}
+                        >
+                          <span>{tab.label}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                              statusFilter === tab.id
+                                ? 'bg-white/25 text-white'
+                                : 'bg-surface-container-high text-on-surface-variant'
+                            }`}
+                          >
+                            {tab.count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tableau d'historique */}
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs">
                         <thead>
@@ -559,66 +657,90 @@ export const TrackingPage: React.FC = () => {
                             <th className="py-3 px-4 rounded-l-lg">Référence &amp; Date</th>
                             <th className="py-3 px-4">Trajet / Destination</th>
                             <th className="py-3 px-4">Véhicule</th>
+                            <th className="py-3 px-4">Prescription PMT</th>
                             <th className="py-3 px-4">Statut</th>
                             <th className="py-3 px-4 text-right rounded-r-lg">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20 font-body-sm text-body-sm text-on-surface">
-                          {filteredRides.map((ride) => {
-                            const badge = getStatusBadge(ride.status);
-                            return (
-                              <tr key={ride.id} className="hover:bg-surface-container-low/60 transition-colors">
-                                <td className="py-3.5 px-4 align-top">
-                                  <span className="font-mono text-primary font-bold block">
-                                    {ride.reference}
-                                  </span>
-                                  <span className="text-on-surface-variant font-label-sm text-label-sm">
-                                    {new Date(ride.pickupDateTime).toLocaleDateString('fr-FR', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric',
-                                    })}{' '}
-                                    ·{' '}
-                                    {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 align-top">
-                                  <span className="font-label-md text-label-md text-on-surface block font-semibold">
-                                    {ride.pickupCity} ➔ {ride.dropoffCity}
-                                  </span>
-                                  <span className="text-on-surface-variant text-xs">
-                                    {ride.facilityName || ride.dropoffAddress}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 align-top">
-                                  <span className="font-label-md text-label-md text-on-surface block font-semibold">
-                                    {getVehicleLabel(ride.transportType)}
-                                  </span>
-                                  <span className="text-on-surface-variant text-xs">
-                                    {ride.assignedTransporter?.companyName || "En cours d'affectation"}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 align-top">
-                                  <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badge.bg}`}
-                                  >
-                                    {badge.label}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 align-top text-right">
-                                  <button
-                                    onClick={() => setSelectedRideModal(ride)}
-                                    className="px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-xs font-bold transition-colors"
-                                  >
-                                    Détails
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {filteredRides.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-10 text-center text-on-surface-variant text-xs">
+                                Aucun transport trouvé pour les critères sélectionnés.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredRides.map((ride) => {
+                              const badge = getStatusBadge(ride.status);
+                              const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
+                              return (
+                                <tr key={ride.id} className="hover:bg-surface-container-low/60 transition-colors">
+                                  <td className="py-3.5 px-4 align-top">
+                                    <span className="font-mono text-primary font-bold block">
+                                      {ride.reference}
+                                    </span>
+                                    <span className="text-on-surface-variant font-label-sm text-label-sm">
+                                      {new Date(ride.pickupDateTime).toLocaleDateString('fr-FR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                      })}{' '}
+                                      ·{' '}
+                                      {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 align-top">
+                                    <span className="font-label-md text-label-md text-on-surface block font-semibold">
+                                      {ride.pickupCity} ➔ {ride.dropoffCity}
+                                    </span>
+                                    <span className="text-on-surface-variant text-xs">
+                                      {ride.facilityName || ride.dropoffAddress}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 align-top">
+                                    <span className="font-label-md text-label-md text-on-surface block font-semibold">
+                                      {getVehicleLabel(ride.transportType)}
+                                    </span>
+                                    <span className="text-on-surface-variant text-xs">
+                                      {ride.assignedTransporter?.companyName || "En cours d'affectation"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 align-top">
+                                    {hasPmt ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        <span className="material-symbols-outlined text-[13px] text-emerald-600">verified</span>
+                                        <span>Numérique</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                                        <span className="material-symbols-outlined text-[13px] text-amber-600">description</span>
+                                        <span>Cerfa papier</span>
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-3.5 px-4 align-top">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badge.bg}`}
+                                    >
+                                      {badge.label}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 align-top text-right">
+                                    <button
+                                      onClick={() => setSelectedRideModal(ride)}
+                                      className="px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-xs font-bold transition-colors inline-flex items-center gap-1"
+                                    >
+                                      <span className="material-symbols-outlined text-sm">visibility</span>
+                                      <span>Détails &amp; PMT</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -670,7 +792,7 @@ export const TrackingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status breakdown (100% RÉEL & FIABLE) */}
+              {/* Status breakdown */}
               <div className="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md border border-outline-variant/30">
                 <div className="flex items-center justify-between border-b border-surface-container-high pb-space-sm">
                   <div className="flex items-center gap-space-xs">
@@ -679,96 +801,43 @@ export const TrackingPage: React.FC = () => {
                       Statut de mes transports
                     </h3>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold text-xs">
-                    Temps réel
-                  </span>
                 </div>
 
-                <div className="flex flex-col gap-space-sm text-xs">
-                  <div className="flex items-center justify-between rounded-xl bg-surface-container-low p-2.5 border border-outline-variant/20">
-                    <div className="flex items-center gap-space-sm">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-label-md text-label-md text-on-surface font-semibold">
-                          En diffusion
-                        </span>
-                        <span className="font-label-sm text-label-sm text-on-surface-variant text-[11px]">
-                          Recherche transporteur active
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-headline-lg text-headline-lg text-amber-900 font-bold">
-                      {pendingCount}
-                    </span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-surface-container-low">
+                    <span className="text-on-surface-variant text-[11px] block">En attente</span>
+                    <span className="text-base font-bold text-amber-600">{pendingCount}</span>
                   </div>
-
-                  <div className="flex items-center justify-between rounded-xl bg-secondary-container/20 p-2.5 border border-secondary/20">
-                    <div className="flex items-center gap-space-sm">
-                      <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-secondary text-base">
-                          check_circle
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-label-md text-label-md text-secondary font-semibold">
-                          Confirmé
-                        </span>
-                        <span className="font-label-sm text-label-sm text-secondary text-[11px]">
-                          Prise en charge planifiée
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-headline-lg text-headline-lg text-secondary font-bold">
-                      {confirmedCount}
-                    </span>
+                  <div className="p-2.5 rounded-xl bg-surface-container-low">
+                    <span className="text-on-surface-variant text-[11px] block">Confirmés</span>
+                    <span className="text-base font-bold text-emerald-600">{confirmedCount}</span>
                   </div>
-
-                  <div className="flex items-center justify-between rounded-xl bg-surface-container-low p-2.5 border border-outline-variant/20">
-                    <div className="flex items-center gap-space-sm">
-                      <div className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-outline text-base">history</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-label-md text-label-md text-on-surface font-semibold">
-                          Archivés
-                        </span>
-                        <span className="font-label-sm text-label-sm text-on-surface-variant text-[11px]">
-                          Courses terminées
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-headline-lg text-headline-lg text-on-surface font-bold">
-                      {completedCount}
-                    </span>
+                  <div className="p-2.5 rounded-xl bg-surface-container-low">
+                    <span className="text-on-surface-variant text-[11px] block">Effectués</span>
+                    <span className="text-base font-bold text-on-surface">{completedCount}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-surface-container-low">
+                    <span className="text-on-surface-variant text-[11px] block">Annulés</span>
+                    <span className="text-base font-bold text-rose-600">{cancelledCount}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Assistance Helpline banner */}
-              <div className="bg-primary text-on-primary rounded-2xl p-space-lg flex flex-col gap-space-md shadow-md relative overflow-hidden">
-                <div className="relative z-10 flex flex-col gap-space-xs">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-semibold w-fit tracking-wide uppercase">
-                    URGENCES RELATIVES &amp; TRANSFERTS
-                  </span>
-                  <h4 className="font-headline-sm text-headline-sm font-bold text-base">
-                    Besoin d'un transport imprévu ?
-                  </h4>
-                  <p className="font-body-sm text-body-sm text-on-primary-container text-xs leading-relaxed">
-                    Notre centre de régulation en Martinique vous assiste 24h/24 et 7j/7 pour adapter
-                    vos horaires ou organiser un rapatriement.
-                  </p>
+              {/* Assistance CPAM / Régulation */}
+              <div className="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md border border-outline-variant/30">
+                <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                  <span className="material-symbols-outlined text-lg">support_agent</span>
+                  <span>Assistance Régulation 972</span>
                 </div>
-                <div className="relative z-10 flex flex-col gap-space-sm pt-space-xs">
-                  <a
-                    className="w-full h-12 bg-white text-primary rounded-xl font-headline-sm text-headline-sm flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors shadow-sm font-bold text-sm"
-                    href="tel:0596720097"
-                  >
-                    <span className="material-symbols-outlined text-xl text-secondary">call</span>
-                    <span>05 96 72 00 97</span>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Une question sur la prise en charge de votre bon de transport ou besoin d'un ajustement horaire ?
+                </p>
+                <div className="p-3 bg-surface-container-low rounded-xl text-xs space-y-1">
+                  <span className="font-bold text-primary block">Permanence Transport Sanitaire :</span>
+                  <a href="tel:0596752020" className="text-secondary font-extrabold text-sm hover:underline block">
+                    0596 75 20 20
                   </a>
-                  <span className="font-label-sm text-label-sm text-center text-on-primary-container text-[11px]">
+                  <span className="text-[10px] text-on-surface-variant block">
                     Numéro local non surtaxé · Coordination CHU / Cliniques
                   </span>
                 </div>
@@ -778,16 +847,23 @@ export const TrackingPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Modal Détails Course */}
+      {/* Modal Détails Course & Fiche PMT */}
       {selectedRideModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-lg w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 animate-fadeIn flex flex-col gap-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-xl w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 animate-fadeIn flex flex-col gap-4 my-8">
             <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">local_taxi</span>
-                <h3 className="text-base font-bold text-on-surface">
-                  Détails du transport #{selectedRideModal.reference}
-                </h3>
+                <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">local_taxi</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Dossier Transport #{selectedRideModal.reference}
+                  </h3>
+                  <span className="text-[11px] text-on-surface-variant">
+                    {new Date(selectedRideModal.pickupDateTime).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedRideModal(null)}
@@ -797,60 +873,133 @@ export const TrackingPage: React.FC = () => {
               </button>
             </div>
 
+            {/* Statut & Alertes */}
+            {selectedRideModal.status === 'CANCELLED' && (
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 text-xs flex items-start gap-2.5">
+                <span className="material-symbols-outlined text-rose-600 text-lg shrink-0 mt-0.5">cancel</span>
+                <div>
+                  <div className="font-bold text-rose-900">Ce transport sanitaire a été annulé.</div>
+                  <p className="text-rose-800 text-[11px] mt-0.5">
+                    {selectedRideModal.mobility.notes || 'Annulation enregistrée auprès de la régulation Médic\'Trans 972.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {selectedRideModal.status === 'COMPLETED' && (
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-emerald-600 text-lg shrink-0">check_circle</span>
+                <div>
+                  <span className="font-bold text-emerald-900">Mission sanitaire effectuée et clôturée.</span>{' '}
+                  <span className="text-emerald-800 text-[11px]">Télétransmission CPAM Tiers-Payant validée.</span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3 text-xs">
-              <div className="bg-surface-container-low p-3 rounded-xl space-y-1">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">Trajet</span>
-                <p className="font-semibold text-on-surface">
-                  {selectedRideModal.pickupAddress} ({selectedRideModal.pickupCity})
-                </p>
-                <div className="text-secondary flex items-center gap-1 font-bold">➔</div>
-                <p className="font-semibold text-on-surface">
-                  {selectedRideModal.facilityName || selectedRideModal.dropoffAddress} ({selectedRideModal.dropoffCity})
-                </p>
+              {/* Trajet */}
+              <div className="bg-surface-container-low p-3.5 rounded-2xl space-y-2 border border-outline-variant/30">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Itinéraire Sanitaire</span>
+                <div className="space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+                    <div>
+                      <span className="text-[10px] text-on-surface-variant uppercase block">Prise en charge</span>
+                      <p className="font-bold text-on-surface">{selectedRideModal.pickupAddress}, {selectedRideModal.pickupCity}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0"></span>
+                    <div>
+                      <span className="text-[10px] text-on-surface-variant uppercase block">Destination</span>
+                      <p className="font-bold text-on-surface">{selectedRideModal.facilityName || selectedRideModal.dropoffAddress}, {selectedRideModal.dropoffCity}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              {/* Véhicule & Transporteur */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-container-low p-3 rounded-xl">
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Date &amp; Heure</span>
-                  <p className="font-bold text-on-surface mt-1">
-                    {new Date(selectedRideModal.pickupDateTime).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </p>
-                  <p className="text-secondary font-bold">
-                    {new Date(selectedRideModal.pickupDateTime).toLocaleTimeString('fr-FR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Mode Prescrit</span>
+                  <p className="font-bold text-on-surface mt-1">{getVehicleLabel(selectedRideModal.transportType)}</p>
+                  <p className="text-on-surface-variant text-[11px] mt-0.5">
+                    {selectedRideModal.mobility.stretcher ? 'Brancardage complet' : selectedRideModal.mobility.wheelchair ? 'Fauteuil roulant' : 'Position assise'}
                   </p>
                 </div>
 
-                <div className="bg-surface-container-low p-3 rounded-xl">
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Véhicule</span>
+                <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Équipage Sanitaire</span>
                   <p className="font-bold text-on-surface mt-1">
-                    {getVehicleLabel(selectedRideModal.transportType)}
+                    {selectedRideModal.assignedTransporter?.companyName || 'En attente d\'attribution'}
                   </p>
-                  <p className="text-on-surface-variant">
-                    {selectedRideModal.mobility.stretcher ? 'Brancardage' : 'Station assise'}
-                  </p>
+                  {selectedRideModal.assignedTransporter && (
+                    <p className="text-primary font-semibold text-[11px] mt-0.5">
+                      Chauffeur : {selectedRideModal.assignedTransporter.driverName} ({selectedRideModal.assignedTransporter.vehiclePlate})
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-surface-container-low p-3 rounded-xl">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">Patient</span>
-                <p className="font-bold text-on-surface mt-1">
-                  {selectedRideModal.patient.firstName} {selectedRideModal.patient.lastName}
-                </p>
-                <p className="text-on-surface-variant">NIR: {selectedRideModal.patient.nir}</p>
-                <span className="inline-block mt-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  {selectedRideModal.patient.isAld ? 'Prise en charge 100% ALD' : 'Sécurité Sociale 65%'}
-                </span>
+              {/* Fiche Prescription Médicale de Transport (PMT) */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-primary/20 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-primary text-xs">
+                    <span className="material-symbols-outlined text-base">description</span>
+                    <span>Prescription Médicale de Transport (PMT)</span>
+                  </div>
+                  {selectedRideModal.patient.hasPmt || selectedRideModal.patient.pmtUploaded || selectedRideModal.patient.pmtFileUrl ? (
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                      Document Joint
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">
+                      Version Papier
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-on-surface-variant block text-[10px]">Médecin Prescripteur :</span>
+                    <strong className="text-on-surface">{selectedRideModal.patient.pmtPrescriberDoctor || 'Médecin Référent'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-on-surface-variant block text-[10px]">Prise en Charge CPAM :</span>
+                    <strong className="text-emerald-700">{selectedRideModal.patient.isAld ? '100% ALD / Tiers-Payant' : 'Conventionnée CPAM 65%'}</strong>
+                  </div>
+                </div>
+
+                {selectedRideModal.patient.hasPmt || selectedRideModal.patient.pmtUploaded || selectedRideModal.patient.pmtFileUrl ? (
+                  <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-emerald-700 text-lg shrink-0">attach_file</span>
+                      <span className="text-[11px] text-emerald-950 font-semibold truncate">
+                        {selectedRideModal.patient.pmtFileName || 'Prescription_Medicale_S3138.pdf'}
+                      </span>
+                    </div>
+                    <a
+                      href={selectedRideModal.patient.pmtFileUrl || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-all flex items-center gap-1 shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-xs">open_in_new</span>
+                      <span>Consulter la PMT</span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[11px] flex items-start gap-2">
+                    <span className="material-symbols-outlined text-amber-700 text-base shrink-0 mt-0.5">info</span>
+                    <span>
+                      Vous avez indiqué présenter la <strong>prescription Cerfa S3138 en version papier</strong>. Remettez-la directement au chauffeur lors de votre montée dans le véhicule.
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-2 flex items-center justify-between border-t border-outline-variant/20">
               {selectedRideModal.status !== 'COMPLETED' && selectedRideModal.status !== 'CANCELLED' ? (
                 <button
                   type="button"

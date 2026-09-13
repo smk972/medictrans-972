@@ -5,11 +5,15 @@ import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
 import { rideService } from '../services/rideService';
 import { Ride } from '../types';
+import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 
 export const FacilityPortalPage: React.FC = () => {
   const navigate = useNavigate();
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
+  const [selectedRideForPmt, setSelectedRideForPmt] = useState<Ride | null>(null);
   const [filterText, setFilterText] = useState('');
   const [rideToCancel, setRideToCancel] = useState<Ride | null>(null);
   const [cancelReason, setCancelReason] = useState<string>('SORTIE_REPORTEE');
@@ -63,19 +67,63 @@ export const FacilityPortalPage: React.FC = () => {
     });
   }, [navigate]);
 
-  const filteredRides = useMemo(() => {
-    if (!filterText.trim()) return rides;
+  const activeMissions = useMemo(() => {
+    return rides.filter(r => ['PENDING', 'ACCEPTED', 'EN_ROUTE', 'PICKED_UP'].includes(r.status));
+  }, [rides]);
+
+  const historyMissions = useMemo(() => {
+    return rides.filter(r => ['COMPLETED', 'CANCELLED'].includes(r.status));
+  }, [rides]);
+
+  const displayedRides = useMemo(() => {
+    const baseList = activeTab === 'ACTIVE'
+      ? activeMissions
+      : historyMissions.filter(r => {
+          if (historyFilter === 'COMPLETED') return r.status === 'COMPLETED';
+          if (historyFilter === 'CANCELLED') return r.status === 'CANCELLED';
+          return true;
+        });
+
+    if (!filterText.trim()) return baseList;
     const q = filterText.toLowerCase();
-    return rides.filter(
+    return baseList.filter(
       (r) =>
         r.reference.toLowerCase().includes(q) ||
         r.patient.firstName.toLowerCase().includes(q) ||
         r.patient.lastName.toLowerCase().includes(q) ||
         r.patient.nir.includes(q) ||
         r.dropoffCity.toLowerCase().includes(q) ||
-        r.pickupCity.toLowerCase().includes(q)
+        r.pickupCity.toLowerCase().includes(q) ||
+        (r.facilityDepartment && r.facilityDepartment.toLowerCase().includes(q)) ||
+        (r.bedDischargeNumber && r.bedDischargeNumber.toLowerCase().includes(q))
     );
-  }, [rides, filterText]);
+  }, [activeTab, activeMissions, historyMissions, historyFilter, filterText]);
+
+  // Export Handlers
+  const handleExportExcel = () => {
+    exportRidesToExcel(displayedRides, {
+      filename: `Historique_Demandes_Hopital_${new Date().toISOString().slice(0, 10)}`,
+      title: activeTab === 'ACTIVE' ? 'Demandes Sanitaires en Cours - Établissement' : 'Historique des Demandes de Transports - Établissement',
+      userContext: 'CHU de Martinique / Régulation Hospitalière'
+    });
+    setToastMessage({
+      title: 'Export Excel réussi',
+      desc: `${displayedRides.length} demande(s) exportée(s) au format .csv pour Excel.`
+    });
+  };
+
+  const handleExportPdf = () => {
+    exportRidesToPdf(displayedRides, {
+      filename: `Historique_Demandes_Hopital_${new Date().toISOString().slice(0, 10)}`,
+      title: activeTab === 'ACTIVE' ? 'Demandes Sanitaires en Cours' : 'Historique des Demandes Sanitaires',
+      subtitle: `Établissement : CHU de Martinique | Onglet : ${activeTab === 'ACTIVE' ? 'Missions en cours' : historyFilter === 'ALL' ? 'Toutes les archives' : historyFilter === 'COMPLETED' ? 'Terminées' : 'Annulées'} (${displayedRides.length} dossiers)`,
+      userContext: 'Service Régulation & Sorties de Lit 972'
+    });
+    setToastMessage({
+      title: 'Export PDF généré',
+      desc: `Le registre PDF officiel de vos demandes a été téléchargé avec succès.`
+    });
+  };
 
   const assignedCount = rides.filter(
     (r) => r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP'
@@ -281,186 +329,336 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </div>
 
-<div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<div className="p-space-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm">
-<div>
-<h2 className="font-headline-md text-headline-md text-on-surface">Départs du Service Néphrologie &amp; Dialyse</h2>
-<p className="font-body-sm text-body-sm text-on-surface-variant">Suivi par télémétrie des véhicules médicalisés conventionnés ARS 972</p>
-</div>
-<div className="flex items-center gap-space-xs">
-<input
-  className="px-space-sm py-1.5 rounded-lg bg-surface-container text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest w-52 sm:w-64 transition-all"
-  placeholder="Filtrer patient, IPP ou ville..."
-  type="text"
-  value={filterText}
-  onChange={(e) => setFilterText(e.target.value)}
-/>
-</div>
-</div>
-<div className="overflow-x-auto">
-<table className="w-full text-left font-body-sm text-body-sm">
-<thead>
-<tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
-<th className="py-space-sm px-space-md">Heure &amp; Lit</th>
-<th className="py-space-sm px-space-md">Patient &amp; IPP</th>
-<th className="py-space-sm px-space-md">Destination &amp; Trajet</th>
-<th className="py-space-sm px-space-md">Mode Prescrit</th>
-<th className="py-space-sm px-space-md">Transporteur Mandaté</th>
-<th className="py-space-sm px-space-md">Statut Régulation</th>
-<th className="py-space-sm px-space-md text-right">Actions</th>
-</tr>
-</thead>
-<tbody className="text-on-surface">
-{filteredRides.length === 0 ? (
-  <tr>
-    <td colSpan={7} className="py-16 text-center">
-      <div className="flex flex-col items-center justify-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-1 shadow-xs">
-          <span className="material-symbols-outlined text-3xl">medical_services</span>
+<div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-outline-variant/30">
+  {/* En-tête avec Sélecteur d'onglets, Exports & Recherche */}
+  <div className="p-space-md flex flex-col gap-space-sm border-b border-outline-variant/20">
+    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-xl">domain</span>
+          <h2 className="font-headline-md text-headline-md text-on-surface font-bold text-base md:text-lg">
+            Régulation des Départs &amp; Sorties de Lit (972)
+          </h2>
         </div>
-        <h3 className="font-headline-sm text-lg font-bold text-on-surface">
-          Vous n'avez aucune mission en cours.
-        </h3>
-        <p className="font-body-sm text-xs text-on-surface-variant max-w-md mx-auto">
-          Aucune demande de sortie ou de transfert sanitaire n'est actuellement en attente pour votre service.
+        <p className="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">
+          CHU Pierre Zobda-Quitman &amp; Établissements conventionnés ARS Martinique
         </p>
-        <button
-          onClick={() => navigate('/reserver')}
-          className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-md hover:bg-primary/90 transition-all"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-base">add_circle</span>
-          Programmer une sortie de lit
-        </button>
       </div>
-    </td>
-  </tr>
-) : (
-  filteredRides.map((ride) => (
-    <tr key={ride.id} className="hover:bg-surface-container-low/40 transition-colors">
-      <td className="py-space-md px-space-md whitespace-nowrap">
-        <div className="flex flex-col">
-          <span className="font-headline-sm text-headline-sm font-bold text-primary">
-            {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-          <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5">
-            {ride.bedDischargeNumber || 'Service Jour'}
-          </span>
-        </div>
-      </td>
-      <td className="py-space-md px-space-md whitespace-nowrap">
-        <div className="flex flex-col">
-          <span className="font-label-lg text-label-lg font-bold">
-            {ride.patient.firstName} {ride.patient.lastName}
-          </span>
-          <span className="font-label-sm text-label-sm text-on-surface-variant">
-            NIR: {ride.patient.nir}
-          </span>
-        </div>
-      </td>
-      <td className="py-space-md px-space-md">
-        <div className="flex flex-col min-w-[180px]">
-          <span className="font-label-md text-label-md font-bold text-on-surface">
-            {ride.dropoffAddress}
-          </span>
-          <span className="font-label-sm text-label-sm text-on-surface-variant truncate">
-            {ride.dropoffCity}
+
+      {/* Boutons d'export Excel & PDF */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+          title="Exporter la liste sous format Excel (.csv)"
+        >
+          <span className="material-symbols-outlined text-base text-emerald-700">table_view</span>
+          <span>Export Excel</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleExportPdf}
+          className="px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+          title="Générer un rapport PDF officiel"
+        >
+          <span className="material-symbols-outlined text-base text-primary">picture_as_pdf</span>
+          <span>Export PDF</span>
+        </button>
+
+        <div className="relative">
+          <input
+            className="px-space-sm py-1.5 pl-8 rounded-xl bg-surface-container text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest w-52 sm:w-60 transition-all text-xs border border-outline-variant/30"
+            placeholder="Filtrer patient, NIR, lit..."
+            type="text"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+          />
+          <span className="material-symbols-outlined text-outline absolute left-2 top-2 text-base">
+            search
           </span>
         </div>
-      </td>
-      <td className="py-space-md px-space-md whitespace-nowrap">
-        <span className="bg-primary-container text-on-primary font-label-md text-label-md px-space-sm py-1 rounded-lg flex items-center gap-1 w-fit">
-          <span className="material-symbols-outlined text-[16px]">
-            {ride.transportType === 'AMBULANCE'
-              ? 'airline_seat_flat'
-              : ride.transportType === 'TAXI_CONVENTIONNE'
-              ? 'local_taxi'
-              : 'directions_car'}
-          </span>
-          {ride.transportType === 'AMBULANCE'
-            ? 'Ambulance'
-            : ride.transportType === 'TAXI_CONVENTIONNE'
-            ? 'Taxi Conventionné'
-            : 'VSL Médicalisé'}
-        </span>
-      </td>
-      <td className="py-space-md px-space-md whitespace-nowrap">
-        <div className="flex flex-col">
-          <span className="font-label-md text-label-md font-bold text-on-surface">
-            {ride.assignedTransporter?.companyName || "En cours d'affectation"}
-          </span>
-          {ride.assignedTransporter && (
-            <a
-              className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1"
-              href={`tel:${ride.assignedTransporter.driverPhone}`}
-            >
-              <span className="material-symbols-outlined text-[14px]">phone</span>
-              {ride.assignedTransporter.driverPhone}
-            </a>
-          )}
-        </div>
-      </td>
-      <td className="py-space-md px-space-md whitespace-nowrap">
-        <div
-          className={`flex items-center gap-space-xs px-space-sm py-1 rounded-full font-label-md text-label-md w-fit font-bold shadow-sm ${
-            ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
-              ? 'bg-[#D1FAE5] text-[#065F46]'
-              : 'bg-[#FEF3C7] text-[#92400E]'
+      </div>
+    </div>
+
+    {/* Onglets principaux : Missions en cours vs Historique */}
+    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-outline-variant/20">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('ACTIVE')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'ACTIVE'
+              ? 'bg-primary text-white shadow-xs'
+              : 'bg-surface-container-low hover:bg-surface-container text-on-surface-variant'
           }`}
         >
+          <span className="material-symbols-outlined text-base">pending_actions</span>
+          <span>Missions en cours</span>
           <span
-            className={`w-2 h-2 rounded-full ${
-              ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
-                ? 'bg-[#10B981]'
-                : 'bg-[#F59E0B] animate-pulse'
+            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+              activeTab === 'ACTIVE' ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface-variant'
             }`}
-          ></span>
-          <span>
-            {ride.status === 'ACCEPTED'
-              ? 'Accepté'
-              : ride.status === 'EN_ROUTE'
-              ? 'En approche'
-              : ride.status === 'PICKED_UP'
-              ? 'Patient à bord'
-              : ride.status === 'COMPLETED'
-              ? 'Terminé'
-              : ride.status === 'CANCELLED'
-              ? 'Annulé'
-              : "En attente d'attribution"}
-          </span>
-        </div>
-      </td>
-      <td className="py-space-md px-space-md whitespace-nowrap text-right">
-        <div className="flex items-center justify-end gap-1.5">
-          <button
-            onClick={() => navigate('/suivi')}
-            className="bg-surface-container hover:bg-surface-container-high text-primary p-2 rounded-lg transition-all"
-            title="Suivi de la mission"
           >
-            <span className="material-symbols-outlined text-[18px]">visibility</span>
-          </button>
-          {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
-            <button
-              onClick={() => openCancelModal(ride)}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-2 rounded-lg transition-all"
-              title="Annuler cette demande de transport"
-            >
-              <span className="material-symbols-outlined text-[18px]">cancel</span>
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
-  ))
-)}
-</tbody>
-</table>
-</div>
+            {activeMissions.length}
+          </span>
+        </button>
 
-<div className="p-space-md bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-space-sm font-label-md text-label-md text-on-surface-variant">
+        <button
+          type="button"
+          onClick={() => setActiveTab('HISTORY')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'HISTORY'
+              ? 'bg-primary text-white shadow-xs'
+              : 'bg-surface-container-low hover:bg-surface-container text-on-surface-variant'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">history</span>
+          <span>Historique des demandes</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+              activeTab === 'HISTORY' ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface-variant'
+            }`}
+          >
+            {historyMissions.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Sous-filtres d'historique (Terminées / Annulées) */}
+      {activeTab === 'HISTORY' && (
+        <div className="flex items-center gap-1.5 bg-surface-container-low p-1 rounded-xl">
+          {[
+            { id: 'ALL', label: 'Toutes les archives', count: historyMissions.length },
+            { id: 'COMPLETED', label: 'Terminées', count: rides.filter(r => r.status === 'COMPLETED').length },
+            { id: 'CANCELLED', label: 'Annulées', count: rides.filter(r => r.status === 'CANCELLED').length }
+          ].map((sub) => (
+            <button
+              key={sub.id}
+              type="button"
+              onClick={() => setHistoryFilter(sub.id as any)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                historyFilter === sub.id
+                  ? 'bg-white text-primary shadow-2xs'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {sub.label} ({sub.count})
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+
+  <div className="overflow-x-auto">
+    <table className="w-full text-left font-body-sm text-body-sm">
+      <thead>
+        <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider text-[10px]">
+          <th className="py-space-sm px-space-md">Heure &amp; Lit</th>
+          <th className="py-space-sm px-space-md">Patient &amp; NIR</th>
+          <th className="py-space-sm px-space-md">Destination &amp; Trajet</th>
+          <th className="py-space-sm px-space-md">Mode Prescrit</th>
+          <th className="py-space-sm px-space-md">Prescription PMT</th>
+          <th className="py-space-sm px-space-md">Transporteur Mandaté</th>
+          <th className="py-space-sm px-space-md">Statut Régulation</th>
+          <th className="py-space-sm px-space-md text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="text-on-surface text-xs">
+        {displayedRides.length === 0 ? (
+          <tr>
+            <td colSpan={8} className="py-14 text-center">
+              <div className="flex flex-col items-center justify-center gap-2.5">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-1 shadow-xs">
+                  <span className="material-symbols-outlined text-2xl">medical_services</span>
+                </div>
+                <h3 className="font-headline-sm text-base font-bold text-on-surface">
+                  {activeTab === 'ACTIVE'
+                    ? 'Aucune mission en cours'
+                    : 'Aucune demande archivée'}
+                </h3>
+                <p className="font-body-sm text-xs text-on-surface-variant max-w-md mx-auto">
+                  {activeTab === 'ACTIVE'
+                    ? 'Toutes les sorties programmées ont été prises en charge ou clôturées.'
+                    : 'Aucun transport sanitaire archivé ne correspond aux filtres appliqués.'}
+                </p>
+                {activeTab === 'ACTIVE' && (
+                  <button
+                    onClick={() => navigate('/reserver')}
+                    className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-xs hover:bg-primary/90 transition-all"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-base">add_circle</span>
+                    Programmer une sortie de lit
+                  </button>
+                )}
+              </div>
+            </td>
+          </tr>
+        ) : (
+          displayedRides.map((ride) => {
+            const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
+            return (
+              <tr key={ride.id} className="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/10">
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <span className="font-headline-sm text-headline-sm font-bold text-primary">
+                      {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5 font-mono text-[10px]">
+                      {ride.bedDischargeNumber || ride.facilityDepartment || 'Service Jour'}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <span className="font-label-lg text-label-lg font-bold">
+                      {ride.patient.firstName} {ride.patient.lastName}
+                    </span>
+                    <span className="font-label-sm text-label-sm text-on-surface-variant font-mono text-[11px]">
+                      NIR: {ride.patient.nir}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-space-md px-space-md">
+                  <div className="flex flex-col min-w-[170px]">
+                    <span className="font-label-md text-label-md font-bold text-on-surface">
+                      {ride.dropoffAddress}
+                    </span>
+                    <span className="font-label-sm text-label-sm text-on-surface-variant truncate">
+                      {ride.dropoffCity}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  <span className="bg-primary-container/60 text-on-primary font-label-md text-label-md px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit text-[11px] font-semibold">
+                    <span className="material-symbols-outlined text-[15px]">
+                      {ride.transportType === 'AMBULANCE'
+                        ? 'airline_seat_flat'
+                        : ride.transportType === 'TAXI_CONVENTIONNE'
+                        ? 'local_taxi'
+                        : 'directions_car'}
+                    </span>
+                    {ride.transportType === 'AMBULANCE'
+                      ? 'Ambulance'
+                      : ride.transportType === 'TAXI_CONVENTIONNE'
+                      ? 'Taxi Conv.'
+                      : 'VSL Médicalisé'}
+                  </span>
+                </td>
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  {hasPmt ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="material-symbols-outlined text-[13px] text-emerald-600">verified</span>
+                      <span>PMT Jointe</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                      <span className="material-symbols-outlined text-[13px] text-amber-600">description</span>
+                      <span>Cerfa Papier</span>
+                    </span>
+                  )}
+                </td>
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <span className="font-label-md text-label-md font-bold text-on-surface">
+                      {ride.assignedTransporter?.companyName || "En cours d'affectation"}
+                    </span>
+                    {ride.assignedTransporter?.driverPhone && (
+                      <a
+                        className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1 text-[11px]"
+                        href={`tel:${ride.assignedTransporter.driverPhone}`}
+                      >
+                        <span className="material-symbols-outlined text-[13px]">phone</span>
+                        {ride.assignedTransporter.driverPhone}
+                      </a>
+                    )}
+                  </div>
+                </td>
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  <div
+                    className={`flex items-center gap-space-xs px-2.5 py-1 rounded-full text-[11px] w-fit font-bold border ${
+                      ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : ride.status === 'COMPLETED'
+                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                        : ride.status === 'CANCELLED'
+                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
+                          ? 'bg-emerald-500'
+                          : ride.status === 'COMPLETED'
+                          ? 'bg-blue-500'
+                          : ride.status === 'CANCELLED'
+                          ? 'bg-rose-500'
+                          : 'bg-amber-500 animate-pulse'
+                      }`}
+                    ></span>
+                    <span>
+                      {ride.status === 'ACCEPTED'
+                        ? 'Accepté'
+                        : ride.status === 'EN_ROUTE'
+                        ? 'En approche'
+                        : ride.status === 'PICKED_UP'
+                        ? 'Patient à bord'
+                        : ride.status === 'COMPLETED'
+                        ? 'Effectué'
+                        : ride.status === 'CANCELLED'
+                        ? 'Annulé'
+                        : "En recherche"}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-space-md px-space-md whitespace-nowrap text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    {/* Bouton Fiche PMT & Dossier */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRideForPmt(ride)}
+                      className="px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-all"
+                      title="Consulter la prescription médicale et les consignes"
+                    >
+                      <span className="material-symbols-outlined text-sm">description</span>
+                      <span className="hidden sm:inline">Fiche PMT</span>
+                    </button>
+
+                    <button
+                      onClick={() => navigate('/suivi')}
+                      className="bg-surface-container hover:bg-surface-container-high text-primary p-1.5 rounded-lg transition-all"
+                      title="Suivi en direct"
+                    >
+                      <span className="material-symbols-outlined text-base">visibility</span>
+                    </button>
+
+                    {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
+                      <button
+                        onClick={() => openCancelModal(ride)}
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg transition-all"
+                        title="Annuler cette sortie de lit"
+                      >
+                        <span className="material-symbols-outlined text-base">cancel</span>
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })
+        )}
+      </tbody>
+    </table>
+  </div>
+
+  <div className="p-space-md bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-space-sm font-label-md text-label-md text-on-surface-variant">
 <div className="flex items-center gap-space-sm">
 <span className="inline-block w-2.5 h-2.5 rounded-full bg-secondary"></span>
 <span className="">Synchronisation automatique active toutes les 15s</span>
@@ -793,6 +991,197 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </div>
 </section>
+
+      {/* Modal Détails & Fiche PMT Établissement */}
+      {selectedRideForPmt && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-xl w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 animate-fadeIn flex flex-col gap-4 my-8">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">description</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Dossier &amp; Fiche PMT #{selectedRideForPmt.reference}
+                  </h3>
+                  <span className="text-[11px] text-on-surface-variant">
+                    Programmé pour le {new Date(selectedRideForPmt.pickupDateTime).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} à {new Date(selectedRideForPmt.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedRideForPmt(null)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Statut & Alertes */}
+            {selectedRideForPmt.status === 'CANCELLED' && (
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 text-xs flex items-start gap-2.5">
+                <span className="material-symbols-outlined text-rose-600 text-lg shrink-0 mt-0.5">cancel</span>
+                <div>
+                  <div className="font-bold text-rose-900">Demande de transport annulée.</div>
+                  <p className="text-rose-800 text-[11px] mt-0.5">
+                    {selectedRideForPmt.mobility.notes || 'Annulation enregistrée par le service hospitalier.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {selectedRideForPmt.status === 'COMPLETED' && (
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-emerald-600 text-lg shrink-0">check_circle</span>
+                <div>
+                  <span className="font-bold text-emerald-900">Transport sanitaire effectué et clôturé.</span>{' '}
+                  <span className="text-emerald-800 text-[11px]">Prise en charge réalisée conformément aux prescriptions.</span>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3 text-xs">
+              {/* Patient & Service */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Patient</span>
+                  <p className="font-bold text-on-surface mt-1 text-sm">
+                    {selectedRideForPmt.patient.firstName} {selectedRideForPmt.patient.lastName}
+                  </p>
+                  <p className="font-mono text-on-surface-variant text-[11px] mt-0.5">
+                    NIR : {selectedRideForPmt.patient.nir}
+                  </p>
+                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                    {selectedRideForPmt.patient.isAld ? 'PEC 100% ALD' : 'Sécurité Sociale 65%'}
+                  </span>
+                </div>
+
+                <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
+                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Service &amp; Lit</span>
+                  <p className="font-bold text-on-surface mt-1">
+                    {selectedRideForPmt.facilityDepartment || 'Service Néphrologie & Dialyse'}
+                  </p>
+                  <p className="text-on-surface-variant text-[11px] mt-0.5">
+                    Emplacement : <strong className="text-primary">{selectedRideForPmt.bedDischargeNumber || 'Service Jour'}</strong>
+                  </p>
+                  <p className="text-on-surface-variant text-[10px] mt-1">
+                    {selectedRideForPmt.isRoundTrip ? '🔄 Aller - Retour' : '➡️ Aller simple'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Trajet */}
+              <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30 space-y-1.5">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase">Trajet &amp; Destination</span>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-on-surface">{selectedRideForPmt.pickupAddress} ({selectedRideForPmt.pickupCity})</span>
+                  <span className="text-secondary font-bold">➔</span>
+                  <span className="font-semibold text-on-surface">{selectedRideForPmt.dropoffAddress} ({selectedRideForPmt.dropoffCity})</span>
+                </div>
+              </div>
+
+              {/* Fiche PMT & Justificatif */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-primary/20 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-primary text-xs">
+                    <span className="material-symbols-outlined text-base">verified</span>
+                    <span>Prescription Médicale de Transport (Cerfa S3138)</span>
+                  </div>
+                  {selectedRideForPmt.patient.hasPmt || selectedRideForPmt.patient.pmtUploaded || selectedRideForPmt.patient.pmtFileUrl ? (
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                      PMT Numérique
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">
+                      Cerfa Papier
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <span className="text-on-surface-variant block text-[10px]">Médecin Prescripteur :</span>
+                    <strong className="text-on-surface">{selectedRideForPmt.patient.pmtPrescriberDoctor || 'Dr. Alix Célestine - CHU Martinique'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-on-surface-variant block text-[10px]">Mode de Transport Prescrit :</span>
+                    <strong className="text-primary font-bold">
+                      {selectedRideForPmt.transportType === 'AMBULANCE' ? 'Ambulance Type B' : selectedRideForPmt.transportType === 'TAXI_CONVENTIONNE' ? 'Taxi Conventionné' : 'VSL'}
+                    </strong>
+                  </div>
+                </div>
+
+                {selectedRideForPmt.patient.hasPmt || selectedRideForPmt.patient.pmtUploaded || selectedRideForPmt.patient.pmtFileUrl ? (
+                  <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-emerald-700 text-lg shrink-0">attach_file</span>
+                      <span className="text-[11px] text-emerald-950 font-semibold truncate">
+                        {selectedRideForPmt.patient.pmtFileName || 'Prescription_Medicale_S3138.pdf'}
+                      </span>
+                    </div>
+                    <a
+                      href={selectedRideForPmt.patient.pmtFileUrl || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-all flex items-center gap-1 shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-xs">open_in_new</span>
+                      <span>Consulter la PMT</span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[11px] flex items-start gap-2">
+                    <span className="material-symbols-outlined text-amber-700 text-base shrink-0 mt-0.5">info</span>
+                    <span>
+                      Prescription rédigée sur <strong>formulaire Cerfa S3138 papier</strong> par le praticien. Document remis en main propre à l'équipage sanitaire.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Transporteur Mandaté */}
+              <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30 space-y-1">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase">Transporteur Sanitaire Mandaté</span>
+                <p className="font-bold text-on-surface">
+                  {selectedRideForPmt.assignedTransporter?.companyName || "En cours d'affectation par la régulation"}
+                </p>
+                {selectedRideForPmt.assignedTransporter && (
+                  <p className="text-on-surface-variant text-[11px]">
+                    Chauffeur : <strong>{selectedRideForPmt.assignedTransporter.driverName}</strong> ({selectedRideForPmt.assignedTransporter.vehiclePlate}) · Tél : <a href={`tel:${selectedRideForPmt.assignedTransporter.driverPhone}`} className="text-primary font-bold hover:underline">{selectedRideForPmt.assignedTransporter.driverPhone}</a>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-outline-variant/20">
+              {selectedRideForPmt.status !== 'COMPLETED' && selectedRideForPmt.status !== 'CANCELLED' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = selectedRideForPmt;
+                    setSelectedRideForPmt(null);
+                    openCancelModal(r);
+                  }}
+                  className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">cancel</span>
+                  <span>Annuler cette sortie</span>
+                </button>
+              ) : (
+                <div></div>
+              )}
+
+              <button
+                onClick={() => setSelectedRideForPmt(null)}
+                className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL : ANNULATION DE LA DEMANDE DE TRANSPORT PAR L'ÉTABLISSEMENT         */}
