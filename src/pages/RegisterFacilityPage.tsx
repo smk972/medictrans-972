@@ -193,7 +193,7 @@ export const RegisterFacilityPage: React.FC = () => {
     onChange={(val) => setEtabName(val)}
     showCategoryFilters={true}
     placeholder="Rechercher ou saisir un établissement / adresse en Martinique..."
-    helperText="Aide officielle : Répertoire Santé 972 & Base Adresse Nationale (BAN)"
+    helperText="Aide à la saisie des établissements et adresses en Martinique"
   />
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">

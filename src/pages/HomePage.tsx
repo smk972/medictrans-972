@@ -250,7 +250,7 @@ export const HomePage: React.FC = () => {
                         onChange={setPickupAddress}
                         required
                         icon="my_location"
-                        helperText="Saisissez librement ou choisissez une adresse suggérée (Google Maps / BAN 972)"
+                        helperText="Saisissez librement ou choisissez une adresse suggérée en Martinique"
                         allowManualEntry={true}
                         showCategories={false}
                         showQuickCommunes={true}

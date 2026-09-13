@@ -158,12 +158,12 @@ export const addressService = {
         results.push({
           id: `ban-${id}`,
           label: props.label || props.name,
-          secondaryText: `${props.postcode || ''} ${props.city || ''} • Base Adresse Nationale`,
+          secondaryText: `${props.postcode || ''} ${props.city || ''} • Martinique`,
           address: props.label || `${props.name}, ${props.postcode || ''} ${props.city || ''}`,
           city: props.city || 'Martinique',
           postalCode: props.postcode,
           type: 'BAN_ADDRESS',
-          categoryLabel: isMartinique ? 'Base Adresse Nationale (972)' : 'Base Adresse Nationale',
+          categoryLabel: isMartinique ? 'Martinique (972)' : 'Adresse',
           coordinates: coords ? { lng: coords[0], lat: coords[1] } : undefined,
         });
       }

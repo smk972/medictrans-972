@@ -208,7 +208,7 @@ export const RegisterTransporterPage: React.FC = () => {
     value={address}
     onChange={(val) => setAddress(val)}
     placeholder="Ex: Voie, Zone Industrielle, Code Postal ou Commune en Martinique..."
-    helperText="Aide à la saisie officielle par la Base Adresse Nationale (BAN)"
+    helperText="Aide à la saisie de l'adresse en Martinique"
   />
 </div>
 
