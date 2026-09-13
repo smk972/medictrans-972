@@ -186,7 +186,10 @@ export const BookingPage: React.FC = () => {
           city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Schœlcher',
           postalCode: '97233',
           isAld,
-          hasPmt: hasPmt === 'already',
+          hasPmt: hasPmt === 'already' && !!uploadedPmtDoc,
+          pmtUploaded: hasPmt === 'already' && !!uploadedPmtDoc,
+          pmtFileName: uploadedPmtDoc?.name,
+          pmtFileUrl: uploadedPmtDoc?.dataUrl,
           pmtPrescriberDoctor: doctor,
         },
         mobility: {

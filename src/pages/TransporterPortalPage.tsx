@@ -1028,9 +1028,24 @@ export const TransporterPortalPage: React.FC = () => {
                               </span>
                             )}
                           </div>
+
+                          {/* Avertissement PMT non téléversée par le client */}
+                          {(!mission.patient.hasPmt && !mission.patient.pmtUploaded && !mission.patient.pmtFileUrl) ? (
+                            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center gap-2 mt-2">
+                              <span className="material-symbols-outlined text-amber-700 text-base shrink-0">warning</span>
+                              <span className="text-[11px] leading-tight">
+                                <strong className="text-amber-900">PMT non téléversée :</strong> le client fournira le Cerfa papier original lors de la prise en charge.
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-semibold mt-2">
+                              <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
+                              <span>Prescription PMT numérique enregistrée</span>
+                            </div>
+                          )}
                         </div>
 
-                        {/* Actions : Décliner, PMT, Affecter, Accepter */}
+                        {/* Actions : Décliner, PMT (après acceptation), Affecter, Accepter */}
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-outline-variant/20">
                           {/* Décliner la mission */}
                           <button
@@ -1043,15 +1058,14 @@ export const TransporterPortalPage: React.FC = () => {
                             <span>Décliner</span>
                           </button>
 
-                          {/* Fiche PMT */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedMissionForDetails(mission)}
-                            className="py-2 px-3 rounded-xl border border-outline-variant/40 text-on-surface text-xs font-bold hover:bg-surface-container transition-all flex items-center justify-center gap-1.5"
+                          {/* Fiche PMT : disponible au transporteur uniquement après acceptation de la course */}
+                          <div
+                            className="py-2 px-3 rounded-xl border border-outline-variant/30 text-on-surface-variant/70 text-xs font-semibold flex items-center justify-center gap-1.5 bg-surface-container-low cursor-not-allowed select-none"
+                            title="La fiche PMT détaillée est confidentielle et accessible uniquement après validation de la course"
                           >
-                            <span className="material-symbols-outlined text-base">description</span>
-                            <span>Fiche PMT</span>
-                          </button>
+                            <span className="material-symbols-outlined text-[15px] text-on-surface-variant/60">lock</span>
+                            <span>PMT après acceptation</span>
+                          </div>
 
                           {/* Affectation personnalisée (chauffeur / véhicule) */}
                           <button
@@ -1220,10 +1234,42 @@ export const TransporterPortalPage: React.FC = () => {
                           </div>
                         </div>
 
+                        {/* Avertissement PMT sur mission active */}
+                        {(!mission.patient.hasPmt && !mission.patient.pmtUploaded && !mission.patient.pmtFileUrl) ? (
+                          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center gap-2.5">
+                            <span className="material-symbols-outlined text-amber-700 text-lg shrink-0">warning</span>
+                            <div className="flex-1">
+                              <span className="font-bold text-amber-900">Avertissement : Le client n'a pas téléversé de PMT.</span>{' '}
+                              <span className="text-amber-800 text-[11px]">Exigez obligatoirement la prescription Cerfa papier originale lors de la prise en charge pour la facturation CPAM.</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="px-3.5 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
+                              <span className="font-semibold text-[11px]">Prescription Médicale de Transport (PMT) jointe numériquement</span>
+                            </div>
+                            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-2 py-0.5 rounded">
+                              Téléversée
+                            </span>
+                          </div>
+                        )}
+
                         {/* Actions opérationnelles sur la mission active */}
                         <div className="pt-3 border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-3">
                           {/* Actions d'ajustement & désistement */}
                           <div className="flex flex-wrap items-center gap-2">
+                            {/* Fiche PMT déverrouillée post-acceptation */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMissionForDetails(mission)}
+                              className="px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold flex items-center gap-1.5 transition-all border border-primary/20 shadow-2xs"
+                              title="Consulter la prescription médicale de transport et les détails médicaux"
+                            >
+                              <span className="material-symbols-outlined text-base">description</span>
+                              <span>Fiche PMT</span>
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => openReassignModal(mission)}
@@ -1625,6 +1671,53 @@ export const TransporterPortalPage: React.FC = () => {
                 Médecin Prescripteur : <strong>{selectedMissionForDetails.patient.pmtPrescriberDoctor || 'Dr. Régulateur CHU'}</strong>
               </div>
             </div>
+
+            {/* Statut & Prévisualisation de la Prescription PMT */}
+            {!selectedMissionForDetails.patient.hasPmt && !selectedMissionForDetails.patient.pmtUploaded && !selectedMissionForDetails.patient.pmtFileUrl ? (
+              <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-900 font-extrabold text-sm">
+                  <span className="material-symbols-outlined text-xl text-amber-600">warning</span>
+                  <span>Avertissement : Pas de PMT téléversée par le client</span>
+                </div>
+                <p className="text-amber-900 leading-relaxed text-[11px]">
+                  Le client n'a pas joint de copie numérique de sa Prescription Médicale de Transport lors de sa demande en ligne.
+                </p>
+                <div className="p-3 rounded-xl bg-white/90 border border-amber-200 text-amber-950 flex items-start gap-2 text-[11px] font-medium leading-snug">
+                  <span className="material-symbols-outlined text-amber-700 text-base shrink-0 mt-0.5">priority_high</span>
+                  <span>
+                    <strong>Consigne équipage :</strong> Récupérez obligatoirement le <strong>volet papier original Cerfa S3138</strong> (signé et cacheté par le médecin) lors de la prise en charge au domicile ou au centre de soins pour valider la télétransmission CPAM.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
+                    <span className="material-symbols-outlined text-emerald-600 text-lg">verified</span>
+                    <span>Document PMT numérique disponible</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                    Téléversé
+                  </span>
+                </div>
+                <p className="text-emerald-900 text-[11px]">
+                  Nom du fichier : <strong>{selectedMissionForDetails.patient.pmtFileName || 'Prescription_Medicale_S3138.pdf'}</strong>
+                </p>
+                {selectedMissionForDetails.patient.pmtFileUrl && (
+                  <div className="pt-1">
+                    <a
+                      href={selectedMissionForDetails.patient.pmtFileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-all shadow-xs"
+                    >
+                      <span className="material-symbols-outlined text-sm">open_in_new</span>
+                      <span>Ouvrir la prescription PMT</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Consignes de mobilité */}
             <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/30 text-xs space-y-1.5">

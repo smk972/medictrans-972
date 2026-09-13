@@ -24,6 +24,8 @@ export interface PatientInfo {
   pmtPrescriberDoctor?: string;
   pmtDate?: string;
   pmtFileUrl?: string;
+  pmtUploaded?: boolean; // PMT téléversée numériquement par le patient
+  pmtFileName?: string;
 }
 
 export interface MobilityNeeds {
