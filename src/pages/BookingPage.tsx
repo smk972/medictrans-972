@@ -14,6 +14,7 @@ import { SEOHead } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 import { NirInput } from '../components/NirInput';
 import { validateNir } from '../utils/nirValidator';
+import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
 
 export const BookingPage: React.FC = () => {
   const { user } = useAuth();
@@ -87,8 +88,15 @@ export const BookingPage: React.FC = () => {
   const [hasCompanion, setHasCompanion] = useState(true);
   const [hasPmt, setHasPmt] = useState<'already' | 'later'>('already');
   const [uploadedPmtDoc, setUploadedPmtDoc] = useState<UploadedFile | null>(null);
-  const [motif, setMotif] = useState('Consultation spécialisée / Bilan');
+  const [motif, setMotif] = useState(CPAM_TRANSPORT_MOTIFS[1].options[0].value);
   const [doctor, setDoctor] = useState('Dr. J-M Lafontaine - Oncologie CHU');
+  const handleMotifChange = (newMotif: string) => {
+    setMotif(newMotif);
+    const found = CPAM_TRANSPORT_MOTIFS.flatMap((c) => c.options).find((o) => o.value === newMotif);
+    if (found?.isAldOrExonere) {
+      setIsAld(true);
+    }
+  };
   
   // WhatsApp notification automation states
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
@@ -920,31 +928,55 @@ export const BookingPage: React.FC = () => {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                      Motif de la prise en charge
-                    </label>
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="booking-motif" className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                        Motif de la prise en charge Sécurité Sociale
+                      </label>
+                      <span className="text-[10px] font-bold text-secondary flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-xs">verified</span>
+                        Nomenclature Cerfa S3138
+                      </span>
+                    </div>
                     <select
+                      id="booking-motif"
                       value={motif}
-                      onChange={(e) => setMotif(e.target.value)}
-                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none"
+                      onChange={(e) => handleMotifChange(e.target.value)}
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary shadow-xs transition-all"
                     >
-                      <option>Consultation spécialisée / Bilan</option>
-                      <option>Séance d'Hémodialyse / Chimiothérapie (ALD)</option>
-                      <option>Sortie d'hospitalisation / Convalescence</option>
-                      <option>Séance de Radiothérapie</option>
+                      {CPAM_TRANSPORT_MOTIFS.map((group) => (
+                        <optgroup key={group.category} label={`${group.category} ${group.badge ? `(${group.badge})` : ''}`}>
+                          {group.options.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
                     </select>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-on-surface-variant">
+                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                        Tous les motifs remboursables CGSS Martinique / CPAM 972
+                      </span>
+                      {motif && (
+                        <span className="italic text-on-surface-variant/80 truncate max-w-sm">
+                          {CPAM_TRANSPORT_MOTIFS.flatMap((c) => c.options).find((o) => o.value === motif)?.description}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                      Médecin prescripteur / Service
+                      Médecin prescripteur / Service hospitalier
                     </label>
                     <input
                       type="text"
                       value={doctor}
                       onChange={(e) => setDoctor(e.target.value)}
-                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none"
+                      placeholder="Ex. Dr. J-M Lafontaine - Oncologie CHU Martinique"
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
                     />
                   </div>
                 </div>
