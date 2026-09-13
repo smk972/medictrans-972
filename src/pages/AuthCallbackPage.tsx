@@ -10,12 +10,40 @@ export const AuthCallbackPage: React.FC = () => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      const targetRole = (localStorage.getItem('medictrans_oauth_target_role') as any) || 'PATIENT';
+      localStorage.removeItem('medictrans_oauth_target_role');
+
       if (isSupabaseConfigured() && supabase) {
         try {
-          const { error } = await supabase.auth.getSession();
+          const { data: { session }, error } = await supabase.auth.getSession();
           if (error) {
             setErrorMsg(error.message);
             return;
+          }
+
+          if (session?.user) {
+            // Synchroniser le profil avec le rôle cible s'il n'existe pas encore
+            try {
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+
+              if (!existingProfile) {
+                const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+                const parts = fullName.split(' ');
+                await supabase.from('profiles').insert({
+                  id: session.user.id,
+                  first_name: parts[0] || 'Utilisateur',
+                  last_name: parts.slice(1).join(' ') || '',
+                  role: targetRole,
+                  nir: targetRole === 'PATIENT' ? '1 72 05 97 201 112 43' : null
+                });
+              }
+            } catch (pErr) {
+              console.warn('Note profil:', pErr);
+            }
           }
 
           await refreshUser();
@@ -25,20 +53,22 @@ export const AuthCallbackPage: React.FC = () => {
         }
       }
 
-      // Petite attente pour synchroniser le profil
+      // Redirection immédiate et précise selon le rôle cible
       setTimeout(() => {
-        if (user?.role === 'FACILITY') {
+        if (targetRole === 'FACILITY') {
           navigate('/etablissements', { replace: true });
-        } else if (user?.role === 'TRANSPORTER') {
+        } else if (targetRole === 'TRANSPORTER') {
           navigate('/transporteurs', { replace: true });
+        } else if (targetRole === 'ADMIN') {
+          navigate('/admin', { replace: true });
         } else {
           navigate('/suivi', { replace: true });
         }
-      }, 500);
+      }, 400);
     };
 
     handleAuthCallback();
-  }, [navigate, refreshUser, user?.role]);
+  }, [navigate, refreshUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
