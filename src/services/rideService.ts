@@ -337,6 +337,8 @@ export const rideService = {
     rides[index].status = status;
     if (assigned) {
       rides[index].assignedTransporter = assigned;
+    } else if (status === 'PENDING') {
+      delete rides[index].assignedTransporter;
     }
 
     if (isSupabaseConfigured() && supabase) {
@@ -405,16 +407,62 @@ export const rideService = {
     }
   },
 
-  // Réassigner une course (Back-Office / Régulation)
+  // Réassigner une course (changer chauffeur / véhicule après validation)
   async reassignRide(
     reference: string, 
     assignment: AssignedTransporter, 
-    newStatus: RideStatus = 'ACCEPTED'
+    newStatus?: RideStatus
   ): Promise<Ride | null> {
-    return this.updateRideStatus(reference, newStatus, assignment);
+    const rides = await this.getAllRides();
+    const index = rides.findIndex(r => r.reference.toUpperCase() === reference.trim().toUpperCase());
+    if (index === -1) return null;
+
+    const targetStatus = newStatus || rides[index].status || 'ACCEPTED';
+    return this.updateRideStatus(reference, targetStatus, assignment);
   },
 
-  // Annuler une course
+  // Annuler et republier la course côté transporteur (remise en bourse disponible)
+  async releaseAndRepublishRide(
+    reference: string, 
+    transporterName: string, 
+    reason?: string
+  ): Promise<Ride | null> {
+    const rides = await this.getAllRides();
+    const index = rides.findIndex(r => r.reference.toUpperCase() === reference.trim().toUpperCase());
+    if (index === -1) return null;
+
+    const ride = rides[index];
+    ride.status = 'PENDING';
+    delete ride.assignedTransporter;
+
+    const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const releaseLog = `[Republiée le ${timeStr} suite au désistement de ${transporterName || 'un transporteur'}${reason ? ` - Motif: ${reason}` : ''}]`;
+    ride.mobility.notes = ride.mobility.notes ? `${ride.mobility.notes} | ${releaseLog}` : releaseLog;
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase
+          .from('rides')
+          .update({
+            status: 'PENDING',
+            transporter_name: null,
+            driver_name: null,
+            driver_phone: null,
+            vehicle_plate: null,
+            eta_minutes: null,
+            mobility_notes: ride.mobility.notes
+          })
+          .eq('reference', reference);
+      } catch (e) {
+        console.warn('Supabase release update failed:', e);
+      }
+    }
+
+    localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));
+    return ride;
+  },
+
+  // Annuler définitivement une course (côté demandeur, hôpital ou régulation)
   async cancelRide(reference: string, reason?: string): Promise<Ride | null> {
     const rides = await this.getAllRides();
     const index = rides.findIndex(r => r.reference.toUpperCase() === reference.trim().toUpperCase());
@@ -422,7 +470,22 @@ export const rideService = {
 
     rides[index].status = 'CANCELLED';
     if (reason) {
-      rides[index].mobility.notes = `${rides[index].mobility.notes || ''} [Annulé: ${reason}]`;
+      const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      rides[index].mobility.notes = `${rides[index].mobility.notes || ''} [Annulé le ${timeStr}: ${reason}]`;
+    }
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase
+          .from('rides')
+          .update({
+            status: 'CANCELLED',
+            mobility_notes: rides[index].mobility.notes
+          })
+          .eq('reference', reference);
+      } catch (e) {
+        console.warn('Supabase cancel update failed:', e);
+      }
     }
 
     localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));

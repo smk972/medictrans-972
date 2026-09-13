@@ -11,6 +11,10 @@ export const FacilityPortalPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterText, setFilterText] = useState('');
+  const [rideToCancel, setRideToCancel] = useState<Ride | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('SORTIE_REPORTEE');
+  const [cancelCustomNote, setCancelCustomNote] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -77,6 +81,47 @@ export const FacilityPortalPage: React.FC = () => {
     (r) => r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP'
   ).length;
   const pendingCount = rides.filter((r) => r.status === 'PENDING').length;
+
+  const openCancelModal = (ride: Ride) => {
+    setRideToCancel(ride);
+    setCancelReason('SORTIE_REPORTEE');
+    setCancelCustomNote('');
+  };
+
+  const confirmCancelRide = async () => {
+    if (!rideToCancel) return;
+    const ref = rideToCancel.reference;
+
+    const reasonLabels: Record<string, string> = {
+      SORTIE_REPORTEE: 'Sortie d\'hospitalisation décalée ou annulée par le médecin',
+      ETAT_SANTE: 'Évolution clinique du patient / maintien en hospitalisation',
+      PRISE_EN_CHARGE_FAMILLE: 'Patient raccompagné par un proche ou transport personnel',
+      ERREUR_SAISIE: 'Erreur de saisie / doublon de prescription',
+      AUTRE: 'Autre motif médical ou administratif'
+    };
+
+    const fullReason = cancelCustomNote.trim()
+      ? `${reasonLabels[cancelReason] || cancelReason} (${cancelCustomNote.trim()})`
+      : (reasonLabels[cancelReason] || cancelReason);
+
+    // Optimistic update
+    setRides((prev) =>
+      prev.map((r) => (r.reference.toUpperCase() === ref.toUpperCase() ? { ...r, status: 'CANCELLED' } : r))
+    );
+
+    setToastMessage({
+      title: 'Demande de transport annulée',
+      desc: `La course #${ref} a été annulée avec succès.`
+    });
+
+    setRideToCancel(null);
+
+    try {
+      await rideService.cancelRide(ref, fullReason);
+    } catch (err) {
+      console.error('Erreur annulation transport hôpital:', err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
@@ -382,18 +427,31 @@ export const FacilityPortalPage: React.FC = () => {
               ? 'Patient à bord'
               : ride.status === 'COMPLETED'
               ? 'Terminé'
+              : ride.status === 'CANCELLED'
+              ? 'Annulé'
               : "En attente d'attribution"}
           </span>
         </div>
       </td>
       <td className="py-space-md px-space-md whitespace-nowrap text-right">
-        <button
-          onClick={() => navigate('/suivi')}
-          className="bg-surface-container hover:bg-surface-container-high text-primary p-2 rounded-lg transition-all"
-          title="Suivi de la mission"
-        >
-          <span className="material-symbols-outlined text-[18px]">visibility</span>
-        </button>
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={() => navigate('/suivi')}
+            className="bg-surface-container hover:bg-surface-container-high text-primary p-2 rounded-lg transition-all"
+            title="Suivi de la mission"
+          >
+            <span className="material-symbols-outlined text-[18px]">visibility</span>
+          </button>
+          {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
+            <button
+              onClick={() => openCancelModal(ride)}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-2 rounded-lg transition-all"
+              title="Annuler cette demande de transport"
+            >
+              <span className="material-symbols-outlined text-[18px]">cancel</span>
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   ))
@@ -736,6 +794,135 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </section>
 
+      {/* ========================================================================= */}
+      {/* MODAL : ANNULATION DE LA DEMANDE DE TRANSPORT PAR L'ÉTABLISSEMENT         */}
+      {/* ========================================================================= */}
+      {rideToCancel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-lg">cancel</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-on-surface">
+                    Annuler la demande de transport
+                  </h3>
+                  <p className="text-xs text-on-surface-variant font-mono">
+                    Course #{rideToCancel.reference}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRideToCancel(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Récapitulatif Course & Patient */}
+            <div className="bg-surface-container-low p-3.5 rounded-2xl text-xs space-y-1">
+              <div className="font-bold text-on-surface text-sm">
+                Patient : {rideToCancel.patient.firstName} {rideToCancel.patient.lastName}
+              </div>
+              <div className="text-on-surface-variant">
+                Trajet : <strong>{rideToCancel.pickupCity}</strong> ➔ <strong>{rideToCancel.dropoffCity}</strong>
+              </div>
+              <div className="text-on-surface-variant">
+                Statut actuel : <strong className="text-secondary">{rideToCancel.status}</strong>
+              </div>
+            </div>
+
+            {/* Choix du motif d'annulation */}
+            <div className="space-y-2 text-xs">
+              <label className="block text-[11px] font-bold uppercase text-on-surface-variant">
+                Motif de l'annulation hospitalière :
+              </label>
+              {[
+                { id: 'SORTIE_REPORTEE', label: '📅 Sortie d\'hospitalisation décalée ou reportée' },
+                { id: 'ETAT_SANTE', label: '🩺 Évolution clinique / Maintien en surveillance' },
+                { id: 'PRISE_EN_CHARGE_FAMILLE', label: '🚗 Patient raccompagné par un proche / famille' },
+                { id: 'ERREUR_SAISIE', label: '⚠️ Erreur de saisie / doublon de prescription' },
+                { id: 'AUTRE', label: '📝 Autre motif médical ou administratif' }
+              ].map((reason) => (
+                <label
+                  key={reason.id}
+                  onClick={() => setCancelReason(reason.id)}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                    cancelReason === reason.id
+                      ? 'border-rose-300 bg-rose-50/70 text-rose-900 font-semibold'
+                      : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="facilityCancelReason"
+                    value={reason.id}
+                    checked={cancelReason === reason.id}
+                    onChange={() => setCancelReason(reason.id)}
+                    className="accent-rose-600"
+                  />
+                  <span>{reason.label}</span>
+                </label>
+              ))}
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant mt-2 mb-1">
+                  Commentaire / Note au dossier (optionnel) :
+                </label>
+                <input
+                  type="text"
+                  value={cancelCustomNote}
+                  onChange={(e) => setCancelCustomNote(e.target.value)}
+                  placeholder="ex. Décision Dr. Aliker suite à bilan sanguin..."
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setRideToCancel(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Garder la demande
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancelRide}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-xs hover:bg-rose-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">cancel</span>
+                <span>Confirmer l'annulation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 max-w-md bg-surface-container-lowest text-on-surface p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-3 border border-secondary/30 animate-fadeIn">
+          <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-base">cancel</span>
+          </div>
+          <div className="flex-1 text-xs">
+            <div className="font-bold text-on-surface text-sm">{toastMessage.title}</div>
+            <p className="text-on-surface-variant mt-0.5 leading-relaxed">{toastMessage.desc}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="text-on-surface-variant hover:text-on-surface"
+          >
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      )}
 
 </div></main>
 <Footer />

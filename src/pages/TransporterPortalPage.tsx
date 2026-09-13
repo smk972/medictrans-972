@@ -72,6 +72,18 @@ export const TransporterPortalPage: React.FC = () => {
   const [selectedPlate, setSelectedPlate] = useState<string>(DEFAULT_FLEET[0].plate);
   const [selectedEta, setSelectedEta] = useState<number>(15);
 
+  // Form réaffectation chauffeur après validation
+  const [missionToReassign, setMissionToReassign] = useState<Ride | null>(null);
+  const [reassignDriver, setReassignDriver] = useState<string>('');
+  const [reassignPlate, setReassignPlate] = useState<string>('');
+  const [reassignPhone, setReassignPhone] = useState<string>('');
+  const [reassignEta, setReassignEta] = useState<number>(15);
+
+  // Form désistement & republication de course
+  const [missionToRelease, setMissionToRelease] = useState<Ride | null>(null);
+  const [releaseReason, setReleaseReason] = useState<string>('PANNE_VEHICULE');
+  const [releaseCustomNote, setReleaseCustomNote] = useState<string>('');
+
   // Nom de la compagnie active
   const transporterName = user?.transporterName || 'Ambulances Madinina Secours';
   const transporterPhone = user?.phone || '0596 75 20 20';
@@ -293,6 +305,140 @@ export const TransporterPortalPage: React.FC = () => {
       desc: 'Toutes les courses déclinées sont à nouveau affichées dans vos courses disponibles.',
       type: 'info'
     });
+  };
+
+  // Ouvrir le modal de modification d'affectation chauffeur
+  const openReassignModal = (mission: Ride) => {
+    setMissionToReassign(mission);
+    const currentDriver = mission.assignedTransporter?.driverName || fleet[0].driver;
+    const currentPlate = mission.assignedTransporter?.vehiclePlate || fleet[0].plate;
+    const currentPhone = mission.assignedTransporter?.driverPhone || transporterPhone;
+    const currentEta = mission.assignedTransporter?.etaMinutes || 15;
+    setReassignDriver(currentDriver);
+    setReassignPlate(currentPlate);
+    setReassignPhone(currentPhone);
+    setReassignEta(currentEta);
+  };
+
+  // Sélection rapide d'un véhicule de la flotte pour réaffectation
+  const handleSelectFleetForReassign = (plate: string) => {
+    const match = fleet.find((v) => v.plate === plate);
+    if (match) {
+      setReassignPlate(match.plate);
+      setReassignDriver(match.driver);
+      setReassignPhone(match.phone || transporterPhone);
+    }
+  };
+
+  // Confirmer la réaffectation du chauffeur
+  const confirmReassignMission = async () => {
+    if (!missionToReassign) return;
+    const missionRef = missionToReassign.reference;
+    const oldPlate = missionToReassign.assignedTransporter?.vehiclePlate;
+
+    const newAssignment = {
+      companyName: missionToReassign.assignedTransporter?.companyName || transporterName,
+      driverName: reassignDriver,
+      driverPhone: reassignPhone || transporterPhone,
+      vehiclePlate: reassignPlate,
+      etaMinutes: reassignEta
+    };
+
+    // Mise à jour optimiste immédiate (0ms)
+    setRides((prev) =>
+      prev.map((r) =>
+        r.reference.toUpperCase() === missionRef.toUpperCase()
+          ? { ...r, assignedTransporter: newAssignment }
+          : r
+      )
+    );
+
+    // Ajuster le statut des véhicules dans la flotte
+    setFleet((prev) =>
+      prev.map((v) => {
+        if (v.plate === oldPlate && oldPlate !== reassignPlate) {
+          return { ...v, status: 'DISPONIBLE' };
+        }
+        if (v.plate === reassignPlate) {
+          return { ...v, status: 'EN_MISSION' };
+        }
+        return v;
+      })
+    );
+
+    setToastMessage({
+      title: 'Affectation chauffeur modifiée !',
+      desc: `La course #${missionRef} est désormais assignée à ${reassignDriver} (${reassignPlate}).`,
+      type: 'success'
+    });
+
+    setMissionToReassign(null);
+
+    try {
+      await rideService.reassignRide(missionRef, newAssignment, missionToReassign.status);
+    } catch (err) {
+      console.error('Erreur réaffectation chauffeur:', err);
+    }
+  };
+
+  // Ouvrir le modal d'annulation / désistement et republication
+  const openReleaseModal = (mission: Ride) => {
+    setMissionToRelease(mission);
+    setReleaseReason('PANNE_VEHICULE');
+    setReleaseCustomNote('');
+  };
+
+  // Confirmer l'annulation et la republication immédiate
+  const confirmReleaseMission = async () => {
+    if (!missionToRelease) return;
+    const missionRef = missionToRelease.reference;
+    const vehiclePlate = missionToRelease.assignedTransporter?.vehiclePlate;
+
+    const reasonLabels: Record<string, string> = {
+      PANNE_VEHICULE: 'Panne ou incident technique sur le véhicule',
+      URGENCE_SAMU: 'Réquisition SAMU 972 / Urgence vitale prioritaire',
+      RETARD_TRAFIC: 'Retard imprévu important / Circulation bloquée',
+      EQUIPAGE_INDISPONIBLE: 'Indisponibilité subite du chauffeur / ambulancier',
+      AUTRE: 'Autre contrainte opérationnelle'
+    };
+
+    const fullReason = releaseCustomNote.trim()
+      ? `${reasonLabels[releaseReason] || releaseReason} (${releaseCustomNote.trim()})`
+      : (reasonLabels[releaseReason] || releaseReason);
+
+    // Mise à jour optimiste : la course repasse en PENDING et quitte les actives
+    setRides((prev) =>
+      prev.map((r) => {
+        if (r.reference.toUpperCase() === missionRef.toUpperCase()) {
+          const updated = { ...r, status: 'PENDING' as RideStatus };
+          delete updated.assignedTransporter;
+          return updated;
+        }
+        return r;
+      })
+    );
+
+    // Libérer le véhicule dans la flotte
+    if (vehiclePlate) {
+      setFleet((prev) =>
+        prev.map((v) => (v.plate === vehiclePlate ? { ...v, status: 'DISPONIBLE' } : v))
+      );
+    }
+
+    setToastMessage({
+      title: 'Course libérée & republiée !',
+      desc: `La mission #${missionRef} a été remise en ligne. Elle est de nouveau accessible à l'ensemble des transporteurs sanitaires de l'île.`,
+      type: 'info'
+    });
+
+    setMissionToRelease(null);
+
+    try {
+      await rideService.releaseAndRepublishRide(missionRef, transporterName, fullReason);
+      await loadMissions();
+    } catch (err) {
+      console.error('Erreur annulation et republication:', err);
+    }
   };
 
   // Mise à jour du statut d'une mission active (En approche -> À bord -> Clôturé)
@@ -1074,40 +1220,66 @@ export const TransporterPortalPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Bouton d'action pour avancer dans le cycle de la mission */}
-                        <div className="pt-2 flex flex-wrap items-center justify-end gap-3">
-                          {mission.status === 'ACCEPTED' && (
+                        {/* Actions opérationnelles sur la mission active */}
+                        <div className="pt-3 border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-3">
+                          {/* Actions d'ajustement & désistement */}
+                          <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => handleUpdateActiveStatus(mission, 'EN_ROUTE')}
-                              className="px-6 py-3 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-md hover:bg-amber-700 transition-all flex items-center gap-2"
+                              onClick={() => openReassignModal(mission)}
+                              className="px-3.5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold flex items-center gap-1.5 transition-all border border-outline-variant/30 shadow-2xs"
+                              title="Changer le chauffeur ou le véhicule affecté à cette course"
                             >
-                              <span className="material-symbols-outlined text-base">near_me</span>
-                              <span>Démarrer l'approche (Véhicule en route)</span>
+                              <span className="material-symbols-outlined text-base text-secondary">badge</span>
+                              <span>Changer de chauffeur</span>
                             </button>
-                          )}
 
-                          {mission.status === 'EN_ROUTE' && (
                             <button
                               type="button"
-                              onClick={() => handleUpdateActiveStatus(mission, 'PICKED_UP')}
-                              className="px-6 py-3 rounded-xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
+                              onClick={() => openReleaseModal(mission)}
+                              className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100/80 text-rose-800 text-xs font-bold flex items-center gap-1.5 transition-all border border-rose-200/80 shadow-2xs"
+                              title="Annuler votre prise en charge et republier immédiatement la course pour les autres transporteurs"
                             >
-                              <span className="material-symbols-outlined text-base">airline_seat_recline_extra</span>
-                              <span>Confirmer la prise en charge (Patient à bord)</span>
+                              <span className="material-symbols-outlined text-base text-rose-600">undo</span>
+                              <span>Annuler &amp; Republier</span>
                             </button>
-                          )}
+                          </div>
 
-                          {mission.status === 'PICKED_UP' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateActiveStatus(mission, 'COMPLETED')}
-                              className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-700 transition-all flex items-center gap-2"
-                            >
-                              <span className="material-symbols-outlined text-base">check_circle</span>
-                              <span>Valider l'arrivée au centre de soins (Terminer la mission)</span>
-                            </button>
-                          )}
+                          {/* Boutons de progression dans le cycle de la mission */}
+                          <div className="flex items-center gap-2">
+                            {mission.status === 'ACCEPTED' && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateActiveStatus(mission, 'EN_ROUTE')}
+                                className="px-5 py-2.5 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-md hover:bg-amber-700 transition-all flex items-center gap-2"
+                              >
+                                <span className="material-symbols-outlined text-base">near_me</span>
+                                <span>Démarrer l'approche (Véhicule en route)</span>
+                              </button>
+                            )}
+
+                            {mission.status === 'EN_ROUTE' && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateActiveStatus(mission, 'PICKED_UP')}
+                                className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
+                              >
+                                <span className="material-symbols-outlined text-base">airline_seat_recline_extra</span>
+                                <span>Confirmer la prise en charge (Patient à bord)</span>
+                              </button>
+                            )}
+
+                            {mission.status === 'PICKED_UP' && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateActiveStatus(mission, 'COMPLETED')}
+                                className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-700 transition-all flex items-center gap-2"
+                              >
+                                <span className="material-symbols-outlined text-base">check_circle</span>
+                                <span>Valider l'arrivée au centre de soins (Terminer)</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1479,6 +1651,268 @@ export const TransporterPortalPage: React.FC = () => {
                 className="py-2.5 px-5 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary/90 transition-all"
               >
                 Fermer la fiche
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : MODIFIER L'AFFECTATION DU CHAUFFEUR (POST-VALIDATION)             */}
+      {/* ========================================================================= */}
+      {missionToReassign && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-lg">badge</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-on-surface">
+                    Modifier l'affectation
+                  </h3>
+                  <p className="text-xs text-on-surface-variant font-mono">
+                    Course #{missionToReassign.reference} • Statut : {missionToReassign.status}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMissionToReassign(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Récapitulatif Course & Patient */}
+            <div className="bg-surface-container-low p-3.5 rounded-2xl text-xs space-y-1">
+              <div className="font-bold text-on-surface text-sm">
+                {missionToReassign.patient.firstName} {missionToReassign.patient.lastName}
+              </div>
+              <div className="text-on-surface-variant">
+                Trajet : <strong>{missionToReassign.pickupCity}</strong> ➔ <strong>{missionToReassign.facilityName || missionToReassign.dropoffCity}</strong>
+              </div>
+              <div className="text-secondary font-semibold">
+                Actuellement assignée à : {missionToReassign.assignedTransporter?.driverName || 'Non assigné'} ({missionToReassign.assignedTransporter?.vehiclePlate || 'N/A'})
+              </div>
+            </div>
+
+            {/* Formulaire de réaffectation */}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Sélectionner dans la flotte :
+                </label>
+                <select
+                  onChange={(e) => handleSelectFleetForReassign(e.target.value)}
+                  value={reassignPlate}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                >
+                  {fleet.map((v) => (
+                    <option key={v.id} value={v.plate}>
+                      {v.driver} — {v.name} ({v.plate}) [{v.status}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Nom du chauffeur :
+                </label>
+                <input
+                  type="text"
+                  value={reassignDriver}
+                  onChange={(e) => setReassignDriver(e.target.value)}
+                  placeholder="Nom & prénom du chauffeur"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Immatriculation :
+                  </label>
+                  <input
+                    type="text"
+                    value={reassignPlate}
+                    onChange={(e) => setReassignPlate(e.target.value)}
+                    placeholder="ex. GH-972-MQ"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono text-xs text-on-surface outline-none focus:border-primary uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Téléphone direct :
+                  </label>
+                  <input
+                    type="text"
+                    value={reassignPhone}
+                    onChange={(e) => setReassignPhone(e.target.value)}
+                    placeholder="0696 XX XX XX"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Délai d'approche estimé (ETA) :
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 15, 20].map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => setReassignEta(mins)}
+                      className={`py-2 rounded-xl border font-bold text-xs transition-all ${
+                        reassignEta === mins
+                          ? 'border-secondary bg-secondary text-white shadow-xs'
+                          : 'border-outline-variant/40 hover:bg-surface-container'
+                      }`}
+                    >
+                      {mins} min
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setMissionToReassign(null)}
+                className="flex-1 py-2.5 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmReassignMission}
+                className="flex-1 py-2.5 rounded-xl bg-secondary text-white text-xs font-bold shadow-xs hover:bg-secondary/90 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">check_circle</span>
+                <span>Enregistrer la réaffectation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : DÉSISTEMENT & REPUBLICATION AUTOMATIQUE DE LA COURSE              */}
+      {/* ========================================================================= */}
+      {missionToRelease && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-lg">undo</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-on-surface">
+                    Annuler &amp; Republier la course
+                  </h3>
+                  <p className="text-xs text-on-surface-variant font-mono">
+                    Course #{missionToRelease.reference}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMissionToRelease(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Avertissement & Explication */}
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-950 text-xs space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-amber-900">
+                <span className="material-symbols-outlined text-base">campaign</span>
+                <span>Republication instantanée sur le réseau</span>
+              </div>
+              <p className="leading-relaxed text-[11px] text-amber-900/90">
+                En annulant votre prise en charge, cette course sera <strong>immédiatement remise en ligne</strong> dans les <em>Courses disponibles</em> pour l'ensemble des autres transporteurs sanitaires conventionnés de Martinique.
+              </p>
+            </div>
+
+            <div className="bg-surface-container-low p-3.5 rounded-2xl text-xs space-y-1">
+              <div className="font-bold text-on-surface text-sm">
+                Patient : {missionToRelease.patient.firstName} {missionToRelease.patient.lastName}
+              </div>
+              <div className="text-on-surface-variant">
+                Trajet : <strong>{missionToRelease.pickupCity}</strong> ➔ <strong>{missionToRelease.facilityName || missionToRelease.dropoffCity}</strong>
+              </div>
+            </div>
+
+            {/* Motif du désistement */}
+            <div className="space-y-2 text-xs">
+              <label className="block text-[11px] font-bold uppercase text-on-surface-variant">
+                Motif de l'annulation / libération :
+              </label>
+              {[
+                { id: 'PANNE_VEHICULE', label: '🔧 Panne ou incident technique sur le véhicule' },
+                { id: 'URGENCE_SAMU', label: '🚨 Réquisition SAMU 972 / Urgence vitale prioritaire' },
+                { id: 'RETARD_TRAFIC', label: '⏱️ Retard imprévu important / Circulation bloquée' },
+                { id: 'EQUIPAGE_INDISPONIBLE', label: '👨‍⚕️ Indisponibilité subite du personnel ambulancier' },
+                { id: 'AUTRE', label: '📝 Autre contrainte opérationnelle' }
+              ].map((reason) => (
+                <label
+                  key={reason.id}
+                  onClick={() => setReleaseReason(reason.id)}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                    releaseReason === reason.id
+                      ? 'border-rose-300 bg-rose-50/70 text-rose-900 font-semibold'
+                      : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="releaseReason"
+                    value={reason.id}
+                    checked={releaseReason === reason.id}
+                    onChange={() => setReleaseReason(reason.id)}
+                    className="accent-rose-600"
+                  />
+                  <span>{reason.label}</span>
+                </label>
+              ))}
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant mt-2 mb-1">
+                  Commentaire / Précisions éventuelles :
+                </label>
+                <input
+                  type="text"
+                  value={releaseCustomNote}
+                  onChange={(e) => setReleaseCustomNote(e.target.value)}
+                  placeholder="ex. Crevaison sur la RN1, patient prévenu..."
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setMissionToRelease(null)}
+                className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Conserver la mission
+              </button>
+              <button
+                type="button"
+                onClick={confirmReleaseMission}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-xs hover:bg-rose-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">campaign</span>
+                <span>Confirmer &amp; Republier</span>
               </button>
             </div>
           </div>

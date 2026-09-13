@@ -16,6 +16,10 @@ export const TrackingPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRideModal, setSelectedRideModal] = useState<Ride | null>(null);
+  const [rideToCancel, setRideToCancel] = useState<Ride | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('RDV_REPORTE');
+  const [cancelCustomNote, setCancelCustomNote] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -95,6 +99,47 @@ export const TrackingPage: React.FC = () => {
   const completedCount = rides.filter(
     (r) => r.status === 'COMPLETED' || r.status === 'CANCELLED'
   ).length;
+
+  const openCancelModal = (ride: Ride) => {
+    setRideToCancel(ride);
+    setCancelReason('RDV_REPORTE');
+    setCancelCustomNote('');
+  };
+
+  const confirmCancelRide = async () => {
+    if (!rideToCancel) return;
+    const ref = rideToCancel.reference;
+
+    const reasonLabels: Record<string, string> = {
+      RDV_REPORTE: 'Rendez-vous médical décalé ou reporté',
+      ETAT_SANTE: 'Amélioration ou changement de l\'état de santé',
+      PROCHE_TRANSPORTE: 'Pris en charge par un proche / véhicule particulier',
+      ERREUR_DEMANDE: 'Demande effectuée par erreur',
+      AUTRE: 'Autre motif'
+    };
+
+    const fullReason = cancelCustomNote.trim()
+      ? `${reasonLabels[cancelReason] || cancelReason} (${cancelCustomNote.trim()})`
+      : (reasonLabels[cancelReason] || cancelReason);
+
+    // Optimistic update
+    setRides((prev) =>
+      prev.map((r) => (r.reference.toUpperCase() === ref.toUpperCase() ? { ...r, status: 'CANCELLED' } : r))
+    );
+
+    setToastMessage({
+      title: 'Transport annulé avec succès',
+      desc: `Votre réservation #${ref} a bien été annulée.`
+    });
+
+    setRideToCancel(null);
+
+    try {
+      await rideService.cancelRide(ref, fullReason);
+    } catch (err) {
+      console.error('Erreur annulation transport patient:', err);
+    }
+  };
 
   const getVehicleLabel = (type: string) => {
     switch (type) {
@@ -291,18 +336,31 @@ export const TrackingPage: React.FC = () => {
                             Transport n°{activeRide.reference}
                           </span>
                         </div>
-                        <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm">
-                          {new Date(activeRide.pickupDateTime).toLocaleDateString('fr-FR', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })}{' '}
-                          ·{' '}
-                          {new Date(activeRide.pickupDateTime).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm">
+                            {new Date(activeRide.pickupDateTime).toLocaleDateString('fr-FR', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                            })}{' '}
+                            ·{' '}
+                            {new Date(activeRide.pickupDateTime).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          {activeRide.status !== 'COMPLETED' && activeRide.status !== 'CANCELLED' && (
+                            <button
+                              type="button"
+                              onClick={() => openCancelModal(activeRide)}
+                              className="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1 transition-all"
+                              title="Annuler cette demande de transport"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">cancel</span>
+                              <span>Annuler</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-space-md relative z-10 pt-space-xs">
@@ -792,7 +850,24 @@ export const TrackingPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex items-center justify-between">
+              {selectedRideModal.status !== 'COMPLETED' && selectedRideModal.status !== 'CANCELLED' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = selectedRideModal;
+                    setSelectedRideModal(null);
+                    openCancelModal(r);
+                  }}
+                  className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">cancel</span>
+                  <span>Annuler ce transport</span>
+                </button>
+              ) : (
+                <div></div>
+              )}
+
               <button
                 onClick={() => setSelectedRideModal(null)}
                 className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-colors"
@@ -801,6 +876,118 @@ export const TrackingPage: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal Confirmation Annulation Demandeur / Patient */}
+      {rideToCancel && (
+        <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="max-w-md w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">cancel</span>
+                </span>
+                <h3 className="text-base font-bold text-on-surface">
+                  Annuler la réservation #{rideToCancel.reference}
+                </h3>
+              </div>
+              <button
+                onClick={() => setRideToCancel(null)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Êtes-vous certain de vouloir annuler ce transport sanitaire ? Si un chauffeur avait déjà été mobilisé, il sera automatiquement libéré.
+            </p>
+
+            <div className="space-y-2 text-xs">
+              <label className="block text-[11px] font-bold uppercase text-on-surface-variant">
+                Motif de l'annulation :
+              </label>
+              {[
+                { id: 'RDV_REPORTE', label: '📅 Rendez-vous médical décalé ou reporté' },
+                { id: 'ETAT_SANTE', label: '🩺 Évolution clinique / consultation non nécessaire' },
+                { id: 'PROCHE_TRANSPORTE', label: '🚗 Transport assuré par un proche / famille' },
+                { id: 'ERREUR_DEMANDE', label: '⚠️ Erreur lors de la réservation' },
+                { id: 'AUTRE', label: '📝 Autre motif' }
+              ].map((reason) => (
+                <label
+                  key={reason.id}
+                  onClick={() => setCancelReason(reason.id)}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                    cancelReason === reason.id
+                      ? 'border-rose-300 bg-rose-50/70 text-rose-900 font-semibold'
+                      : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="patientCancelReason"
+                    value={reason.id}
+                    checked={cancelReason === reason.id}
+                    onChange={() => setCancelReason(reason.id)}
+                    className="accent-rose-600"
+                  />
+                  <span>{reason.label}</span>
+                </label>
+              ))}
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant mt-2 mb-1">
+                  Commentaire (optionnel) :
+                </label>
+                <input
+                  type="text"
+                  value={cancelCustomNote}
+                  onChange={(e) => setCancelCustomNote(e.target.value)}
+                  placeholder="Précisions éventuelles..."
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-2 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setRideToCancel(null)}
+                className="flex-1 py-2.5 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Garder ma réservation
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancelRide}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">cancel</span>
+                <span>Confirmer l'annulation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 max-w-md bg-surface-container-lowest text-on-surface p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-3 border border-secondary/30 animate-fadeIn">
+          <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-base">check_circle</span>
+          </div>
+          <div className="flex-1 text-xs">
+            <div className="font-bold text-on-surface text-sm">{toastMessage.title}</div>
+            <p className="text-on-surface-variant mt-0.5 leading-relaxed">{toastMessage.desc}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="text-on-surface-variant hover:text-on-surface"
+          >
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
         </div>
       )}
 
