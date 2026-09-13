@@ -2467,8 +2467,8 @@ export const TransporterPortalPage: React.FC = () => {
                     <span className="material-symbols-outlined text-primary text-2xl">garage</span>
                     <h2 className="text-xl font-extrabold text-on-surface">Véhicules &amp; Équipages Conventionnés</h2>
                   </div>
-                  <p className="text-xs text-on-surface-variant mt-1 max-w-2xl leading-relaxed">
-                    Gérez le parc de véhicules agréés ARS Martinique et l'ensemble des chauffeurs de votre société avec leur numéro de mobile direct pour la télétransmission et le suivi temps réel.
+                  <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                    Flotte homologuée ARS
                   </p>
                 </div>
 
