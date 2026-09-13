@@ -444,10 +444,11 @@ export const BookingPage: React.FC = () => {
 
                   <PhoneInput
                     id="patientPhone"
-                    label="Téléphone portable (SMS suivi)"
+                    label="Téléphone portable"
                     required
                     value={phone}
                     defaultDialCode="+596"
+                    showValidation={false}
                     onChange={(full) => {
                       setPhone(full);
                       if (!whatsappPhone || whatsappPhone === phone) {
@@ -457,11 +458,15 @@ export const BookingPage: React.FC = () => {
                   />
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                      Date de naissance
+                    <label
+                      htmlFor="patientBirthDate"
+                      className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center h-5"
+                    >
+                      Date de naissance <span className="text-error ml-1">*</span>
                     </label>
                     <input
-                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                      id="patientBirthDate"
+                      className="w-full h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
                       type="date"
                       required
                       value={birthDate}

@@ -86,7 +86,7 @@ export const LoginPage: React.FC = () => {
       case 'TRANSPORTER':
         return {
           title: "Connexion Espace Transporteurs",
-          subtitle: "Bourse de courses et dispatch en direct pour les ambulanciers, VSL et taxis conventionnés 972",
+          subtitle: "Courses disponibles et dispatch en direct pour les ambulanciers, VSL et taxis conventionnés 972",
           icon: "ambulance",
           iconBg: "bg-amber-600 text-white"
         };

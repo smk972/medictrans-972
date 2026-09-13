@@ -36,7 +36,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const defaultMsg = targetRole === 'FACILITY'
       ? "Veuillez vous identifier pour accéder au Portail Établissements & Sorties d'hospitalisation (CHU & Cliniques 972)."
       : targetRole === 'TRANSPORTER'
-      ? "Veuillez vous identifier pour accéder à l'Espace Transporteurs (Dispatch & Bourse de courses sanitaires)."
+      ? "Veuillez vous identifier pour accéder à l'Espace Transporteurs (Dispatch & Courses disponibles)."
       : targetRole === 'ADMIN'
       ? "Veuillez vous identifier pour accéder à la Tour de Contrôle et Régulation Territoriale 972."
       : "Veuillez vous identifier pour accéder à cet espace.";

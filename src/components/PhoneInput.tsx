@@ -225,10 +225,10 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const details = computeDetails(selectedCountry, localNumber);
 
   return (
-    <div className={`flex flex-col gap-1.5 w-full ${className}`} ref={containerRef}>
+    <div className={`flex flex-col gap-1.5 w-full ${className || ''}`} ref={containerRef}>
       {label && (
-        <label className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center justify-between" htmlFor={id}>
-          <span className="flex items-center gap-1.5">
+        <label className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center justify-between h-5" htmlFor={id}>
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
             {isWhatsapp && (
               <span className="material-symbols-outlined text-sm text-emerald-600">smartphone</span>
             )}

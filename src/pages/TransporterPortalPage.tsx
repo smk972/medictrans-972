@@ -54,7 +54,7 @@ export const TransporterPortalPage: React.FC = () => {
   // State
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'BOURSE' | 'ACTIVES' | 'FACTURES' | 'FLOTTE'>('BOURSE');
+  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'FLOTTE'>('DISPONIBLES');
   const [sectorFilter, setSectorFilter] = useState<'ALL' | 'CENTRE' | 'SUD' | 'NORD'>('ALL');
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
   const [selectedMissionForDetails, setSelectedMissionForDetails] = useState<Ride | null>(null);
@@ -115,7 +115,7 @@ export const TransporterPortalPage: React.FC = () => {
     }
   }, [loadMissions]);
 
-  // Filtrage Bourse aux courses (Status PENDING et non déclinées)
+  // Filtrage des courses disponibles (Status PENDING et non déclinées)
   const availableMissions = useMemo(() => {
     return rides.filter((r) => {
       if (r.status !== 'PENDING') return false;
@@ -149,24 +149,10 @@ export const TransporterPortalPage: React.FC = () => {
     );
   }, [rides]);
 
-  // Missions clôturées / terminées (Facturation)
+  // Missions clôturées / terminées
   const completedMissions = useMemo(() => {
     return rides.filter((r) => r.status === 'COMPLETED');
   }, [rides]);
-
-  // Total facturé CPAM estimé pour les courses clôturées
-  const totalBilledCpam = useMemo(() => {
-    return completedMissions.reduce((sum, m) => {
-      const pricing = m.pricing || calculateMedicalRidePricing({
-        transportType: m.transportType,
-        originAddress: m.pickupAddress,
-        destinationAddress: m.facilityName || m.dropoffAddress,
-        isAld: m.patient.isAld,
-        isRoundTrip: m.isRoundTrip
-      });
-      return sum + (pricing?.cpamAmount || pricing?.totalPrestation || 68.5);
-    }, 0);
-  }, [completedMissions]);
 
   // 1-CLIC ACCEPTATION DIRECTE (Fluidité instantanée)
   const handleDirectAccept = async (mission: Ride) => {
@@ -304,7 +290,7 @@ export const TransporterPortalPage: React.FC = () => {
     setDeclinedRefs([]);
     setToastMessage({
       title: 'Filtre réinitialisé',
-      desc: 'Toutes les courses déclinées sont à nouveau affichées dans votre bourse.',
+      desc: 'Toutes les courses déclinées sont à nouveau affichées dans vos courses disponibles.',
       type: 'info'
     });
   };
@@ -324,7 +310,7 @@ export const TransporterPortalPage: React.FC = () => {
     if (nextStatus === 'EN_ROUTE') statusLabel = 'Chauffeur en route vers le patient !';
     if (nextStatus === 'PICKED_UP') statusLabel = 'Patient pris en charge à bord !';
     if (nextStatus === 'COMPLETED') {
-      statusLabel = 'Mission terminée & télétransmise à la CPAM !';
+      statusLabel = 'Mission terminée avec succès !';
       setFleet((prev) =>
         prev.map((v) =>
           v.plate === mission.assignedTransporter?.vehiclePlate ? { ...v, status: 'DISPONIBLE' } : v
@@ -406,7 +392,7 @@ export const TransporterPortalPage: React.FC = () => {
     <div className="min-h-screen bg-surface text-on-surface font-sans antialiased">
       <SEOHead
         title="Console Dispatch Transporteurs Sanitaires Martinique | Médic'Trans 972"
-        description="Console télématique temps réel pour les ambulanciers, VSL et taxis conventionnés 972. Attribution directe, suivi GPS et télétransmission Noémie CPAM."
+        description="Console télématique temps réel pour les ambulanciers, VSL et taxis conventionnés 972. Attribution directe et suivi GPS des interventions."
         canonicalPath="/transporteurs"
       />
 
@@ -435,20 +421,20 @@ export const TransporterPortalPage: React.FC = () => {
         <nav className="flex-1 px-3 py-2 flex flex-col gap-1 text-xs font-bold">
           <button
             type="button"
-            onClick={() => setActiveTab('BOURSE')}
+            onClick={() => setActiveTab('DISPONIBLES')}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
-              activeTab === 'BOURSE'
+              activeTab === 'DISPONIBLES'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
             }`}
           >
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-lg">radar</span>
-              <span>Bourse des courses</span>
+              <span>Courses disponibles</span>
             </div>
             {availableMissions.length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                activeTab === 'BOURSE' ? 'bg-white text-primary' : 'bg-primary/10 text-primary'
+                activeTab === 'DISPONIBLES' ? 'bg-white text-primary' : 'bg-primary/10 text-primary'
               }`}>
                 {availableMissions.length}
               </span>
@@ -479,22 +465,6 @@ export const TransporterPortalPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('FACTURES')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
-              activeTab === 'FACTURES'
-                ? 'bg-primary text-on-primary shadow-xs'
-                : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-lg">receipt_long</span>
-              <span>Facturation CPAM</span>
-            </div>
-            <span className="text-[10px] text-secondary font-mono font-bold">100% BPEC</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('FLOTTE')}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
               activeTab === 'FLOTTE'
@@ -506,7 +476,7 @@ export const TransporterPortalPage: React.FC = () => {
               <span className="material-symbols-outlined text-lg">garage</span>
               <span>Flotte & Équipages</span>
             </div>
-            <span className="text-[10px] text-emerald-600 font-bold">3 actifs</span>
+            <span className="text-[10px] text-emerald-600 font-bold">{fleet.length} actifs</span>
           </button>
         </nav>
 
@@ -598,12 +568,12 @@ export const TransporterPortalPage: React.FC = () => {
         <div className="md:hidden flex border-b border-outline-variant/20 bg-surface-container-lowest px-2 py-1 overflow-x-auto text-xs font-bold gap-1">
           <button
             type="button"
-            onClick={() => setActiveTab('BOURSE')}
+            onClick={() => setActiveTab('DISPONIBLES')}
             className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
-              activeTab === 'BOURSE' ? 'bg-primary text-white' : 'text-on-surface-variant'
+              activeTab === 'DISPONIBLES' ? 'bg-primary text-white' : 'text-on-surface-variant'
             }`}
           >
-            Bourse ({availableMissions.length})
+            Courses disponibles ({availableMissions.length})
           </button>
           <button
             type="button"
@@ -612,16 +582,7 @@ export const TransporterPortalPage: React.FC = () => {
               activeTab === 'ACTIVES' ? 'bg-primary text-white' : 'text-on-surface-variant'
             }`}
           >
-            En cours ({activeMissions.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('FACTURES')}
-            className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
-              activeTab === 'FACTURES' ? 'bg-primary text-white' : 'text-on-surface-variant'
-            }`}
-          >
-            Facturation
+            Missions en cours ({activeMissions.length})
           </button>
           <button
             type="button"
@@ -630,7 +591,7 @@ export const TransporterPortalPage: React.FC = () => {
               activeTab === 'FLOTTE' ? 'bg-primary text-white' : 'text-on-surface-variant'
             }`}
           >
-            Flotte
+            Flotte ({fleet.length})
           </button>
         </div>
 
@@ -708,26 +669,26 @@ export const TransporterPortalPage: React.FC = () => {
             <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex items-center justify-between">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Télétransmission CPAM
+                  Flotte Opérationnelle
                 </div>
                 <div className="text-2xl font-extrabold text-secondary mt-0.5">
-                  {totalBilledCpam.toFixed(2)} €
+                  {fleet.filter((v) => v.status === 'DISPONIBLE').length} / {fleet.length}
                 </div>
                 <div className="text-[11px] text-secondary font-semibold mt-0.5 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">account_balance</span>
-                  <span>100% Noémie BPEC</span>
+                  <span className="material-symbols-outlined text-xs">garage</span>
+                  <span>Véhicules prêts</span>
                 </div>
               </div>
               <div className="w-11 h-11 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center text-xl shrink-0">
-                💶
+                🚗
               </div>
             </div>
           </div>
 
           {/* ========================================================================= */}
-          {/* TAB 1 : BOURSE AUX COURSES (DISPONIBLES)                                  */}
+          {/* TAB 1 : COURSES DISPONIBLES                                               */}
           {/* ========================================================================= */}
-          {activeTab === 'BOURSE' && (
+          {activeTab === 'DISPONIBLES' && (
             <div className="flex flex-col gap-5">
               {/* Barre de filtres */}
               <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -987,14 +948,14 @@ export const TransporterPortalPage: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-bold text-on-surface mb-1">Aucune mission active en cours</h3>
                   <p className="text-xs text-on-surface-variant max-w-md mx-auto mb-4">
-                    Toutes les courses que vous acceptez depuis la bourse apparaîtront ici pour le suivi télématique et le guidage GPS.
+                    Toutes les courses que vous acceptez depuis les courses disponibles apparaîtront ici pour le suivi télématique et le guidage GPS.
                   </p>
                   <button
                     type="button"
-                    onClick={() => setActiveTab('BOURSE')}
+                    onClick={() => setActiveTab('DISPONIBLES')}
                     className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary/90 transition-all"
                   >
-                    Voir les opportunités disponibles
+                    Voir les courses disponibles
                   </button>
                 </div>
               ) : (
@@ -1156,91 +1117,7 @@ export const TransporterPortalPage: React.FC = () => {
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* TAB 3 : FACTURATION CPAM & TÉLÉTRANSMISSION NOÉMIE                       */}
-          {/* ========================================================================= */}
-          {activeTab === 'FACTURES' && (
-            <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/20 shadow-xs flex flex-col gap-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/20 pb-4">
-                <div>
-                  <h2 className="text-lg font-extrabold text-on-surface">Télétransmission Noémie & Facturation CPAM 972</h2>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    Télétransmission directe des Prescriptions Médicales de Transport (PMT) au centre de liquidation CPAM Martinique.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[11px] font-bold text-on-surface-variant uppercase block">Total à recouvrer :</span>
-                  <span className="text-2xl font-black text-secondary">{totalBilledCpam.toFixed(2)} €</span>
-                </div>
-              </div>
 
-              {completedMissions.length === 0 ? (
-                <div className="py-12 text-center text-xs text-on-surface-variant">
-                  <span className="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">
-                    receipt_long
-                  </span>
-                  <p className="text-sm font-bold text-on-surface mb-1">Aucune course clôturée pour le moment</p>
-                  <p>Dès qu'une mission active est validée à l'arrivée, elle bascule automatiquement ici avec son bordereau de facturation.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-outline-variant/30 text-on-surface-variant uppercase text-[10px] font-bold">
-                        <th className="py-3 px-3">Réf Course</th>
-                        <th className="py-3 px-3">Patient & NIR</th>
-                        <th className="py-3 px-3">Trajet Sanitaire</th>
-                        <th className="py-3 px-3">Véhicule</th>
-                        <th className="py-3 px-3">Montant CPAM</th>
-                        <th className="py-3 px-3">Statut BPEC</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline-variant/20">
-                      {completedMissions.map((m) => {
-                        const pricing = m.pricing || calculateMedicalRidePricing({
-                          transportType: m.transportType,
-                          originAddress: m.pickupAddress,
-                          destinationAddress: m.facilityName || m.dropoffAddress,
-                          isAld: m.patient.isAld,
-                          isRoundTrip: m.isRoundTrip
-                        });
-
-                        return (
-                          <tr key={m.id} className="hover:bg-surface-container/50 transition-colors">
-                            <td className="py-3 px-3 font-mono font-bold text-primary">#{m.reference}</td>
-                            <td className="py-3 px-3">
-                              <div className="font-bold text-on-surface">{m.patient.firstName} {m.patient.lastName}</div>
-                              <div className="text-[10px] text-on-surface-variant font-mono">{m.patient.nir}</div>
-                            </td>
-                            <td className="py-3 px-3">
-                              <div>{m.pickupCity} ➔ {m.facilityName || m.dropoffCity}</div>
-                              <div className="text-[10px] text-on-surface-variant">
-                                {new Date(m.pickupDateTime).toLocaleDateString('fr-FR')}
-                              </div>
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className="px-2 py-0.5 rounded bg-surface-container font-mono text-[10px] font-bold">
-                                {m.transportType}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 font-extrabold text-secondary">
-                              {(pricing?.cpamAmount || pricing?.totalPrestation || 68.5).toFixed(2)} €
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
-                                <span className="material-symbols-outlined text-xs text-emerald-600">check</span>
-                                Télétransmis Noémie
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* ========================================================================= */}
           {/* TAB 4 : GESTION DU PARC DE VÉHICULES & CHAUFFEURS                         */}
