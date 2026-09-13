@@ -528,11 +528,11 @@ export const rideService = {
         needsEscort: row.mobility_needs_escort,
         notes: row.mobility_notes
       },
-      assignedTransporter: row.driver_name ? {
-        companyName: 'Transporteur Conventionné',
-        driverName: row.driver_name,
-        driverPhone: row.driver_phone,
-        vehiclePlate: row.vehicle_plate,
+      assignedTransporter: (row.driver_name || row.transporter_name) ? {
+        companyName: row.transporter_name || 'Ambulances Madinina Secours',
+        driverName: row.driver_name || 'Équipage 972',
+        driverPhone: row.driver_phone || '0596 75 20 20',
+        vehiclePlate: row.vehicle_plate || 'GH-972-MQ',
         etaMinutes: row.eta_minutes || 15
       } : undefined,
       source: row.source || 'PATIENT',
