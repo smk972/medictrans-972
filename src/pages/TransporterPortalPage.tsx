@@ -9,7 +9,17 @@ import { calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '..
 import { Ride, RideStatus, TransportType } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 
-interface VehicleFleet {
+export interface Driver {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  phone: string; // Numéro de mobile direct
+  status: 'DISPONIBLE' | 'EN_MISSION' | 'EN_REPOS';
+  assignedVehiclePlate?: string;
+}
+
+export interface VehicleFleet {
   id: string;
   name: string;
   type: TransportType;
@@ -19,14 +29,55 @@ interface VehicleFleet {
   status: 'DISPONIBLE' | 'EN_MISSION' | 'EN_PAUSE';
 }
 
-const DEFAULT_FLEET: VehicleFleet[] = [
+export const FLEET_STORAGE_KEY = 'medictrans_transporter_fleet_v2';
+export const DRIVERS_STORAGE_KEY = 'medictrans_transporter_drivers_v2';
+
+export const DEFAULT_DRIVERS: Driver[] = [
+  {
+    id: 'dr-1',
+    firstName: 'Patrick',
+    lastName: 'Césaire',
+    role: 'Ambulancier DEA (Cadre)',
+    phone: '0696 75 20 20',
+    status: 'DISPONIBLE',
+    assignedVehiclePlate: 'GH-972-MQ'
+  },
+  {
+    id: 'dr-2',
+    firstName: 'Loïc',
+    lastName: 'Marie-Rose',
+    role: 'Ambulancier DEA',
+    phone: '0696 34 56 78',
+    status: 'DISPONIBLE',
+    assignedVehiclePlate: 'AA-972-FX'
+  },
+  {
+    id: 'dr-3',
+    firstName: 'Marcelle',
+    lastName: 'Eustache',
+    role: 'Chauffeur Taxi Conventionné',
+    phone: '0696 90 12 34',
+    status: 'DISPONIBLE',
+    assignedVehiclePlate: 'BC-972-MQ'
+  },
+  {
+    id: 'dr-4',
+    firstName: 'Aurélie',
+    lastName: 'Sainte-Rose',
+    role: 'Ambulancière Auxiliaire',
+    phone: '0696 45 11 22',
+    status: 'DISPONIBLE'
+  }
+];
+
+export const DEFAULT_FLEET: VehicleFleet[] = [
   {
     id: 'fl-1',
     name: 'Ambulance ASSU 01',
     type: 'AMBULANCE',
     plate: 'GH-972-MQ',
-    driver: 'Patrick Césaire (Cadre)',
-    phone: '0596 75 20 20',
+    driver: 'Patrick Césaire (Ambulancier DEA)',
+    phone: '0696 75 20 20',
     status: 'DISPONIBLE'
   },
   {
@@ -43,7 +94,7 @@ const DEFAULT_FLEET: VehicleFleet[] = [
     name: 'Taxi Conventionné 03',
     type: 'TAXI_CONVENTIONNE',
     plate: 'BC-972-MQ',
-    driver: 'Marcelle Eustache (Chauffeur)',
+    driver: 'Marcelle Eustache (Chauffeur Taxi)',
     phone: '0696 90 12 34',
     status: 'DISPONIBLE'
   }
@@ -98,7 +149,67 @@ export const TransporterPortalPage: React.FC = () => {
   const [declinedRefs, setDeclinedRefs] = useState<string[]>(() => {
     return rideService.getDeclinedRideRefs();
   });
-  const [fleet, setFleet] = useState<VehicleFleet[]>(DEFAULT_FLEET);
+  const [fleet, setFleet] = useState<VehicleFleet[]>(() => {
+    try {
+      const saved = localStorage.getItem(FLEET_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_FLEET;
+  });
+
+  const [drivers, setDrivers] = useState<Driver[]>(() => {
+    try {
+      const saved = localStorage.getItem(DRIVERS_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_DRIVERS;
+  });
+
+  // Sauvegarde automatique Flotte & Chauffeurs dans le stockage local
+  useEffect(() => {
+    try {
+      localStorage.setItem(FLEET_STORAGE_KEY, JSON.stringify(fleet));
+    } catch (e) {}
+  }, [fleet]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
+    } catch (e) {}
+  }, [drivers]);
+
+  // Sous-vues et modales de gestion Flotte & Chauffeurs
+  const [fleetSubView, setFleetSubView] = useState<'ALL' | 'VEHICLES' | 'DRIVERS'>('ALL');
+
+  // Modales Gestion Véhicules
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [newVehName, setNewVehName] = useState('');
+  const [newVehType, setNewVehType] = useState<TransportType>('VSL');
+  const [newVehPlate, setNewVehPlate] = useState('');
+  const [newVehDriverId, setNewVehDriverId] = useState('');
+  const [vehicleToDelete, setVehicleToDelete] = useState<VehicleFleet | null>(null);
+
+  // Modales Gestion Chauffeurs & Attribution de Mobile
+  const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
+  const [newDriverFirstName, setNewDriverFirstName] = useState('');
+  const [newDriverLastName, setNewDriverLastName] = useState('');
+  const [newDriverRole, setNewDriverRole] = useState('Ambulancier DEA');
+  const [newDriverPhone, setNewDriverPhone] = useState('');
+  const [newDriverPlate, setNewDriverPlate] = useState('');
+
+  const [driverToEdit, setDriverToEdit] = useState<Driver | null>(null);
+  const [editDriverFirstName, setEditDriverFirstName] = useState('');
+  const [editDriverLastName, setEditDriverLastName] = useState('');
+  const [editDriverRole, setEditDriverRole] = useState('Ambulancier DEA');
+  const [editDriverPhone, setEditDriverPhone] = useState('');
+  const [editDriverPlate, setEditDriverPlate] = useState('');
+  const [editDriverStatus, setEditDriverStatus] = useState<'DISPONIBLE' | 'EN_MISSION' | 'EN_REPOS'>('DISPONIBLE');
+  const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
+
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type?: 'success' | 'info' | 'error' } | null>(null);
 
   // Form affectation véhicule
@@ -418,6 +529,242 @@ export const TransporterPortalPage: React.FC = () => {
     });
   };
 
+  // ==========================================
+  // GESTION DU PARC DE VÉHICULES (CRUD)
+  // ==========================================
+  const handleAddVehicle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVehName.trim() || !newVehPlate.trim()) {
+      setToastMessage({
+        title: 'Informations incomplètes',
+        desc: 'Veuillez saisir un nom et une immatriculation pour le véhicule.',
+        type: 'error'
+      });
+      return;
+    }
+
+    const cleanPlate = newVehPlate.trim().toUpperCase();
+    if (fleet.some((v) => v.plate.toUpperCase() === cleanPlate)) {
+      setToastMessage({
+        title: 'Immatriculation déjà enregistrée',
+        desc: `Le véhicule ${cleanPlate} existe déjà dans votre flotte.`,
+        type: 'error'
+      });
+      return;
+    }
+
+    const assignedDr = drivers.find((d) => d.id === newVehDriverId);
+    const driverName = assignedDr ? `${assignedDr.firstName} ${assignedDr.lastName} (${assignedDr.role})` : 'Non assigné';
+    const driverPhone = assignedDr?.phone || transporterPhone;
+
+    const newVehicle: VehicleFleet = {
+      id: `fl-${Date.now()}`,
+      name: newVehName.trim(),
+      type: newVehType,
+      plate: cleanPlate,
+      driver: driverName,
+      phone: driverPhone,
+      status: 'DISPONIBLE'
+    };
+
+    setFleet((prev) => [...prev, newVehicle]);
+
+    // Lier le véhicule au chauffeur sélectionné
+    if (assignedDr) {
+      setDrivers((prev) =>
+        prev.map((d) => (d.id === assignedDr.id ? { ...d, assignedVehiclePlate: cleanPlate } : d))
+      );
+    }
+
+    setToastMessage({
+      title: 'Véhicule ajouté avec succès',
+      desc: `${newVehicle.name} (${newVehicle.plate}) a été intégré à votre flotte opérationnelle.`,
+      type: 'success'
+    });
+
+    setIsAddVehicleOpen(false);
+    setNewVehName('');
+    setNewVehPlate('');
+    setNewVehDriverId('');
+  };
+
+  const confirmDeleteVehicle = () => {
+    if (!vehicleToDelete) return;
+    const plate = vehicleToDelete.plate;
+
+    setFleet((prev) => prev.filter((v) => v.id !== vehicleToDelete.id));
+
+    // Libérer les chauffeurs qui avaient ce véhicule
+    setDrivers((prev) =>
+      prev.map((d) => (d.assignedVehiclePlate === plate ? { ...d, assignedVehiclePlate: undefined } : d))
+    );
+
+    setToastMessage({
+      title: 'Véhicule retiré',
+      desc: `Le véhicule ${vehicleToDelete.name} (${plate}) a été supprimé de votre flotte.`,
+      type: 'info'
+    });
+
+    setVehicleToDelete(null);
+  };
+
+  const toggleVehiclePause = (vehId: string) => {
+    setFleet((prev) =>
+      prev.map((v) =>
+        v.id === vehId
+          ? { ...v, status: v.status === 'DISPONIBLE' ? 'EN_PAUSE' : 'DISPONIBLE' }
+          : v
+      )
+    );
+  };
+
+  // ==========================================
+  // GESTION DES CHAUFFEURS & MOBILES (CRUD)
+  // ==========================================
+  const handleAddDriver = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDriverFirstName.trim() || !newDriverLastName.trim() || !newDriverPhone.trim()) {
+      setToastMessage({
+        title: 'Champs requis manquants',
+        desc: 'Veuillez renseigner le prénom, le nom et le numéro de mobile du chauffeur.',
+        type: 'error'
+      });
+      return;
+    }
+
+    const cleanPhone = newDriverPhone.trim();
+    const newDr: Driver = {
+      id: `dr-${Date.now()}`,
+      firstName: newDriverFirstName.trim(),
+      lastName: newDriverLastName.trim(),
+      role: newDriverRole,
+      phone: cleanPhone,
+      status: 'DISPONIBLE',
+      assignedVehiclePlate: newDriverPlate || undefined
+    };
+
+    setDrivers((prev) => [...prev, newDr]);
+
+    // Si un véhicule est assigné immédiatement, synchroniser le véhicule
+    if (newDriverPlate) {
+      setFleet((prev) =>
+        prev.map((v) =>
+          v.plate === newDriverPlate
+            ? {
+                ...v,
+                driver: `${newDr.firstName} ${newDr.lastName} (${newDr.role})`,
+                phone: cleanPhone
+              }
+            : v
+        )
+      );
+    }
+
+    setToastMessage({
+      title: 'Chauffeur enregistré',
+      desc: `${newDr.firstName} ${newDr.lastName} a été ajouté avec son mobile direct (${cleanPhone}).`,
+      type: 'success'
+    });
+
+    setIsAddDriverOpen(false);
+    setNewDriverFirstName('');
+    setNewDriverLastName('');
+    setNewDriverPhone('');
+    setNewDriverPlate('');
+  };
+
+  const openEditDriverModal = (dr: Driver) => {
+    setDriverToEdit(dr);
+    setEditDriverFirstName(dr.firstName);
+    setEditDriverLastName(dr.lastName);
+    setEditDriverRole(dr.role);
+    setEditDriverPhone(dr.phone);
+    setEditDriverPlate(dr.assignedVehiclePlate || '');
+    setEditDriverStatus(dr.status);
+  };
+
+  const handleSaveEditedDriver = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!driverToEdit) return;
+
+    const updatedFirstName = editDriverFirstName.trim();
+    const updatedLastName = editDriverLastName.trim();
+    const updatedPhone = editDriverPhone.trim();
+
+    if (!updatedFirstName || !updatedLastName || !updatedPhone) {
+      setToastMessage({
+        title: 'Champs requis',
+        desc: 'Le prénom, le nom et le numéro de mobile sont obligatoires.',
+        type: 'error'
+      });
+      return;
+    }
+
+    setDrivers((prev) =>
+      prev.map((d) =>
+        d.id === driverToEdit.id
+          ? {
+              ...d,
+              firstName: updatedFirstName,
+              lastName: updatedLastName,
+              role: editDriverRole,
+              phone: updatedPhone,
+              status: editDriverStatus,
+              assignedVehiclePlate: editDriverPlate || undefined
+            }
+          : d
+      )
+    );
+
+    // Mettre à jour le véhicule correspondant dans la flotte (nom chauffeur + mobile de bord)
+    setFleet((prev) =>
+      prev.map((v) => {
+        if (
+          (editDriverPlate && v.plate === editDriverPlate) ||
+          v.driver.includes(driverToEdit.lastName)
+        ) {
+          return {
+            ...v,
+            driver: `${updatedFirstName} ${updatedLastName} (${editDriverRole})`,
+            phone: updatedPhone
+          };
+        }
+        return v;
+      })
+    );
+
+    setToastMessage({
+      title: 'Chauffeur & Mobile mis à jour',
+      desc: `Coordonnées de ${updatedFirstName} ${updatedLastName} enregistrées (Mobile : ${updatedPhone}).`,
+      type: 'success'
+    });
+
+    setDriverToEdit(null);
+  };
+
+  const confirmDeleteDriver = () => {
+    if (!driverToDelete) return;
+
+    setDrivers((prev) => prev.filter((d) => d.id !== driverToDelete.id));
+
+    // Si le chauffeur était affecté à un véhicule, libérer le véhicule
+    setFleet((prev) =>
+      prev.map((v) =>
+        v.driver.includes(driverToDelete.lastName)
+          ? { ...v, driver: 'Non assigné', phone: transporterPhone }
+          : v
+      )
+    );
+
+    setToastMessage({
+      title: 'Chauffeur retiré',
+      desc: `${driverToDelete.firstName} ${driverToDelete.lastName} a été retiré de vos effectifs.`,
+      type: 'info'
+    });
+
+    setDriverToDelete(null);
+  };
+
   // 1-CLIC ACCEPTATION DIRECTE (Fluidité instantanée)
   const handleDirectAccept = async (mission: Ride) => {
     // Sélectionner le véhicule le plus adapté dans la flotte
@@ -426,10 +773,19 @@ export const TransporterPortalPage: React.FC = () => {
       fleet.find((v) => v.type === mission.transportType) ||
       fleet[0];
 
+    if (!matchingVehicle) {
+      setToastMessage({
+        title: 'Aucun véhicule disponible',
+        desc: 'Veuillez ajouter un véhicule dans votre flotte avant de valider la course.',
+        type: 'error'
+      });
+      return;
+    }
+
     const assignedData = {
       companyName: transporterName,
       driverName: matchingVehicle.driver,
-      driverPhone: transporterPhone,
+      driverPhone: matchingVehicle.phone || transporterPhone,
       vehiclePlate: matchingVehicle.plate,
       etaMinutes: 15
     };
@@ -476,10 +832,15 @@ export const TransporterPortalPage: React.FC = () => {
     if (!missionToAccept) return;
     const missionRef = missionToAccept.reference;
 
+    const matchedDriver = drivers.find(
+      (d) => selectedDriver.includes(d.lastName) || selectedDriver.includes(d.firstName)
+    );
+    const assignedPhone = matchedDriver?.phone || fleet.find((v) => v.plate === selectedPlate)?.phone || transporterPhone;
+
     const assignedData = {
       companyName: transporterName,
       driverName: selectedDriver,
-      driverPhone: transporterPhone,
+      driverPhone: assignedPhone,
       vehiclePlate: selectedPlate,
       etaMinutes: selectedEta
     };
@@ -2095,75 +2456,348 @@ export const TransporterPortalPage: React.FC = () => {
 
 
           {/* ========================================================================= */}
-          {/* TAB 4 : GESTION DU PARC DE VÉHICULES & CHAUFFEURS                         */}
+          {/* TAB 4 : GESTION DU PARC DE VÉHICULES & CHAUFFEURS (CRUD COMPLET)           */}
           {/* ========================================================================= */}
           {activeTab === 'FLOTTE' && (
-            <div className="flex flex-col gap-6">
-              <div className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/20 shadow-xs flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-on-surface">Véhicules & Équipages Conventionnés</h2>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
-                      Flotte homologuée ARS Martinique et télétransmettrice CPAM 972.
-                    </p>
+            <div className="flex flex-col gap-6 animate-fadeIn">
+              {/* En-tête Flotte & Boutons d'Action */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-2xl">garage</span>
+                    <h2 className="text-xl font-extrabold text-on-surface">Véhicules &amp; Équipages Conventionnés</h2>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                    3 Véhicules Opérationnels
-                  </span>
+                  <p className="text-xs text-on-surface-variant mt-1 max-w-2xl leading-relaxed">
+                    Gérez le parc de véhicules agréés ARS Martinique et l'ensemble des chauffeurs de votre société avec leur numéro de mobile direct pour la télétransmission et le suivi temps réel.
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {fleet.map((veh) => (
-                    <div
-                      key={veh.id}
-                      className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col justify-between gap-3"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-2xl">
-                            {veh.type === 'AMBULANCE' ? '🚑' : veh.type === 'VSL' ? '🚐' : '🚗'}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              veh.status === 'DISPONIBLE'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : veh.status === 'EN_MISSION'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-surface-container text-on-surface-variant'
-                            }`}
-                          >
-                            {veh.status}
-                          </span>
-                        </div>
-                        <div className="font-extrabold text-sm text-on-surface">{veh.name}</div>
-                        <div className="font-mono text-xs text-primary font-bold">{veh.plate}</div>
-                        <div className="text-xs text-on-surface-variant mt-2">
-                          Chauffeur : <strong>{veh.driver}</strong>
-                        </div>
-                        <div className="text-[11px] text-on-surface-variant">Tél : {veh.phone}</div>
-                      </div>
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewVehName('');
+                      setNewVehPlate('');
+                      setNewVehDriverId('');
+                      setIsAddVehicleOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-bold transition-all shadow-xs active:scale-[0.98]"
+                  >
+                    <span className="material-symbols-outlined text-base">directions_car</span>
+                    <span>+ Ajouter un véhicule</span>
+                  </button>
 
-                      <div className="pt-2 border-t border-outline-variant/20 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFleet((prev) =>
-                              prev.map((v) =>
-                                v.id === veh.id
-                                  ? { ...v, status: v.status === 'DISPONIBLE' ? 'EN_PAUSE' : 'DISPONIBLE' }
-                                  : v
-                              )
-                            );
-                          }}
-                          className="w-full py-1.5 rounded-lg border border-outline-variant/40 text-[11px] font-bold hover:bg-surface-container transition-all"
-                        >
-                          {veh.status === 'DISPONIBLE' ? 'Mettre en pause' : 'Rendre disponible'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewDriverFirstName('');
+                      setNewDriverLastName('');
+                      setNewDriverPhone('');
+                      setNewDriverPlate('');
+                      setIsAddDriverOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-secondary text-white hover:bg-secondary/90 text-xs font-bold transition-all shadow-xs active:scale-[0.98]"
+                  >
+                    <span className="material-symbols-outlined text-base">person_add</span>
+                    <span>+ Nouveau chauffeur</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Barre de KPI & Filtres de sous-vue */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/20 flex flex-col md:flex-row gap-4 md:items-center justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFleetSubView('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      fleetSubView === 'ALL'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    Vue d'ensemble
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFleetSubView('VEHICLES')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      fleetSubView === 'VEHICLES'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    🚗 Véhicules ({fleet.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFleetSubView('DRIVERS')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      fleetSubView === 'DRIVERS'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    👨‍✈️ Chauffeurs &amp; Mobiles ({drivers.length})
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                    🟢 {fleet.filter((v) => v.status === 'DISPONIBLE').length} / {fleet.length} Véhicules prêts
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 font-bold border border-blue-200">
+                    📱 {drivers.length} Chauffeurs avec mobile actif
+                  </span>
+                </div>
+              </div>
+
+              {/* 1. SECTION VÉHICULES */}
+              {(fleetSubView === 'ALL' || fleetSubView === 'VEHICLES') && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold text-on-surface uppercase tracking-wider flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-primary">airport_shuttle</span>
+                      <span>Parc des Véhicules Agréés ({fleet.length})</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewVehName('');
+                        setNewVehPlate('');
+                        setNewVehDriverId('');
+                        setIsAddVehicleOpen(true);
+                      }}
+                      className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">add_circle</span>
+                      <span>Ajouter un véhicule</span>
+                    </button>
+                  </div>
+
+                  {fleet.length === 0 ? (
+                    <div className="p-8 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 text-center">
+                      <p className="text-sm text-on-surface-variant">Aucun véhicule dans votre flotte.</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddVehicleOpen(true)}
+                        className="mt-3 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold"
+                      >
+                        + Ajouter un premier véhicule
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {fleet.map((veh) => {
+                        const isAmbu = veh.type === 'AMBULANCE';
+                        const isTaxi = veh.type === 'TAXI_CONVENTIONNE';
+                        return (
+                          <div
+                            key={veh.id}
+                            className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden"
+                          >
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary"></div>
+
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-2 pt-1">
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-container text-on-surface">
+                                  <span>{isAmbu ? '🚑' : isTaxi ? '🚗' : '🚐'}</span>
+                                  <span>{isAmbu ? 'Ambulance ASSU' : isTaxi ? 'Taxi CPAM' : 'VSL'}</span>
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    veh.status === 'DISPONIBLE'
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                      : veh.status === 'EN_MISSION'
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                      : 'bg-surface-container text-on-surface-variant border border-outline-variant/30'
+                                  }`}
+                                >
+                                  {veh.status === 'DISPONIBLE' ? 'Disponible' : veh.status === 'EN_MISSION' ? 'En mission' : 'En pause'}
+                                </span>
+                              </div>
+
+                              <div className="font-extrabold text-sm text-on-surface mt-1">{veh.name}</div>
+
+                              {/* Plaque d'immatriculation style officiel français */}
+                              <div className="inline-flex items-center bg-white border-2 border-slate-900 rounded-md overflow-hidden my-2 shadow-2xs">
+                                <span className="bg-blue-800 text-white text-[9px] font-bold px-1 py-0.5 flex flex-col items-center justify-center leading-none">
+                                  <span>★</span>
+                                  <span>F</span>
+                                </span>
+                                <span className="font-mono text-xs font-black text-slate-900 px-2 py-0.5 tracking-wider">
+                                  {veh.plate}
+                                </span>
+                                <span className="bg-blue-800 text-white text-[9px] font-bold px-1 py-0.5 flex flex-col items-center justify-center leading-none">
+                                  <span>972</span>
+                                </span>
+                              </div>
+
+                              {/* Chauffeur affecté & Mobile */}
+                              <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1 text-xs mt-1">
+                                <div className="text-on-surface-variant text-[11px]">Chauffeur titulaire :</div>
+                                <div className="font-bold text-on-surface flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm text-secondary">badge</span>
+                                  <span>{veh.driver}</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-1 border-t border-outline-variant/15 text-[11px]">
+                                  <span className="text-on-surface-variant flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-xs text-primary">smartphone</span>
+                                    <span>Mobile : <strong>{veh.phone || 'Non attribué'}</strong></span>
+                                  </span>
+                                  {veh.phone && (
+                                    <a
+                                      href={`tel:${veh.phone}`}
+                                      className="text-primary hover:underline font-bold flex items-center gap-0.5 text-[10px]"
+                                    >
+                                      <span className="material-symbols-outlined text-xs">call</span>
+                                      <span>Appeler</span>
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions sur le véhicule */}
+                            <div className="pt-2 border-t border-outline-variant/20 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleVehiclePause(veh.id)}
+                                className="flex-1 py-1.5 px-2 rounded-xl border border-outline-variant/40 text-[11px] font-bold hover:bg-surface-container transition-all"
+                              >
+                                {veh.status === 'DISPONIBLE' ? 'Mettre en pause' : 'Rendre disponible'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setVehicleToDelete(veh)}
+                                className="p-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all"
+                                title="Supprimer ce véhicule de la flotte"
+                              >
+                                <span className="material-symbols-outlined text-base">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 2. SECTION CHAUFFEURS & ATTRIBUTION DU MOBILE */}
+              {(fleetSubView === 'ALL' || fleetSubView === 'DRIVERS') && (
+                <div className="space-y-3 pt-4 border-t border-outline-variant/20">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold text-on-surface uppercase tracking-wider flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-secondary">group</span>
+                      <span>Gestion des Chauffeurs &amp; Numéros de Mobile ({drivers.length})</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewDriverFirstName('');
+                        setNewDriverLastName('');
+                        setNewDriverPhone('');
+                        setNewDriverPlate('');
+                        setIsAddDriverOpen(true);
+                      }}
+                      className="text-xs text-secondary font-bold hover:underline flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm">person_add</span>
+                      <span>Ajouter un chauffeur</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {drivers.map((dr) => (
+                      <div
+                        key={dr.id}
+                        className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3"
+                      >
+                        <div>
+                          {/* Entête Chauffeur : Avatar & Rôle */}
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="w-10 h-10 rounded-full bg-secondary/15 text-secondary font-bold flex items-center justify-center text-sm">
+                              {dr.firstName.charAt(0)}{dr.lastName.charAt(0)}
+                            </div>
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              {dr.status === 'DISPONIBLE' ? 'En service' : dr.status === 'EN_MISSION' ? 'En mission' : 'En repos'}
+                            </span>
+                          </div>
+
+                          <div className="font-extrabold text-sm text-on-surface">
+                            {dr.firstName} {dr.lastName}
+                          </div>
+                          <div className="text-[11px] text-secondary font-semibold mt-0.5">
+                            {dr.role}
+                          </div>
+
+                          {/* Encadré Mobile Chauffeur Dédié */}
+                          <div className="my-2.5 p-2.5 rounded-xl bg-primary/5 border border-primary/20 flex flex-col gap-1.5">
+                            <span className="text-[10px] font-bold uppercase text-primary tracking-wider flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs">smartphone</span>
+                              <span>Mobile Dédié Chauffeur :</span>
+                            </span>
+                            <div className="font-mono text-sm font-extrabold text-on-surface">
+                              {dr.phone}
+                            </div>
+                            <div className="flex items-center gap-2 pt-1 border-t border-primary/10">
+                              <a
+                                href={`tel:${dr.phone}`}
+                                className="flex-1 py-1 rounded-lg bg-primary text-white text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-primary/90 transition-all shadow-2xs"
+                              >
+                                <span className="material-symbols-outlined text-xs">call</span>
+                                <span>Appeler</span>
+                              </a>
+                              <a
+                                href={`sms:${dr.phone}`}
+                                className="flex-1 py-1 rounded-lg bg-surface-container text-on-surface text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-surface-container-high transition-all"
+                              >
+                                <span className="material-symbols-outlined text-xs">sms</span>
+                                <span>SMS</span>
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Véhicule assigné */}
+                          <div className="text-[11px] text-on-surface-variant flex items-center justify-between">
+                            <span>Véhicule affecté :</span>
+                            {dr.assignedVehiclePlate ? (
+                              <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                {dr.assignedVehiclePlate}
+                              </span>
+                            ) : (
+                              <span className="italic text-on-surface-variant">Non affecté</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions chauffeur */}
+                        <div className="pt-2 border-t border-outline-variant/20 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditDriverModal(dr)}
+                            className="flex-1 py-1.5 px-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-[11px] font-bold transition-all flex items-center justify-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                            <span>Modifier mobile</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDriverToDelete(dr)}
+                            className="p-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all"
+                            title="Supprimer ce chauffeur"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3428,6 +4062,454 @@ export const TransporterPortalPage: React.FC = () => {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1 : AJOUTER UN VÉHICULE                                             */}
+      {/* ========================================================================= */}
+      {isAddVehicleOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">directions_car</span>
+                <h3 className="font-extrabold text-base text-on-surface">Ajouter un véhicule à la flotte</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddVehicleOpen(false)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddVehicle} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Catégorie de véhicule conventionné * :
+                </label>
+                <select
+                  value={newVehType}
+                  onChange={(e) => setNewVehType(e.target.value as TransportType)}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                >
+                  <option value="VSL">🚐 VSL (Véhicule Sanitaire Léger)</option>
+                  <option value="AMBULANCE">🚑 Ambulance (Type B / ASSU)</option>
+                  <option value="TAXI_CONVENTIONNE">🚗 Taxi Conventionné CPAM</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Nom / Indicatif de flotte * :
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newVehName}
+                  onChange={(e) => setNewVehName(e.target.value)}
+                  placeholder="ex. VSL Médical 04 ou ASSU Madinina"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Immatriculation officielle (format AA-123-AA) * :
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newVehPlate}
+                  onChange={(e) => setNewVehPlate(e.target.value.toUpperCase())}
+                  placeholder="ex. JK-972-AZ"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-xs text-on-surface outline-none focus:border-primary uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Chauffeur titulaire assigné (optionnel) :
+                </label>
+                <select
+                  value={newVehDriverId}
+                  onChange={(e) => setNewVehDriverId(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                >
+                  <option value="">-- Aucun chauffeur (assigner plus tard) --</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.firstName} {d.lastName} ({d.role}) • 📱 {d.phone}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAddVehicleOpen(false)}
+                  className="py-2 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-xs"
+                >
+                  Enregistrer le véhicule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2 : CONFIRMER SUPPRESSION VÉHICULE                                  */}
+      {/* ========================================================================= */}
+      {vehicleToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-200 text-xs space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-xl">warning</span>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-on-surface">Supprimer le véhicule ?</h3>
+                <p className="text-on-surface-variant text-[11px]">Cette action est irréversible.</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-surface-container-low text-on-surface space-y-1">
+              <div className="font-bold">{vehicleToDelete.name}</div>
+              <div className="font-mono font-bold text-primary">{vehicleToDelete.plate}</div>
+              <div className="text-on-surface-variant text-[11px]">Chauffeur : {vehicleToDelete.driver}</div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setVehicleToDelete(null)}
+                className="py-2 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteVehicle}
+                className="py-2 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs"
+              >
+                Supprimer de la flotte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3 : AJOUTER UN CHAUFFEUR & ATTRIBUER UN MOBILE                      */}
+      {/* ========================================================================= */}
+      {isAddDriverOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-xl">person_add</span>
+                <h3 className="font-extrabold text-base text-on-surface">Nouveau Chauffeur &amp; Attribution Mobile</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddDriverOpen(false)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddDriver} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Prénom * :
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDriverFirstName}
+                    onChange={(e) => setNewDriverFirstName(e.target.value)}
+                    placeholder="ex. Jean"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-secondary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Nom de famille * :
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newDriverLastName}
+                    onChange={(e) => setNewDriverLastName(e.target.value)}
+                    placeholder="ex. Dupond"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-secondary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Qualification / Titre professionnel * :
+                </label>
+                <select
+                  value={newDriverRole}
+                  onChange={(e) => setNewDriverRole(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-secondary"
+                >
+                  <option value="Ambulancier DEA">Ambulancier Diplômé d'État (DEA)</option>
+                  <option value="Ambulancier DEA (Cadre)">Ambulancier DEA (Cadre / Chef d'équipe)</option>
+                  <option value="Ambulancière Auxiliaire">Ambulancier Auxiliaire</option>
+                  <option value="Chauffeur Taxi Conventionné">Chauffeur Taxi Conventionné CPAM</option>
+                  <option value="Chauffeur TPMR">Chauffeur TPMR Autonome</option>
+                </select>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-secondary/5 border border-secondary/20 space-y-1">
+                <label className="block text-[11px] font-bold uppercase text-secondary mb-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">smartphone</span>
+                  <span>Numéro de Mobile dédié du chauffeur * :</span>
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={newDriverPhone}
+                  onChange={(e) => setNewDriverPhone(e.target.value)}
+                  placeholder="ex. 0696 34 56 78"
+                  className="w-full p-2.5 rounded-xl border border-secondary/40 bg-surface-container-lowest font-mono font-extrabold text-sm text-on-surface outline-none focus:border-secondary"
+                />
+                <p className="text-[10px] text-on-surface-variant leading-tight mt-1">
+                  Ce numéro servira à joindre directement le chauffeur en mission, à lui transmettre les alertes SMS et à l'équipage de bord.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Affecter immédiatement à un véhicule (optionnel) :
+                </label>
+                <select
+                  value={newDriverPlate}
+                  onChange={(e) => setNewDriverPlate(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-secondary"
+                >
+                  <option value="">-- Réserve / Non affecté --</option>
+                  {fleet.map((v) => (
+                    <option key={v.id} value={v.plate}>
+                      {v.name} ({v.plate}) [{v.type === 'AMBULANCE' ? 'Ambulance' : v.type === 'VSL' ? 'VSL' : 'Taxi'}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAddDriverOpen(false)}
+                  className="py-2 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-4 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs"
+                >
+                  Enregistrer le chauffeur
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4 : MODIFIER UN CHAUFFEUR & SON NUMÉRO DE MOBILE                     */}
+      {/* ========================================================================= */}
+      {driverToEdit && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">edit</span>
+                <h3 className="font-extrabold text-base text-on-surface">Modifier Chauffeur &amp; Mobile</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDriverToEdit(null)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedDriver} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Prénom * :
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editDriverFirstName}
+                    onChange={(e) => setEditDriverFirstName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Nom * :
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editDriverLastName}
+                    onChange={(e) => setEditDriverLastName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                  Rôle / Qualification :
+                </label>
+                <select
+                  value={editDriverRole}
+                  onChange={(e) => setEditDriverRole(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                >
+                  <option value="Ambulancier DEA">Ambulancier Diplômé d'État (DEA)</option>
+                  <option value="Ambulancier DEA (Cadre)">Ambulancier DEA (Cadre / Chef d'équipe)</option>
+                  <option value="Ambulancière Auxiliaire">Ambulancier Auxiliaire</option>
+                  <option value="Chauffeur Taxi Conventionné">Chauffeur Taxi Conventionné CPAM</option>
+                  <option value="Chauffeur TPMR">Chauffeur TPMR Autonome</option>
+                </select>
+              </div>
+
+              {/* Champ Mobile direct */}
+              <div className="p-3 rounded-2xl bg-primary/5 border border-primary/25 space-y-1">
+                <label className="block text-[11px] font-bold uppercase text-primary mb-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">smartphone</span>
+                  <span>Numéro de Mobile direct * :</span>
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={editDriverPhone}
+                  onChange={(e) => setEditDriverPhone(e.target.value)}
+                  placeholder="ex. 0696 34 56 78"
+                  className="w-full p-2.5 rounded-xl border border-primary/40 bg-surface-container-lowest font-mono font-extrabold text-sm text-on-surface outline-none focus:border-primary"
+                />
+                <p className="text-[10px] text-on-surface-variant leading-tight">
+                  La modification synchronise automatiquement le numéro de mobile du véhicule qui lui est assigné.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Statut opérationnel :
+                  </label>
+                  <select
+                    value={editDriverStatus}
+                    onChange={(e) => setEditDriverStatus(e.target.value as any)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                  >
+                    <option value="DISPONIBLE">🟢 Disponible / En service</option>
+                    <option value="EN_MISSION">🟠 En mission</option>
+                    <option value="EN_REPOS">⚪ En repos / Congé</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-on-surface-variant mb-1">
+                    Véhicule affecté :
+                  </label>
+                  <select
+                    value={editDriverPlate}
+                    onChange={(e) => setEditDriverPlate(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
+                  >
+                    <option value="">Non affecté (réserve)</option>
+                    {fleet.map((v) => (
+                      <option key={v.id} value={v.plate}>
+                        {v.name} ({v.plate})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDriverToEdit(null)}
+                  className="py-2 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-4 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-xs"
+                >
+                  Mettre à jour le mobile &amp; profil
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5 : CONFIRMER SUPPRESSION CHAUFFEUR                                 */}
+      {/* ========================================================================= */}
+      {driverToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-200 text-xs space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-xl">person_remove</span>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-on-surface">Retirer ce chauffeur ?</h3>
+                <p className="text-on-surface-variant text-[11px]">Le chauffeur sera désassigné de son véhicule.</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-surface-container-low text-on-surface space-y-1">
+              <div className="font-bold text-sm">{driverToDelete.firstName} {driverToDelete.lastName}</div>
+              <div className="text-secondary font-semibold">{driverToDelete.role}</div>
+              <div className="font-mono text-xs">📱 {driverToDelete.phone}</div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setDriverToDelete(null)}
+                className="py-2 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteDriver}
+                className="py-2 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs"
+              >
+                Retirer de l'équipe
+              </button>
             </div>
           </div>
         </div>
