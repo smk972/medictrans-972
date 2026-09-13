@@ -65,6 +65,25 @@ export interface Ride {
   source: 'PATIENT' | 'FACILITY';
   facilityDepartment?: string;
   bedDischargeNumber?: string;
+  estimatedDistanceKm?: number;
+  estimatedDurationMin?: number;
+  pricing?: RidePricing;
+}
+
+export interface RidePricing {
+  distanceKm: number;
+  durationMinutes: number;
+  baseForfait: number;
+  distanceTarifKm: number;
+  distanceAmount: number;
+  surcharges: { label: string; amount: number }[];
+  totalPrestation: number;
+  cpamCoveragePercent: number; // 100% (ALD) ou 65% (Régime Général)
+  cpamAmount: number;
+  mutuelleAmount: number;
+  patientRemainder: number;
+  isAld: boolean;
+  tariffRegime: string; // Ex: 'CPAM Martinique 972 - Barème Officiel'
 }
 
 export interface Transporter {

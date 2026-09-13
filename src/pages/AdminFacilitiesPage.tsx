@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { rideService } from '../services/rideService';
 import { Facility } from '../types';
+import { GoogleMapView } from '../components/GoogleMapView';
 
 export const AdminFacilitiesPage: React.FC = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
@@ -228,6 +229,15 @@ export const AdminFacilitiesPage: React.FC = () => {
                     ⭐ Note {selectedFacility.rating || 4.9} / 5
                   </div>
                 </div>
+              </div>
+
+              {/* Localisation Google Maps */}
+              <div className="w-full h-44 rounded-2xl overflow-hidden shadow-xs border border-outline-variant/20">
+                <GoogleMapView
+                  mode="facility"
+                  facilityName={`${selectedFacility.name}, ${selectedFacility.city}`}
+                  height="100%"
+                />
               </div>
 
               {/* Paramétrage des Points de Dépose */}

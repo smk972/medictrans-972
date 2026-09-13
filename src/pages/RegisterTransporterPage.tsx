@@ -5,6 +5,7 @@ import { Footer } from '../components/Footer';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PhoneInput } from '../components/PhoneInput';
 import { FileUpload } from '../components/FileUpload';
+import { GoogleMapView } from '../components/GoogleMapView';
 
 export const RegisterTransporterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -533,14 +534,8 @@ export const RegisterTransporterPage: React.FC = () => {
 
 <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-sm">
 <span className="font-label-md text-label-md text-primary uppercase font-bold tracking-wider">Couverture Territoriale 972</span>
-<div className="w-full h-44 rounded-lg bg-cover bg-center relative overflow-hidden flex items-end p-space-sm shadow-inner" style={{ backgroundImage: "url('/assets/martinique_map.jpg')" }}>
-<div className="bg-surface-container-lowest/95 backdrop-blur-sm p-space-xs rounded-md shadow-sm w-full flex items-center justify-between">
-<div className="flex items-center gap-1.5">
-<span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
-<span className="font-label-sm text-label-sm text-primary font-semibold">Hub Fort-de-France &amp; Baie</span>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant">34 Communes reliées</span>
-</div>
+<div className="w-full h-44 rounded-xl overflow-hidden relative shadow-inner">
+  <GoogleMapView mode="fleet" height="100%" />
 </div>
 <div className="grid grid-cols-2 gap-space-xs pt-1 text-on-surface-variant font-label-sm text-label-sm">
 <div className="flex items-center gap-1">

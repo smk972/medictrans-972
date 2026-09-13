@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { GoogleMapView } from '../components/GoogleMapView';
 import { whatsappService } from '../services/whatsappService';
 
 export const TrackingPage: React.FC = () => {
@@ -483,15 +484,16 @@ export const TrackingPage: React.FC = () => {
                   </div>
                   <span className="text-xs text-secondary font-bold">En direct</span>
                 </div>
-                <div className="h-52 relative overflow-hidden">
-                  <img
-                    src="/assets/martinique_map.jpg"
-                    alt="Régulation Martinique"
-                    className="w-full h-full object-cover"
+                <div className="h-60 relative overflow-hidden">
+                  <GoogleMapView
+                    mode="tracking"
+                    height="100%"
+                    etaMinutes={12}
+                    driverName="J. Maréchal (Ambulances Madinina)"
+                    vehiclePlate="FA-972-MQ"
+                    origin="Schœlcher"
+                    destination="CHU Pierre Zobda-Quitman"
                   />
-                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-xs text-xs font-semibold text-primary">
-                    14 véhicules géolocalisés
-                  </div>
                 </div>
               </div>
 

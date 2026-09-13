@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { GoogleMapView } from '../components/GoogleMapView';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -579,18 +580,8 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <div className="lg:col-span-7 relative">
-                  <div className="w-full h-96 rounded-2xl overflow-hidden shadow-lg relative bg-surface-container-highest border border-outline-variant/30">
-                    <img
-                      src="/assets/martinique_map.jpg"
-                      alt="Carte du réseau sanitaire de Martinique"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-4 left-4 bg-surface-container-lowest/95 backdrop-blur-md px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2 border border-outline-variant/30">
-                      <span className="w-3 h-3 rounded-full bg-secondary animate-ping"></span>
-                      <span className="font-label-sm text-label-sm text-on-surface font-bold text-xs">
-                        Régulation CHU Pierre Zobda-Quitman : Active
-                      </span>
-                    </div>
+                  <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-lg relative border border-outline-variant/30">
+                    <GoogleMapView mode="fleet" height="100%" />
                   </div>
                 </div>
               </div>

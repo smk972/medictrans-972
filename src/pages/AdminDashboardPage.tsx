@@ -5,6 +5,7 @@ import { rideService } from '../services/rideService';
 import { Ride, Transporter } from '../types';
 import { TransportBadge } from '../components/TransportBadge';
 import { StatusBadge } from '../components/StatusBadge';
+import { GoogleMapView } from '../components/GoogleMapView';
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -346,6 +347,10 @@ export const AdminDashboardPage: React.FC = () => {
                 Disponibilité Géolocalisée
               </h2>
               <span className="text-xs text-secondary font-bold">34 Communes 972</span>
+            </div>
+
+            <div className="w-full h-48 rounded-2xl overflow-hidden mb-4 shadow-xs border border-outline-variant/20">
+              <GoogleMapView mode="fleet" height="100%" />
             </div>
 
             <div className="space-y-3">

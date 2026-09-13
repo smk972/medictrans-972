@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { GoogleMapView } from '../components/GoogleMapView';
 
 export const CpamRightsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -447,15 +448,7 @@ export const CpamRightsPage: React.FC = () => {
 
                 <div className="lg:col-span-7 flex flex-col gap-space-sm">
                   <div className="w-full h-96 rounded-2xl shadow-lg overflow-hidden relative border border-outline-variant/30">
-                    <img
-                      src="/assets/martinique_map.jpg"
-                      alt="Carte Martinique"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-4 left-4 bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-primary font-label-sm text-label-sm font-bold shadow-md flex items-center gap-space-xs text-xs border border-outline-variant/30">
-                      <span className="material-symbols-outlined text-[16px]">pin_drop</span>
-                      <span>Couverture active SAMU / SAS 972</span>
-                    </div>
+                    <GoogleMapView mode="fleet" height="100%" />
                   </div>
                   <div className="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-1 text-xs">
                     <span>

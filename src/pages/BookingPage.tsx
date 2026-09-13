@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { FileUpload, UploadedFile } from '../components/FileUpload';
 import { PhoneInput } from '../components/PhoneInput';
+import { GoogleMapView } from '../components/GoogleMapView';
 import { whatsappService } from '../services/whatsappService';
 import { rideService } from '../services/rideService';
+import { calculateMedicalRidePricing } from '../services/pricingService';
+import { TransportType } from '../types';
 
 export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -59,6 +62,32 @@ export const BookingPage: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Moteur réglementaire de calcul du prix & de la distance en Martinique
+  const mappedTransportType: TransportType =
+    transportType === 'taxi'
+      ? 'TAXI_CONVENTIONNE'
+      : transportType === 'ambulance'
+      ? 'AMBULANCE'
+      : 'VSL';
+
+  const ridePricing = useMemo(() => {
+    return calculateMedicalRidePricing({
+      transportType: mappedTransportType,
+      originAddress: pickupAddress,
+      destinationAddress: destinationFacility,
+      isAld,
+      isRoundTrip: false,
+      dateTimeStr: `${transportDate}T${transportTime}:00`,
+      mobility: {
+        wheelchair: mobility === 'fauteuil',
+        stretcher: mobility === 'allonge',
+        oxygen,
+        stairsWithoutElevator: !hasElevator,
+        needsEscort: hasCompanion,
+      },
+    });
+  }, [mappedTransportType, pickupAddress, destinationFacility, isAld, transportDate, transportTime, mobility, oxygen, hasElevator, hasCompanion]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -104,6 +133,9 @@ export const BookingPage: React.FC = () => {
           notes: `Motif: ${motif}`,
         },
         source: 'PATIENT',
+        estimatedDistanceKm: ridePricing.distanceKm,
+        estimatedDurationMin: ridePricing.durationMinutes,
+        pricing: ridePricing,
       });
 
       const actualRef = createdRide?.reference || finalRef;
@@ -810,23 +842,18 @@ export const BookingPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Martinique Map Preview */}
-                <div className="flex flex-col rounded-xl overflow-hidden bg-surface-container-low shadow-sm border border-outline-variant/20">
-                  <div className="w-full h-36 relative overflow-hidden">
-                    <img
-                      src="/assets/martinique_map.jpg"
-                      alt="Carte Martinique itinéraire"
-                      className="w-full h-full object-cover"
+                {/* Real Interactive Google Maps Route Card */}
+                <div className="flex flex-col rounded-2xl overflow-hidden bg-surface-container-low shadow-sm border border-outline-variant/30">
+                  <div className="w-full h-44 relative">
+                    <GoogleMapView
+                      mode="route"
+                      origin={pickupAddress}
+                      destination={destinationFacility}
+                      height="100%"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-space-sm">
-                      <span className="font-label-sm text-label-sm text-white flex items-center gap-1 font-semibold text-xs">
-                        <span className="material-symbols-outlined text-[16px]">navigation</span>
-                        Distance estimée : 7.8 km (18 min)
-                      </span>
-                    </div>
                   </div>
 
-                  <div className="p-space-md flex flex-col gap-space-md bg-surface-container-lowest">
+                  <div className="p-space-md flex flex-col gap-space-sm bg-surface-container-lowest border-t border-outline-variant/20">
                     <div className="flex items-start gap-space-sm">
                       <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                         <span className="material-symbols-outlined text-[14px]">home</span>
@@ -883,32 +910,69 @@ export const BookingPage: React.FC = () => {
                         : 'VSL Sanitaire Léger'}
                     </span>
                     <span className="font-body-sm text-body-sm text-secondary font-semibold text-xs">
-                      Climatisé · 1 valise
+                      {ridePricing.distanceKm} km • ~{ridePricing.durationMinutes} min
                     </span>
                   </div>
                 </div>
 
-                {/* Tiers Payant calculation */}
-                <div className="p-space-md rounded-xl bg-surface-container-high/60 flex flex-col gap-space-xs border border-outline-variant/30">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-label-md text-label-md text-on-surface font-semibold">
-                      Prise en charge Sécurité Sociale
+                {/* Official CPAM Tariffs & Tiers Payant breakdown */}
+                <div className="p-space-md rounded-2xl bg-surface-container-low/80 flex flex-col gap-space-xs border border-outline-variant/30 text-xs shadow-xs">
+                  <div className="flex items-center justify-between pb-1 border-b border-outline-variant/20">
+                    <span className="font-bold text-on-surface flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px] text-primary">receipt_long</span>
+                      Tarif Conventionné CPAM 972
                     </span>
-                    <span className="font-label-md text-label-md text-secondary font-bold">
-                      {isAld ? '100% (ALD 30)' : '65% (Tiers payant mutuelle)'}
+                    <span className="font-extrabold text-on-surface font-mono text-sm text-primary">
+                      {ridePricing.totalPrestation.toFixed(2)} €
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-body-sm text-body-sm text-on-surface-variant">
-                      Ticket modérateur / Avance
-                    </span>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant">0,00 €</span>
+
+                  <div className="flex justify-between items-center text-on-surface-variant pt-1">
+                    <span>Forfait départemental Martinique</span>
+                    <span className="font-mono">{ridePricing.baseForfait.toFixed(2)} €</span>
                   </div>
+
+                  <div className="flex justify-between items-center text-on-surface-variant">
+                    <span>Distance ({ridePricing.distanceKm} km × {ridePricing.distanceTarifKm.toFixed(2)} €/km)</span>
+                    <span className="font-mono">{ridePricing.distanceAmount.toFixed(2)} €</span>
+                  </div>
+
+                  {ridePricing.surcharges.map((s, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-amber-700">
+                      <span>{s.label}</span>
+                      <span className="font-mono">+{s.amount.toFixed(2)} €</span>
+                    </div>
+                  ))}
+
+                  <div className="pt-1 border-t border-outline-variant/20 flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-secondary font-semibold">
+                        Part Assurance Maladie ({ridePricing.cpamCoveragePercent}%)
+                      </span>
+                      <span className="font-bold text-secondary font-mono">
+                        -{ridePricing.cpamAmount.toFixed(2)} €
+                      </span>
+                    </div>
+
+                    {!isAld && (
+                      <div className="flex justify-between items-center text-on-surface-variant">
+                        <span>Part Mutuelle / Complémentaire (35%)</span>
+                        <span className="font-mono">-{ridePricing.mutuelleAmount.toFixed(2)} €</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="pt-space-xs flex justify-between items-center border-t border-outline-variant/30 mt-1">
-                    <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                      Reste à charge estimé
-                    </span>
-                    <span className="font-headline-lg text-headline-lg text-secondary font-bold text-xl">
+                    <div className="flex flex-col">
+                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs">
+                        Reste à charge patient
+                      </span>
+                      <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[12px]">verified</span>
+                        Tiers-payant intégral activé
+                      </span>
+                    </div>
+                    <span className="font-headline-lg text-headline-lg text-emerald-700 font-bold text-2xl font-mono">
                       0,00 €
                     </span>
                   </div>

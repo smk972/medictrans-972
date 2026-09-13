@@ -4,6 +4,8 @@ import { rideService } from '../services/rideService';
 import { Ride, RideStatus, TransportType, Transporter } from '../types';
 import { TransportBadge } from '../components/TransportBadge';
 import { StatusBadge } from '../components/StatusBadge';
+import { GoogleMapView } from '../components/GoogleMapView';
+import { calculateMedicalRidePricing } from '../services/pricingService';
 
 export const AdminSupervisionPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
@@ -419,6 +421,16 @@ export const AdminSupervisionPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Carte Google Maps Itinéraire */}
+              <div className="w-full h-44 rounded-2xl overflow-hidden shadow-xs border border-outline-variant/30">
+                <GoogleMapView
+                  mode="route"
+                  origin={selectedRide.pickupAddress}
+                  destination={selectedRide.dropoffAddress}
+                  height="100%"
+                />
               </div>
 
               {/* Patient Profile Card */}

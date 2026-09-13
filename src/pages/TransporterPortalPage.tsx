@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleMapView } from '../components/GoogleMapView';
 
 export const TransporterPortalPage: React.FC = () => {
   const navigate = useNavigate();
@@ -509,14 +510,8 @@ export const TransporterPortalPage: React.FC = () => {
           </h3>
 <span className="font-label-sm text-label-sm text-on-surface-variant font-mono">Martinique (972)</span>
 </div>
-<div className="w-full h-44 bg-surface-container rounded-lg relative overflow-hidden flex flex-col justify-end p-space-sm shadow-inner" data-location="Fort-de-France, Martinique" >
-<div className="bg-surface-container-lowest/90 backdrop-blur-md p-2 rounded-md flex items-center justify-between shadow-sm">
-<div className="flex items-center gap-2">
-<span className="w-2.5 h-2.5 rounded-full bg-secondary animate-ping"></span>
-<span className="font-label-sm text-label-sm text-on-surface font-bold">4 véhicules localisés GPS</span>
-</div>
-<span className="font-label-sm text-label-sm text-primary font-semibold">Ouvrir plein écran</span>
-</div>
+<div className="w-full h-48 rounded-xl overflow-hidden relative shadow-inner">
+  <GoogleMapView mode="fleet" height="100%" />
 </div>
 <div className="grid grid-cols-2 gap-2">
 <div className="bg-surface-container-low p-2 rounded flex flex-col">
