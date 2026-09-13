@@ -355,7 +355,7 @@ export const TransporterPortalPage: React.FC = () => {
           firstName: 'Éliane',
           lastName: 'Moutoussamy',
           birthDate: '1961-04-18',
-          nir: '2 61 04 97 215 098 30',
+          nir: '2 61 04 97 215 098',
           phone: '0696 22 88 11',
           email: 'eliane.moutoussamy@sante-972.fr',
           address: '14 Rue Victor Hugo',

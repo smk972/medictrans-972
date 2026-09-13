@@ -49,11 +49,11 @@ export const NirInput: React.FC<NirInputProps> = ({
         {validation.isValid ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
             <span className="material-symbols-outlined text-[14px]">verified</span>
-            NIR Conforme &amp; Clé {validation.givenControlKey}
+            NIR Conforme
           </span>
         ) : (
           <span className="font-label-sm text-label-sm text-secondary font-bold text-xs">
-            15 chiffres (Clé obligatoire)
+            13 chiffres (Sécurité Sociale)
           </span>
         )}
       </div>
@@ -70,8 +70,8 @@ export const NirInput: React.FC<NirInputProps> = ({
           value={value}
           onChange={handleChange}
           disabled={disabled}
-          maxLength={21} // accommodates formatted spaces: "1 XX XX XX XXX XXX XX"
-          placeholder="1 XX XX XX XXX XXX XX"
+          maxLength={21}
+          placeholder="1 XX XX XX XXX XXX"
           className={`w-full h-11 px-3 pl-10 pr-10 bg-surface-container-lowest rounded-xl font-mono text-body-md text-on-surface border transition-all outline-none shadow-xs ${
             validation.isValid
               ? 'border-emerald-500/80 focus:ring-2 focus:ring-emerald-500/30'
@@ -96,7 +96,7 @@ export const NirInput: React.FC<NirInputProps> = ({
             </span>
           ) : (
             <span className="text-[11px] font-mono text-on-surface-variant/60 font-semibold">
-              15 car.
+              13 chiffres
             </span>
           )}
         </div>
@@ -110,7 +110,10 @@ export const NirInput: React.FC<NirInputProps> = ({
               <span>
                 Patient {validation.gender === 'M' ? 'Masculin' : 'Féminin'} • Né(e) en 19{validation.birthYear?.toString().padStart(2, '0')} / 20{validation.birthYear?.toString().padStart(2, '0')} (Mois {validation.birthMonth?.toString().padStart(2, '0')})
               </span>
-              <span className="font-mono font-bold">Clé : {validation.givenControlKey}</span>
+              <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                <span className="material-symbols-outlined text-xs">verified</span>
+                Format NIR validé
+              </span>
             </div>
           ) : value && value.trim().length > 0 ? (
             <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 text-[11px]">
@@ -131,7 +134,7 @@ export const NirInput: React.FC<NirInputProps> = ({
             </div>
           ) : (
             <p className="text-[11px] text-on-surface-variant">
-              Inscrit sur votre Carte Vitale ou attestation de droits CGSS Martinique (13 chiffres + clé à 2 chiffres).
+              Inscrit sur votre Carte Vitale ou attestation de droits CGSS Martinique (13 chiffres d'immatriculation).
             </p>
           )}
         </div>

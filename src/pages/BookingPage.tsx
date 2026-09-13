@@ -47,7 +47,7 @@ export const BookingPage: React.FC = () => {
   // Form states - Patient & Médical
   const [lastName, setLastName] = useState('GLISSANT');
   const [firstName, setFirstName] = useState('Aimé');
-  const [nir, setNir] = useState('1 54 08 97 213 456 92');
+  const [nir, setNir] = useState('1 54 08 97 213 456');
   const nirValidation = useMemo(() => validateNir(nir), [nir]);
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
   const [phone, setPhone] = useState('06 96 44 20 18');
@@ -1197,7 +1197,7 @@ export const BookingPage: React.FC = () => {
                       <div className="flex flex-col">
                         <strong className="text-amber-900 font-bold">Numéro de Sécurité Sociale (NIR) obligatoire :</strong>
                         <span className="text-[11px] text-amber-800 leading-tight mt-0.5">
-                          {nirValidation.errorMessage || "Le NIR doit comporter 15 chiffres avec clé de contrôle valide pour diffuser la demande."}
+                          {nirValidation.errorMessage || "Le NIR doit comporter 13 chiffres valides pour diffuser la demande."}
                         </span>
                       </div>
                     </div>

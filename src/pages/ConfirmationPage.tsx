@@ -217,7 +217,7 @@ export const ConfirmationPage: React.FC = () => {
                         N° Sécurité Sociale (NIR)
                       </span>
                       <span className="font-label-lg text-label-lg font-bold text-on-surface tracking-wide text-xs font-mono">
-                        {bookingData?.nir || '1 54 08 97 213 456 92'}
+                        {bookingData?.nir || '1 54 08 97 213 456'}
                       </span>
                       <span className="font-body-sm text-body-sm text-secondary font-bold text-xs">
                         Régime Général - CGSS 972

@@ -12,7 +12,7 @@ export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
     firstName: 'Édouard',
     lastName: 'Châtenay',
     phone: '0696 45 12 78',
-    nir: '1 58 04 97 214 058 06',
+    nir: '1 58 04 97 214 058',
     avatarUrl: '/assets/headshot.png',
     createdAt: new Date().toISOString()
   },
@@ -154,7 +154,7 @@ export class AuthService {
       firstName: role === 'FACILITY' ? 'Dr. Alix' : 'Jean-Marc',
       lastName: role === 'FACILITY' ? 'Célestine' : 'Théodore',
       phone: '0696 82 45 10',
-      nir: role === 'PATIENT' ? '1 72 05 97 201 112 60' : undefined,
+      nir: role === 'PATIENT' ? '1 72 05 97 201 112' : undefined,
       avatarUrl: 'https://lh3.googleusercontent.com/a/ACg8ocIq8Q_gX9W67iY9h-e9g=s96-c',
       facilityName: role === 'FACILITY' ? 'CHU de Martinique - Pierre Zobda-Quitman' : undefined,
       transporterName: role === 'TRANSPORTER' ? 'Ambulances & Taxis Alizés Martinique' : undefined,

@@ -185,7 +185,7 @@ export function validateNir(raw: string): NirValidationResult {
       birthYear,
       birthMonth,
       department,
-      errorMessage: `Saisie en cours (${clean.length}/15 chiffres) : 13 chiffres + clé de contrôle requise.`,
+      errorMessage: `Saisie en cours (${clean.length}/13 chiffres) : Numéro NIR de 13 chiffres requis.`,
     };
   }
 
@@ -197,30 +197,29 @@ export function validateNir(raw: string): NirValidationResult {
       isValid: false,
       clean,
       formatted,
-      isComplete: clean.length >= 15,
+      isComplete: clean.length >= 13,
       canAutoCalculateKey: false,
       gender,
       birthYear,
       birthMonth,
       department,
-      errorMessage: 'La structure des 13 premiers chiffres du NIR est incorrecte.',
+      errorMessage: 'La structure des 13 chiffres du NIR est incorrecte.',
     };
   }
 
-  // Cas où l'utilisateur a entré exactement 13 chiffres (sans la clé)
+  // Cas officiel standard : NIR complet à 13 chiffres (sans clé)
   if (clean.length === 13) {
     return {
-      isValid: false,
+      isValid: true,
       clean,
       formatted,
-      isComplete: false,
-      canAutoCalculateKey: true,
+      isComplete: true,
+      canAutoCalculateKey: false,
       expectedControlKey,
       gender,
       birthYear,
       birthMonth,
       department,
-      errorMessage: `Clé manquante : entrez la clé à 2 chiffres ou appliquez la clé calculée (${expectedControlKey}).`,
     };
   }
 
@@ -236,11 +235,11 @@ export function validateNir(raw: string): NirValidationResult {
       birthYear,
       birthMonth,
       department,
-      errorMessage: 'La clé de contrôle doit comporter 2 chiffres (14/15 renseignés).',
+      errorMessage: 'Le NIR doit comporter 13 chiffres (ou 15 avec la clé de contrôle).',
     };
   }
 
-  // 15 caractères : vérification stricte de la clé de contrôle
+  // 15 caractères : vérification de la clé de contrôle si fournie
   const givenControlKey = clean.slice(13, 15);
   if (givenControlKey !== expectedControlKey) {
     return {
@@ -255,11 +254,11 @@ export function validateNir(raw: string): NirValidationResult {
       birthYear,
       birthMonth,
       department,
-      errorMessage: `Clé de contrôle incorrecte (${givenControlKey}). La clé Sécurité Sociale valide pour ce numéro est ${expectedControlKey}.`,
+      errorMessage: `Clé de contrôle incorrecte (${givenControlKey}). Clé attendue : ${expectedControlKey}.`,
     };
   }
 
-  // NIR 100% VALIDE
+  // NIR à 15 chiffres 100% VALIDE
   return {
     isValid: true,
     clean,
