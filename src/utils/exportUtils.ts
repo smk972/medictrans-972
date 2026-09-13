@@ -85,7 +85,17 @@ export function exportRidesToExcel(rides: Ride[], options: ExportOptions): void 
       ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
       : '';
 
-    const pmtStatus = (ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl)
+    const isPending = ride.status === 'PENDING';
+    const patientLastName = isPending
+      ? (ride.patient.lastName ? `${ride.patient.lastName.trim().charAt(0).toUpperCase()}.` : '')
+      : ride.patient.lastName;
+    const patientNir = isPending ? '•••••••• (après validation)' : `'${ride.patient.nir || ''}`;
+    const patientPhone = isPending ? 'Confidentiel' : (ride.patient.phone || '');
+    const prescriber = isPending ? 'Confidentiel (verrouillé)' : (ride.patient.pmtPrescriberDoctor || '-');
+
+    const pmtStatus = isPending
+      ? 'Confidentielle (verrouillée avant validation)'
+      : (ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl)
       ? 'PMT Téléversée (Numérique)'
       : 'PMT Papier (Cerfa S3138 à récupérer)';
 
@@ -93,12 +103,12 @@ export function exportRidesToExcel(rides: Ride[], options: ExportOptions): void 
       escapeCsv(ride.reference),
       escapeCsv(dateStr),
       escapeCsv(timeStr),
-      escapeCsv(ride.patient.lastName),
+      escapeCsv(patientLastName),
       escapeCsv(ride.patient.firstName),
       // Préfixe apostrophe pour forcer Excel à traiter le NIR comme texte
-      escapeCsv(`'${ride.patient.nir || ''}`),
+      escapeCsv(patientNir),
       escapeCsv(ride.patient.isAld ? '100% ALD' : 'Conventionnée CPAM 65%'),
-      escapeCsv(ride.patient.phone || ''),
+      escapeCsv(patientPhone),
       escapeCsv(ride.pickupAddress),
       escapeCsv(ride.pickupCity),
       escapeCsv(ride.facilityName || ride.dropoffAddress),
@@ -109,7 +119,7 @@ export function exportRidesToExcel(rides: Ride[], options: ExportOptions): void 
       escapeCsv(ride.assignedTransporter?.driverName || '-'),
       escapeCsv(ride.assignedTransporter?.vehiclePlate || '-'),
       escapeCsv(pmtStatus),
-      escapeCsv(ride.patient.pmtPrescriberDoctor || '-'),
+      escapeCsv(prescriber),
       escapeCsv(ride.isRoundTrip ? 'Oui (Aller-Retour)' : 'Non (Aller simple)'),
       escapeCsv(ride.bedDischargeNumber || ride.facilityDepartment || '-'),
       escapeCsv(ride.mobility.notes || '-')
@@ -204,7 +214,14 @@ export function exportRidesToPdf(rides: Ride[], options: ExportOptions): void {
         d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
       : '-';
 
-    const patientText = `${r.patient.lastName} ${r.patient.firstName}\nNIR: ${r.patient.nir || 'N/A'}`;
+    const isPending = r.status === 'PENDING';
+    const patientLastName = isPending
+      ? (r.patient.lastName ? `${r.patient.lastName.trim().charAt(0).toUpperCase()}.` : '')
+      : r.patient.lastName;
+    const patientNir = isPending ? 'Confidentiel' : (r.patient.nir || 'N/A');
+    const patientText = isPending
+      ? `${r.patient.firstName} ${patientLastName}\nNIR: ${patientNir}`
+      : `${patientLastName} ${r.patient.firstName}\nNIR: ${patientNir}`;
     const destination = r.facilityName || r.dropoffAddress;
     const routeText = `${r.pickupCity} ➔ ${r.dropoffCity}\n${destination}`;
 
@@ -213,7 +230,9 @@ export function exportRidesToPdf(rides: Ride[], options: ExportOptions): void {
       : 'Non assigné';
 
     const hasPmt = r.patient.hasPmt || r.patient.pmtUploaded || r.patient.pmtFileUrl;
-    const pmtText = hasPmt
+    const pmtText = isPending
+      ? 'Confidentielle\n(après validation)'
+      : hasPmt
       ? `Numérique\n${r.patient.pmtPrescriberDoctor || 'Prescripteur validé'}`
       : 'Papier requis\n(Cerfa S3138)';
 

@@ -49,6 +49,30 @@ const DEFAULT_FLEET: VehicleFleet[] = [
   }
 ];
 
+/**
+ * Règle de protection du secret médical (RGPD & Déontologie Santé) :
+ * Sur les propositions de courses non validées / en attente (status === 'PENDING'),
+ * seul le prénom et la première lettre du nom sont affichés (ex: "Éliane M.").
+ * L'accès à l'ensemble des informations (nom complet, NIR, téléphone, PMT) est déverrouillé
+ * uniquement lorsqu'ils ont validé / accepté la course.
+ */
+export const getPatientDisplayName = (
+  patient?: { firstName?: string; lastName?: string },
+  isAccepted: boolean = false
+): string => {
+  if (!patient) return 'Patient';
+  const firstName = patient.firstName?.trim() || '';
+  const lastName = patient.lastName?.trim() || '';
+
+  if (isAccepted) {
+    return `${firstName} ${lastName}`.trim() || 'Patient';
+  }
+
+  // Format proposition : Prénom + Initiale du nom
+  const initial = lastName ? `${lastName.charAt(0).toUpperCase()}.` : '';
+  return `${firstName} ${initial}`.trim() || 'Patient';
+};
+
 export const TransporterPortalPage: React.FC = () => {
   const { user } = useAuth();
 
@@ -1254,8 +1278,11 @@ export const TransporterPortalPage: React.FC = () => {
                           {/* Patient & Prise en charge */}
                           <div className="bg-surface-container-low p-3 rounded-xl mb-3 flex items-center justify-between gap-3">
                             <div>
-                              <div className="text-sm font-bold text-on-surface">
-                                {mission.patient.firstName} {mission.patient.lastName}
+                              <div className="text-sm font-bold text-on-surface flex items-center gap-2">
+                                <span>{getPatientDisplayName(mission.patient, false)}</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                                  Secret médical
+                                </span>
                               </div>
                               <div className="text-[11px] text-on-surface-variant flex items-center gap-1 mt-0.5">
                                 <span className="material-symbols-outlined text-xs text-secondary">verified</span>
@@ -1961,11 +1988,16 @@ export const TransporterPortalPage: React.FC = () => {
                                   {/* Patient & Trajet */}
                                   <div className="mt-3 space-y-2 text-xs">
                                     <div className="flex items-center justify-between">
-                                      <div className="font-bold text-on-surface text-sm group-hover:text-primary transition-colors">
-                                        {mission.patient.firstName} {mission.patient.lastName}
+                                      <div className="font-bold text-on-surface text-sm group-hover:text-primary transition-colors flex items-center gap-1.5">
+                                        <span>{getPatientDisplayName(mission.patient, !isPending)}</span>
+                                        {isPending && (
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                                            Secret médical
+                                          </span>
+                                        )}
                                       </div>
                                       <span className="text-[10px] text-on-surface-variant font-mono">
-                                        NIR: {mission.patient.nir ? `${mission.patient.nir.slice(0, 7)}...` : 'N/A'}
+                                        NIR: {!isPending && mission.patient.nir ? `${mission.patient.nir.slice(0, 7)}...` : '•••••••• (après validation)'}
                                       </span>
                                     </div>
 
@@ -2411,14 +2443,21 @@ export const TransporterPortalPage: React.FC = () => {
             </div>
 
             <div className="bg-surface-container-low p-3.5 rounded-2xl text-xs space-y-1">
-              <div className="font-bold text-on-surface text-sm">
-                {missionToAccept.patient.firstName} {missionToAccept.patient.lastName}
+              <div className="font-bold text-on-surface text-sm flex items-center gap-2">
+                <span>{getPatientDisplayName(missionToAccept.patient, false)}</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                  Secret médical
+                </span>
               </div>
               <div className="text-on-surface-variant">
                 Trajet : <strong>{missionToAccept.pickupCity}</strong> ➔ <strong>{missionToAccept.facilityName || missionToAccept.dropoffCity}</strong>
               </div>
               <div className="text-secondary font-semibold">
                 Véhicule prescrit : {missionToAccept.transportType} • ALD 100%
+              </div>
+              <div className="text-[11px] text-primary bg-primary/5 p-2 rounded-xl border border-primary/15 mt-1 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">lock_open</span>
+                <span>En confirmant la course, vous déverrouillerez l'accès à toutes les coordonnées du patient (nom complet, NIR, téléphone et PMT).</span>
               </div>
             </div>
 
@@ -2531,8 +2570,11 @@ export const TransporterPortalPage: React.FC = () => {
             </div>
 
             <div className="bg-surface-container-low p-3.5 rounded-2xl text-xs space-y-1">
-              <div className="font-bold text-on-surface text-sm">
-                {missionToDecline.patient.firstName} {missionToDecline.patient.lastName}
+              <div className="font-bold text-on-surface text-sm flex items-center gap-2">
+                <span>{getPatientDisplayName(missionToDecline.patient, false)}</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                  Secret médical
+                </span>
               </div>
               <div className="text-on-surface-variant">
                 Trajet : <strong>{missionToDecline.pickupCity}</strong> ➔ <strong>{missionToDecline.facilityName || missionToDecline.dropoffCity}</strong>
@@ -3082,41 +3124,77 @@ export const TransporterPortalPage: React.FC = () => {
             )}
 
             {/* Fiche Patient & Couverture CPAM */}
-            <div className="bg-surface-container-low p-4 rounded-2xl space-y-2.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-extrabold text-sm text-on-surface">
-                  {selectedMissionForRecap.patient.firstName} {selectedMissionForRecap.patient.lastName}
-                </span>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">verified</span>
-                  100% ALD CPAM
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-on-surface-variant">
-                <div>
-                  N° Sécurité Sociale (NIR) : <strong className="font-mono text-on-surface">{selectedMissionForRecap.patient.nir}</strong>
-                </div>
-                <div>
-                  Date de naissance : <strong className="text-on-surface">{selectedMissionForRecap.patient.birthDate}</strong>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span>Téléphone :</span>
-                  <a
-                    href={`tel:${selectedMissionForRecap.patient.phone}`}
-                    className="text-primary font-bold underline flex items-center gap-0.5"
-                  >
-                    <span className="material-symbols-outlined text-xs">call</span>
-                    <span>{selectedMissionForRecap.patient.phone}</span>
-                  </a>
-                </div>
-                {selectedMissionForRecap.patient.aldReason && (
-                  <div>
-                    Prise en charge : <strong className="text-secondary">{selectedMissionForRecap.patient.aldReason}</strong>
+            {(() => {
+              const isAccepted = selectedMissionForRecap.status !== 'PENDING';
+              return (
+                <div className="bg-surface-container-low p-4 rounded-2xl space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-on-surface">
+                        {getPatientDisplayName(selectedMissionForRecap.patient, isAccepted)}
+                      </span>
+                      {!isAccepted && (
+                        <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold text-[10px] border border-primary/20 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">lock</span>
+                          Secret médical protégé
+                        </span>
+                      )}
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">verified</span>
+                      100% ALD CPAM
+                    </span>
                   </div>
-                )}
-              </div>
-            </div>
+
+                  {!isAccepted && (
+                    <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-950 text-[11px] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-700 text-base shrink-0">privacy_tip</span>
+                      <span>
+                        <strong>Protection du secret médical :</strong> Conformément à la réglementation sanitaire, le nom complet, le NIR, le numéro de téléphone et la PMT sont confidentiels et ne deviennent accessibles qu'après validation de la course par votre société.
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-on-surface-variant">
+                    <div>
+                      N° Sécurité Sociale (NIR) :{' '}
+                      {isAccepted ? (
+                        <strong className="font-mono text-on-surface">{selectedMissionForRecap.patient.nir}</strong>
+                      ) : (
+                        <span className="font-mono text-on-surface-variant italic">••••••••••••• (après validation)</span>
+                      )}
+                    </div>
+                    <div>
+                      Date de naissance :{' '}
+                      {isAccepted ? (
+                        <strong className="text-on-surface">{selectedMissionForRecap.patient.birthDate}</strong>
+                      ) : (
+                        <span className="text-on-surface-variant italic">Masquée avant validation</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span>Téléphone :</span>
+                      {isAccepted ? (
+                        <a
+                          href={`tel:${selectedMissionForRecap.patient.phone}`}
+                          className="text-primary font-bold underline flex items-center gap-0.5"
+                        >
+                          <span className="material-symbols-outlined text-xs">call</span>
+                          <span>{selectedMissionForRecap.patient.phone}</span>
+                        </a>
+                      ) : (
+                        <span className="text-on-surface-variant italic">Accessible après validation</span>
+                      )}
+                    </div>
+                    {selectedMissionForRecap.patient.aldReason && (
+                      <div>
+                        Prise en charge : <strong className="text-secondary">{selectedMissionForRecap.patient.aldReason}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Trajet Sanitaire & Établissement */}
             <div className="bg-surface-container-low p-4 rounded-2xl space-y-2 text-xs">
