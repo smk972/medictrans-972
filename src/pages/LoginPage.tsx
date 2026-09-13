@@ -237,7 +237,7 @@ export const LoginPage: React.FC = () => {
               <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2.5">
                 Sélectionnez votre profil
               </label>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedRole('PATIENT')}
@@ -249,7 +249,7 @@ export const LoginPage: React.FC = () => {
                   <span className="material-symbols-outlined text-2xl mb-1 text-primary">
                     personal_injury
                   </span>
-                  <span className="font-bold text-xs sm:text-sm leading-tight">Patient / Famille</span>
+                  <span className="font-bold text-xs leading-tight">Patient</span>
                   <span className="text-[10px] text-on-surface-variant/80 mt-0.5 hidden sm:inline">Trajets & ALD</span>
                 </button>
 
@@ -264,7 +264,7 @@ export const LoginPage: React.FC = () => {
                   <span className="material-symbols-outlined text-2xl mb-1 text-secondary">
                     local_hospital
                   </span>
-                  <span className="font-bold text-xs sm:text-sm leading-tight">Établissement</span>
+                  <span className="font-bold text-xs leading-tight">Établissement</span>
                   <span className="text-[10px] text-on-surface-variant/80 mt-0.5 hidden sm:inline">CHU, Cliniques</span>
                 </button>
 
@@ -279,8 +279,23 @@ export const LoginPage: React.FC = () => {
                   <span className="material-symbols-outlined text-2xl mb-1 text-amber-600">
                     ambulance
                   </span>
-                  <span className="font-bold text-xs sm:text-sm leading-tight">Transporteur</span>
-                  <span className="text-[10px] text-on-surface-variant/80 mt-0.5 hidden sm:inline">Ambulances, VSL</span>
+                  <span className="font-bold text-xs leading-tight">Transporteur</span>
+                  <span className="text-[10px] text-on-surface-variant/80 mt-0.5 hidden sm:inline">Ambulances 972</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole('ADMIN')}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${selectedRole === 'ADMIN'
+                      ? 'border-purple-600 bg-purple-500/5 text-purple-700 shadow-xs ring-2 ring-purple-500/20'
+                      : 'border-outline-variant/40 hover:border-purple-600/40 bg-surface-container-lowest text-on-surface-variant'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-2xl mb-1 text-purple-600">
+                    tune
+                  </span>
+                  <span className="font-bold text-xs leading-tight">Régulation</span>
+                  <span className="text-[10px] text-on-surface-variant/80 mt-0.5 hidden sm:inline">Admin ARS</span>
                 </button>
               </div>
             </div>
@@ -540,7 +555,7 @@ export const LoginPage: React.FC = () => {
                   Sans mot de passe
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => handleDemoLogin('PATIENT')}
@@ -580,6 +595,20 @@ export const LoginPage: React.FC = () => {
                   <div className="overflow-hidden">
                     <div className="text-xs font-bold text-on-surface truncate">Madinina Sec.</div>
                     <div className="text-[10px] text-on-surface-variant truncate">Ambulancier</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('ADMIN')}
+                  className="px-3 py-2 rounded-xl text-left bg-surface-container hover:bg-purple-600/10 border border-outline-variant/30 hover:border-purple-600/40 transition-all group flex items-center gap-2.5"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-purple-600/10 text-purple-700 flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    🛡️
+                  </span>
+                  <div className="overflow-hidden">
+                    <div className="text-xs font-bold text-on-surface truncate">Régulation</div>
+                    <div className="text-[10px] text-on-surface-variant truncate">Admin ARS</div>
                   </div>
                 </button>
               </div>

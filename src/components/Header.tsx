@@ -159,6 +159,19 @@ export const Header: React.FC = () => {
                   </div>
 
                   <div className="py-1">
+                    {user.role === 'ADMIN' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base text-purple-600">
+                          tune
+                        </span>
+                        Tour de Contrôle & Supervision
+                      </Link>
+                    )}
+
                     {user.role === 'FACILITY' && (
                       <Link
                         to="/etablissements"

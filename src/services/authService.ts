@@ -81,6 +81,8 @@ export class AuthService {
             lastName: profile.last_name || authUser.user_metadata?.last_name || '',
             phone: profile.phone || authUser.user_metadata?.phone,
             nir: profile.nir,
+            facilityName: profile.facility_name || authUser.user_metadata?.facility_name,
+            transporterName: profile.transporter_name || authUser.user_metadata?.transporter_name,
             avatarUrl: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture,
             createdAt: profile.created_at
           };
@@ -93,8 +95,10 @@ export class AuthService {
           id: authUser.id,
           email: authUser.email || '',
           role: (authUser.user_metadata?.role as UserRole) || 'PATIENT',
-          firstName: authUser.user_metadata?.full_name?.split(' ')[0] || authUser.user_metadata?.name || 'Utilisateur',
-          lastName: authUser.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+          firstName: authUser.user_metadata?.first_name || authUser.user_metadata?.full_name?.split(' ')[0] || authUser.user_metadata?.name || 'Utilisateur',
+          lastName: authUser.user_metadata?.last_name || authUser.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+          facilityName: authUser.user_metadata?.facility_name,
+          transporterName: authUser.user_metadata?.transporter_name,
           avatarUrl: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture,
           createdAt: authUser.created_at
         };
