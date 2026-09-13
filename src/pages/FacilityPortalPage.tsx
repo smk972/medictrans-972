@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { SEOHead } from '../components/SEOHead';
 
 export const FacilityPortalPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,6 +42,12 @@ export const FacilityPortalPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
       <Header />
+      <SEOHead
+        title="Portail Établissements de Santé Martinique | Régulation Sorties d'Hospitalisation"
+        description="Outil pour cadres de santé, médecins et secrétariats hospitaliers en Martinique. Automatisation des sorties et transferts sanitaires CHU Pierre Zobda-Quitman, Trinité, Marin."
+        canonicalPath="/etablissements"
+        ogImage="/assets/medictrans_hero_discover.jpg"
+      />
       <main className="w-full pt-20 bg-background min-h-screen"><div className="flex flex-col w-full">
 
 <section className="w-full bg-surface-container-lowest shadow-sm">

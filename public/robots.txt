@@ -1,0 +1,17 @@
+# Robots.txt pour Médic'Trans Martinique 972
+# Optimisé pour Google Search et Google Discover
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin
+
+# Indexation prioritaire des images haute résolution pour Google Discover
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /assets/*.jpg
+Allow: /assets/*.png
+Allow: /assets/*.svg
+
+# Référence Sitemap XML
+Sitemap: https://medictrans972.fr/sitemap.xml

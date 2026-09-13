@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { GoogleMapView } from '../components/GoogleMapView';
+import { SEOHead } from '../components/SEOHead';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,6 +64,12 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <Header />
+      <SEOHead
+        title="Médic'Trans Martinique | Transport Sanitaire, VSL & Ambulance Conventionnée 972"
+        description="Plateforme de régulation et réservation de transport médicalisé en Martinique : Ambulance ASSU, VSL et Taxi Conventionné CPAM / CGSS 972. Tiers-payant 100% ALD sur les 34 communes."
+        canonicalPath="/"
+        ogImage="/assets/medictrans_hero_discover.jpg"
+      />
 
       <main className="w-full pt-20 bg-surface flex-1">
         <div className="flex flex-col w-full">

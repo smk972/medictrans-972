@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { GoogleMapView } from '../components/GoogleMapView';
+import { SEOHead } from '../components/SEOHead';
 
 export const CpamRightsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,50 @@ export const CpamRightsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <Header />
+      <SEOHead
+        title="Droits CPAM & Remboursement Transport Médical Martinique (972) | Barème ALD 100%"
+        description="Guide officiel du transport sanitaire en Martinique : Prescription Médicale de Transport (PMT), Tiers-payant intégral en ALD 30, remboursement VSL et ambulance par la CGSS 972."
+        canonicalPath="/droits-cpam"
+        ogImage="/assets/medictrans_hero_discover.jpg"
+        schemaJson={{
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: [
+            {
+              '@type': 'Question',
+              name: 'Comment bénéficier d\'un transport médical pris en charge à 100% en Martinique ?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'Pour bénéficier du tiers-payant à 100% par la CGSS Martinique, le patient doit être reconnu en Affection Longue Durée (ALD 30, ex: dialyse, chimiothérapie), ou en accident du travail, et disposer d\'une Prescription Médicale de Transport (PMT) établie avant le trajet.'
+              }
+            },
+            {
+              '@type': 'Question',
+              name: 'Quelle est la différence entre une Ambulance, un VSL et un Taxi conventionné ?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'L\'Ambulance (ASSU) est requise pour les transports allongés ou sous surveillance médicale. Le VSL convient aux patients assis nécessitant une aide soignante. Le Taxi conventionné s\'adresse aux patients assis autonomes.'
+              }
+            },
+            {
+              '@type': 'Question',
+              name: 'Dois-je avancer les frais lors d\'un transport sanitaire en Martinique ?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'Non. Grâce au conventionnement CGSS Martinique et à la télétransmission BPEC/ROC, le tiers-payant intégral s\'applique : aucune avance de frais n\'est demandée au patient.'
+              }
+            },
+            {
+              '@type': 'Question',
+              name: 'Quels hôpitaux et centres de soins sont desservis en Martinique ?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'Toutes les structures de soins des 34 communes sont desservies : CHU Pierre Zobda-Quitman, MFME, Hôpital de La Trinité, Hôpital du Marin, Clinique Sainte-Marie et l\'ensemble des centres de dialyse.'
+              }
+            }
+          ]
+        }}
+      />
 
       <main className="w-full pt-20 bg-background flex-1">
         <div className="flex flex-col w-full">

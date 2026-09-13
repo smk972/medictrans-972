@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { SEOHead } from '../components/SEOHead';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PhoneInput } from '../components/PhoneInput';
 
@@ -44,6 +45,11 @@ export const RegisterFacilityPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
+      <SEOHead
+        title="Conventionnement Établissements de Santé & Cadres de Soins | Médic'Trans 972"
+        description="Raccordez votre clinique, hôpital ou centre de dialyse de Martinique au réseau de régulation Médic'Trans 972 pour automatiser et fiabiliser vos transports sanitaires."
+        canonicalPath="/inscription-etablissement"
+      />
       <Header />
       <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { SEOHead } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 
@@ -168,6 +169,11 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-surface">
+      <SEOHead
+        title="Connexion Espaces Professionnels & Patients | Médic'Trans 972"
+        description="Accédez à votre espace sécurisé Médic'Trans 972 : Patients, Hôpitaux et Établissements de santé de Martinique, ou Entreprises de transport sanitaire conventionnées CPAM."
+        canonicalPath="/connexion"
+      />
       <Header />
 
       <main className="flex-1 pt-28 pb-16 flex items-center justify-center px-4 sm:px-6">

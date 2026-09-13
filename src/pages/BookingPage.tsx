@@ -10,6 +10,7 @@ import { whatsappService } from '../services/whatsappService';
 import { rideService } from '../services/rideService';
 import { calculateMedicalRidePricing } from '../services/pricingService';
 import { TransportType } from '../types';
+import { SEOHead } from '../components/SEOHead';
 
 export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -192,6 +193,12 @@ export const BookingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <Header />
+      <SEOHead
+        title="Réservation Transport Sanitaire Martinique | Ambulance, VSL & Taxi CPAM 972"
+        description="Réservez en ligne votre transport médical en Martinique : Ambulance conventionnée, VSL sanitaire léger ou Taxi conventionné CPAM. Calcul de trajet en direct et tiers-payant 100%."
+        canonicalPath="/reserver"
+        ogImage="/assets/medictrans_hero_discover.jpg"
+      />
 
       <main className="w-full pt-20 bg-surface flex-1">
         {/* Step Indicator Header */}

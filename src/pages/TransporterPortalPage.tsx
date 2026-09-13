@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleMapView } from '../components/GoogleMapView';
+import { SEOHead } from '../components/SEOHead';
 
 export const TransporterPortalPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,6 +40,12 @@ export const TransporterPortalPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
+      <SEOHead
+        title="Espace Transporteurs Sanitaires Martinique | Agréments ARS & Flottes 972"
+        description="Console télématique pour les ambulanciers, VSL et taxis conventionnés de Martinique. Réception des courses en direct, régulation ARS et télétransmission CPAM."
+        canonicalPath="/transporteurs"
+        ogImage="/assets/medictrans_hero_discover.jpg"
+      />
       <aside className="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col pt-space-md pb-space-lg shadow-[0_1px_8px_rgba(11,28,48,0.04)]">
         <div className="px-space-md pb-space-md flex items-center gap-space-sm">
           <Link to="/" className="flex items-center gap-space-sm">

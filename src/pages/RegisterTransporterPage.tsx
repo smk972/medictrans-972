@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { SEOHead } from '../components/SEOHead';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { PhoneInput } from '../components/PhoneInput';
 import { FileUpload } from '../components/FileUpload';
@@ -46,6 +47,11 @@ export const RegisterTransporterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
+      <SEOHead
+        title="Rejoindre le Réseau Ambulanciers & Taxis Conventionnés Martinique | Médic'Trans 972"
+        description="Ambulances, VSL et Taxis conventionnés en Martinique : inscrivez votre flotte sur Médic'Trans 972 pour recevoir des missions régulées et certifiées CPAM."
+        canonicalPath="/inscription-transporteur"
+      />
       <Header />
       <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
 

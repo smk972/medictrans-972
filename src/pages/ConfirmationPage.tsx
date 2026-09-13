@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { SEOHead } from '../components/SEOHead';
 import { whatsappService } from '../services/whatsappService';
 
 export const ConfirmationPage: React.FC = () => {
@@ -44,6 +45,11 @@ export const ConfirmationPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
+      <SEOHead
+        title={`Réservation Confirmée #${reservationRef} | Médic'Trans 972`}
+        description="Votre demande de transport médicalisé en Martinique a été confirmée et transmise à la flotte de régulation."
+        noIndex={true}
+      />
       <Header />
 
       <main className="w-full pt-20 bg-background flex-1">

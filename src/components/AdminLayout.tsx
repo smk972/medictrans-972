@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { SEOHead } from './SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AdminLayoutProps {
@@ -29,6 +30,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F4F7FB] flex flex-col font-sans">
+      <SEOHead
+        title={`${title} | Console de Régulation Médic'Trans 972`}
+        description="Console d'administration et de régulation sanitaire régionale Médic'Trans 972 Martinique."
+        noIndex={true}
+      />
       {/* Top Administration Bar */}
       <header className="sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant/30 shadow-xs">
         <div className="max-w-[1500px] mx-auto px-4 sm:px-6">
