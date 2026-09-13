@@ -38,7 +38,7 @@ export const AuthCallbackPage: React.FC = () => {
                   first_name: parts[0] || 'Utilisateur',
                   last_name: parts.slice(1).join(' ') || '',
                   role: targetRole,
-                  nir: targetRole === 'PATIENT' ? '1 72 05 97 201 112 43' : null
+                  nir: targetRole === 'PATIENT' ? '1 72 05 97 201 112 60' : null,
                 });
               }
             } catch (pErr) {

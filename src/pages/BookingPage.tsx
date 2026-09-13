@@ -12,6 +12,8 @@ import { calculateMedicalRidePricing } from '../services/pricingService';
 import { TransportType } from '../types';
 import { SEOHead } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
+import { NirInput } from '../components/NirInput';
+import { validateNir } from '../utils/nirValidator';
 
 export const BookingPage: React.FC = () => {
   const { user } = useAuth();
@@ -45,12 +47,41 @@ export const BookingPage: React.FC = () => {
   // Form states - Patient & Médical
   const [lastName, setLastName] = useState('GLISSANT');
   const [firstName, setFirstName] = useState('Aimé');
-  const [nir, setNir] = useState('1 54 08 97 213 456 82');
+  const [nir, setNir] = useState('1 54 08 97 213 456 92');
+  const nirValidation = useMemo(() => validateNir(nir), [nir]);
+  const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
   const [phone, setPhone] = useState('06 96 44 20 18');
   const [birthDate, setBirthDate] = useState('1954-08-14');
   const [isAld, setIsAld] = useState(true);
   const [mobility, setMobility] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
   const [oxygen, setOxygen] = useState(false);
+
+  // Adaptation automatique du véhicule selon les contraintes réglementaires CPAM
+  const handleMobilityChange = (newMobility: 'assis' | 'marche' | 'fauteuil' | 'allonge') => {
+    setMobility(newMobility);
+    if (newMobility === 'allonge' || oxygen) {
+      setTransportType('ambulance');
+    } else if (newMobility === 'fauteuil' || newMobility === 'marche') {
+      setTransportType('vsl');
+    } else if (newMobility === 'assis') {
+      if (transportType === 'ambulance') {
+        setTransportType('vsl');
+      }
+    }
+  };
+
+  const handleOxygenChange = (newOxygen: boolean) => {
+    setOxygen(newOxygen);
+    if (newOxygen || mobility === 'allonge') {
+      setTransportType('ambulance');
+    } else if (mobility === 'fauteuil' || mobility === 'marche') {
+      setTransportType('vsl');
+    } else if (mobility === 'assis') {
+      if (transportType === 'ambulance') {
+        setTransportType('vsl');
+      }
+    }
+  };
   const [floor, setFloor] = useState('Rez-de-chaussée / Plain-pied');
   const [hasElevator, setHasElevator] = useState(true);
   const [hasCompanion, setHasCompanion] = useState(true);
@@ -109,6 +140,18 @@ export const BookingPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Règle impérative : Le NIR doit obligatoirement répondre aux caractéristiques officielles pour valider la demande
+    if (!nirValidation.isValid) {
+      setNirSubmitAttempted(true);
+      const el = document.getElementById('patientNir');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+      return;
+    }
+
     setIsSubmitting(true);
 
     const finalRef = `MT-972-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -414,33 +457,14 @@ export const BookingPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="md:col-span-2 flex flex-col gap-1.5">
-                    <div className="flex justify-between items-center">
-                      <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                        Numéro de Sécurité Sociale (NIR)
-                      </label>
-                      <span className="font-label-sm text-label-sm text-secondary font-bold text-xs">
-                        15 chiffres (Clé comprise)
-                      </span>
-                    </div>
-                    <div className="relative flex items-center">
-                      <input
-                        className="w-full h-11 px-3 pl-10 pr-10 bg-surface-container-lowest rounded-xl font-mono text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
-                        maxLength={21}
-                        placeholder="1 XX XX XX XXX XXX XX"
-                        type="text"
-                        required
-                        value={nir}
-                        onChange={(e) => setNir(e.target.value)}
-                      />
-                      <span className="material-symbols-outlined text-outline absolute left-3 text-[20px]">
-                        badge
-                      </span>
-                      <span className="material-symbols-outlined text-secondary absolute right-3 text-[20px]">
-                        check_circle
-                      </span>
-                    </div>
-                  </div>
+                  <NirInput
+                    id="patientNir"
+                    label="Numéro de Sécurité Sociale (NIR)"
+                    value={nir}
+                    required={true}
+                    onChange={(formattedVal) => setNir(formattedVal)}
+                    className="md:col-span-2"
+                  />
 
                   <PhoneInput
                     id="patientPhone"
@@ -548,7 +572,7 @@ export const BookingPage: React.FC = () => {
                   ].map((item) => (
                     <div
                       key={item.id}
-                      onClick={() => setMobility(item.id as any)}
+                      onClick={() => handleMobilityChange(item.id as any)}
                       className={`cursor-pointer flex items-start gap-space-sm p-space-md rounded-xl transition-all border-2 ${
                         mobility === item.id
                           ? 'bg-surface-container-low border-primary shadow-xs ring-2 ring-primary/20'
@@ -559,13 +583,25 @@ export const BookingPage: React.FC = () => {
                         type="radio"
                         name="mobility_mode"
                         checked={mobility === item.id}
-                        onChange={() => setMobility(item.id as any)}
+                        onChange={() => handleMobilityChange(item.id as any)}
                         className="mt-1 accent-primary"
                       />
                       <div className="flex flex-col">
-                        <span className={`font-label-md text-label-md font-bold ${mobility === item.id ? 'text-primary' : 'text-on-surface'}`}>
-                          {item.title}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`font-label-md text-label-md font-bold ${mobility === item.id ? 'text-primary' : 'text-on-surface'}`}>
+                            {item.title}
+                          </span>
+                          {item.id === 'allonge' && (
+                            <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-1.5 py-0.2 rounded-full">
+                              Ambulance
+                            </span>
+                          )}
+                          {(item.id === 'fauteuil' || item.id === 'marche') && (
+                            <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 font-bold px-1.5 py-0.2 rounded-full">
+                              VSL
+                            </span>
+                          )}
+                        </div>
                         <span className="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">
                           {item.desc}
                         </span>
@@ -577,28 +613,42 @@ export const BookingPage: React.FC = () => {
                 {/* Additional assistance toggles */}
                 <div className="pt-space-sm flex flex-col gap-space-md">
                   {/* Oxygénothérapie */}
-                  <div className="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low border border-outline-variant/30">
+                  <div className={`flex items-center justify-between p-space-md rounded-xl border transition-all ${
+                    oxygen
+                      ? 'bg-amber-500/10 border-amber-500/30 shadow-xs'
+                      : 'bg-surface-container-low border-outline-variant/30'
+                  }`}>
                     <div className="flex items-center gap-space-sm">
-                      <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        oxygen ? 'bg-amber-500 text-white' : 'bg-surface-container-highest text-primary'
+                      }`}>
                         <span className="material-symbols-outlined text-[18px]">air</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                          Oxygénothérapie continue
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                            Oxygénothérapie continue
+                          </span>
+                          {oxygen && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 font-bold border border-amber-400">
+                              Ambulance requise
+                            </span>
+                          )}
+                        </div>
                         <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                          Le patient dispose de sa propre bouteille ou nécessite un appoint embarqué.
+                          Le patient dispose de sa propre bouteille ou nécessite un appoint embarqué (Impose une ambulance).
                         </span>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label htmlFor="oxygenToggle" className="relative inline-flex items-center cursor-pointer">
                       <input
+                        id="oxygenToggle"
                         checked={oxygen}
-                        onChange={(e) => setOxygen(e.target.checked)}
+                        onChange={(e) => handleOxygenChange(e.target.checked)}
                         className="sr-only peer"
                         type="checkbox"
                       />
-                      <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+                      <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                     </label>
                   </div>
 
@@ -675,6 +725,139 @@ export const BookingPage: React.FC = () => {
                       />
                       <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
                     </label>
+                  </div>
+
+                  {/* Résultat de l'adaptation automatique du véhicule */}
+                  <div className={`p-3 rounded-xl border transition-all flex items-start gap-3 ${
+                    transportType === 'ambulance'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-950'
+                      : 'bg-primary/10 border-primary/20 text-on-surface'
+                  }`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      transportType === 'ambulance' ? 'bg-amber-600 text-white' : 'bg-primary text-white'
+                    }`}>
+                      <span className="material-symbols-outlined text-[20px]">
+                        {transportType === 'ambulance' ? 'emergency' : transportType === 'vsl' ? 'airport_shuttle' : 'local_taxi'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col text-xs min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap font-bold">
+                        <span>Véhicule sélectionné : {
+                          transportType === 'ambulance' ? 'Ambulance de soins (Catégorie A/C)' :
+                          transportType === 'vsl' ? 'VSL (Véhicule Sanitaire Léger)' : 'Taxi Conventionné CPAM'
+                        }</span>
+                        {(mobility === 'allonge' || oxygen) ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-400 font-extrabold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">lock</span>
+                            Ambulance obligatoire
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">check</span>
+                            Conforme mobilité
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-on-surface-variant text-[11px] mt-0.5 leading-relaxed">
+                        {transportType === 'ambulance' && (mobility === 'allonge' || oxygen)
+                          ? `Réglementation Sécurité Sociale (art. R. 322-10) : ${[
+                              mobility === 'allonge' && 'la position allongée stricte sur brancard',
+                              oxygen && "l'oxygénothérapie continue"
+                            ].filter(Boolean).join(' et ')} impose${(mobility === 'allonge' && oxygen) ? 'nt' : ''} impérativement une ambulance médicalisée avec équipage qualifié.`
+                          : transportType === 'vsl' && (mobility === 'fauteuil' || mobility === 'marche')
+                          ? `Prise en charge adaptée : ${mobility === 'fauteuil' ? 'le fauteuil roulant pliable' : "l'aide à la marche"} requiert un transport en VSL avec assistance d'un ambulancier.`
+                          : "Véhicule adapté pour patient autonome assis sans assistance brancard."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sélecteur de véhicule interactif avec verrouillage réglementaire */}
+                  <div className="flex flex-col gap-2 pt-2 border-t border-outline-variant/20">
+                    <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Type de transport sanitaire conventionné
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {/* Option 1: Taxi conventionné */}
+                      <button
+                        type="button"
+                        disabled={mobility === 'allonge' || oxygen}
+                        onClick={() => setTransportType('taxi')}
+                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
+                          transportType === 'taxi'
+                            ? 'bg-surface-container-low border-primary ring-2 ring-primary/20 shadow-xs'
+                            : (mobility === 'allonge' || oxygen)
+                            ? 'opacity-40 bg-surface-container-highest/30 border-outline-variant/20 cursor-not-allowed'
+                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="material-symbols-outlined text-primary text-xl">local_taxi</span>
+                          {transportType === 'taxi' ? (
+                            <span className="material-symbols-outlined text-primary text-base">check_circle</span>
+                          ) : (mobility === 'allonge' || oxygen) ? (
+                            <span className="material-symbols-outlined text-outline text-sm" title="Incompatible avec position allongée ou oxygène">lock</span>
+                          ) : null}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-on-surface">Taxi Conventionné</div>
+                          <div className="text-[10px] text-on-surface-variant leading-tight">Patient assis autonome, sans équipement lourd.</div>
+                        </div>
+                      </button>
+
+                      {/* Option 2: VSL */}
+                      <button
+                        type="button"
+                        disabled={mobility === 'allonge' || oxygen}
+                        onClick={() => setTransportType('vsl')}
+                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
+                          transportType === 'vsl'
+                            ? 'bg-surface-container-low border-primary ring-2 ring-primary/20 shadow-xs'
+                            : (mobility === 'allonge' || oxygen)
+                            ? 'opacity-40 bg-surface-container-highest/30 border-outline-variant/20 cursor-not-allowed'
+                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="material-symbols-outlined text-primary text-xl">airport_shuttle</span>
+                          {transportType === 'vsl' ? (
+                            <span className="material-symbols-outlined text-primary text-base">check_circle</span>
+                          ) : (mobility === 'allonge' || oxygen) ? (
+                            <span className="material-symbols-outlined text-outline text-sm" title="Incompatible avec position allongée ou oxygène">lock</span>
+                          ) : null}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-on-surface">VSL Sanitaire</div>
+                          <div className="text-[10px] text-on-surface-variant leading-tight">Assis avec aide, fauteuil pliable, désinfection.</div>
+                        </div>
+                      </button>
+
+                      {/* Option 3: Ambulance */}
+                      <button
+                        type="button"
+                        onClick={() => setTransportType('ambulance')}
+                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
+                          transportType === 'ambulance'
+                            ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/20 shadow-xs'
+                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="material-symbols-outlined text-amber-600 text-xl">emergency</span>
+                          {transportType === 'ambulance' && (
+                            <span className="material-symbols-outlined text-amber-600 text-base">check_circle</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-on-surface flex items-center gap-1">
+                            Ambulance A/C
+                            {(mobility === 'allonge' || oxygen) && (
+                              <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-extrabold">OBLIGATOIRE</span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-on-surface-variant leading-tight">Position allongée, brancard, oxygène, équipage.</div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1006,9 +1189,27 @@ export const BookingPage: React.FC = () => {
 
                 {/* Submit Action */}
                 <div className="flex flex-col gap-space-sm pt-space-xs">
+                  {(!nirValidation.isValid || nirSubmitAttempted) && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs">
+                      <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">
+                        badge
+                      </span>
+                      <div className="flex flex-col">
+                        <strong className="text-amber-900 font-bold">Numéro de Sécurité Sociale (NIR) obligatoire :</strong>
+                        <span className="text-[11px] text-amber-800 leading-tight mt-0.5">
+                          {nirValidation.errorMessage || "Le NIR doit comporter 15 chiffres avec clé de contrôle valide pour diffuser la demande."}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <button
-                    disabled={isSubmitting}
-                    className="w-full h-14 bg-primary hover:bg-primary-container active:scale-[0.99] transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg shadow-primary/20 hover:scale-[1.01]"
+                    disabled={isSubmitting || !nirValidation.isValid}
+                    className={`w-full h-14 transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
+                      !nirValidation.isValid
+                        ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
+                        : 'bg-primary hover:bg-primary-container active:scale-[0.99] shadow-primary/20 hover:scale-[1.01]'
+                    }`}
                     type="submit"
                   >
                     {isSubmitting ? (
@@ -1016,6 +1217,11 @@ export const BookingPage: React.FC = () => {
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                         Diffusion en cours...
                       </span>
+                    ) : !nirValidation.isValid ? (
+                      <>
+                        <span className="material-symbols-outlined text-[20px]">lock</span>
+                        <span>NIR obligatoire pour valider la demande</span>
+                      </>
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-[24px]">send</span>
