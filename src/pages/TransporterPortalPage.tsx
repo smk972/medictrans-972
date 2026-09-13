@@ -1433,12 +1433,25 @@ export const TransporterPortalPage: React.FC = () => {
             </div>
           )}
 
-          {/* Bannière KPIs Réels */}
+          {/* Bannière KPIs Réels (Encarts cliquables vers chaque vue dédiée) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex items-center justify-between">
+            {/* 1. Disponibles -> Onglet DISPONIBLES */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('DISPONIBLES')}
+              title="Accéder aux courses disponibles"
+              className={`p-4 rounded-2xl border shadow-xs flex items-center justify-between text-left transition-all duration-200 group cursor-pointer active:scale-[0.98] ${
+                activeTab === 'DISPONIBLES'
+                  ? 'bg-primary/5 border-primary ring-2 ring-primary/30 shadow-sm'
+                  : 'bg-surface-container-lowest border-outline-variant/20 hover:border-primary/50 hover:bg-surface-container-low hover:shadow-md'
+              }`}
+            >
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Disponibles
+                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                  <span>Disponibles</span>
+                  <span className="material-symbols-outlined text-[13px] opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-primary">
+                    arrow_forward
+                  </span>
                 </div>
                 <div className="text-2xl font-extrabold text-primary mt-0.5">{availableMissions.length}</div>
                 <div className="text-[11px] text-secondary font-semibold mt-0.5 flex items-center gap-1">
@@ -1446,15 +1459,28 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>En attente 972</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
                 📡
               </div>
-            </div>
+            </button>
 
-            <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex items-center justify-between">
+            {/* 2. En Approche / À Bord -> Onglet ACTIVES */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('ACTIVES')}
+              title="Accéder aux missions actives en cours"
+              className={`p-4 rounded-2xl border shadow-xs flex items-center justify-between text-left transition-all duration-200 group cursor-pointer active:scale-[0.98] ${
+                activeTab === 'ACTIVES'
+                  ? 'bg-amber-500/5 border-amber-500 ring-2 ring-amber-500/30 shadow-sm'
+                  : 'bg-surface-container-lowest border-outline-variant/20 hover:border-amber-400/60 hover:bg-surface-container-low hover:shadow-md'
+              }`}
+            >
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  En Approche / À Bord
+                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                  <span>En Approche / À Bord</span>
+                  <span className="material-symbols-outlined text-[13px] opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-amber-600">
+                    arrow_forward
+                  </span>
                 </div>
                 <div className="text-2xl font-extrabold text-amber-600 mt-0.5">{activeMissions.length}</div>
                 <div className="text-[11px] text-amber-700 font-semibold mt-0.5 flex items-center gap-1">
@@ -1462,15 +1488,28 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>Missions actives</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
                 🚑
               </div>
-            </div>
+            </button>
 
-            <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex items-center justify-between">
+            {/* 3. Clôturées Aujourd'hui -> Onglet HISTORIQUE */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('HISTORIQUE')}
+              title="Accéder à l'historique des courses clôturées"
+              className={`p-4 rounded-2xl border shadow-xs flex items-center justify-between text-left transition-all duration-200 group cursor-pointer active:scale-[0.98] ${
+                activeTab === 'HISTORIQUE'
+                  ? 'bg-emerald-500/5 border-emerald-500 ring-2 ring-emerald-500/30 shadow-sm'
+                  : 'bg-surface-container-lowest border-outline-variant/20 hover:border-emerald-400/60 hover:bg-surface-container-low hover:shadow-md'
+              }`}
+            >
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Clôturées Aujourd'hui
+                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                  <span>Clôturées Aujourd'hui</span>
+                  <span className="material-symbols-outlined text-[13px] opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-emerald-600">
+                    arrow_forward
+                  </span>
                 </div>
                 <div className="text-2xl font-extrabold text-emerald-600 mt-0.5">{completedMissions.length}</div>
                 <div className="text-[11px] text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
@@ -1478,15 +1517,28 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>Arrivées confirmées</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
                 🏁
               </div>
-            </div>
+            </button>
 
-            <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex items-center justify-between">
+            {/* 4. Flotte Opérationnelle -> Onglet FLOTTE */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('FLOTTE')}
+              title="Accéder à la gestion de la flotte et des chauffeurs"
+              className={`p-4 rounded-2xl border shadow-xs flex items-center justify-between text-left transition-all duration-200 group cursor-pointer active:scale-[0.98] ${
+                activeTab === 'FLOTTE'
+                  ? 'bg-secondary/5 border-secondary ring-2 ring-secondary/30 shadow-sm'
+                  : 'bg-surface-container-lowest border-outline-variant/20 hover:border-secondary/60 hover:bg-surface-container-low hover:shadow-md'
+              }`}
+            >
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-                  Flotte Opérationnelle
+                <div className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                  <span>Flotte Opérationnelle</span>
+                  <span className="material-symbols-outlined text-[13px] opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-secondary">
+                    arrow_forward
+                  </span>
                 </div>
                 <div className="text-2xl font-extrabold text-secondary mt-0.5">
                   {fleet.filter((v) => v.status === 'DISPONIBLE').length} / {fleet.length}
@@ -1496,10 +1548,10 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>Véhicules prêts</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center text-xl shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
                 🚗
               </div>
-            </div>
+            </button>
           </div>
 
           {/* ========================================================================= */}
