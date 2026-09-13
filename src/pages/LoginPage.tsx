@@ -17,9 +17,23 @@ export const LoginPage: React.FC = () => {
     error: authError
   } = useAuth();
 
+  const locationState = location.state as {
+    from?: { pathname: string };
+    requiredRole?: UserRole;
+    message?: string;
+  } | null;
+
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('PATIENT');
+  const [selectedRole, setSelectedRole] = useState<UserRole>(
+    locationState?.requiredRole || 'PATIENT'
+  );
   const [showPassword, setShowPassword] = useState(false);
+
+  React.useEffect(() => {
+    if (locationState?.requiredRole) {
+      setSelectedRole(locationState.requiredRole);
+    }
+  }, [locationState?.requiredRole]);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -35,7 +49,7 @@ export const LoginPage: React.FC = () => {
 
   const redirectAfterAuth = (role: UserRole) => {
     // Si l'utilisateur venait d'une page protégée
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    const from = locationState?.from?.pathname;
     if (from) {
       navigate(from, { replace: true });
       return;
@@ -43,6 +57,9 @@ export const LoginPage: React.FC = () => {
 
     // Redirection naturelle selon le rôle
     switch (role) {
+      case 'ADMIN':
+        navigate('/admin', { replace: true });
+        break;
       case 'FACILITY':
         navigate('/etablissements', { replace: true });
         break;
@@ -55,6 +72,42 @@ export const LoginPage: React.FC = () => {
         break;
     }
   };
+
+  const getHeaderInfo = () => {
+    switch (selectedRole) {
+      case 'FACILITY':
+        return {
+          title: "Connexion Portail Établissements",
+          subtitle: "Accès réservé aux soignants, cadres de santé et régulation des sorties de lit (CHU, Cliniques, Dialyses 972)",
+          icon: "local_hospital",
+          iconBg: "bg-secondary text-white"
+        };
+      case 'TRANSPORTER':
+        return {
+          title: "Connexion Espace Transporteurs",
+          subtitle: "Bourse de courses et dispatch en direct pour les ambulanciers, VSL et taxis conventionnés 972",
+          icon: "ambulance",
+          iconBg: "bg-amber-600 text-white"
+        };
+      case 'ADMIN':
+        return {
+          title: "Tour de Contrôle & Régulation 972",
+          subtitle: "Supervision territoriale réservée aux régulateurs ARS Martinique et auditeurs BPEC",
+          icon: "tune",
+          iconBg: "bg-purple-600 text-white"
+        };
+      case 'PATIENT':
+      default:
+        return {
+          title: "Espace d'Identification Patient",
+          subtitle: "Plateforme de régulation et réservation de transport sanitaire en Martinique (972)",
+          icon: "personal_injury",
+          iconBg: "bg-primary-container text-on-primary"
+        };
+    }
+  };
+
+  const headerInfo = getHeaderInfo();
 
   const handleGoogleLogin = async () => {
     setFormError(null);
@@ -121,19 +174,34 @@ export const LoginPage: React.FC = () => {
         <div className="w-full max-w-xl">
           {/* Header Card */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-container text-on-primary shadow-md mb-4 ring-4 ring-primary-container/20">
-              <span className="material-symbols-outlined text-3xl">badge</span>
+            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-md mb-4 ring-4 ring-primary-container/20 transition-all ${headerInfo.iconBg}`}>
+              <span className="material-symbols-outlined text-3xl">{headerInfo.icon}</span>
             </div>
             <h1 className="font-headline-md text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
-              Espace d'Identification
+              {headerInfo.title}
             </h1>
             <p className="mt-2 text-sm sm:text-base text-on-surface-variant max-w-md mx-auto">
-              Plateforme de régulation et réservation de transport sanitaire en Martinique (972)
+              {headerInfo.subtitle}
             </p>
           </div>
 
           {/* Main Card */}
           <div className="bg-surface-container-lowest rounded-3xl shadow-[0_8px_30px_rgb(11,28,48,0.08)] border border-outline-variant/30 p-6 sm:p-8">
+            {/* Required Login Notice */}
+            {locationState?.message && (
+              <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3 text-amber-900 shadow-xs animate-fadeIn">
+                <span className="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">lock</span>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                    Identification Préalable Requise
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium mt-0.5">
+                    {locationState.message}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Mode Switch (Connexion / Inscription) */}
             <div className="flex rounded-xl bg-surface-container p-1 mb-6">
               <button

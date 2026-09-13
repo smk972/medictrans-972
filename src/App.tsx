@@ -16,6 +16,7 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminSupervisionPage } from './pages/AdminSupervisionPage';
 import { AdminTransportersPage } from './pages/AdminTransportersPage';
 import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function ScrollToTop() {
   const { pathname } = window.location;
@@ -40,17 +41,68 @@ export const App: React.FC = () => {
           <Route path="/confirmation" element={<ConfirmationPage />} />
           <Route path="/suivi" element={<TrackingPage />} />
           <Route path="/droits-cpam" element={<CpamRightsPage />} />
-          <Route path="/etablissements" element={<FacilityPortalPage />} />
-          <Route path="/transporteurs" element={<TransporterPortalPage />} />
+          
+          {/* Espaces Professionnels Protégés par Authentification */}
+          <Route 
+            path="/etablissements" 
+            element={
+              <ProtectedRoute requiredRole="FACILITY">
+                <FacilityPortalPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/transporteurs" 
+            element={
+              <ProtectedRoute requiredRole="TRANSPORTER">
+                <TransporterPortalPage />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/inscription/transporteur" element={<RegisterTransporterPage />} />
           <Route path="/inscription/etablissement" element={<RegisterFacilityPage />} />
           
-          {/* Back-Office & Régulation Régionale 972 */}
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/supervision" element={<AdminSupervisionPage />} />
-          <Route path="/admin/transporteurs" element={<AdminTransportersPage />} />
-          <Route path="/admin/etablissements" element={<AdminFacilitiesPage />} />
+          {/* Back-Office & Régulation Régionale 972 (Protégé Admin) */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/supervision" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSupervisionPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/transporteurs" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminTransportersPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/etablissements" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminFacilitiesPage />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
