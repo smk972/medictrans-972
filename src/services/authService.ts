@@ -7,12 +7,12 @@ const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
 export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
   PATIENT: {
     id: 'demo-patient-972',
-    email: 'edouard.chatenay@orange.fr',
+    email: 'c.marieluce@orange.fr',
     role: 'PATIENT',
-    firstName: 'Édouard',
-    lastName: 'Châtenay',
-    phone: '0696 45 12 78',
-    nir: '1 58 04 97 214 058',
+    firstName: 'Christian',
+    lastName: 'Marie-Luce',
+    phone: '0696 55 44 33',
+    nir: '1 54 11 97 208 771 19',
     avatarUrl: '/assets/headshot.png',
     createdAt: new Date().toISOString()
   },

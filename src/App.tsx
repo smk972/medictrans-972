@@ -42,9 +42,23 @@ export const App: React.FC = () => {
           <Route path="/suivi" element={<TrackingPage />} />
           <Route path="/droits-cpam" element={<CpamRightsPage />} />
           
-          {/* Espaces Professionnels */}
-          <Route path="/etablissements" element={<FacilityPortalPage />} />
-          <Route path="/transporteurs" element={<TransporterPortalPage />} />
+          {/* Espaces Professionnels (Accès Protégé) */}
+          <Route 
+            path="/etablissements" 
+            element={
+              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']}>
+                <FacilityPortalPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/transporteurs" 
+            element={
+              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']}>
+                <TransporterPortalPage />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/inscription/transporteur" element={<RegisterTransporterPage />} />
           <Route path="/inscription/etablissement" element={<RegisterFacilityPage />} />
           

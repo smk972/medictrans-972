@@ -606,7 +606,7 @@ export const LoginPage: React.FC = () => {
                     🩺
                   </span>
                   <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-on-surface truncate">Édouard C.</div>
+                    <div className="text-xs font-bold text-on-surface truncate">Christian M.</div>
                     <div className="text-[10px] text-on-surface-variant truncate">Patient (ALD)</div>
                   </div>
                 </button>

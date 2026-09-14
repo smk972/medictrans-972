@@ -27,6 +27,12 @@ export const TrackingPage: React.FC = () => {
     window.scrollTo(0, 0);
 
     const loadRides = async () => {
+      if (!isAuthenticated || !user) {
+        setRides([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         const allRides = await rideService.getAllRides();
@@ -43,14 +49,28 @@ export const TrackingPage: React.FC = () => {
           // ignore
         }
 
-        let relevantRides = allRides;
+        let relevantRides: Ride[] = [];
 
-        // Si patient connecté, filtrer ses propres courses
-        if (isAuthenticated && user?.email && user.role === 'PATIENT') {
+        if (user.role === 'ADMIN') {
+          relevantRides = allRides;
+        } else if (user.role === 'FACILITY') {
+          relevantRides = allRides.filter((r) => 
+            (r.facilityName && user.facilityName && r.facilityName.toLowerCase().includes(user.facilityName.toLowerCase())) ||
+            (r.pickupAddress && user.facilityName && r.pickupAddress.toLowerCase().includes(user.facilityName.toLowerCase()))
+          );
+        } else if (user.role === 'TRANSPORTER') {
+          relevantRides = allRides.filter((r) => 
+            Boolean(r.assignedTransporter?.companyName && user.transporterName && r.assignedTransporter.companyName.toLowerCase().includes(user.transporterName.toLowerCase()))
+          );
+        } else {
+          // Rôle PATIENT (ou compte particulier) : filtrer strictement ses propres courses
           relevantRides = allRides.filter((r) => {
-            const matchesEmail = r.patient?.email?.toLowerCase() === user.email?.toLowerCase();
+            const matchesEmail = user.email && r.patient?.email?.toLowerCase() === user.email.toLowerCase();
+            const matchesNir = user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
+            const matchesPhone = user.phone && r.patient?.phone && r.patient.phone.replace(/\s/g, '') === user.phone.replace(/\s/g, '');
+            const matchesLastName = user.lastName && r.patient?.lastName && r.patient.lastName.toLowerCase().trim() === user.lastName.toLowerCase().trim();
             const matchesLastBooking = lastBookingRef && r.reference.toUpperCase() === lastBookingRef.toUpperCase();
-            return matchesEmail || matchesLastBooking;
+            return matchesEmail || matchesNir || matchesPhone || matchesLastName || matchesLastBooking;
           });
         }
 
@@ -64,7 +84,7 @@ export const TrackingPage: React.FC = () => {
     };
 
     loadRides();
-  }, [isAuthenticated, user?.email, user?.role]);
+  }, [isAuthenticated, user?.email, user?.role, user?.nir, user?.phone, user?.lastName, user?.facilityName, user?.transporterName, user?.id]);
 
   // Course prioritaire active
   const activeRide = useMemo(() => {
@@ -249,27 +269,98 @@ export const TrackingPage: React.FC = () => {
           </div>
         )}
 
-        <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-lg flex flex-col gap-space-xl">
-          {/* Header Title */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-lg">
-            <div className="flex flex-col gap-space-xs max-w-2xl">
-              <div className="flex items-center gap-space-sm">
-                <span className="px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-bold text-xs">
-                  {user ? `Espace ${user.firstName} ${user.lastName}` : 'Espace Patient & Coordonnateur Clinique'}
-                </span>
-                <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
-                  {user ? `Compte : ${user.email}` : 'Dossier ID: #MQ-97204-J'}
-                </span>
+        {!isAuthenticated || !user ? (
+          /* ÉCRAN SÉCURISÉ : AUCUNE DONNÉE DE TRANSPORT AFFICHÉE SANS CONNEXION */
+          <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl flex items-center justify-center min-h-[65vh]">
+            <div className="w-full max-w-xl bg-surface-container-lowest rounded-3xl shadow-[0_8px_30px_rgb(11,28,48,0.08)] border border-outline-variant/30 p-8 sm:p-12 text-center animate-fadeIn">
+              <div className="w-20 h-20 rounded-3xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6 shadow-xs ring-8 ring-primary/5">
+                <span className="material-symbols-outlined text-4xl">lock</span>
               </div>
-              <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight font-bold text-2xl md:text-3xl">
-                Tableau de bord de suivi - Transports en cours
+
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-xs font-bold uppercase tracking-wider mb-4">
+                <span className="material-symbols-outlined text-sm">shield</span>
+                Espace Sécurisé Patient &amp; Tiers-Payant
+              </span>
+
+              <h1 className="font-headline-lg text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight mb-3">
+                Connectez-vous pour voir vos demandes
               </h1>
-              <p className="font-body-md text-body-md text-on-surface-variant text-sm">
-                Superviser la prise en charge sanitaire, la géolocalisation des équipages agréés ARS et
-                les attestations 100% Tiers-Payant Sécurité Sociale.
+
+              <p className="font-body-md text-on-surface-variant max-w-md mx-auto text-sm sm:text-base leading-relaxed mb-8">
+                Pour des raisons de secret médical et de sécurité de vos données de santé, le récapitulatif de vos transports et le suivi en direct sont accessibles uniquement après connexion à votre compte.
               </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full">
+                <Link
+                  id="btn-login-to-see-rides"
+                  to="/connexion"
+                  state={{
+                    from: { pathname: '/suivi' },
+                    requiredRole: 'PATIENT',
+                    message: 'Connectez-vous à votre compte pour consulter le récapitulatif de vos demandes de transport sanitaire.'
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-headline-sm text-sm font-bold shadow-md hover:bg-primary/90 active:scale-[0.99] transition-all"
+                >
+                  <span className="material-symbols-outlined text-lg">login</span>
+                  <span>Se connecter / S'identifier</span>
+                </Link>
+
+                <Link
+                  to="/reserver"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-surface-container text-primary hover:bg-surface-container-high font-label-md text-sm font-bold transition-all border border-outline-variant/30"
+                >
+                  <span className="material-symbols-outlined text-lg">add_circle</span>
+                  <span>Commander un transport</span>
+                </Link>
+              </div>
+
+              {/* Rassurance & Garanties ARS / CPAM */}
+              <div className="mt-10 pt-8 border-t border-outline-variant/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                <div className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-secondary text-lg mt-0.5">verified_user</span>
+                  <div>
+                    <span className="text-xs font-bold text-on-surface block">Secret Médical</span>
+                    <span className="text-[11px] text-on-surface-variant">Conformité RGPD &amp; ARS</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-primary text-lg mt-0.5">near_me</span>
+                  <div>
+                    <span className="text-xs font-bold text-on-surface block">Suivi GPS Temps Réel</span>
+                    <span className="text-[11px] text-on-surface-variant">Approche de votre véhicule</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-secondary text-lg mt-0.5">receipt_long</span>
+                  <div>
+                    <span className="text-xs font-bold text-on-surface block">Tiers-Payant 100%</span>
+                    <span className="text-[11px] text-on-surface-variant">Bons de transport CPAM</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        ) : (
+          <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-lg flex flex-col gap-space-xl">
+            {/* Header Title */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-lg">
+              <div className="flex flex-col gap-space-xs max-w-2xl">
+                <div className="flex items-center gap-space-sm">
+                  <span className="px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-bold text-xs">
+                    {`Espace ${user.firstName} ${user.lastName}`}
+                  </span>
+                  <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                    {`Compte : ${user.email}`}
+                  </span>
+                </div>
+                <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight font-bold text-2xl md:text-3xl">
+                  Mes demandes de transport sanitaire
+                </h1>
+                <p className="font-body-md text-body-md text-on-surface-variant text-sm">
+                  Récapitulatif de vos prises en charge médicales, suivi des équipages agréés ARS en temps réel et attestations 100% Tiers-Payant CPAM.
+                </p>
+              </div>
+            </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
             {/* Left Col: Active Card & History OR Empty State */}
@@ -845,6 +936,7 @@ export const TrackingPage: React.FC = () => {
             </aside>
           </div>
         </div>
+        )}
       </main>
 
       {/* Modal Détails Course & Fiche PMT */}

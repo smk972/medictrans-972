@@ -289,6 +289,53 @@ export const INITIAL_RIDES: Ride[] = [
     }
   },
   {
+    id: 'ride-demo-1-active',
+    reference: 'MT-972-8821',
+    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+    pickupAddress: 'Quartier Cap Est, Morne Calebasse',
+    pickupCity: 'Le Marin',
+    dropoffAddress: 'CHU Pierre Zobda-Quitman, Route de Châteauboeuf',
+    dropoffCity: 'Fort-de-France',
+    facilityName: 'CHU Pierre Zobda-Quitman',
+    pickupDateTime: new Date(Date.now() + 35 * 60000).toISOString(),
+    returnDateTime: new Date(Date.now() + 240 * 60000).toISOString(),
+    isRoundTrip: true,
+    transportType: 'VSL',
+    status: 'ACCEPTED',
+    source: 'PATIENT',
+    patient: {
+      firstName: 'Christian',
+      lastName: 'Marie-Luce',
+      birthDate: '1954-11-03',
+      nir: '1 54 11 97 208 771 19',
+      phone: '0696 55 44 33',
+      email: 'c.marieluce@orange.fr',
+      address: 'Quartier Cap Est, Morne Calebasse',
+      city: 'Le Marin',
+      postalCode: '97290',
+      isAld: true,
+      hasPmt: true,
+      pmtPrescriberDoctor: 'Dr. Joseph Rénier - CHU Zobda-Quitman',
+      pmtUploaded: true,
+      pmtFileName: 'Prescription_Cardiologie_Zobda.pdf'
+    },
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Consultation cardiologie - Équipage en approche'
+    },
+    assignedTransporter: {
+      companyName: 'Ambulances Madinina Secours',
+      driverName: 'Patrick Marie-Rose',
+      driverPhone: '0696 33 22 11',
+      vehiclePlate: 'AB-972-MQ',
+      etaMinutes: 12
+    }
+  },
+  {
     id: 'ride-demo-2',
     reference: 'MT-972-1849',
     createdAt: new Date(Date.now() - 36 * 3600000).toISOString(),
