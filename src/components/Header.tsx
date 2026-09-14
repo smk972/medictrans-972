@@ -28,7 +28,7 @@ export const Header: React.FC = () => {
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 rounded-lg font-label-md text-label-md transition-all duration-150 ${isActive
+    `whitespace-nowrap shrink-0 px-2.5 2xl:px-3.5 py-2 rounded-xl text-xs xl:text-[13px] 2xl:text-sm font-semibold transition-all duration-150 inline-flex items-center justify-center leading-none ${isActive
       ? 'bg-primary-container text-on-primary font-bold shadow-xs'
       : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
     }`;
@@ -52,26 +52,26 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.06)] border-b border-outline-variant/20">
-      <div className="h-20 max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg flex items-center justify-between gap-space-md">
+      <div className="h-20 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 lg:gap-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 shrink-0 group">
+        <Link to="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
           <img
             alt="Logo Médic'Trans Martinique"
-            className="h-9 w-auto object-contain group-hover:scale-105 transition-transform"
+            className="h-10 w-auto object-contain group-hover:scale-105 transition-transform shrink-0"
             src="/assets/logo-icon.svg"
           />
-          <div className="flex flex-col">
-            <span className="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
+          <div className="flex flex-col justify-center">
+            <span className="text-base sm:text-lg font-black text-primary tracking-tight leading-none whitespace-nowrap">
               Médic'Trans
             </span>
-            <span className="font-label-sm text-label-sm text-secondary font-semibold -mt-1">
+            <span className="text-[10px] sm:text-[11px] font-bold text-secondary tracking-wider uppercase leading-none mt-1 whitespace-nowrap">
               Martinique 972
             </span>
           </div>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden xl:flex items-center gap-1">
+        <nav className="hidden xl:flex items-center gap-1 2xl:gap-2 shrink-0">
           <NavLink to="/" end className={navLinkClass}>
             Accueil
           </NavLink>
@@ -90,17 +90,17 @@ export const Header: React.FC = () => {
         </nav>
 
         {/* Right Info & Profile */}
-        <div className="flex items-center gap-space-md shrink-0">
-          <div className="hidden lg:flex flex-col items-end">
-            <div className="flex items-center gap-space-xs">
+        <div className="flex items-center gap-3 2xl:gap-4 shrink-0">
+          <div className="hidden 2xl:flex flex-col items-end shrink-0">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-              <span className="font-label-sm text-label-sm text-secondary font-semibold">
+              <span className="text-[11px] font-bold text-secondary tracking-wide uppercase leading-none">
                 Régulation 24/7
               </span>
             </div>
             <a
               href="tel:0596720097"
-              className="font-label-lg text-label-lg text-primary tracking-tight font-bold hover:text-primary-container transition-colors"
+              className="text-xs font-bold text-primary tracking-tight hover:text-primary-container transition-colors whitespace-nowrap mt-1 leading-none"
             >
               05 96 72 00 97
             </a>
@@ -114,28 +114,28 @@ export const Header: React.FC = () => {
                   type="button"
                   id="btn-header-profile"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2.5 p-1.5 sm:px-2.5 rounded-2xl hover:bg-surface-container transition-all border border-outline-variant/30 text-left"
+                  className="flex items-center gap-2.5 p-1.5 sm:px-2.5 rounded-2xl hover:bg-surface-container transition-all border border-outline-variant/30 text-left shrink-0"
                 >
                   {user.avatarUrl ? (
                     <img
                       alt={user.firstName}
-                      className="w-9 h-9 rounded-full object-cover shadow-xs ring-2 ring-primary/20"
+                      className="w-9 h-9 rounded-full object-cover shadow-xs ring-2 ring-primary/20 shrink-0"
                       src={user.avatarUrl}
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-xs ring-2 ring-primary/20">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-xs ring-2 ring-primary/20 shrink-0">
                       {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                  <div className="hidden md:flex flex-col">
-                    <span className="font-label-md text-label-md text-on-surface font-bold leading-tight">
+                  <div className="hidden md:flex flex-col max-w-[120px] 2xl:max-w-[160px]">
+                    <span className="font-label-md text-label-md text-on-surface font-bold leading-tight truncate">
                       {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                     </span>
-                    <span className="font-label-xs text-[11px] text-on-surface-variant leading-tight mt-0.5 truncate max-w-[140px]">
+                    <span className="font-label-xs text-[11px] text-on-surface-variant leading-tight mt-0.5 truncate">
                       {user.facilityName || user.transporterName || roleBadge?.label}
                     </span>
                   </div>
-                  <span className="material-symbols-outlined text-lg text-on-surface-variant hidden md:inline">
+                  <span className="material-symbols-outlined text-lg text-on-surface-variant hidden md:inline shrink-0">
                     {userDropdownOpen ? 'expand_less' : 'expand_more'}
                   </span>
                 </button>
