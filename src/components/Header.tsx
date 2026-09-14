@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useAiChat } from '../context/AiChatContext';
 
 export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -8,6 +9,7 @@ export const Header: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const { openChat } = useAiChat();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -90,21 +92,20 @@ export const Header: React.FC = () => {
         </nav>
 
         {/* Right Info & Profile */}
-        <div className="flex items-center gap-3 2xl:gap-4 shrink-0">
-          <div className="hidden 2xl:flex flex-col items-end shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-              <span className="text-[11px] font-bold text-secondary tracking-wide uppercase leading-none">
-                Régulation 24/7
-              </span>
-            </div>
-            <a
-              href="tel:0596720097"
-              className="text-xs font-bold text-primary tracking-tight hover:text-primary-container transition-colors whitespace-nowrap mt-1 leading-none"
-            >
-              05 96 72 00 97
-            </a>
-          </div>
+        <div className="flex items-center gap-2.5 sm:gap-3 2xl:gap-4 shrink-0">
+          {/* Bouton d'Aide sur le site (remplace l'ancien Régulation 24/7) */}
+          <button
+            type="button"
+            id="btn-header-help-ai"
+            onClick={() => openChat()}
+            className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl bg-surface-container hover:bg-primary/10 text-primary border border-primary/20 hover:border-primary/40 font-bold text-xs transition-all shadow-2xs group shrink-0"
+            title="Besoin d'aide sur le site ? Ouvrir l'assistant IA"
+          >
+            <span className="material-symbols-outlined text-base sm:text-lg text-primary group-hover:scale-110 transition-transform">
+              support_agent
+            </span>
+            <span className="hidden sm:inline whitespace-nowrap">Besoin d'aide ?</span>
+          </button>
 
           {/* User Profile / Login Button */}
           {isAuthenticated && user ? (
@@ -382,12 +383,21 @@ export const Header: React.FC = () => {
               </div>
             )}
           </nav>
-          <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-              <span className="font-label-sm text-secondary font-bold">Régulation 24/7</span>
-            </div>
-            <a href="tel:0596720097" className="font-label-md font-bold text-primary">
+          <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              id="btn-mobile-help-ai"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openChat();
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">support_agent</span>
+              <span>Besoin d'aide ?</span>
+            </button>
+            <a href="tel:0596720097" className="font-label-md font-bold text-on-surface-variant text-xs flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs">call</span>
               05 96 72 00 97
             </a>
           </div>

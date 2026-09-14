@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { AiChatProvider } from './context/AiChatContext';
+import { AiChatWidget } from './components/AiChatWidget';
 import { HomePage } from './pages/HomePage';
 import { BookingPage } from './pages/BookingPage';
 import { ConfirmationPage } from './pages/ConfirmationPage';
@@ -33,8 +35,9 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ScrollToTop />
-        <Routes>
+        <AiChatProvider>
+          <ScrollToTop />
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -130,7 +133,9 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             } 
           />
-        </Routes>
+          </Routes>
+          <AiChatWidget />
+        </AiChatProvider>
       </AuthProvider>
     </BrowserRouter>
   );
