@@ -269,7 +269,8 @@ export async function onRequestPost(context: any): Promise<Response> {
   if (!geminiApiKey) {
     const localReply = generateFallbackKnowledgeResponse(lastUserMessage);
     return new Response(JSON.stringify({
-      response: localReply,
+      response: localReply.text,
+      formDraft: localReply.formDraft,
       conversationId,
       timestamp: new Date().toISOString(),
       source: 'knowledge-base-level2-autonomous'
@@ -311,7 +312,8 @@ export async function onRequestPost(context: any): Promise<Response> {
       console.warn(`[AI Chat] Gemini API warning status: ${apiResponse.status}, falling back to knowledge base.`);
       const fallback = generateFallbackKnowledgeResponse(lastUserMessage);
       return new Response(JSON.stringify({
-        response: fallback,
+        response: fallback.text,
+        formDraft: fallback.formDraft,
         conversationId,
         timestamp: new Date().toISOString(),
         source: 'knowledge-base-fallback'
@@ -342,7 +344,8 @@ export async function onRequestPost(context: any): Promise<Response> {
     console.error('[AI Chat] Error during inference:', error?.message);
     const safeFallback = generateFallbackKnowledgeResponse(lastUserMessage);
     return new Response(JSON.stringify({
-      response: safeFallback,
+      response: safeFallback.text,
+      formDraft: safeFallback.formDraft,
       conversationId,
       timestamp: new Date().toISOString(),
       source: 'safe-recovery'
