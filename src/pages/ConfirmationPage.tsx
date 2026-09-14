@@ -151,20 +151,29 @@ export const ConfirmationPage: React.FC = () => {
               <div className="flex items-center gap-space-sm">
                 <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-secondary/10">
                   <span className="material-symbols-outlined text-[28px] text-secondary">
-                    broadcast_on_personal
+                    {bookingData?.isDirectRequest ? 'local_fire_department' : 'broadcast_on_personal'}
                   </span>
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-secondary"></span>
+                  <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full ${bookingData?.isDirectRequest ? 'bg-amber-600 animate-ping' : 'bg-secondary'}`}></span>
                 </div>
                 <div className="flex flex-col">
                   <span className="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold text-[10px]">
-                    Réseau Opérationnel Martinique
+                    {bookingData?.isDirectRequest ? 'Demande Directe Nominative (Priorité 24h)' : 'Réseau Opérationnel Martinique'}
                   </span>
                   <p className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
-                    Demande diffusée à{' '}
-                    <span className="text-primary font-bold">18 transporteurs sanitaires agréés</span>
+                    {bookingData?.isDirectRequest ? (
+                      <>
+                        Demande adressée à <span className="text-amber-700 font-bold">{bookingData.targetTransporterName || 'votre transporteur sélectionné'}</span>
+                      </>
+                    ) : (
+                      <>
+                        Demande diffusée à <span className="text-primary font-bold">18 transporteurs sanitaires agréés</span>
+                      </>
+                    )}
                   </p>
                   <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                    Zone prioritaire : Secteur Fort-de-France / Le Lamentin / Schoelcher
+                    {bookingData?.isDirectRequest
+                      ? 'Délai d\'acceptation de 24h00 • Rebasculement automatique au pot commun garanti en cas d\'indisponibilité'
+                      : 'Zone prioritaire : Secteur Fort-de-France / Le Lamentin / Schoelcher'}
                   </span>
                 </div>
               </div>
@@ -174,7 +183,7 @@ export const ConfirmationPage: React.FC = () => {
                   sync
                 </span>
                 <span className="font-label-sm text-label-sm text-on-surface font-bold text-xs">
-                  Attribution en cours (1/18)
+                  {bookingData?.isDirectRequest ? 'En attente acceptation (24h)' : 'Attribution en cours (1/18)'}
                 </span>
               </div>
             </div>

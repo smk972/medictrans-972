@@ -505,6 +505,12 @@ export const INITIAL_RIDES: Ride[] = [
     status: 'PENDING',
     source: 'PATIENT',
     appointmentTime: '09:30',
+    isDirectRequest: true,
+    targetTransporterId: 'transporter-1',
+    targetTransporterName: 'Ambulances Madinina Secours',
+    directRequestExpiresAt: new Date(Date.now() + 20 * 3600000).toISOString(),
+    isDirectRequestExpired: false,
+    reassignedToPublicPool: false,
     patient: {
       firstName: 'Marcel',
       lastName: 'Ventura',
@@ -646,6 +652,12 @@ export const INITIAL_RIDES: Ride[] = [
     transportType: 'AMBULANCE',
     status: 'PENDING',
     source: 'PATIENT',
+    isDirectRequest: true,
+    targetTransporterId: 'transporter-2',
+    targetTransporterName: 'Caraïbes Transports Sanitaires',
+    directRequestExpiresAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+    isDirectRequestExpired: true,
+    reassignedToPublicPool: true,
     patient: {
       firstName: 'Agnès',
       lastName: 'Saint-Aimé',
@@ -734,10 +746,18 @@ export const rideService = {
           .order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
           const fetchedRides = data.map(this.mapSupabaseToRide);
-          // Fusionner avec les courses de démonstration du planning qui ne seraient pas encore dans Supabase
+          // Fusionner avec les courses de démonstration et les courses locales éventuelles
           const existingRefs = new Set(fetchedRides.map(r => r.reference.toUpperCase()));
-          const missingDemos = INITIAL_RIDES.filter(d => !existingRefs.has(d.reference.toUpperCase()));
-          return [...fetchedRides, ...missingDemos];
+          let localRides: Ride[] = [];
+          try {
+            const rawStored = localStorage.getItem(STORAGE_KEY_RIDES);
+            if (rawStored) localRides = JSON.parse(rawStored);
+          } catch {}
+          const missingLocals = localRides.filter(l => !existingRefs.has(l.reference.toUpperCase()));
+          const missingDemos = INITIAL_RIDES.filter(d => !existingRefs.has(d.reference.toUpperCase()) && !missingLocals.some(m => m.reference.toUpperCase() === d.reference.toUpperCase()));
+          const merged = [...fetchedRides, ...missingLocals, ...missingDemos];
+          const processed = this.processDirectRequestsLifecycle(merged);
+          return processed;
         }
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to local store:', err);
@@ -746,26 +766,70 @@ export const rideService = {
 
     const stored = localStorage.getItem(STORAGE_KEY_RIDES);
     if (!stored) {
-      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(INITIAL_RIDES));
-      return INITIAL_RIDES;
+      const initial = this.processDirectRequestsLifecycle(INITIAL_RIDES);
+      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(initial));
+      return initial;
     }
     try {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const existingRefs = new Set(parsed.map((r: Ride) => r.reference.toUpperCase()));
         const missing = INITIAL_RIDES.filter(d => !existingRefs.has(d.reference.toUpperCase()));
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(merged));
-          return merged;
-        }
-        return parsed;
+        const merged = missing.length > 0 ? [...parsed, ...missing] : parsed;
+        const processed = this.processDirectRequestsLifecycle(merged);
+        localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(processed));
+        return processed;
       }
-      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(INITIAL_RIDES));
-      return INITIAL_RIDES;
+      const initial = this.processDirectRequestsLifecycle(INITIAL_RIDES);
+      localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(initial));
+      return initial;
     } catch {
       return INITIAL_RIDES;
     }
+  },
+
+  // Cycle de vie des demandes directes : expiration automatique après 24h00 et rebasculement au pot commun
+  processDirectRequestsLifecycle(rides: Ride[]): Ride[] {
+    const now = Date.now();
+    let hasChanges = false;
+    const updated = rides.map((r) => {
+      if (r.status === 'PENDING' && r.isDirectRequest && !r.isDirectRequestExpired && r.directRequestExpiresAt) {
+        const expiresAt = new Date(r.directRequestExpiresAt).getTime();
+        if (now > expiresAt) {
+          hasChanges = true;
+          return {
+            ...r,
+            isDirectRequestExpired: true,
+            reassignedToPublicPool: true
+          };
+        }
+      }
+      return r;
+    });
+
+    if (hasChanges) {
+      try {
+        localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(updated));
+      } catch (e) {}
+    }
+    return updated;
+  },
+
+  // Libération manuelle d'une demande directe vers le pot commun par le transporteur sollicité
+  async releaseDirectRequestToPublicPool(reference: string, reason?: string): Promise<Ride | null> {
+    const rides = await this.getAllRides();
+    const index = rides.findIndex(r => r.reference.toUpperCase() === reference.trim().toUpperCase());
+    if (index === -1) return null;
+
+    rides[index].isDirectRequestExpired = true;
+    rides[index].reassignedToPublicPool = true;
+    if (reason) {
+      rides[index].mobility.notes = rides[index].mobility.notes 
+        ? `${rides[index].mobility.notes} | Renvoyée au pot commun : ${reason}`
+        : `Renvoyée au pot commun : ${reason}`;
+    }
+    localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));
+    return rides[index];
   },
 
   // Récupérer une course par sa référence (ex: MT-972-8821)
@@ -779,12 +843,24 @@ export const rideService = {
   async createRide(rideData: Omit<Ride, 'id' | 'reference' | 'createdAt' | 'status'>): Promise<Ride> {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const reference = `MT-972-${randomSuffix}`;
+
+    const isDirect = !!rideData.isDirectRequest && !!rideData.targetTransporterName;
+    const directRequestExpiresAt = isDirect
+      ? (rideData.directRequestExpiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
+      : undefined;
+
     const newRide: Ride = {
       ...rideData,
       id: `ride-${Date.now()}`,
       reference,
       createdAt: new Date().toISOString(),
-      status: 'PENDING'
+      status: 'PENDING',
+      isDirectRequest: isDirect,
+      targetTransporterId: isDirect ? rideData.targetTransporterId : undefined,
+      targetTransporterName: isDirect ? rideData.targetTransporterName : undefined,
+      directRequestExpiresAt,
+      isDirectRequestExpired: false,
+      reassignedToPublicPool: false
     };
 
     if (isSupabaseConfigured() && supabase) {

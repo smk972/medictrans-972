@@ -9,7 +9,7 @@ import { GoogleMapView } from '../components/GoogleMapView';
 import { whatsappService } from '../services/whatsappService';
 import { rideService } from '../services/rideService';
 import { calculateMedicalRidePricing } from '../services/pricingService';
-import { TransportType } from '../types';
+import { TransportType, Transporter } from '../types';
 import { SEOHead } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 import { NirInput } from '../components/NirInput';
@@ -157,6 +157,22 @@ export const BookingPage: React.FC = () => {
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [whatsappPhone, setWhatsappPhone] = useState('06 96 44 20 18');
 
+  // Attribution directe nominative (délai 24h) ou diffusion générale (pot commun)
+  const [transportersList, setTransportersList] = useState<Transporter[]>([]);
+  const [selectedTransporterId, setSelectedTransporterId] = useState<string>('');
+
+  useEffect(() => {
+    rideService.getAllTransporters().then((list) => {
+      const active = list.filter((t) => t.verified !== false && t.status !== 'SUSPENDED');
+      setTransportersList(active);
+    });
+  }, []);
+
+  const selectedTransporter = useMemo(() => {
+    if (!selectedTransporterId) return null;
+    return transportersList.find((t) => t.id === selectedTransporterId) || null;
+  }, [selectedTransporterId, transportersList]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Moteur réglementaire de calcul du prix & de la distance en Martinique
@@ -263,6 +279,9 @@ export const BookingPage: React.FC = () => {
         isRecurring,
         recurringDates: isRecurring ? recurringDates : undefined,
         pricing: ridePricing,
+        isDirectRequest: !!selectedTransporter,
+        targetTransporterId: selectedTransporter?.id,
+        targetTransporterName: selectedTransporter?.companyName,
       });
 
       const actualRef = createdRide?.reference || finalRef;
@@ -282,6 +301,9 @@ export const BookingPage: React.FC = () => {
         whatsappOptIn,
         whatsappPhone: whatsappPhone || phone,
         uploadedPmtDoc,
+        isDirectRequest: !!selectedTransporter,
+        targetTransporterId: selectedTransporter?.id,
+        targetTransporterName: selectedTransporter?.companyName,
       };
       try {
         localStorage.setItem('medictrans_last_booking', JSON.stringify(bookingRecord));
@@ -309,6 +331,9 @@ export const BookingPage: React.FC = () => {
         whatsappOptIn,
         whatsappPhone: whatsappPhone || phone,
         uploadedPmtDoc,
+        isDirectRequest: !!selectedTransporter,
+        targetTransporterId: selectedTransporter?.id,
+        targetTransporterName: selectedTransporter?.companyName,
       };
       try {
         localStorage.setItem('medictrans_last_booking', JSON.stringify(bookingRecord));
@@ -1266,6 +1291,83 @@ export const BookingPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Card 3 bis: Choix du Transporteur Sanitaire (Demande nominative 24h ou Bourse publique) */}
+              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-space-sm">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                      <span className="material-symbols-outlined text-[24px]">local_shipping</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                          Choix du Transporteur Sanitaire
+                        </h2>
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                          Attribution
+                        </span>
+                      </div>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                        Adressez directement votre demande à un transporteur précis ou diffusez-la au réseau
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-space-sm pt-space-xs">
+                  <label htmlFor="transporter-select" className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-primary">domain</span>
+                    <span>Transporteur conventionné en Martinique (Optionnel) :</span>
+                  </label>
+
+                  <div className="relative">
+                    <select
+                      id="transporter-select"
+                      value={selectedTransporterId}
+                      onChange={(e) => setSelectedTransporterId(e.target.value)}
+                      className="w-full pl-3 pr-10 py-3 rounded-xl border border-outline-variant/50 bg-surface-container-low text-on-surface text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">
+                        🌐 Diffusion générale (Bourse publique — Premier transporteur disponible)
+                      </option>
+                      {transportersList.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          🏢 {t.companyName} ({t.city || 'Martinique'})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
+                      <span className="material-symbols-outlined">expand_more</span>
+                    </div>
+                  </div>
+
+                  {selectedTransporter ? (
+                    <div className="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-950 text-xs flex flex-col gap-2.5 animate-fadeIn">
+                      <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
+                        <span className="material-symbols-outlined text-amber-600 text-xl">local_fire_department</span>
+                        <span>Demande directe nominative adressée à : {selectedTransporter.companyName}</span>
+                      </div>
+                      <p className="text-[12px] text-amber-950/90 leading-relaxed">
+                        Cette demande apparaîtra <strong>en orange vif</strong> dans le panel de <strong>{selectedTransporter.companyName}</strong> avec un <strong>délai prioritaire de 24h00</strong> pour confirmer sa prise en charge.
+                      </p>
+                      <div className="flex items-start gap-2 text-[11px] text-amber-900 bg-amber-500/15 p-2.5 rounded-lg font-medium border border-amber-500/20">
+                        <span className="material-symbols-outlined text-sm text-amber-700 shrink-0 mt-0.5">sync_alt</span>
+                        <span>
+                          <strong>Rebasculement automatique dans le pot commun :</strong> Si le transporteur ne répond pas dans ce délai de 24h00 (ou s'il décline), votre demande sera immédiatement rebasculée dans le <em>pot commun</em> des demandes en attente d'attribution pour être honorée par le premier transporteur disponible.
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs flex items-start gap-2.5 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-secondary text-base shrink-0 mt-0.5">hub</span>
+                      <div className="text-[11px] leading-relaxed">
+                        <strong>Diffusion générale optimale :</strong> Votre demande sera transmise simultanément à l'ensemble des compagnies de transport sanitaire conventionnées de Martinique pour une attribution au premier disponible.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Card 4: Automatisation & Notifications WhatsApp */}
               <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
                 <div className="flex items-center justify-between">
@@ -1448,6 +1550,27 @@ export const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Transporteur ciblé / Attribution */}
+                <div className="p-space-sm bg-surface-container-low rounded-xl flex items-center justify-between border border-outline-variant/30 text-xs">
+                  <span className="font-label-sm text-label-sm text-on-surface-variant text-xs flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[15px] text-primary">local_shipping</span>
+                    <span>Attribution :</span>
+                  </span>
+                  <div className="text-right">
+                    {selectedTransporter ? (
+                      <span className="font-bold text-amber-700 flex items-center gap-1 text-xs">
+                        <span className="material-symbols-outlined text-xs">local_fire_department</span>
+                        <span>{selectedTransporter.companyName} (24h)</span>
+                      </span>
+                    ) : (
+                      <span className="font-bold text-secondary flex items-center gap-1 text-xs">
+                        <span className="material-symbols-outlined text-xs">public</span>
+                        <span>Bourse publique (Premier dispo)</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 {/* Official CPAM Tariffs & Tiers Payant breakdown */}
                 <div className="p-space-md rounded-2xl bg-surface-container-low/80 flex flex-col gap-space-xs border border-outline-variant/30 text-xs shadow-xs">
                   <div className="flex items-center justify-between pb-1 border-b border-outline-variant/20">
@@ -1532,6 +1655,8 @@ export const BookingPage: React.FC = () => {
                     className={`w-full h-14 transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
                       !nirValidation.isValid
                         ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
+                        : selectedTransporter
+                        ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
                         : 'bg-primary hover:bg-primary-container active:scale-[0.99] shadow-primary/20 hover:scale-[1.01]'
                     }`}
                     type="submit"
@@ -1539,12 +1664,17 @@ export const BookingPage: React.FC = () => {
                     {isSubmitting ? (
                       <span className="flex items-center gap-2">
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                        Diffusion en cours...
+                        {selectedTransporter ? 'Transmission directe en cours...' : 'Diffusion en cours...'}
                       </span>
                     ) : !nirValidation.isValid ? (
                       <>
                         <span className="material-symbols-outlined text-[20px]">lock</span>
                         <span>NIR obligatoire pour valider la demande</span>
+                      </>
+                    ) : selectedTransporter ? (
+                      <>
+                        <span className="material-symbols-outlined text-[24px]">send</span>
+                        <span className="truncate">Adresser la demande à {selectedTransporter.companyName}</span>
                       </>
                     ) : (
                       <>
@@ -1556,12 +1686,20 @@ export const BookingPage: React.FC = () => {
 
                   <div className="flex items-start gap-space-xs p-space-sm bg-surface-container-low rounded-xl border border-outline-variant/30">
                     <span className="material-symbols-outlined text-[18px] text-secondary shrink-0 mt-0.5">
-                      radar
+                      {selectedTransporter ? 'timer' : 'radar'}
                     </span>
                     <p className="font-label-sm text-label-sm text-on-surface-variant leading-relaxed text-xs">
-                      <strong className="text-on-surface">Diffusion instantanée :</strong> Alerte
-                      transmise par SMS et console télématique aux{' '}
-                      <span className="text-primary font-bold">professionnels certifiés</span> du secteur.
+                      {selectedTransporter ? (
+                        <>
+                          <strong className="text-on-surface">Demande directe nominative :</strong> Transmise en priorité exclusive à <strong className="text-amber-900">{selectedTransporter.companyName}</strong> avec un délai de réponse de 24h00 avant rebasculement automatique au pot commun.
+                        </>
+                      ) : (
+                        <>
+                          <strong className="text-on-surface">Diffusion instantanée :</strong> Alerte
+                          transmise par SMS et console télématique aux{' '}
+                          <span className="text-primary font-bold">professionnels certifiés</span> du secteur.
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

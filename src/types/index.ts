@@ -88,6 +88,12 @@ export interface Ride {
   dropoffApartment?: string;
   dropoffDoorCode?: string;
   hasCompanion?: boolean;
+  targetTransporterId?: string; // ID du transporteur conventionné ciblé directement par le patient
+  targetTransporterName?: string; // Nom de l'entreprise ciblée (ex: "Ambulances Madinina Secours")
+  isDirectRequest?: boolean; // Vrai si la course a été adressée directement à un transporteur précis
+  directRequestExpiresAt?: string; // Date ISO de fin du délai de 24h00 pour répondre
+  isDirectRequestExpired?: boolean; // Vrai si le délai de 24h00 est expiré
+  reassignedToPublicPool?: boolean; // Vrai si la course a été rebasculée dans le pot commun
 }
 
 export interface RidePricing {

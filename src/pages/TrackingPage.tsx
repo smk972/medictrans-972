@@ -558,10 +558,22 @@ export const TrackingPage: React.FC = () => {
                       <div className="flex flex-wrap items-center justify-between gap-space-sm relative z-10">
                         <div className="flex items-center gap-space-sm">
                           {activeRide.status === 'PENDING' ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-label-md text-label-md font-bold text-xs">
-                              <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping"></span>
-                              RECHERCHE ACTIVE D'UN TRANSPORTEUR
-                            </span>
+                            activeRide.isDirectRequest && !activeRide.isDirectRequestExpired && !activeRide.reassignedToPublicPool ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-950 border border-orange-300 font-label-md text-label-md font-extrabold text-xs">
+                                <span className="w-2 h-2 rounded-full bg-orange-600 animate-ping"></span>
+                                DEMANDE DIRECTE ({activeRide.targetTransporterName || 'Transporteur'} • DÉLAI 24H)
+                              </span>
+                            ) : activeRide.reassignedToPublicPool || activeRide.isDirectRequestExpired ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-950 border border-blue-300 font-label-md text-label-md font-bold text-xs">
+                                <span className="material-symbols-outlined text-xs text-blue-700">sync_alt</span>
+                                REBASCLUÉ AU POT COMMUN (BOURSE 972)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-label-md text-label-md font-bold text-xs">
+                                <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping"></span>
+                                RECHERCHE ACTIVE D'UN TRANSPORTEUR
+                              </span>
+                            )
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 font-label-md text-label-md font-bold text-xs">
                               <span className="w-2 h-2 rounded-full bg-emerald-600"></span>

@@ -283,6 +283,67 @@ export const TransporterPortalPage: React.FC = () => {
   // Nom de la compagnie active
   const transporterName = user?.transporterName || 'Ambulances Madinina Secours';
   const transporterPhone = user?.phone || '0596 75 20 20';
+  const transporterId = user?.transporterId || 'transporter-1';
+
+  // Horloge temps-réel pour le décompte des 24h00
+  const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper : vérifie si une course est une demande directe nominative adressée spécifiquement à cette entreprise (active et non expirée)
+  const isDirectTargetedToMe = useCallback(
+    (r: Ride) => {
+      if (!r.isDirectRequest || r.isDirectRequestExpired || r.reassignedToPublicPool) return false;
+      const targetId = r.targetTransporterId;
+      const targetName = r.targetTransporterName?.toLowerCase().trim() || '';
+      const currentName = transporterName.toLowerCase().trim();
+
+      if (targetId && user?.transporterId && targetId === user.transporterId) return true;
+      if (targetName && currentName && (targetName === currentName || targetName.includes(currentName) || currentName.includes(targetName))) return true;
+      if (
+        (targetName.includes('madinina') && currentName.includes('madinina')) ||
+        (targetId === 'transporter-1' && transporterId === 'transporter-1')
+      ) {
+        return true;
+      }
+      return false;
+    },
+    [transporterName, user?.transporterId, transporterId]
+  );
+
+  // Helper : vérifie si une course est une demande directe active réservée à un AUTRE transporteur pendant ses 24h00
+  const isDirectTargetedToOther = useCallback(
+    (r: Ride) => {
+      if (!r.isDirectRequest || r.isDirectRequestExpired || r.reassignedToPublicPool) return false;
+      return !isDirectTargetedToMe(r);
+    },
+    [isDirectTargetedToMe]
+  );
+
+  // Décompte précis du délai de 24h00
+  const getDirectRemainingTime = useCallback(
+    (expiresAtStr?: string) => {
+      if (!expiresAtStr) return { text: '24h00 restantes', isExpiringSoon: false, isExpired: false };
+      const expiresAt = new Date(expiresAtStr).getTime();
+      const diff = expiresAt - currentTimestamp;
+      if (diff <= 0) {
+        return { text: '0h 00min (Rebasculement au pot commun)', isExpiringSoon: true, isExpired: true };
+      }
+      const totalMinutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return {
+        text: `${hours}h ${minutes < 10 ? '0' : ''}${minutes}min restantes`,
+        isExpiringSoon: hours < 4,
+        isExpired: false,
+      };
+    },
+    [currentTimestamp]
+  );
 
   // Chargement des courses depuis Supabase / Local
   const loadMissions = useCallback(async () => {
@@ -297,6 +358,26 @@ export const TransporterPortalPage: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Transférer manuellement une demande directe au pot commun avant l'échéance des 24h
+  const handleTransferToPublicPool = async (mission: Ride) => {
+    const confirmTransfer = window.confirm(
+      `Voulez-vous transférer la demande directe #${mission.reference} au pot commun ?\n\nCette mission sera immédiatement rendue visible à tous les transporteurs conventionnés de Martinique afin que le patient soit pris en charge sans attendre l'expiration des 24h.`
+    );
+    if (!confirmTransfer) return;
+
+    try {
+      await rideService.releaseDirectRequestToPublicPool(mission.reference, `Transféré au pot commun par ${transporterName}`);
+      setToastMessage({
+        title: 'Demande rebasculée au pot commun',
+        desc: `La course #${mission.reference} a été libérée pour les autres transporteurs de l'île.`,
+        type: 'info'
+      });
+      await loadMissions();
+    } catch (err) {
+      console.warn('Erreur transfert pot commun:', err);
+    }
+  };
 
   // Synchronisation initiale & écoute temps réel Supabase
   useEffect(() => {
@@ -323,16 +404,27 @@ export const TransporterPortalPage: React.FC = () => {
     }
   }, [loadMissions]);
 
-  // Toutes les courses en attente (non déclinées) pour le calcul du rayon
+  // Toutes les courses en attente (non déclinées, hors demandes directes exclusives d'autres confrères)
   const allPendingMissions = useMemo(() => {
-    return rides.filter((r) => r.status === 'PENDING' && !declinedRefs.includes(r.reference.trim().toUpperCase()));
-  }, [rides, declinedRefs]);
+    return rides.filter((r) => {
+      if (r.status !== 'PENDING') return false;
+      if (declinedRefs.includes(r.reference.trim().toUpperCase())) return false;
+      if (isDirectTargetedToOther(r)) return false;
+      return true;
+    });
+  }, [rides, declinedRefs, isDirectTargetedToOther]);
 
   // Filtrage des courses disponibles (Status PENDING et non déclinées, filtres véhicule, secteur et Rayon d'action)
   const availableMissions = useMemo(() => {
     return rides.filter((r) => {
       if (r.status !== 'PENDING') return false;
       if (declinedRefs.includes(r.reference.trim().toUpperCase())) return false;
+
+      // Si la demande est réservée à un autre transporteur pendant ses 24h, on la masque
+      if (isDirectTargetedToOther(r)) return false;
+
+      // Si la demande m'est adressée directement (orange vif), elle est TOUJOURS visible en priorité
+      if (isDirectTargetedToMe(r)) return true;
 
       // Filtre Véhicule
       if (vehicleFilter === 'AMBULANCE' && r.transportType !== 'AMBULANCE') return false;
@@ -360,8 +452,14 @@ export const TransporterPortalPage: React.FC = () => {
       }
 
       return true;
+    }).sort((a, b) => {
+      // Les demandes directes nominatives ciblées sur ma société apparaissent TOUJOURS en tout premier
+      const aDirect = isDirectTargetedToMe(a) ? 1 : 0;
+      const bDirect = isDirectTargetedToMe(b) ? 1 : 0;
+      if (aDirect !== bDirect) return bDirect - aDirect;
+      return new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime();
     });
-  }, [rides, vehicleFilter, sectorFilter, declinedRefs, baseCommune, actionRadiusKm, includeOutsideRadius]);
+  }, [rides, vehicleFilter, sectorFilter, declinedRefs, baseCommune, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
 
   // Compteurs de courses dans et hors zone d'action
   const pendingInRadiusCount = useMemo(() => {
@@ -374,6 +472,11 @@ export const TransporterPortalPage: React.FC = () => {
   const pendingOutsideRadiusCount = useMemo(() => {
     return allPendingMissions.length - pendingInRadiusCount;
   }, [allPendingMissions, pendingInRadiusCount]);
+
+  // Compteur des demandes directes prioritaires nominatives pour ce transporteur (délai 24h)
+  const pendingDirectRequestsCount = useMemo(() => {
+    return rides.filter((r) => r.status === 'PENDING' && isDirectTargetedToMe(r)).length;
+  }, [rides, isDirectTargetedToMe]);
 
   // Missions actives en cours de réalisation
   const activeMissions = useMemo(() => {
@@ -976,6 +1079,10 @@ export const TransporterPortalPage: React.FC = () => {
 
     try {
       await rideService.declineRide(cleanRef, transporterName, declineReason);
+      if (missionToDecline.isDirectRequest && !missionToDecline.isDirectRequestExpired) {
+        await rideService.releaseDirectRequestToPublicPool(cleanRef, `Déclinée par le transporteur sollicité (${declineReason})`);
+      }
+      await loadMissions();
     } catch (err) {
       console.error('Erreur refus:', err);
     }
@@ -1263,13 +1370,21 @@ export const TransporterPortalPage: React.FC = () => {
               <span className="material-symbols-outlined text-lg">radar</span>
               <span>Courses disponibles</span>
             </div>
-            {availableMissions.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                activeTab === 'DISPONIBLES' ? 'bg-white text-primary' : 'bg-primary/10 text-primary'
-              }`}>
-                {availableMissions.length}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {pendingDirectRequestsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-white font-black text-[10px] flex items-center gap-0.5 shadow-xs animate-pulse" title={`${pendingDirectRequestsCount} demande(s) directe(s) nominative(s) (délai 24h)`}>
+                  <span>🔥</span>
+                  <span>{pendingDirectRequestsCount}</span>
+                </span>
+              )}
+              {availableMissions.length > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  activeTab === 'DISPONIBLES' ? 'bg-white text-primary' : 'bg-primary/10 text-primary'
+                }`}>
+                  {availableMissions.length}
+                </span>
+              )}
+            </div>
           </button>
 
           <button
@@ -1461,11 +1576,16 @@ export const TransporterPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('DISPONIBLES')}
-            className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
+            className={`px-3 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               activeTab === 'DISPONIBLES' ? 'bg-primary text-white' : 'text-on-surface-variant'
             }`}
           >
-            Courses disponibles ({availableMissions.length})
+            <span>Courses disponibles ({availableMissions.length})</span>
+            {pendingDirectRequestsCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse">
+                🔥 {pendingDirectRequestsCount}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -1811,6 +1931,34 @@ export const TransporterPortalPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Bannière d'alerte pour les Demandes Directes Nominatives (Délai 24h) */}
+              {pendingDirectRequestsCount > 0 && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-2 border-orange-400 animate-fadeIn">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-xs">
+                      <span className="material-symbols-outlined text-2xl text-white animate-bounce">local_fire_department</span>
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm sm:text-base flex items-center gap-2">
+                        <span>🚨 DEMANDE DIRECTE NOMINATIVE EN ATTENTE</span>
+                        <span className="bg-white text-orange-900 text-[11px] px-2.5 py-0.5 rounded-full font-black shadow-xs">
+                          Délai 24h00
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-white/95 mt-0.5 leading-relaxed">
+                        Un patient a directement sélectionné votre société <strong>{transporterName}</strong>. 
+                        Cette demande apparaît <strong>en orange vif ci-dessous</strong>. Vous disposez de 24h00 pour accepter la course avant son rebasculement automatique dans le pot commun.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-3 py-1.5 rounded-xl bg-black/25 text-white font-mono text-xs font-bold border border-white/20">
+                      {pendingDirectRequestsCount} course{pendingDirectRequestsCount > 1 ? 's' : ''} prioritaire{pendingDirectRequestsCount > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Liste des opportunités */}
               {isLoading ? (
                 <div className="bg-surface-container-lowest rounded-2xl p-12 text-center border border-outline-variant/20 shadow-xs">
@@ -1893,22 +2041,57 @@ export const TransporterPortalPage: React.FC = () => {
                       isRoundTrip: mission.isRoundTrip
                     });
 
+                    const isDirect = isDirectTargetedToMe(mission);
+                    const isPotCommun = mission.reassignedToPublicPool || mission.isDirectRequestExpired;
+                    const remaining = isDirect ? getDirectRemainingTime(mission.directRequestExpiresAt) : null;
+
                     return (
                       <article
                         key={mission.id}
-                        className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/30 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 relative overflow-hidden"
+                        id={isDirect ? `direct-request-${mission.reference}` : undefined}
+                        className={`rounded-2xl p-5 border-2 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 relative overflow-hidden ${
+                          isDirect
+                            ? 'border-orange-500 bg-gradient-to-b from-orange-500/15 via-amber-500/10 to-surface-container-lowest ring-4 ring-orange-500/25 shadow-lg shadow-orange-500/15'
+                            : 'border-outline-variant/30 bg-surface-container-lowest'
+                        }`}
                       >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-primary to-secondary"></div>
+                        {/* Top bar */}
+                        {isDirect ? (
+                          <div className="flex items-center justify-between gap-2 p-2.5 -mx-5 -mt-5 mb-1 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white shadow-xs">
+                            <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider">
+                              <span className="material-symbols-outlined text-base animate-bounce">local_fire_department</span>
+                              <span>Demande directe nominative</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-black/25 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold">
+                              <span className="material-symbols-outlined text-xs">timer</span>
+                              <span>{remaining?.text}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-primary to-secondary"></div>
+                        )}
 
                         <div>
                           {/* Header carte */}
                           <div className="flex flex-col gap-2 mb-3">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
-                                  EN ATTENTE IMMÉDIATE
-                                </span>
+                                {isDirect ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 border border-orange-300 text-orange-950 text-[11px] font-black">
+                                    <span className="w-2 h-2 rounded-full bg-orange-600 animate-ping"></span>
+                                    🔥 DEMANDE DIRECTE NOMINATIVE (24H)
+                                  </span>
+                                ) : isPotCommun ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-bold" title="Initialement demandée à un transporteur précis mais non répondue sous 24h : rebasculée au pot commun">
+                                    <span className="material-symbols-outlined text-xs text-blue-600">sync_alt</span>
+                                    🌐 POT COMMUN (Délai 24h expiré)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+                                    EN ATTENTE IMMÉDIATE
+                                  </span>
+                                )}
                                 <span className="px-2.5 py-1 rounded-full bg-surface-container text-on-surface text-[11px] font-bold border border-outline-variant/20">
                                   {mission.transportType === 'AMBULANCE'
                                     ? '🚑 Ambulance'
@@ -2028,48 +2211,84 @@ export const TransporterPortalPage: React.FC = () => {
                         </div>
 
                         {/* Actions : Décliner, PMT (après acceptation), Affecter, Accepter */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-outline-variant/20">
-                          {/* Décliner la mission */}
-                          <button
-                            type="button"
-                            onClick={() => openDeclineModal(mission)}
-                            className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                            title="Décliner cette opportunité de transport"
-                          >
-                            <span className="material-symbols-outlined text-base text-rose-600">close</span>
-                            <span>Décliner</span>
-                          </button>
+                        {isDirect ? (
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-orange-300/40">
+                            {/* Transférer immédiatement au pot commun */}
+                            <button
+                              type="button"
+                              onClick={() => handleTransferToPublicPool(mission)}
+                              className="py-2.5 px-3 rounded-xl border border-orange-300 bg-white hover:bg-orange-50 text-orange-900 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-xs"
+                              title="Libérer cette demande au pot commun pour qu'un confrère disponible la prenne sans attendre"
+                            >
+                              <span className="material-symbols-outlined text-base text-orange-600">sync_alt</span>
+                              <span>Transférer au pot commun</span>
+                            </button>
 
-                          {/* Fiche PMT : disponible au transporteur uniquement après acceptation de la course */}
-                          <div
-                            className="py-2 px-3 rounded-xl border border-outline-variant/30 text-on-surface-variant/70 text-xs font-semibold flex items-center justify-center gap-1.5 bg-surface-container-low cursor-not-allowed select-none"
-                            title="La fiche PMT détaillée est confidentielle et accessible uniquement après validation de la course"
-                          >
-                            <span className="material-symbols-outlined text-[15px] text-on-surface-variant/60">lock</span>
-                            <span>PMT après acceptation</span>
+                            {/* Affectation personnalisée */}
+                            <button
+                              type="button"
+                              onClick={() => openAcceptModal(mission)}
+                              className="py-2.5 px-3 rounded-xl border border-orange-400 text-orange-950 bg-orange-100 hover:bg-orange-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                              title="Choisir le chauffeur et le véhicule avant d'accepter"
+                            >
+                              <span className="material-symbols-outlined text-base">badge</span>
+                              <span className="hidden sm:inline">Affecter</span>
+                            </button>
+
+                            {/* Accepter la demande directe nominative */}
+                            <button
+                              type="button"
+                              onClick={() => handleDirectAccept(mission)}
+                              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white text-xs font-extrabold hover:opacity-95 transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5"
+                            >
+                              <span className="material-symbols-outlined text-base">check_circle</span>
+                              <span>Accepter la demande directe</span>
+                            </button>
                           </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-outline-variant/20">
+                            {/* Décliner la mission */}
+                            <button
+                              type="button"
+                              onClick={() => openDeclineModal(mission)}
+                              className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                              title="Décliner cette opportunité de transport"
+                            >
+                              <span className="material-symbols-outlined text-base text-rose-600">close</span>
+                              <span>Décliner</span>
+                            </button>
 
-                          {/* Affectation personnalisée (chauffeur / véhicule) */}
-                          <button
-                            type="button"
-                            onClick={() => openAcceptModal(mission)}
-                            className="py-2 px-3 rounded-xl border border-secondary/30 text-secondary bg-secondary/5 hover:bg-secondary/15 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                            title="Choisir le chauffeur et le véhicule avant d'accepter"
-                          >
-                            <span className="material-symbols-outlined text-base">badge</span>
-                            <span className="hidden sm:inline">Affecter</span>
-                          </button>
+                            {/* Fiche PMT : disponible au transporteur uniquement après acceptation de la course */}
+                            <div
+                              className="py-2 px-3 rounded-xl border border-outline-variant/30 text-on-surface-variant/70 text-xs font-semibold flex items-center justify-center gap-1.5 bg-surface-container-low cursor-not-allowed select-none"
+                              title="La fiche PMT détaillée est confidentielle et accessible uniquement après validation de la course"
+                            >
+                              <span className="material-symbols-outlined text-[15px] text-on-surface-variant/60">lock</span>
+                              <span>PMT après acceptation</span>
+                            </div>
 
-                          {/* 1-Clic Acceptation Directe */}
-                          <button
-                            type="button"
-                            onClick={() => handleDirectAccept(mission)}
-                            className="flex-1 py-2.5 px-4 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs active:scale-[0.99] flex items-center justify-center gap-1.5"
-                          >
-                            <span className="material-symbols-outlined text-base">check_circle</span>
-                            <span>Accepter la course</span>
-                          </button>
-                        </div>
+                            {/* Affectation personnalisée (chauffeur / véhicule) */}
+                            <button
+                              type="button"
+                              onClick={() => openAcceptModal(mission)}
+                              className="py-2 px-3 rounded-xl border border-secondary/30 text-secondary bg-secondary/5 hover:bg-secondary/15 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                              title="Choisir le chauffeur et le véhicule avant d'accepter"
+                            >
+                              <span className="material-symbols-outlined text-base">badge</span>
+                              <span className="hidden sm:inline">Affecter</span>
+                            </button>
+
+                            {/* 1-Clic Acceptation Directe */}
+                            <button
+                              type="button"
+                              onClick={() => handleDirectAccept(mission)}
+                              className="flex-1 py-2.5 px-4 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs active:scale-[0.99] flex items-center justify-center gap-1.5"
+                            >
+                              <span className="material-symbols-outlined text-base">check_circle</span>
+                              <span>Accepter la course</span>
+                            </button>
+                          </div>
+                        )}
                       </article>
                     );
                   })}
