@@ -101,7 +101,7 @@ export const LoginPage: React.FC = () => {
     if (locationState?.isBookingFlow) {
       return {
         title: "Finalisez votre réservation",
-        subtitle: "Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge CPAM 972.",
+        subtitle: "Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge",
         icon: "event_available",
         iconBg: "bg-primary text-on-primary"
       };
@@ -133,7 +133,7 @@ export const LoginPage: React.FC = () => {
       default:
         return {
           title: "Espace d'Identification Patient",
-          subtitle: "Plateforme de régulation et réservation de transport sanitaire en Martinique (972)",
+          subtitle: "Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge",
           icon: "personal_injury",
           iconBg: "bg-primary-container text-on-primary"
         };
@@ -280,7 +280,7 @@ export const LoginPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-xs sm:text-sm text-on-surface font-medium leading-relaxed">
-                      Créez votre compte ou connectez-vous ci-dessous pour finaliser votre réservation de transport sanitaire et bénéficier de la télétransmission CPAM 972.
+                      Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge
                     </p>
 
                     {pendingBookingDraft && (
