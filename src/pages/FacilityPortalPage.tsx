@@ -1722,7 +1722,6 @@ export const FacilityPortalPage: React.FC = () => {
                         phone
                       </span>
                     </div>
-                    <span className="text-[10px] text-on-surface-variant mt-0.5 block">Ligne directe ou DECT du soignant responsable</span>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-on-surface mb-1">
