@@ -1508,11 +1508,6 @@ export const TransporterPortalPage: React.FC = () => {
             <span className="md:hidden">
               <BrandLogo to="/transporteurs" variant="compact" />
             </span>
-            <div className="hidden sm:flex items-center gap-2 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span className="font-bold text-slate-900">Réseau Télématique Actif :</span>
-              <span className="text-teal-700 font-semibold">Martinique Centre & Agglomération</span>
-            </div>
           </div>
 
           <div className="flex items-center gap-3">
