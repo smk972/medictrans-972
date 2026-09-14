@@ -255,9 +255,6 @@ export const HomePage: React.FC = () => {
                         </span>
                         Détails du trajet &amp; Établissement
                       </label>
-                      <span className="font-label-sm text-label-sm text-secondary font-bold">
-                        Martinique 972
-                      </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
