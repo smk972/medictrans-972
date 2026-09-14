@@ -25,9 +25,13 @@ export const LoginPage: React.FC = () => {
     from?: { pathname: string };
     requiredRole?: UserRole;
     message?: string;
+    mode?: 'LOGIN' | 'REGISTER';
+    isBookingFlow?: boolean;
   } | null;
 
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>(
+    locationState?.mode || (locationState?.isBookingFlow ? 'REGISTER' : 'LOGIN')
+  );
   const [selectedRole, setSelectedRole] = useState<UserRole>(
     locationState?.requiredRole || 'PATIENT'
   );
@@ -37,7 +41,23 @@ export const LoginPage: React.FC = () => {
     if (locationState?.requiredRole) {
       setSelectedRole(locationState.requiredRole);
     }
-  }, [locationState?.requiredRole]);
+    if (locationState?.mode) {
+      setMode(locationState.mode);
+    } else if (locationState?.isBookingFlow) {
+      setMode('REGISTER');
+    }
+  }, [locationState?.requiredRole, locationState?.mode, locationState?.isBookingFlow]);
+
+  // Récupération éventuelle du trajet en cours pour rassurer l'utilisateur
+  let pendingBookingDraft: any = null;
+  if (locationState?.isBookingFlow) {
+    try {
+      const raw = localStorage.getItem('medictrans_draft_booking');
+      if (raw) pendingBookingDraft = JSON.parse(raw);
+    } catch {
+      // ignore
+    }
+  }
 
   // Form states
   const [email, setEmail] = useState('');
@@ -52,7 +72,7 @@ export const LoginPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const redirectAfterAuth = (role: UserRole) => {
-    // Si l'utilisateur venait d'une page protégée
+    // Si l'utilisateur venait d'une page protégée ou du flux de réservation
     const from = locationState?.from?.pathname;
     if (from) {
       navigate(from, { replace: true });
@@ -78,6 +98,15 @@ export const LoginPage: React.FC = () => {
   };
 
   const getHeaderInfo = () => {
+    if (locationState?.isBookingFlow) {
+      return {
+        title: "Finalisez votre réservation",
+        subtitle: "Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge CPAM 972.",
+        icon: "event_available",
+        iconBg: "bg-primary text-on-primary"
+      };
+    }
+
     switch (selectedRole) {
       case 'FACILITY':
         return {
@@ -234,8 +263,56 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
-            {/* Required Login Notice */}
-            {locationState?.message && (
+            {/* Required Login Notice or Booking Flow Context Banner */}
+            {locationState?.isBookingFlow ? (
+              <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/20 shadow-xs animate-fadeIn">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-sm">
+                    <span className="material-symbols-outlined text-xl">fact_check</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                        Étape 2/3 : Identification Patient
+                      </span>
+                      <span className="text-[10px] font-bold bg-secondary/15 text-secondary px-2 py-0.5 rounded-full">
+                        Trajet pré-enregistré
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-on-surface font-medium leading-relaxed">
+                      Créez votre compte ou connectez-vous ci-dessous pour finaliser votre réservation de transport sanitaire et bénéficier de la télétransmission CPAM 972.
+                    </p>
+
+                    {pendingBookingDraft && (
+                      <div className="mt-2.5 pt-2.5 border-t border-primary/15 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-on-surface-variant">
+                        <div className="flex items-center gap-1 font-semibold text-primary">
+                          <span className="material-symbols-outlined text-sm">directions_car</span>
+                          <span>
+                            {pendingBookingDraft.transportType === 'ambulance'
+                              ? 'Ambulance'
+                              : pendingBookingDraft.transportType === 'vsl'
+                              ? 'VSL'
+                              : 'Taxi conventionné'}
+                          </span>
+                        </div>
+                        {pendingBookingDraft.pickupAddress && (
+                          <div className="flex items-center gap-1 truncate max-w-xs" title={pendingBookingDraft.pickupAddress}>
+                            <span className="material-symbols-outlined text-sm text-secondary">trip_origin</span>
+                            <span className="truncate">{pendingBookingDraft.pickupAddress}</span>
+                          </div>
+                        )}
+                        {pendingBookingDraft.transportDate && (
+                          <div className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm text-outline">calendar_month</span>
+                            <span>{pendingBookingDraft.transportDate} {pendingBookingDraft.transportTime && `à ${pendingBookingDraft.transportTime}`}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : locationState?.message ? (
               <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3 text-amber-900 shadow-xs animate-fadeIn">
                 <span className="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">lock</span>
                 <div>
@@ -247,29 +324,38 @@ export const LoginPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Mode Switch (Connexion / Inscription) */}
+            {/* Mode Switch (Créer un compte / Se connecter) */}
             <div className="flex rounded-xl bg-surface-container p-1 mb-6">
               <button
-                type="button"
-                onClick={() => { setMode('LOGIN'); setFormError(null); }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'LOGIN'
-                    ? 'bg-surface-container-lowest text-primary shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
-              >
-                Se connecter
-              </button>
-              <button
+                id="tab-mode-register"
                 type="button"
                 onClick={() => { setMode('REGISTER'); setFormError(null); }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'REGISTER'
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${mode === 'REGISTER'
                     ? 'bg-surface-container-lowest text-primary shadow-sm'
                     : 'text-on-surface-variant hover:text-on-surface'
                   }`}
               >
-                Créer un compte
+                <span className="material-symbols-outlined text-base">person_add</span>
+                <span>Créer un compte</span>
+                {locationState?.isBookingFlow && (
+                  <span className="hidden sm:inline text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-semibold">
+                    Nouveau patient
+                  </span>
+                )}
+              </button>
+              <button
+                id="tab-mode-login"
+                type="button"
+                onClick={() => { setMode('LOGIN'); setFormError(null); }}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${mode === 'LOGIN'
+                    ? 'bg-surface-container-lowest text-primary shadow-sm'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+              >
+                <span className="material-symbols-outlined text-base">login</span>
+                <span>Se connecter</span>
               </button>
             </div>
 
@@ -383,7 +469,9 @@ export const LoginPage: React.FC = () => {
                   />
                 </svg>
                 <span>
-                  {mode === 'LOGIN' ? 'Continuer avec Google' : 'S\'inscrire avec Google'}
+                  {locationState?.isBookingFlow
+                    ? (mode === 'REGISTER' ? "Créer mon compte avec Google" : "Continuer ma réservation avec Google")
+                    : (mode === 'LOGIN' ? 'Continuer avec Google' : 'S\'inscrire avec Google')}
                 </span>
               </button>
               <div className="text-center mt-1.5">
@@ -580,7 +668,15 @@ export const LoginPage: React.FC = () => {
                     <span className="material-symbols-outlined text-xl">
                       {mode === 'LOGIN' ? 'login' : 'how_to_reg'}
                     </span>
-                    <span>{mode === 'LOGIN' ? 'Accéder à mon espace' : 'Valider mon inscription'}</span>
+                    <span>
+                      {locationState?.isBookingFlow
+                        ? (mode === 'LOGIN'
+                            ? 'Se connecter et continuer ma réservation'
+                            : 'Créer mon compte et continuer ma réservation')
+                        : (mode === 'LOGIN'
+                            ? 'Accéder à mon espace'
+                            : 'Valider mon inscription')}
+                    </span>
                   </>
                 )}
               </button>

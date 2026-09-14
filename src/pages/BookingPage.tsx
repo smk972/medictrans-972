@@ -17,9 +17,25 @@ import { validateNir } from '../utils/nirValidator';
 import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
 
 export const BookingPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Redirection automatique si le visiteur tente d'accéder à la réservation sans être authentifié
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      navigate('/connexion', {
+        replace: true,
+        state: {
+          from: { pathname: '/reserver' },
+          requiredRole: 'PATIENT',
+          isBookingFlow: true,
+          mode: 'REGISTER',
+          message: 'Pour finaliser votre réservation de transport sanitaire et bénéficier du tiers-payant CPAM, veuillez créer votre compte ou vous connecter.'
+        }
+      });
+    }
+  }, [isLoading, isAuthenticated, user, navigate]);
 
   // Retrieve initial state from home page or defaults
   const stateData = location.state || {};
@@ -46,12 +62,12 @@ export const BookingPage: React.FC = () => {
   const [isEditingRoute, setIsEditingRoute] = useState(false);
 
   // Form states - Patient & Médical
-  const [lastName, setLastName] = useState('GLISSANT');
-  const [firstName, setFirstName] = useState('Aimé');
-  const [nir, setNir] = useState('1 54 08 97 213 456');
+  const [lastName, setLastName] = useState(user?.lastName || 'GLISSANT');
+  const [firstName, setFirstName] = useState(user?.firstName || 'Aimé');
+  const [nir, setNir] = useState(user?.nir || '1 54 08 97 213 456');
   const nirValidation = useMemo(() => validateNir(nir), [nir]);
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
-  const [phone, setPhone] = useState('06 96 44 20 18');
+  const [phone, setPhone] = useState(user?.phone || '06 96 44 20 18');
   const [birthDate, setBirthDate] = useState('1954-08-14');
   const [isAld, setIsAld] = useState(true);
   const [mobility, setMobility] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
@@ -257,6 +273,23 @@ export const BookingPage: React.FC = () => {
       }, 500);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs text-on-surface-variant font-semibold">
+            Vérification de la session en cours...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">

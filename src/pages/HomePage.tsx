@@ -5,9 +5,11 @@ import { Footer } from '../components/Footer';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { SEOHead } from '../components/SEOHead';
+import { useAuth } from '../contexts/AuthContext';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
 
   // Booking form state
   const [transportType, setTransportType] = useState<'taxi' | 'vsl' | 'ambulance'>('taxi');
@@ -56,6 +58,20 @@ export const HomePage: React.FC = () => {
       localStorage.setItem('medictrans_draft_booking', JSON.stringify(draftData));
     } catch {
       // ignore
+    }
+
+    // Si la personne n'est pas connectée / n'a pas de compte, l'inviter à créer un compte ou se connecter
+    if (!isAuthenticated || !user) {
+      navigate('/connexion', {
+        state: {
+          from: { pathname: '/reserver' },
+          requiredRole: 'PATIENT',
+          isBookingFlow: true,
+          mode: 'REGISTER',
+          message: 'Pour continuer votre réservation de transport sanitaire et bénéficier du tiers-payant CPAM, veuillez créer votre compte ou vous connecter.'
+        }
+      });
+      return;
     }
 
     navigate('/reserver', { state: draftData });
