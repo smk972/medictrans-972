@@ -67,6 +67,13 @@ export interface Ride {
   source: 'PATIENT' | 'FACILITY';
   facilityDepartment?: string;
   bedDischargeNumber?: string;
+  facilityFloor?: string;
+  facilityStaircase?: string;
+  facilityRoom?: string;
+  facilityBed?: string;
+  facilityContactPhone?: string;
+  facilityContactName?: string;
+  additionalNotes?: string;
   estimatedDistanceKm?: number;
   estimatedDurationMin?: number;
   pricing?: RidePricing;

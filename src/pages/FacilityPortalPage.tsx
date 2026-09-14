@@ -4,7 +4,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
 import { rideService } from '../services/rideService';
-import { Ride } from '../types';
+import { Ride, TransportType } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 
 export const FacilityPortalPage: React.FC = () => {
@@ -19,6 +19,48 @@ export const FacilityPortalPage: React.FC = () => {
   const [cancelReason, setCancelReason] = useState<string>('SORTIE_REPORTEE');
   const [cancelCustomNote, setCancelCustomNote] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
+
+  // État Modal "Commander un transport"
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+
+  // Champs du formulaire "Commander un transport"
+  const [orderPatientLastName, setOrderPatientLastName] = useState('BERNARD');
+  const [orderPatientFirstName, setOrderPatientFirstName] = useState('Éliane');
+  const [orderPatientBirthDate, setOrderPatientBirthDate] = useState('1956-07-22');
+  const [orderPatientNir, setOrderPatientNir] = useState('2 56 07 97 214 382 19');
+  const [orderPatientPhone, setOrderPatientPhone] = useState('0696 34 56 78');
+  const [orderIsAld, setOrderIsAld] = useState(true);
+
+  // Localisation précise au sein de l'établissement (demandé impérativement par l'utilisateur)
+  const [orderFacilityName, setOrderFacilityName] = useState('CHU de Martinique - Hôpital Pierre Zobda-Quitman');
+  const [orderFacilityDepartment, setOrderFacilityDepartment] = useState('Cardiologie');
+  const [orderFacilityFloor, setOrderFacilityFloor] = useState('2ème étage');
+  const [orderFacilityStaircase, setOrderFacilityStaircase] = useState('Escalier B');
+  const [orderFacilityRoom, setOrderFacilityRoom] = useState('Chambre 214');
+  const [orderFacilityBed, setOrderFacilityBed] = useState('Lit A');
+
+  // Contact référent (la personne à contacter si besoin)
+  const [orderContactPhone, setOrderContactPhone] = useState('05 96 55 21 34');
+  const [orderContactName, setOrderContactName] = useState('Cadre de santé - Service Jour');
+
+  // Toute information supplémentaire jugée utile pour la prise en charge
+  const [orderAdditionalNotes, setOrderAdditionalNotes] = useState('Sortie post-angioplastie. Patient à récupérer en chambre avec son dossier soignant et ses bagages. Repos assis conseillé.');
+
+  // Paramètres transport & destination
+  const [orderTransportType, setOrderTransportType] = useState<TransportType>('VSL');
+  const [orderPickupDate, setOrderPickupDate] = useState(new Date().toISOString().split('T')[0]);
+  const [orderPickupTime, setOrderPickupTime] = useState('11:30');
+  const [orderDropoffAddress, setOrderDropoffAddress] = useState('Résidence Les Balisiers, Apt 24');
+  const [orderDropoffCity, setOrderDropoffCity] = useState('Schœlcher');
+  const [orderHasPmt, setOrderHasPmt] = useState(true);
+  const [orderDoctor, setOrderDoctor] = useState('Dr. Alix Célestine - Cardiologue');
+
+  // Contraintes de mobilité
+  const [orderWheelchair, setOrderWheelchair] = useState(false);
+  const [orderStretcher, setOrderStretcher] = useState(false);
+  const [orderOxygen, setOrderOxygen] = useState(false);
+  const [orderStairs, setOrderStairs] = useState(false);
+  const [orderNeedsEscort, setOrderNeedsEscort] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -37,35 +79,74 @@ export const FacilityPortalPage: React.FC = () => {
     };
 
     loadFacilityRides();
+  }, []);
 
-    // Form submissions
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (window.location.pathname === '/') {
-          navigate('/reserver');
-        } else if (window.location.pathname === '/reserver') {
-          navigate('/confirmation/MT-972-8821');
-        } else if (window.location.pathname.startsWith('/inscription')) {
-          alert("Votre dossier a bien été soumis à la régulation Médic'Trans 972.");
-          navigate('/');
-        }
+  const handleCreateFacilityRide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderPatientLastName.trim() || !orderPatientFirstName.trim()) {
+      alert("Veuillez renseigner le nom et le prénom du patient.");
+      return;
+    }
+
+    const bedComposite = `Ch. ${orderFacilityRoom || 'N/A'} - Lit ${orderFacilityBed || 'N/A'} (${orderFacilityFloor || 'RDC'}, ${orderFacilityStaircase || 'Esc. Principal'})`;
+
+    const newRideData = {
+      pickupAddress: `${orderFacilityName}, ${orderFacilityDepartment}`,
+      pickupCity: 'Fort-de-France',
+      dropoffAddress: orderDropoffAddress || 'Quartier Cluny, Résidence Les Alizés',
+      dropoffCity: orderDropoffCity || 'Schœlcher',
+      facilityName: orderFacilityName,
+      pickupDateTime: `${orderPickupDate}T${orderPickupTime}:00`,
+      isRoundTrip: false,
+      transportType: orderTransportType,
+      source: 'FACILITY' as const,
+      facilityDepartment: orderFacilityDepartment,
+      bedDischargeNumber: bedComposite,
+      facilityFloor: orderFacilityFloor,
+      facilityStaircase: orderFacilityStaircase,
+      facilityRoom: orderFacilityRoom,
+      facilityBed: orderFacilityBed,
+      facilityContactPhone: orderContactPhone,
+      facilityContactName: orderContactName,
+      additionalNotes: orderAdditionalNotes,
+      patient: {
+        firstName: orderPatientFirstName,
+        lastName: orderPatientLastName.toUpperCase(),
+        birthDate: orderPatientBirthDate,
+        nir: orderPatientNir || '1 60 01 97 212 345 67',
+        phone: orderPatientPhone,
+        email: `${orderPatientFirstName.toLowerCase().replace(/\s+/g, '')}@chu-martinique.fr`,
+        address: orderDropoffAddress || 'Fort-de-France',
+        city: orderDropoffCity,
+        postalCode: '97200',
+        isAld: orderIsAld,
+        hasPmt: orderHasPmt,
+        pmtPrescriberDoctor: orderDoctor,
+      },
+      mobility: {
+        wheelchair: orderWheelchair,
+        stretcher: orderStretcher || orderTransportType === 'AMBULANCE',
+        oxygen: orderOxygen,
+        stairsWithoutElevator: orderStairs,
+        needsEscort: orderNeedsEscort,
+        notes: orderAdditionalNotes,
+      },
+    };
+
+    try {
+      const created = await rideService.createRide(newRideData as any);
+      setRides((prev) => [created, ...prev]);
+      setIsOrderModalOpen(false);
+      setActiveTab('ACTIVE');
+      setToastMessage({
+        title: 'Transport commandé avec succès !',
+        desc: `La demande #${created.reference} a été transmise en direct au réseau des transporteurs conventionnés.`
       });
-    });
-
-    // Button navigation shortcuts
-    document.querySelectorAll('button').forEach(btn => {
-      const text = btn.textContent || '';
-      if (text.includes('Étape 2') || text.includes('Continuer vers') || text.includes('Continuer ma réservation')) {
-        btn.addEventListener('click', () => navigate('/reserver'));
-      } else if (text.includes('Confirmer') || text.includes('Valider la demande') || text.includes('Valider la réservation')) {
-        btn.addEventListener('click', () => navigate('/confirmation/MT-972-8821'));
-      } else if (text.includes('Suivi') || text.includes('Suivre')) {
-        btn.addEventListener('click', () => navigate('/suivi'));
-      }
-    });
-  }, [navigate]);
+    } catch (err) {
+      console.error('Erreur commande transport:', err);
+      alert('Erreur lors de la création du transport.');
+    }
+  };
 
   const activeMissions = useMemo(() => {
     return rides.filter(r => ['PENDING', 'ACCEPTED', 'EN_ROUTE', 'PICKED_UP'].includes(r.status));
@@ -286,9 +367,14 @@ export const FacilityPortalPage: React.FC = () => {
 <span className="">Départs &amp; File de Service</span>
 <span className="bg-primary text-on-primary text-[11px] px-1.5 py-0.5 rounded-full">14</span>
 </button>
-<button className="px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all flex items-center gap-space-xs text-on-surface-variant hover:text-on-surface" id="tabBtnNewExpress">
+<button
+  type="button"
+  onClick={() => setIsOrderModalOpen(true)}
+  className="px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all flex items-center gap-space-xs text-on-surface-variant hover:text-primary cursor-pointer"
+  id="tabBtnNewExpress"
+>
 <span className="material-symbols-outlined text-[18px]">add_circle</span>
-<span className="">Sortie de Lit Express</span>
+<span className="">Commander un transport</span>
 </button>
 <button className="px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all flex items-center gap-space-xs text-on-surface-variant hover:text-on-surface" id="tabBtnBordereaux">
 <span className="material-symbols-outlined text-[18px]">verified_user</span>
@@ -322,9 +408,13 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </div>
 <div className="flex items-center gap-space-sm">
-<button className="bg-primary text-on-primary hover:bg-primary-container px-space-md py-space-xs rounded-lg font-label-md text-label-md flex items-center gap-space-xs shadow-sm transition-all" >
+<button
+  type="button"
+  onClick={() => setIsOrderModalOpen(true)}
+  className="bg-primary text-on-primary hover:bg-primary/90 px-space-md py-space-xs rounded-lg font-label-md text-label-md flex items-center gap-space-xs shadow-sm transition-all cursor-pointer"
+>
 <span className="material-symbols-outlined text-[18px]">add_box</span>
-<span className="">Programmer un départ</span>
+<span className="font-bold">Commander un transport</span>
 </button>
 </div>
 </div>
@@ -452,24 +542,37 @@ export const FacilityPortalPage: React.FC = () => {
     </div>
   </div>
 
-  <div className="overflow-x-auto">
-    <table className="w-full text-left font-body-sm text-body-sm">
+  {/* Indicateur de défilement horizontal et vue complète */}
+  <div className="px-space-md py-2.5 bg-surface-container-low/70 border-b border-outline-variant/20 flex flex-wrap items-center justify-between text-xs text-on-surface-variant gap-2">
+    <div className="flex items-center gap-1.5 font-bold text-primary">
+      <span className="material-symbols-outlined text-base">view_column</span>
+      <span>Registre des Transports Hospitaliers (9 colonnes complètes)</span>
+    </div>
+    <div className="flex items-center gap-1 text-[11px] text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-lg font-medium border border-outline-variant/20">
+      <span className="material-symbols-outlined text-xs">swap_horiz</span>
+      <span>Défilement horizontal disponible pour voir toutes les colonnes</span>
+    </div>
+  </div>
+
+  <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-outline-variant/50">
+    <table className="min-w-[1380px] w-full text-left font-body-sm text-body-sm">
       <thead>
         <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider text-[10px]">
-          <th className="py-space-sm px-space-md">Heure &amp; Lit</th>
+          <th className="py-space-sm px-space-md">Heure &amp; Service</th>
+          <th className="py-space-sm px-space-md">Étage, Esc., Ch., Lit</th>
           <th className="py-space-sm px-space-md">Patient &amp; NIR</th>
-          <th className="py-space-sm px-space-md">Destination &amp; Trajet</th>
+          <th className="py-space-sm px-space-md">Destination</th>
           <th className="py-space-sm px-space-md">Mode Prescrit</th>
           <th className="py-space-sm px-space-md">Prescription PMT</th>
           <th className="py-space-sm px-space-md">Transporteur Mandaté</th>
-          <th className="py-space-sm px-space-md">Statut Régulation</th>
-          <th className="py-space-sm px-space-md text-right">Actions</th>
+          <th className="py-space-sm px-space-md">Contact Référent</th>
+          <th className="py-space-sm px-space-md text-right">Statut &amp; Actions</th>
         </tr>
       </thead>
       <tbody className="text-on-surface text-xs">
         {displayedRides.length === 0 ? (
           <tr>
-            <td colSpan={8} className="py-14 text-center">
+            <td colSpan={9} className="py-14 text-center">
               <div className="flex flex-col items-center justify-center gap-2.5">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-1 shadow-xs">
                   <span className="material-symbols-outlined text-2xl">medical_services</span>
@@ -486,12 +589,12 @@ export const FacilityPortalPage: React.FC = () => {
                 </p>
                 {activeTab === 'ACTIVE' && (
                   <button
-                    onClick={() => navigate('/reserver')}
-                    className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-xs hover:bg-primary/90 transition-all"
+                    onClick={() => setIsOrderModalOpen(true)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-base">add_circle</span>
-                    Programmer une sortie de lit
+                    <span className="material-symbols-outlined text-base">add_box</span>
+                    <span>Commander un transport</span>
                   </button>
                 )}
               </div>
@@ -502,6 +605,7 @@ export const FacilityPortalPage: React.FC = () => {
             const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
             return (
               <tr key={ride.id} className="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/10">
+                {/* 1. Heure & Service */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className="font-headline-sm text-headline-sm font-bold text-primary">
@@ -511,10 +615,30 @@ export const FacilityPortalPage: React.FC = () => {
                       })}
                     </span>
                     <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5 font-mono text-[10px]">
-                      {ride.bedDischargeNumber || ride.facilityDepartment || 'Service Jour'}
+                      {ride.facilityDepartment || 'Service Jour'}
                     </span>
                   </div>
                 </td>
+
+                {/* 2. Étage, Escalier, Chambre, Lit */}
+                <td className="py-space-md px-space-md whitespace-nowrap">
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1 font-semibold text-on-surface text-[11px]">
+                      <span className="material-symbols-outlined text-xs text-primary">layers</span>
+                      <span>{ride.facilityFloor || '2ème étage'}</span>
+                      <span className="text-outline-variant">•</span>
+                      <span>{ride.facilityStaircase || 'Escalier B'}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
+                      <span className="material-symbols-outlined text-xs text-secondary">hotel</span>
+                      <span>{ride.facilityRoom || 'Ch. 214'}</span>
+                      <span className="text-outline-variant">•</span>
+                      <span className="text-primary font-bold">{ride.facilityBed || 'Lit A'}</span>
+                    </div>
+                  </div>
+                </td>
+
+                {/* 3. Patient & NIR */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className="font-label-lg text-label-lg font-bold">
@@ -523,10 +647,17 @@ export const FacilityPortalPage: React.FC = () => {
                     <span className="font-label-sm text-label-sm text-on-surface-variant font-mono text-[11px]">
                       NIR: {ride.patient.nir}
                     </span>
+                    {ride.patient.isAld && (
+                      <span className="w-fit text-[9px] font-bold px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded mt-0.5">
+                        PEC 100% ALD
+                      </span>
+                    )}
                   </div>
                 </td>
+
+                {/* 4. Destination */}
                 <td className="py-space-md px-space-md">
-                  <div className="flex flex-col min-w-[170px]">
+                  <div className="flex flex-col min-w-[180px]">
                     <span className="font-label-md text-label-md font-bold text-on-surface">
                       {ride.dropoffAddress}
                     </span>
@@ -535,6 +666,8 @@ export const FacilityPortalPage: React.FC = () => {
                     </span>
                   </div>
                 </td>
+
+                {/* 5. Mode Prescrit */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
                   <span className="bg-primary-container/60 text-on-primary font-label-md text-label-md px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit text-[11px] font-semibold">
                     <span className="material-symbols-outlined text-[15px]">
@@ -551,6 +684,8 @@ export const FacilityPortalPage: React.FC = () => {
                       : 'VSL Médicalisé'}
                   </span>
                 </td>
+
+                {/* 6. Prescription PMT */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
                   {hasPmt ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -564,6 +699,8 @@ export const FacilityPortalPage: React.FC = () => {
                     </span>
                   )}
                 </td>
+
+                {/* 7. Transporteur Mandaté */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className="font-label-md text-label-md font-bold text-on-surface">
@@ -580,60 +717,77 @@ export const FacilityPortalPage: React.FC = () => {
                     )}
                   </div>
                 </td>
+
+                {/* 8. Contact Référent */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
-                  <div
-                    className={`flex items-center gap-space-xs px-2.5 py-1 rounded-full text-[11px] w-fit font-bold border ${
-                      ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        : ride.status === 'COMPLETED'
-                        ? 'bg-blue-50 text-blue-800 border-blue-200'
-                        : ride.status === 'CANCELLED'
-                        ? 'bg-rose-50 text-rose-800 border-rose-200'
-                        : 'bg-amber-50 text-amber-800 border-amber-200'
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
-                          ? 'bg-emerald-500'
-                          : ride.status === 'COMPLETED'
-                          ? 'bg-blue-500'
-                          : ride.status === 'CANCELLED'
-                          ? 'bg-rose-500'
-                          : 'bg-amber-500 animate-pulse'
-                      }`}
-                    ></span>
-                    <span>
-                      {ride.status === 'ACCEPTED'
-                        ? 'Accepté'
-                        : ride.status === 'EN_ROUTE'
-                        ? 'En approche'
-                        : ride.status === 'PICKED_UP'
-                        ? 'Patient à bord'
-                        : ride.status === 'COMPLETED'
-                        ? 'Effectué'
-                        : ride.status === 'CANCELLED'
-                        ? 'Annulé'
-                        : "En recherche"}
+                  <div className="flex flex-col">
+                    <span className="font-label-md text-label-md font-bold text-on-surface">
+                      {ride.facilityContactName || 'Cadre de service'}
                     </span>
+                    <a
+                      className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1 text-[11px] font-mono mt-0.5"
+                      href={`tel:${ride.facilityContactPhone || '0596720097'}`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">phone_in_talk</span>
+                      <span>{ride.facilityContactPhone || '05 96 72 00 97'}</span>
+                    </a>
                   </div>
                 </td>
+
+                {/* 9. Statut Régulation & Actions */}
                 <td className="py-space-md px-space-md whitespace-nowrap text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {/* Bouton Fiche PMT & Dossier */}
+                  <div className="flex items-center justify-end gap-2">
+                    <div
+                      className={`flex items-center gap-space-xs px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                        ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : ride.status === 'COMPLETED'
+                          ? 'bg-blue-50 text-blue-800 border-blue-200'
+                          : ride.status === 'CANCELLED'
+                          ? 'bg-rose-50 text-rose-800 border-rose-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
+                            ? 'bg-emerald-500'
+                            : ride.status === 'COMPLETED'
+                            ? 'bg-blue-500'
+                            : ride.status === 'CANCELLED'
+                            ? 'bg-rose-500'
+                            : 'bg-amber-500 animate-pulse'
+                        }`}
+                      ></span>
+                      <span>
+                        {ride.status === 'ACCEPTED'
+                          ? 'Accepté'
+                          : ride.status === 'EN_ROUTE'
+                          ? 'En approche'
+                          : ride.status === 'PICKED_UP'
+                          ? 'Patient à bord'
+                          : ride.status === 'COMPLETED'
+                          ? 'Effectué'
+                          : ride.status === 'CANCELLED'
+                          ? 'Annulé'
+                          : 'En recherche'}
+                      </span>
+                    </div>
+
+                    {/* Bouton Fiche de Demande */}
                     <button
                       type="button"
                       onClick={() => setSelectedRideForPmt(ride)}
-                      className="px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-all"
-                      title="Consulter la prescription médicale et les consignes"
+                      className="px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+                      title="Consulter la fiche de demande, la localisation et les consignes soignants"
                     >
-                      <span className="material-symbols-outlined text-sm">description</span>
-                      <span className="hidden sm:inline">Fiche PMT</span>
+                      <span className="material-symbols-outlined text-sm">assignment</span>
+                      <span className="hidden sm:inline">Fiche de demande</span>
                     </button>
 
                     <button
                       onClick={() => navigate('/suivi')}
-                      className="bg-surface-container hover:bg-surface-container-high text-primary p-1.5 rounded-lg transition-all"
+                      className="bg-surface-container hover:bg-surface-container-high text-primary p-1.5 rounded-lg transition-all cursor-pointer"
                       title="Suivi en direct"
                     >
                       <span className="material-symbols-outlined text-base">visibility</span>
@@ -642,8 +796,8 @@ export const FacilityPortalPage: React.FC = () => {
                     {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
                       <button
                         onClick={() => openCancelModal(ride)}
-                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg transition-all"
-                        title="Annuler cette sortie de lit"
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg transition-all cursor-pointer"
+                        title="Annuler cette demande de transport"
                       >
                         <span className="material-symbols-outlined text-base">cancel</span>
                       </button>
@@ -992,18 +1146,20 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </section>
 
-      {/* Modal Détails & Fiche PMT Établissement */}
+      {/* ========================================================================= */}
+      {/* MODAL : FICHE DE DEMANDE & DOSSIER PMT ÉTABLISSEMENT                      */}
+      {/* ========================================================================= */}
       {selectedRideForPmt && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-xl w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 animate-fadeIn flex flex-col gap-4 my-8">
-            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <span className="material-symbols-outlined text-lg">description</span>
+          <div className="max-w-2xl w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 animate-fadeIn flex flex-col gap-4 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3 sticky top-0 bg-surface-container-lowest z-10">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-xl">assignment</span>
                 </span>
                 <div>
                   <h3 className="text-base font-bold text-on-surface">
-                    Dossier &amp; Fiche PMT #{selectedRideForPmt.reference}
+                    Fiche de Demande &amp; Dossier PMT #{selectedRideForPmt.reference}
                   </h3>
                   <span className="text-[11px] text-on-surface-variant">
                     Programmé pour le {new Date(selectedRideForPmt.pickupDateTime).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} à {new Date(selectedRideForPmt.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -1012,7 +1168,7 @@ export const FacilityPortalPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedRideForPmt(null)}
-                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant"
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
               >
                 <span className="material-symbols-outlined text-xl">close</span>
               </button>
@@ -1041,48 +1197,142 @@ export const FacilityPortalPage: React.FC = () => {
               </div>
             )}
 
-            <div className="space-y-3 text-xs">
-              {/* Patient & Service */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Patient</span>
-                  <p className="font-bold text-on-surface mt-1 text-sm">
+            <div className="space-y-3.5 text-xs">
+              {/* Patient & Droits */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Patient Bénéficiaire</span>
+                    {selectedRideForPmt.patient.isAld ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        PEC 100% ALD
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-high text-on-surface-variant">
+                        Régime général 65%
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-bold text-on-surface text-sm">
                     {selectedRideForPmt.patient.firstName} {selectedRideForPmt.patient.lastName}
                   </p>
                   <p className="font-mono text-on-surface-variant text-[11px] mt-0.5">
-                    NIR : {selectedRideForPmt.patient.nir}
+                    NIR : <strong>{selectedRideForPmt.patient.nir}</strong>
                   </p>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                    {selectedRideForPmt.patient.isAld ? 'PEC 100% ALD' : 'Sécurité Sociale 65%'}
-                  </span>
+                  {selectedRideForPmt.patient.phone && (
+                    <p className="text-on-surface-variant text-[11px] mt-0.5 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px]">phone</span>
+                      <span>Tél patient : {selectedRideForPmt.patient.phone}</span>
+                    </p>
+                  )}
                 </div>
 
-                <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase">Service &amp; Lit</span>
-                  <p className="font-bold text-on-surface mt-1">
-                    {selectedRideForPmt.facilityDepartment || 'Service Néphrologie & Dialyse'}
+                {/* Localisation interne spécifique : Service, Étage, Escalier, Chambre, Lit */}
+                <div className="bg-surface-container-low p-3.5 rounded-2xl border border-primary/20 space-y-1.5">
+                  <div className="flex items-center gap-1 text-primary font-bold text-[10px] uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-sm">apartment</span>
+                    <span>Localisation Interne Établissement</span>
+                  </div>
+                  <p className="font-bold text-on-surface text-xs">
+                    {selectedRideForPmt.facilityName || 'CHU Pierre Zobda-Quitman'}
                   </p>
-                  <p className="text-on-surface-variant text-[11px] mt-0.5">
-                    Emplacement : <strong className="text-primary">{selectedRideForPmt.bedDischargeNumber || 'Service Jour'}</strong>
-                  </p>
-                  <p className="text-on-surface-variant text-[10px] mt-1">
-                    {selectedRideForPmt.isRoundTrip ? '🔄 Aller - Retour' : '➡️ Aller simple'}
-                  </p>
+                  <div className="grid grid-cols-2 gap-1 text-[11px] bg-surface-container-lowest p-2 rounded-xl border border-outline-variant/20">
+                    <div>
+                      <span className="text-on-surface-variant text-[10px] block">Service :</span>
+                      <strong className="text-primary">{selectedRideForPmt.facilityDepartment || 'Cardiologie'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant text-[10px] block">Étage :</span>
+                      <strong className="text-on-surface">{selectedRideForPmt.facilityFloor || '2ème étage'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant text-[10px] block">Escalier :</span>
+                      <strong className="text-on-surface">{selectedRideForPmt.facilityStaircase || 'Escalier B'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant text-[10px] block">Chambre &amp; Lit :</span>
+                      <strong className="text-secondary">{selectedRideForPmt.facilityRoom || 'Chambre 214'} · {selectedRideForPmt.facilityBed || 'Lit A'}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Trajet */}
-              <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30 space-y-1.5">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">Trajet &amp; Destination</span>
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-on-surface">{selectedRideForPmt.pickupAddress} ({selectedRideForPmt.pickupCity})</span>
-                  <span className="text-secondary font-bold">➔</span>
-                  <span className="font-semibold text-on-surface">{selectedRideForPmt.dropoffAddress} ({selectedRideForPmt.dropoffCity})</span>
+              {/* Personne à contacter si besoin */}
+              <div className="bg-primary/5 p-3.5 rounded-2xl border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="material-symbols-outlined text-lg">support_agent</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Personne à contacter si besoin (Soignant référent)</span>
+                    <span className="font-bold text-on-surface text-xs">
+                      {selectedRideForPmt.facilityContactName || 'Cadre de santé - Service Jour'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <a
+                    href={`tel:${selectedRideForPmt.facilityContactPhone || '0596720097'}`}
+                    className="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center gap-1.5 shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">call</span>
+                    <span>{selectedRideForPmt.facilityContactPhone || '05 96 72 00 97'}</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Toute information supplémentaire jugée utile pour la prise en charge */}
+              <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-on-surface-variant font-bold text-[10px] uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-sm text-secondary">clinical_notes</span>
+                  <span>Informations supplémentaires utiles pour la prise en charge</span>
+                </div>
+                <div className="p-2.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 text-on-surface text-xs leading-relaxed">
+                  {selectedRideForPmt.additionalNotes || selectedRideForPmt.mobility?.notes || 'Aucune consigne particulière spécifiée pour cette prise en charge.'}
+                </div>
+                {/* Badges de mobilité */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {selectedRideForPmt.mobility?.wheelchair && (
+                    <span className="px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container font-semibold text-[10px] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">accessible</span> Fauteuil roulant
+                    </span>
+                  )}
+                  {selectedRideForPmt.mobility?.stretcher && (
+                    <span className="px-2 py-0.5 rounded-md bg-primary-container text-on-primary font-semibold text-[10px] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">airline_seat_flat</span> Brancardage requis
+                    </span>
+                  )}
+                  {selectedRideForPmt.mobility?.oxygen && (
+                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 font-semibold text-[10px] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">air</span> Oxygénothérapie
+                    </span>
+                  )}
+                  {selectedRideForPmt.mobility?.stairsWithoutElevator && (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-semibold text-[10px] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">stairs</span> Escalier sans ascenseur
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Trajet & Destination */}
+              <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30 space-y-1.5">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Trajet &amp; Destination</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                  <div>
+                    <span className="text-on-surface-variant text-[10px] block">Départ :</span>
+                    <span className="font-semibold text-on-surface">{selectedRideForPmt.pickupAddress} ({selectedRideForPmt.pickupCity})</span>
+                  </div>
+                  <span className="text-secondary font-bold hidden sm:inline">➔</span>
+                  <div>
+                    <span className="text-on-surface-variant text-[10px] block">Arrivée :</span>
+                    <span className="font-semibold text-on-surface">{selectedRideForPmt.dropoffAddress} ({selectedRideForPmt.dropoffCity})</span>
+                  </div>
                 </div>
               </div>
 
               {/* Fiche PMT & Justificatif */}
-              <div className="p-4 rounded-2xl bg-surface-container-low border border-primary/20 space-y-2.5">
+              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-primary/20 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-bold text-primary text-xs">
                     <span className="material-symbols-outlined text-base">verified</span>
@@ -1107,7 +1357,7 @@ export const FacilityPortalPage: React.FC = () => {
                   <div>
                     <span className="text-on-surface-variant block text-[10px]">Mode de Transport Prescrit :</span>
                     <strong className="text-primary font-bold">
-                      {selectedRideForPmt.transportType === 'AMBULANCE' ? 'Ambulance Type B' : selectedRideForPmt.transportType === 'TAXI_CONVENTIONNE' ? 'Taxi Conventionné' : 'VSL'}
+                      {selectedRideForPmt.transportType === 'AMBULANCE' ? 'Ambulance Type B' : selectedRideForPmt.transportType === 'TAXI_CONVENTIONNE' ? 'Taxi Conventionné' : 'VSL Médicalisé'}
                     </strong>
                   </div>
                 </div>
@@ -1142,9 +1392,9 @@ export const FacilityPortalPage: React.FC = () => {
 
               {/* Transporteur Mandaté */}
               <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30 space-y-1">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">Transporteur Sanitaire Mandaté</span>
-                <p className="font-bold text-on-surface">
-                  {selectedRideForPmt.assignedTransporter?.companyName || "En cours d'affectation par la régulation"}
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Transporteur Sanitaire Mandaté</span>
+                <p className="font-bold text-on-surface text-xs">
+                  {selectedRideForPmt.assignedTransporter?.companyName || "En cours d'affectation par la régulation hospitalière"}
                 </p>
                 {selectedRideForPmt.assignedTransporter && (
                   <p className="text-on-surface-variant text-[11px]">
@@ -1154,7 +1404,7 @@ export const FacilityPortalPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between border-t border-outline-variant/20">
+            <div className="pt-3 flex items-center justify-between border-t border-outline-variant/20 sticky bottom-0 bg-surface-container-lowest">
               {selectedRideForPmt.status !== 'COMPLETED' && selectedRideForPmt.status !== 'CANCELLED' ? (
                 <button
                   type="button"
@@ -1163,10 +1413,10 @@ export const FacilityPortalPage: React.FC = () => {
                     setSelectedRideForPmt(null);
                     openCancelModal(r);
                   }}
-                  className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">cancel</span>
-                  <span>Annuler cette sortie</span>
+                  <span>Annuler ce transport</span>
                 </button>
               ) : (
                 <div></div>
@@ -1174,11 +1424,418 @@ export const FacilityPortalPage: React.FC = () => {
 
               <button
                 onClick={() => setSelectedRideForPmt(null)}
-                className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 transition-colors cursor-pointer"
               >
                 Fermer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : COMMANDER UN TRANSPORT (DEMANDE ÉTABLISSEMENT)                    */}
+      {/* ========================================================================= */}
+      {isOrderModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-3xl w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 animate-fadeIn flex flex-col gap-4 my-8 max-h-[92vh] overflow-y-auto">
+            {/* Header modal */}
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3 sticky top-0 bg-surface-container-lowest z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <span className="material-symbols-outlined text-2xl">local_hospital</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-on-surface">Commander un transport sanitaire</h3>
+                  <p className="text-xs text-on-surface-variant">
+                    Établissement : {orderFacilityName} • Régulation Martinique 972
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOrderModalOpen(false)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Formulaire de commande */}
+            <form onSubmit={handleCreateFacilityRide} className="space-y-4 text-xs">
+              {/* Section 1 : Localisation Précise dans l'Établissement */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-primary/20 space-y-3">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-base">domain</span>
+                  <span>1. Localisation au sein de l'Établissement</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">
+                      Établissement de santé *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFacilityName}
+                      onChange={(e) => setOrderFacilityName(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">
+                      Service hospitalier *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFacilityDepartment}
+                      onChange={(e) => setOrderFacilityDepartment(e.target.value)}
+                      placeholder="Ex: Cardiologie, Néphrologie, Urgences..."
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Étage, Escalier, Chambre, Lit */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">
+                      Étage *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFacilityFloor}
+                      onChange={(e) => setOrderFacilityFloor(e.target.value)}
+                      placeholder="Ex: 2ème étage, RDC"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">
+                      Escalier / Aile *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFacilityStaircase}
+                      onChange={(e) => setOrderFacilityStaircase(e.target.value)}
+                      placeholder="Ex: Escalier B, Aile Nord"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">
+                      Chambre *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFacilityRoom}
+                      onChange={(e) => setOrderFacilityRoom(e.target.value)}
+                      placeholder="Ex: Ch. 214"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-on-surface-variant mb-1 uppercase">
+                      Lit *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFacilityBed}
+                      onChange={(e) => setOrderFacilityBed(e.target.value)}
+                      placeholder="Ex: Lit A, Lit 2"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2 : Contact Référent Soignant (demandé par l'utilisateur) */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-3">
+                <div className="flex items-center gap-2 text-secondary font-bold text-xs uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-base">support_agent</span>
+                  <span>2. Personne à contacter si besoin (Soignant référent)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">
+                      Numéro de la personne à contacter si besoin *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        value={orderContactPhone}
+                        onChange={(e) => setOrderContactPhone(e.target.value)}
+                        placeholder="Ex: 05 96 55 21 34 ou 06 96 ..."
+                        required
+                        className="w-full h-10 pl-9 pr-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                      />
+                      <span className="material-symbols-outlined absolute left-2.5 top-2.5 text-base text-secondary">
+                        phone
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant mt-0.5 block">Ligne directe ou DECT du soignant responsable</span>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">
+                      Nom / Qualité du contact référent
+                    </label>
+                    <input
+                      type="text"
+                      value={orderContactName}
+                      onChange={(e) => setOrderContactName(e.target.value)}
+                      placeholder="Ex: Cadre de santé - Service Jour / IDE Référente"
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3 : Informations supplémentaires pour la prise en charge (demandé par l'utilisateur) */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                <div className="flex items-center gap-2 text-tertiary font-bold text-xs uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-base">clinical_notes</span>
+                  <span>3. Informations supplémentaires utiles pour la prise en charge</span>
+                </div>
+                <label className="block text-[11px] font-bold text-on-surface">
+                  Consignes particulières, matériel spécifique, état du patient, consignes de sortie :
+                </label>
+                <textarea
+                  rows={2}
+                  value={orderAdditionalNotes}
+                  onChange={(e) => setOrderAdditionalNotes(e.target.value)}
+                  placeholder="Ex: Patient à récupérer en chambre avec ses bagages et son dossier soignant. Repos assis conseillé, surveillance post-op..."
+                  className="w-full p-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none leading-relaxed"
+                />
+
+                {/* Options rapides de mobilité */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={orderWheelchair}
+                      onChange={(e) => setOrderWheelchair(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary"
+                    />
+                    <span className="text-[11px] font-semibold text-on-surface">Fauteuil roulant</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={orderStretcher}
+                      onChange={(e) => setOrderStretcher(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary"
+                    />
+                    <span className="text-[11px] font-semibold text-on-surface">Brancardage</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={orderOxygen}
+                      onChange={(e) => setOrderOxygen(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary"
+                    />
+                    <span className="text-[11px] font-semibold text-on-surface">Oxygénothérapie</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={orderStairs}
+                      onChange={(e) => setOrderStairs(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary"
+                    />
+                    <span className="text-[11px] font-semibold text-on-surface">Étage s/ ascenseur</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Section 4 : Identification du Patient */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-on-surface font-bold text-xs uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-base text-primary">person</span>
+                    <span>4. Identification du Patient</span>
+                  </div>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={orderIsAld}
+                      onChange={(e) => setOrderIsAld(e.target.checked)}
+                      className="w-4 h-4 rounded text-emerald-600"
+                    />
+                    <span className="text-xs font-bold text-emerald-800">Prise en charge 100% ALD</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Nom du patient *</label>
+                    <input
+                      type="text"
+                      value={orderPatientLastName}
+                      onChange={(e) => setOrderPatientLastName(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Prénom du patient *</label>
+                    <input
+                      type="text"
+                      value={orderPatientFirstName}
+                      onChange={(e) => setOrderPatientFirstName(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">NIR (Sécurité Sociale 15 ch.) *</label>
+                    <input
+                      type="text"
+                      value={orderPatientNir}
+                      onChange={(e) => setOrderPatientNir(e.target.value)}
+                      placeholder="1 ou 2 XX XX XX XXX XXX XX"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-mono font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Téléphone du patient / proche</label>
+                    <input
+                      type="tel"
+                      value={orderPatientPhone}
+                      onChange={(e) => setOrderPatientPhone(e.target.value)}
+                      placeholder="0696 XX XX XX"
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Date de naissance</label>
+                    <input
+                      type="date"
+                      value={orderPatientBirthDate}
+                      onChange={(e) => setOrderPatientBirthDate(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5 : Mode de transport, Date/Heure & Destination */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-3">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-base">directions_car</span>
+                  <span>5. Transport Prescrit &amp; Destination</span>
+                </div>
+
+                {/* Sélecteur de mode */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { type: 'VSL' as TransportType, label: 'VSL Médicalisé', icon: 'directions_car' },
+                    { type: 'AMBULANCE' as TransportType, label: 'Ambulance', icon: 'airline_seat_flat' },
+                    { type: 'TAXI_CONVENTIONNE' as TransportType, label: 'Taxi Conventionné', icon: 'local_taxi' },
+                  ].map((m) => (
+                    <button
+                      key={m.type}
+                      type="button"
+                      onClick={() => setOrderTransportType(m.type)}
+                      className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                        orderTransportType === m.type
+                          ? 'border-primary bg-primary text-white font-bold shadow-xs'
+                          : 'border-outline-variant/30 bg-surface-container-lowest text-on-surface hover:bg-surface-container'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">{m.icon}</span>
+                      <span className="text-xs">{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Date de départ souhaitée *</label>
+                    <input
+                      type="date"
+                      value={orderPickupDate}
+                      onChange={(e) => setOrderPickupDate(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Heure de départ souhaitée *</label>
+                    <input
+                      type="time"
+                      value={orderPickupTime}
+                      onChange={(e) => setOrderPickupTime(e.target.value)}
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Adresse d'arrivée / Destination *</label>
+                    <input
+                      type="text"
+                      value={orderDropoffAddress}
+                      onChange={(e) => setOrderDropoffAddress(e.target.value)}
+                      placeholder="Ex: Résidence Les Balisiers, Apt 24"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Commune d'arrivée *</label>
+                    <input
+                      type="text"
+                      value={orderDropoffCity}
+                      onChange={(e) => setOrderDropoffCity(e.target.value)}
+                      placeholder="Ex: Schœlcher, Fort-de-France..."
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Médecin prescripteur hospitalier</label>
+                  <input
+                    type="text"
+                    value={orderDoctor}
+                    onChange={(e) => setOrderDoctor(e.target.value)}
+                    placeholder="Ex: Dr. Alix Célestine - Cardiologue"
+                    className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Boutons d'action */}
+              <div className="flex items-center justify-between pt-3 border-t border-outline-variant/20 sticky bottom-0 bg-surface-container-lowest">
+                <button
+                  type="button"
+                  onClick={() => setIsOrderModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-on-primary text-xs font-bold flex items-center gap-2 shadow-md transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">send</span>
+                  <span>Diffuser la commande de transport</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1295,9 +1952,11 @@ export const FacilityPortalPage: React.FC = () => {
 
       {/* Notification Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 max-w-md bg-surface-container-lowest text-on-surface p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-3 border border-secondary/30 animate-fadeIn">
-          <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-base">cancel</span>
+        <div className="fixed bottom-6 right-6 max-w-md bg-surface-container-lowest text-on-surface p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-3 border border-outline-variant/40 animate-fadeIn">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${toastMessage.title.toLowerCase().includes('annul') ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            <span className="material-symbols-outlined text-base">
+              {toastMessage.title.toLowerCase().includes('annul') ? 'cancel' : 'check_circle'}
+            </span>
           </div>
           <div className="flex-1 text-xs">
             <div className="font-bold text-on-surface text-sm">{toastMessage.title}</div>
@@ -1306,7 +1965,7 @@ export const FacilityPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="text-on-surface-variant hover:text-on-surface"
+            className="text-on-surface-variant hover:text-on-surface cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">close</span>
           </button>
