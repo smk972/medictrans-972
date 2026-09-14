@@ -6,6 +6,7 @@ interface BrandLogoProps {
   variant?: 'full' | 'compact';
   className?: string;
   subtitle?: string;
+  subtitleClassName?: string;
   badge?: string;
   badgeAlwaysVisible?: boolean;
   dark?: boolean;
@@ -16,6 +17,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   variant = 'full',
   className = '',
   subtitle = 'Réseau Médical Conventionné',
+  subtitleClassName = '',
   badge = 'Pro v2',
   badgeAlwaysVisible = false,
   dark = false,
@@ -41,7 +43,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           )}
         </div>
         {variant !== 'compact' && subtitle && (
-          <span className={`text-[10px] font-semibold tracking-wide ${dark ? 'text-teal-100/70' : 'text-slate-600'}`}>
+          <span className={`text-[10px] font-semibold tracking-wide ${dark ? 'text-teal-100/70' : 'text-slate-600'} ${subtitleClassName}`}>
             {subtitle}
           </span>
         )}

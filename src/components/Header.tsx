@@ -31,7 +31,7 @@ export const Header: React.FC = () => {
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap shrink-0 px-3.5 py-2 rounded-xl text-xs xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
+    `whitespace-nowrap shrink-0 px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
       isActive
         ? 'bg-slate-900 text-white font-semibold shadow-xs'
         : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
@@ -55,13 +55,13 @@ export const Header: React.FC = () => {
   const roleBadge = getRoleBadge();
 
   return (
-    <header className="sticky top-3 sm:top-4 z-50 w-full px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto h-16 sm:h-[68px] rounded-full bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between transition-all duration-300">
+    <header className="sticky top-3 sm:top-4 z-50 w-full px-3 sm:px-6">
+      <div className="max-w-[1360px] mx-auto h-16 sm:h-[68px] rounded-full bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-3.5 sm:px-6 flex items-center justify-between transition-all duration-300 gap-2 sm:gap-4">
         {/* Logo */}
-        <BrandLogo />
+        <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
 
         {/* Desktop Nav */}
-        <nav className="hidden xl:flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <nav className="hidden xl:flex items-center gap-1 sm:gap-1.5 shrink min-w-0">
           <NavLink to="/reserver" className={navLinkClass}>
             Réserver un transport
           </NavLink>
@@ -77,13 +77,13 @@ export const Header: React.FC = () => {
         </nav>
 
         {/* Right Info & Profile */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Bouton Eva IA */}
           <button
             type="button"
             id="btn-header-help-ai"
             onClick={() => openChat()}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200/70 font-semibold text-xs transition-all group shrink-0"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200/70 font-semibold text-xs transition-all group shrink-0"
             title="Eva - Aide à la réservation"
           >
             <span className="material-symbols-outlined text-base text-teal-700 group-hover:scale-110 transition-transform">
@@ -100,7 +100,7 @@ export const Header: React.FC = () => {
                   type="button"
                   id="btn-header-profile"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 sm:px-2.5 rounded-xl hover:bg-slate-100/80 transition-all border border-slate-200/80 text-left shrink-0"
+                  className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-full hover:bg-slate-100/80 transition-all border border-slate-200/80 text-left shrink min-w-0"
                 >
                   {user.avatarUrl ? (
                     <img
@@ -113,11 +113,11 @@ export const Header: React.FC = () => {
                       {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                  <div className="hidden md:flex flex-col max-w-[120px] 2xl:max-w-[150px]">
-                    <span className="text-xs font-bold text-slate-900 leading-tight truncate">
+                  <div className="hidden md:flex flex-col min-w-0 max-w-[100px] lg:max-w-[125px] 2xl:max-w-[160px]">
+                    <span className="text-xs font-bold text-slate-900 leading-tight truncate" title={user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}>
                       {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                     </span>
-                    <span className="text-[10px] text-slate-500 leading-tight mt-0.5 truncate">
+                    <span className="text-[10px] text-slate-500 leading-tight mt-0.5 truncate" title={user.facilityName || user.transporterName || roleBadge?.label}>
                       {user.facilityName || user.transporterName || roleBadge?.label}
                     </span>
                   </div>

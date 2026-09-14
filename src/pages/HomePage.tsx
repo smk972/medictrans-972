@@ -233,10 +233,10 @@ export const HomePage: React.FC = () => {
       <div className="sticky top-3 sm:top-4 z-40 px-4 sm:px-6 lg:px-8 pt-2 pb-2 pointer-events-none">
         <nav 
           aria-label="Navigation principale" 
-          className="max-w-6xl mx-auto h-16 sm:h-[68px] rounded-full bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between pointer-events-auto transition-all duration-300"
+          className="max-w-[1360px] mx-auto h-16 sm:h-[68px] rounded-full bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between pointer-events-auto transition-all duration-300"
         >
           {/* Brand Logo & Tag */}
-          <BrandLogo />
+          <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
 
           {/* Center Links (Desktop) */}
           <div className="hidden md:flex items-center gap-1 lg:gap-2 text-xs font-bold text-slate-600">
