@@ -228,7 +228,7 @@ export const Header: React.FC = () => {
                 id="btn-header-logout"
                 type="button"
                 onClick={handleLogout}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all active:scale-95"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-md shadow-slate-950/10 active:scale-95 transition-all cursor-pointer"
                 title="Se déconnecter"
               >
                 <span className="material-symbols-outlined text-sm">logout</span>
@@ -238,7 +238,7 @@ export const Header: React.FC = () => {
           ) : (
             <Link
               to="/connexion"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold text-xs sm:text-sm hover:bg-slate-800 shadow-sm transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-teal-800 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white text-xs font-bold shadow-md shadow-teal-950/10 active:scale-95 transition-all"
             >
               <span className="material-symbols-outlined text-base">login</span>
               <span>Connexion</span>
@@ -300,7 +300,7 @@ export const Header: React.FC = () => {
               <Link
                 to="/connexion"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-900 text-white font-semibold text-sm shadow-sm hover:bg-slate-800 transition-all"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-800 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white font-bold text-sm shadow-md shadow-teal-950/15 transition-all"
               >
                 <span className="material-symbols-outlined text-lg">login</span>
                 <span>Se connecter</span>

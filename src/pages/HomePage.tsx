@@ -31,6 +31,7 @@ import {
   Percent,
   Sliders,
   LogIn,
+  LogOut,
   ChevronLeft,
   Smartphone,
   Laptop,
@@ -265,9 +266,10 @@ export const HomePage: React.FC = () => {
             {isAuthenticated ? (
               <button
                 onClick={logout}
-                className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-md shadow-slate-950/10 active:scale-95 transition-all cursor-pointer"
               >
-                Déconnexion
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Déconnexion</span>
               </button>
             ) : (
               <Link

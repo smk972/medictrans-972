@@ -731,7 +731,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3 px-4 rounded-xl bg-primary text-on-primary font-label-lg font-bold shadow-sm hover:bg-primary-container hover:text-on-primary transition-all active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 text-white font-bold shadow-lg shadow-teal-950/20 hover:from-teal-700 hover:to-sky-800 transition-all active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoading ? (
                   <>

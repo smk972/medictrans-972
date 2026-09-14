@@ -1335,20 +1335,20 @@ export const TransporterPortalPage: React.FC = () => {
         canonicalPath="/transporteurs"
       />
 
-      {/* Barre de navigation latérale */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white z-50 flex flex-col border-r border-slate-200/80 shadow-xs hidden md:flex">
-        <div className="p-4 border-b border-slate-200/80 flex items-center justify-between">
-          <BrandLogo to="/transporteurs" />
+      {/* Barre de navigation latérale avec dégradé de marque Signature */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-teal-950 via-slate-950 to-teal-950 text-white z-50 flex flex-col border-r border-teal-800/40 shadow-2xl hidden md:flex">
+        <div className="p-4 border-b border-teal-800/30 flex items-center justify-between">
+          <BrandLogo to="/transporteurs" dark={true} />
         </div>
 
         {/* Info Société */}
-        <div className="m-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-700 font-bold flex items-center justify-center text-lg shrink-0">
+        <div className="m-3 p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white shadow-inner flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white font-bold flex items-center justify-center text-lg shrink-0 shadow-md shadow-amber-900/30">
             🚑
           </div>
           <div className="overflow-hidden">
-            <div className="text-xs font-bold text-slate-900 truncate">{transporterName}</div>
-            <div className="text-[10px] text-slate-500 font-mono truncate">Agrément ARS 972</div>
+            <div className="text-xs font-black text-white truncate">{transporterName}</div>
+            <div className="text-[10px] text-teal-300 font-mono truncate">Agrément ARS 972</div>
           </div>
         </div>
 
@@ -1357,10 +1357,10 @@ export const TransporterPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('DISPONIBLES')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'DISPONIBLES'
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                ? 'bg-gradient-to-r from-teal-600 to-sky-600 text-white font-bold shadow-lg shadow-teal-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1376,7 +1376,7 @@ export const TransporterPortalPage: React.FC = () => {
               )}
               {availableMissions.length > 0 && (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  activeTab === 'DISPONIBLES' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-700'
+                  activeTab === 'DISPONIBLES' ? 'bg-white text-teal-900' : 'bg-teal-500/20 text-teal-300'
                 }`}>
                   {availableMissions.length}
                 </span>
@@ -1387,10 +1387,10 @@ export const TransporterPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('ACTIVES')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'ACTIVES'
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold shadow-lg shadow-amber-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1399,7 +1399,7 @@ export const TransporterPortalPage: React.FC = () => {
             </div>
             {activeMissions.length > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                activeTab === 'ACTIVES' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'
+                activeTab === 'ACTIVES' ? 'bg-white text-amber-950' : 'bg-amber-500/20 text-amber-300'
               }`}>
                 {activeMissions.length}
               </span>
@@ -1409,10 +1409,10 @@ export const TransporterPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('PLANNING')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'PLANNING'
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                ? 'bg-gradient-to-r from-teal-600 to-sky-600 text-white font-bold shadow-lg shadow-teal-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1420,7 +1420,7 @@ export const TransporterPortalPage: React.FC = () => {
               <span>Planning des courses</span>
             </div>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-              activeTab === 'PLANNING' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-700'
+              activeTab === 'PLANNING' ? 'bg-white text-teal-900' : 'bg-teal-500/20 text-teal-300'
             }`}>
               {plannedMissions.length}
             </span>
@@ -1429,26 +1429,26 @@ export const TransporterPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('FLOTTE')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'FLOTTE'
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                ? 'bg-gradient-to-r from-teal-600 to-sky-600 text-white font-bold shadow-lg shadow-teal-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-lg">garage</span>
               <span>Flotte & Équipages</span>
             </div>
-            <span className="text-[10px] text-teal-600 font-bold">{fleet.length} actifs</span>
+            <span className="text-[10px] text-teal-300 font-bold">{fleet.length} actifs</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('HISTORIQUE')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'HISTORIQUE'
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                ? 'bg-gradient-to-r from-teal-600 to-sky-600 text-white font-bold shadow-lg shadow-teal-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1456,7 +1456,7 @@ export const TransporterPortalPage: React.FC = () => {
               <span>Historique des courses</span>
             </div>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-              activeTab === 'HISTORIQUE' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-700'
+              activeTab === 'HISTORIQUE' ? 'bg-white text-teal-900' : 'bg-teal-500/20 text-teal-300'
             }`}>
               {archivedMissions.length}
             </span>
@@ -1464,25 +1464,25 @@ export const TransporterPortalPage: React.FC = () => {
         </nav>
 
         {/* Support & Régulation 972 */}
-        <div className="p-3 m-3 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs">
-          <div className="flex items-center gap-2 text-teal-700 font-bold mb-1">
-            <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse"></span>
+        <div className="p-3.5 m-3 rounded-2xl bg-white/5 backdrop-blur-md border border-teal-500/20 text-xs">
+          <div className="flex items-center gap-2 text-teal-300 font-bold mb-1">
+            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
             <span>Régulation ARS 24/7</span>
           </div>
-          <p className="text-[11px] text-slate-500 mb-1.5">Ligne d'urgence SAMU / CHU :</p>
+          <p className="text-[11px] text-teal-100/70 mb-1.5">Ligne d'urgence SAMU / CHU :</p>
           <a
             href="tel:0596720097"
-            className="block font-bold text-teal-800 text-sm hover:underline font-mono"
+            className="block font-bold text-teal-200 text-sm hover:text-white font-mono transition-colors"
           >
             05 96 72 00 97
           </a>
         </div>
 
         {/* Liens Retour Site & Déconnexion */}
-        <div className="p-3 border-t border-slate-200/80 flex flex-col gap-1">
+        <div className="p-3 border-t border-teal-800/30 flex flex-col gap-1">
           <Link
             to="/"
-            className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors py-1.5 px-2 rounded-xl"
+            className="flex items-center gap-2 text-xs font-semibold text-teal-200/80 hover:text-white hover:bg-white/10 transition-colors py-1.5 px-2 rounded-xl"
           >
             <span className="material-symbols-outlined text-base">arrow_back</span>
             <span>Retour à l'accueil</span>
@@ -1491,7 +1491,7 @@ export const TransporterPortalPage: React.FC = () => {
             id="btn-sidebar-logout"
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors py-1.5 px-2 rounded-xl text-left"
+            className="w-full flex items-center gap-2 text-xs font-bold text-rose-300 hover:text-rose-100 hover:bg-rose-500/20 transition-colors py-1.5 px-2 rounded-xl text-left cursor-pointer"
             title="Se déconnecter de votre compte transporteur"
           >
             <span className="material-symbols-outlined text-base">logout</span>
@@ -1556,10 +1556,10 @@ export const TransporterPortalPage: React.FC = () => {
               id="btn-logout-transporter"
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all duration-150 active:scale-95 shadow-xs"
-              title="Se déconnecter de l'espace transporteur à tout moment"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-md shadow-slate-950/10 active:scale-95 transition-all cursor-pointer"
+              title="Se déconnecter de l'espace transporteur"
             >
-              <span className="material-symbols-outlined text-base">logout</span>
+              <span className="material-symbols-outlined text-sm">logout</span>
               <span className="hidden sm:inline">Déconnexion</span>
             </button>
           </div>

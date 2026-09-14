@@ -1811,7 +1811,7 @@ export const BookingPage: React.FC = () => {
                         ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
                         : selectedTransporter
                         ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
-                        : 'bg-primary hover:bg-primary-container active:scale-[0.99] shadow-primary/20 hover:scale-[1.01]'
+                        : 'bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white active:scale-[0.99] shadow-lg shadow-teal-950/20 hover:scale-[1.01]'
                     }`}
                     type="submit"
                   >

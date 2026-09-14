@@ -541,82 +541,97 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </div>
 
-<div className="flex flex-col gap-space-lg" id="viewTransports">
+<div className="flex flex-col gap-6" id="viewTransports">
 
-<div className="bg-surface-container-high/60 p-space-md rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md shadow-sm">
-<div className="flex items-center gap-space-md">
-<div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
-<span className="material-symbols-outlined text-[22px]">alt_route</span>
-</div>
-<div className="flex flex-col">
-<span className="font-headline-sm text-headline-sm text-on-surface font-bold">Régulation Territoriale Martinique Centre</span>
-<p className="font-body-sm text-body-sm text-on-surface-variant">Liaisons maritimes et axes routiers Trinité/Fort-de-France fluides. Temps d'approche estimés fiables.</p>
-</div>
-</div>
-<div className="flex items-center gap-space-sm">
-<button
-  type="button"
-  onClick={() => setIsOrderModalOpen(true)}
-  className="bg-primary text-on-primary hover:bg-primary/90 px-space-md py-space-xs rounded-lg font-label-md text-label-md flex items-center gap-space-xs shadow-sm transition-all cursor-pointer"
->
-<span className="material-symbols-outlined text-[18px]">add_box</span>
-<span className="font-bold">Commander un transport</span>
-</button>
-</div>
-</div>
+  {/* Bandeau Signature Gradient : Régulation des Départs & Sorties de Lit */}
+  <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-sky-900 text-white p-5 sm:p-6 rounded-3xl shadow-xl border border-teal-700/40 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    {/* Ambient mesh glow */}
+    <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
 
-<div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-outline-variant/30">
-  {/* En-tête avec Sélecteur d'onglets, Exports & Recherche */}
-  <div className="p-space-md flex flex-col gap-space-sm border-b border-outline-variant/20">
-    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-xl">domain</span>
-          <h2 className="font-headline-md text-headline-md text-on-surface font-bold text-base md:text-lg">
-            Régulation des Départs &amp; Sorties de Lit
-          </h2>
-        </div>
-        <p className="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">
-          CHU Pierre Zobda-Quitman &amp; Établissements conventionnés ARS Martinique
-        </p>
+    <div className="flex items-center gap-4 relative z-10">
+      <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-teal-300 shadow-md shrink-0">
+        <span className="material-symbols-outlined text-[26px]">alt_route</span>
       </div>
-
-      {/* Boutons d'export Excel & PDF */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={handleExportExcel}
-          className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
-          title="Exporter la liste sous format Excel (.csv)"
-        >
-          <span className="material-symbols-outlined text-base text-emerald-700">table_view</span>
-          <span>Export Excel</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleExportPdf}
-          className="px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
-          title="Générer un rapport PDF officiel"
-        >
-          <span className="material-symbols-outlined text-base text-primary">picture_as_pdf</span>
-          <span>Export PDF</span>
-        </button>
-
-        <div className="relative">
-          <input
-            className="px-space-sm py-1.5 pl-8 rounded-xl bg-surface-container text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest w-52 sm:w-60 transition-all text-xs border border-outline-variant/30"
-            placeholder="Filtrer patient, NIR, lit..."
-            type="text"
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-          />
-          <span className="material-symbols-outlined text-outline absolute left-2 top-2 text-base">
-            search
+      <div className="flex flex-col">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-300 bg-teal-500/20 px-2.5 py-0.5 rounded-full border border-teal-500/30">
+            Supervision Temps Réel 972
+          </span>
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
           </span>
         </div>
+        <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">Régulation Territoriale Martinique Centre</h3>
+        <p className="text-xs text-teal-100/80 max-w-2xl mt-0.5">Liaisons maritimes et axes routiers Trinité/Fort-de-France fluides. Temps d'approche estimés fiables.</p>
       </div>
     </div>
+    <div className="flex items-center gap-3 relative z-10 w-full md:w-auto">
+      <button
+        type="button"
+        onClick={() => setIsOrderModalOpen(true)}
+        className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white hover:bg-teal-50 text-slate-900 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer"
+      >
+        <span className="material-symbols-outlined text-[18px] text-teal-800">add_box</span>
+        <span>Commander un transport</span>
+      </button>
+    </div>
+  </div>
+
+  <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-200/80 card-silky">
+    {/* En-tête avec Sélecteur d'onglets, Exports & Recherche */}
+    <div className="p-5 flex flex-col gap-4 border-b border-slate-200/80">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-800 to-sky-700 flex items-center justify-center text-white text-base shadow-xs shrink-0">
+              <span className="material-symbols-outlined text-lg">domain</span>
+            </div>
+            <h2 className="text-base md:text-lg text-slate-900 font-black tracking-tight">
+              Régulation des Départs &amp; Sorties de Lit
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-0.5 ml-10">
+            CHU Pierre Zobda-Quitman &amp; Établissements conventionnés ARS Martinique
+          </p>
+        </div>
+
+        {/* Boutons d'export Excel & PDF */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+            title="Exporter la liste sous format Excel (.csv)"
+          >
+            <span className="material-symbols-outlined text-base text-emerald-700">table_view</span>
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            className="px-3 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/80 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+            title="Générer un rapport PDF officiel"
+          >
+            <span className="material-symbols-outlined text-base text-teal-700">picture_as_pdf</span>
+            <span>Export PDF</span>
+          </button>
+
+          <div className="relative">
+            <input
+              className="px-3 py-2 pl-8 rounded-xl bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white w-52 sm:w-60 transition-all text-xs border border-slate-200/80"
+              placeholder="Filtrer patient, NIR, lit..."
+              type="text"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
+            <span className="material-symbols-outlined text-slate-400 absolute left-2 top-2 text-base">
+              search
+            </span>
+          </div>
+        </div>
+      </div>
 
     {/* Onglets principaux : Missions en cours vs Historique */}
     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-outline-variant/20">

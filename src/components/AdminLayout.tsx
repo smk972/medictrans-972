@@ -145,10 +145,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 id="btn-logout-admin"
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-error/30 text-error hover:bg-error/10 text-xs font-bold transition-all duration-150 active:scale-95 shadow-2xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-md shadow-slate-950/10 active:scale-95 transition-all cursor-pointer"
                 title="Se déconnecter de la console d'administration"
               >
-                <span className="material-symbols-outlined text-base">logout</span>
+                <span className="material-symbols-outlined text-sm">logout</span>
                 <span className="hidden sm:inline">Déconnexion</span>
               </button>
             </div>

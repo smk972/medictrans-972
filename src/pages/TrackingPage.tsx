@@ -410,7 +410,7 @@ export const TrackingPage: React.FC = () => {
                     requiredRole: 'PATIENT',
                     message: 'Connectez-vous à votre compte pour consulter le récapitulatif de vos demandes de transport sanitaire.'
                   }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-headline-sm text-sm font-bold shadow-md hover:bg-primary/90 active:scale-[0.99] transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white text-sm font-bold shadow-lg shadow-teal-950/20 active:scale-[0.99] transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-lg">login</span>
                   <span>Se connecter / S'identifier</span>
@@ -418,9 +418,9 @@ export const TrackingPage: React.FC = () => {
 
                 <Link
                   to="/reserver"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-surface-container text-primary hover:bg-surface-container-high font-label-md text-sm font-bold transition-all border border-outline-variant/30"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-900 font-bold text-sm transition-all border border-slate-200/80 shadow-xs"
                 >
-                  <span className="material-symbols-outlined text-lg">add_circle</span>
+                  <span className="material-symbols-outlined text-lg text-teal-700">add_circle</span>
                   <span>Commander un transport</span>
                 </Link>
               </div>
@@ -503,16 +503,16 @@ export const TrackingPage: React.FC = () => {
                   <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
                     <Link
                       to="/reserver"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-headline-sm text-sm font-bold shadow-md hover:bg-primary/90 active:scale-[0.99] transition-all"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white text-sm font-bold shadow-lg shadow-teal-950/20 active:scale-[0.99] transition-all cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-lg">add_circle</span>
                       Commander un transport sanitaire
                     </Link>
                     <a
                       href="tel:0596720097"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-surface-container text-primary hover:bg-surface-container-high font-label-md text-sm font-semibold transition-all border border-outline-variant/30"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-900 font-bold text-sm transition-all border border-slate-200/80 shadow-xs"
                     >
-                      <span className="material-symbols-outlined text-lg">call</span>
+                      <span className="material-symbols-outlined text-lg text-teal-700">call</span>
                       Astreinte Régulation (05 96 72 00 97)
                     </a>
                   </div>
