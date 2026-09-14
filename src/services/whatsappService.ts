@@ -180,4 +180,45 @@ export const whatsappService = {
     const url = `https://wa.me/${normPhone}?text=${encodeURIComponent(messageText)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   },
+
+  // Envoyer un code unique de vérification par WhatsApp
+  sendVerificationCode(phone: string, patientName?: string): { code: string; sentAt: number; waUrl: string } {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const normPhone = this.normalizePhoneE164(phone);
+    const name = patientName || 'Patient';
+    const message = `🔐 *Clinigo — Code de Vérification WhatsApp*\n\nBonjour *${name}*,\nVoici votre code de validation unique pour confirmer votre demande de transport sanitaire :\n\n👉 *${code}*\n\nEntrez ce code sur le site clinigo.fr pour certifier votre numéro et valider votre demande.\n_Ce code expire dans 10 minutes._`;
+    const waUrl = `https://wa.me/${normPhone}?text=${encodeURIComponent(message)}`;
+
+    try {
+      localStorage.setItem('clinigo_whatsapp_otp', JSON.stringify({
+        phone: normPhone,
+        code,
+        sentAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000
+      }));
+    } catch (e) {
+      console.warn('Could not save OTP to localStorage:', e);
+    }
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    return { code, sentAt: Date.now(), waUrl };
+  },
+
+  // Valider le code saisi par l'utilisateur
+  verifyCode(enteredCode: string): { success: boolean; error?: string } {
+    try {
+      const raw = localStorage.getItem('clinigo_whatsapp_otp');
+      if (!raw) return { success: false, error: "Aucun code n'a été demandé. Cliquez sur 'Vérifier mon numéro'." };
+      const data = JSON.parse(raw);
+      if (Date.now() > data.expiresAt) {
+        return { success: false, error: "Le code a expiré. Veuillez en générer un nouveau." };
+      }
+      if (data.code.trim() !== enteredCode.trim()) {
+        return { success: false, error: "Code incorrect. Veuillez saisir le code à 4 chiffres reçu sur WhatsApp." };
+      }
+      return { success: true };
+    } catch {
+      return { success: false, error: "Erreur lors de la vérification du code." };
+    }
+  },
 };
