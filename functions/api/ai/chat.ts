@@ -6,6 +6,16 @@ const MAX_REQUESTS_PER_MINUTE = 30;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
+
+  // Nettoyage opportuniste si la map devient grande
+  if (rateLimitMap.size > 500) {
+    for (const [key, data] of rateLimitMap.entries()) {
+      if (now > data.resetTime) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+
   const record = rateLimitMap.get(ip);
 
   if (!record || now > record.resetTime) {
@@ -20,16 +30,6 @@ function checkRateLimit(ip: string): boolean {
   record.count += 1;
   return true;
 }
-
-// Nettoyage régulier du cache de rate-limiting
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, data] of rateLimitMap.entries()) {
-    if (now > data.resetTime) {
-      rateLimitMap.delete(ip);
-    }
-  }
-}, 120000);
 
 // Détection des urgences médicales vitales
 const EMERGENCY_KEYWORDS = [
