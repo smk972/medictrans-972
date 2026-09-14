@@ -16,13 +16,17 @@ export interface ChatMessage {
   };
 }
 
-interface FormDraftData {
+export interface FormDraftData {
   transportType?: 'taxi' | 'vsl' | 'ambulance';
   pickupAddress?: string;
   destinationFacility?: string;
   transportDate?: string;
   transportTime?: string;
   patientNir?: string;
+  mobility?: 'assis' | 'marche' | 'fauteuil' | 'allonge';
+  oxygen?: boolean;
+  hasCompanion?: boolean;
+  isAld?: boolean;
 }
 
 interface AiChatContextType {
@@ -111,14 +115,22 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const applyDraftToBooking = (draft: FormDraftData) => {
-    setPendingDraft(draft);
-    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    setPendingDraft(prev => {
+      const merged = { ...(prev || {}), ...draft };
+      try {
+        sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(merged));
+      } catch {}
+      return merged;
+    });
+
+    // Émission d'un événement direct en direct pour synchroniser immédiatement la page /reserver
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('medictrans:direct_form_update', { detail: draft }));
+    }
   };
 
   const consumePendingDraft = (): FormDraftData | null => {
     const draft = pendingDraft;
-    setPendingDraft(null);
-    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
     return draft;
   };
 

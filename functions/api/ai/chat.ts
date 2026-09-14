@@ -1,5 +1,5 @@
 import { searchKnowledgeBase, KNOWLEDGE_BASE } from './knowledge';
-import { validateNir, verifyRouteTiming } from './tools';
+import { validateNir, verifyRouteTiming, extractBookingFieldsFromConversation } from './tools';
 
 // Rate limiter en mémoire par IP (fenêtre glissante de 60 secondes)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -128,34 +128,55 @@ function generateFallbackKnowledgeResponse(userPrompt: string): { text: string; 
     };
   }
 
-  // Guide formulaire & Brouillon de réservation (Niveau 2)
+  // 5. Remplissage direct par la conversation & Extraction d'entités (Niveau 2)
   const lower = userPrompt.toLowerCase();
-  const isDraftRequest = lower.includes('réserver') || lower.includes('reserver') || lower.includes('brouillon') || (lower.includes('vsl') && (lower.includes('chu') || lower.includes('lamentin')));
-  if (isDraftRequest) {
-    let transportType: 'taxi' | 'vsl' | 'ambulance' = 'vsl';
-    if (lower.includes('taxi')) transportType = 'taxi';
-    else if (lower.includes('ambulance')) transportType = 'ambulance';
 
-    const dateMatch = userPrompt.match(/\b(202\d-\d{2}-\d{2})\b/);
-    const timeMatch = userPrompt.match(/\b(\d{1,2}[:h]\d{2})\b/i);
-
-    const draft = {
-      transportType,
-      pickupAddress: lower.includes('lamentin') ? 'Place d\'Armes, Le Lamentin' : 'Cluny, Schoelcher',
-      destinationFacility: lower.includes('zobda') || lower.includes('chu') ? 'CHU Pierre Zobda-Quitman - Pôle Oncologie, Fort-de-France' : 'Hôpital Pierre Zobda-Quitman',
-      transportDate: dateMatch ? dateMatch[1] : '2026-11-15',
-      transportTime: timeMatch ? timeMatch[1].replace('h', ':') : '09:15'
+  // Question spécifique sur la capacité d'Eva à remplir directement le formulaire
+  if (
+    lower.includes('rempli') &&
+    (lower.includes('directement') || lower.includes('champs') || lower.includes('conversant') || lower.includes('conversation') || lower.includes('interlocuteur'))
+  ) {
+    return {
+      text: `✨ **Oui, absolument ! Je peux remplir directement et en temps réel l'ensemble des champs de votre formulaire de réservation au cours de notre conversation.**\n\nVous n'avez pas besoin de remplir chaque case manuellement : vous me donnez vos informations dans le chat et **je les insère instantanément sur votre écran** !\n\nPar exemple, dites-moi simplement :\n• *« Je veux réserver un VSL pour aller au CHU Zobda-Quitman le 28 octobre à 08h30 depuis Schoelcher »*\n• *« Mon numéro de sécurité sociale est le 1 54 08 97 213 456 88 »*\n• *« Mon fils m'accompagne »*\n\n👉 **Dès que vous m'envoyez un message, le formulaire se met à jour en direct sous vos yeux.** Vous pouvez ensuite vérifier et valider votre demande en un clic !\n\n*Que souhaitez-vous que je renseigne pour vous dès maintenant ?*`
     };
+  }
+
+  // Extraction d'entités en direct
+  const extraction = extractBookingFieldsFromConversation(userPrompt);
+  if (extraction.hasUpdates) {
+    let confirmationText = `⚡ **J'ai directement mis à jour votre formulaire en direct :**\n\n`;
+    for (const item of extraction.updatedFieldsList) {
+      confirmationText += `• ✅ **${item}**\n`;
+    }
+    confirmationText += `\n*Les cases correspondantes sur votre écran ont été automatiquement renseignées en temps réel !*`;
+
+    // Éventuel audit trafic si heure détectée
+    if (extraction.fields.transportTime) {
+      confirmationText += `\n\n⏱️ *Rappel trafic Martinique : Pensez à prévoir 45 à 60 min de marge sur l'axe Lamentin / Rocade le matin.*`;
+    }
+
+    const missing: string[] = [];
+    if (!extraction.fields.transportType) missing.push('le type de véhicule prescrit (Taxi, VSL ou Ambulance)');
+    if (!extraction.fields.pickupAddress) missing.push('votre commune ou quartier de prise en charge');
+    if (!extraction.fields.destinationFacility) missing.push('votre hôpital ou clinique de destination');
+    if (!extraction.fields.transportDate || !extraction.fields.transportTime) missing.push('la date et l\'heure de convocation');
+    if (!extraction.fields.patientNir) missing.push('votre numéro de Sécurité Sociale (NIR)');
+
+    if (missing.length > 0) {
+      confirmationText += `\n\n💡 *Indiquez-moi maintenant : ${missing.slice(0, 2).join(' et ')}, et je les ajoute immédiatement au formulaire !*`;
+    } else {
+      confirmationText += `\n\n🎉 *Toutes vos informations principales sont enregistrées sur le formulaire ! Il ne vous reste plus qu'à vérifier et finaliser votre réservation.*`;
+    }
 
     return {
-      text: `✍️ **Brouillon de réservation prêt à être appliqué !**\n\nJ'ai analysé votre demande et préparé les détails de votre transport sanitaire :\n• **Mode :** ${transportType.toUpperCase()}\n• **Départ :** ${draft.pickupAddress}\n• **Destination :** ${draft.destinationFacility}\n• **Date & Heure :** le ${draft.transportDate} à ${draft.transportTime}\n\n👉 Cliquez sur le bouton **« Appliquer à ma réservation »** ci-dessous pour insérer directement ces paramètres dans le formulaire officiel !`,
-      formDraft: draft
+      text: confirmationText,
+      formDraft: extraction.fields
     };
   }
 
   if (lower.includes('remplir') || lower.includes('aide formulaire') || lower.includes('formulaire')) {
     return {
-      text: `✍️ **Je suis là pour vous aider à remplir votre réservation pas à pas :**\n\n1. **Mode de transport** : Regardez votre bon Cerfa S3138 volet 1 : est-ce coché *Taxi*, *VSL* ou *Ambulance* ?\n2. **Lieu de départ** : Votre adresse en Martinique.\n3. **Destination** : Votre hôpital ou centre de soins (ex: CHU Pierre Zobda-Quitman, MFME, Mangot-Vulcin, Trinité).\n4. **Horaires** : Prévoyez 45 à 60 min de battement le matin pour tenir compte de la circulation.\n5. **Sécurité Sociale** : Saisissez votre NIR complet à 15 chiffres.\n\n💡 *Indiquez-moi votre ville de départ et votre lieu de consultation pour vous guider en direct !*`
+      text: `✍️ **Je suis là pour remplir votre réservation en direct avec vous :**\n\nIndiquez-moi simplement dans notre échange :\n1. **Votre transport prescrit** : Taxi conventionné, VSL ou Ambulance ?\n2. **Votre adresse de départ** en Martinique (ex: Schoelcher, Lamentin, Sainte-Luce).\n3. **Votre destination** : CHU Zobda-Quitman, MFME, Mangot-Vulcin, Clarac...\n4. **La date et l'heure** de votre rendez-vous.\n5. **Votre numéro de Sécurité Sociale** (NIR sur votre carte Vitale).\n\n💡 *Dites-moi ces informations comme vous le souhaitez, et je remplis les champs immédiatement sur votre écran !*`
     };
   }
 

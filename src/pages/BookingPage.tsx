@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { NirInput } from '../components/NirInput';
 import { validateNir } from '../utils/nirValidator';
 import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
-import { useAiChat } from '../context/AiChatContext';
+import { useAiChat, FormDraftData } from '../context/AiChatContext';
 
 export const BookingPage: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -175,7 +175,7 @@ export const BookingPage: React.FC = () => {
     return transportersList.find((t) => t.id === selectedTransporterId) || null;
   }, [selectedTransporterId, transportersList]);
 
-  // Consommation automatique d'un brouillon pré-rempli par le copilote IA (Niveau 2)
+  // Consommation automatique d'un brouillon pré-rempli par Eva
   useEffect(() => {
     const draft = consumePendingDraft();
     if (draft) {
@@ -185,8 +185,71 @@ export const BookingPage: React.FC = () => {
       if (draft.transportDate) setTransportDate(draft.transportDate);
       if (draft.transportTime) setTransportTime(draft.transportTime);
       if (draft.patientNir) setNir(draft.patientNir);
+      if (draft.mobility) setMobility(draft.mobility);
+      if (draft.oxygen !== undefined) setOxygen(draft.oxygen);
+      if (draft.hasCompanion !== undefined) setHasCompanion(draft.hasCompanion);
+      if (draft.isAld !== undefined) setIsAld(draft.isAld);
     }
   }, [consumePendingDraft]);
+
+  const [liveUpdatedFields, setLiveUpdatedFields] = useState<string | null>(null);
+
+  // Synchronisation directe et instantanée des champs au fil de la conversation avec Eva
+  useEffect(() => {
+    const handleDirectUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<FormDraftData>;
+      const draft = customEvent.detail;
+      if (!draft) return;
+
+      const updatedNames: string[] = [];
+      if (draft.transportType) {
+        setTransportType(draft.transportType);
+        updatedNames.push('Mode ' + draft.transportType.toUpperCase());
+      }
+      if (draft.mobility) {
+        setMobility(draft.mobility);
+      }
+      if (draft.oxygen !== undefined) {
+        setOxygen(draft.oxygen);
+      }
+      if (draft.pickupAddress) {
+        setPickupAddress(draft.pickupAddress);
+        updatedNames.push('Départ (' + draft.pickupAddress.split(',')[0] + ')');
+      }
+      if (draft.destinationFacility) {
+        setDestinationFacility(draft.destinationFacility);
+        updatedNames.push('Destination (' + draft.destinationFacility.split('-')[0].trim() + ')');
+      }
+      if (draft.transportDate) {
+        setTransportDate(draft.transportDate);
+        updatedNames.push('Date (' + draft.transportDate + ')');
+      }
+      if (draft.transportTime) {
+        setTransportTime(draft.transportTime);
+        updatedNames.push('Heure (' + draft.transportTime + ')');
+      }
+      if (draft.patientNir) {
+        setNir(draft.patientNir);
+        updatedNames.push('NIR');
+      }
+      if (draft.hasCompanion !== undefined) {
+        setHasCompanion(draft.hasCompanion);
+      }
+      if (draft.isAld !== undefined) {
+        setIsAld(draft.isAld);
+      }
+
+      if (updatedNames.length > 0) {
+        setLiveUpdatedFields(updatedNames.join(', '));
+        setTimeout(() => setLiveUpdatedFields(null), 6000);
+      }
+    };
+
+    window.addEventListener('medictrans:direct_form_update', handleDirectUpdate);
+    return () => {
+      window.removeEventListener('medictrans:direct_form_update', handleDirectUpdate);
+    };
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -444,7 +507,7 @@ export const BookingPage: React.FC = () => {
 
         <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl w-full flex flex-col gap-6">
           {/* Bannière d'aide interactive Assistant IA Niveau 2 - Eva */}
-          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/80 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/80 rounded-2xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
                 <span className="material-symbols-outlined text-xl">support_agent</span>
@@ -452,23 +515,54 @@ export const BookingPage: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-blue-950 flex items-center gap-2">
                   <span>Eva - Aide à la réservation</span>
-                  <span className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded-full font-semibold uppercase tracking-wider">Assistante IA</span>
+                  <span className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded-full font-semibold uppercase tracking-wider">Remplissage en direct</span>
                 </p>
                 <p className="text-xs text-blue-800 mt-0.5">
-                  Eva est à vos côtés pour vous guider pas à pas, vérifier votre numéro de Sécurité Sociale (NIR) et estimer vos horaires selon le trafic en Martinique.
+                  Discutez avec Eva et elle remplira directement les cases de votre formulaire au fil de votre échange (départ, destination, horaires, NIR, véhicule).
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              id="btn-open-ai-booking-helper"
-              onClick={() => openChat("Aide-moi à remplir le formulaire de réservation pas à pas.")}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition-all hover:scale-[1.02] shrink-0 active:scale-[0.98] cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-base">support_agent</span>
-              <span>Demander conseil à Eva</span>
-            </button>
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+              <button
+                type="button"
+                id="btn-open-ai-chat-live-fill"
+                onClick={() => openChat("Je veux que tu remplisses directement les champs de ma réservation en conversant avec moi. Que dois-je t'indiquer ?")}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all hover:scale-[1.02] shrink-0 active:scale-[0.98] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">chat</span>
+                <span>Remplir en discutant avec Eva</span>
+              </button>
+              <button
+                type="button"
+                id="btn-open-ai-booking-helper"
+                onClick={() => openChat("Aide-moi à remplir le formulaire de réservation pas à pas.")}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition-all hover:scale-[1.02] shrink-0 active:scale-[0.98] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">help_outline</span>
+                <span>Poser une question</span>
+              </button>
+            </div>
           </div>
+
+          {/* Toast de confirmation en direct lorsqu'Eva modifie un champ */}
+          {liveUpdatedFields && (
+            <aside
+              aria-label="Notification de mise à jour automatique"
+              className="fixed top-24 right-4 sm:right-8 z-50 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-300/40 animate-fadeIn"
+            >
+              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-lg animate-spin">sync</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold leading-tight">
+                  ⚡ Rempli en direct par Eva !
+                </span>
+                <span className="text-[11px] text-emerald-100 leading-tight mt-0.5">
+                  Champs synchronisés : {liveUpdatedFields}
+                </span>
+              </div>
+            </aside>
+          )}
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
             {/* Left Column: Patient Details, Mobility & PMT */}

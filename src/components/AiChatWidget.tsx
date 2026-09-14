@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAiChat, ChatMessage } from '../context/AiChatContext';
 
 const LEVEL_2_PROMPTS = [
+  { label: "⚡ Remplir ma réservation en direct", prompt: "L'aide peut elle directement remplir les champs de réservation en conversant avec son interlocuteur ?" },
   { label: "🚑 Quel transport choisir ?", prompt: "Explique-moi la différence entre un Taxi conventionné, un VSL et une Ambulance, et comment choisir selon mon ordonnance." },
   { label: "✍️ M'aider à remplir le formulaire", prompt: "Aide-moi à remplir le formulaire de réservation pas à pas." },
   { label: "🔍 Vérifier mon NIR (Sécu)", prompt: "Peux-tu vérifier la conformité de mon numéro de sécurité sociale (NIR) et m'expliquer le calcul de la clé ?" },
