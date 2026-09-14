@@ -110,7 +110,7 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center flex-wrap justify-center gap-space-lg mt-space-md text-on-surface-variant font-label-md text-label-md">
                   <div className="flex items-center gap-space-xs">
                     <span className="material-symbols-outlined text-secondary">verified_user</span>
-                    <span>Des transporteurs certifiés en France et DOM</span>
+                    <span>Des transporteurs certifiés en Hexagone et DOM</span>
                   </div>
                   <div className="flex items-center gap-space-xs">
                     <span className="material-symbols-outlined text-primary">local_hospital</span>
