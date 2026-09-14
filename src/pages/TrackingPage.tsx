@@ -468,7 +468,7 @@ export const TrackingPage: React.FC = () => {
                   Mes demandes de transport sanitaire
                 </h1>
                 <p className="font-body-md text-body-md text-on-surface-variant text-sm">
-                  Récapitulatif de vos prises en charge médicales, suivi des équipages agréés ARS en temps réel et attestations 100% Tiers-Payant CPAM.
+                  Retrouvez ici le récapitulatif de vos prises en charge médicales.
                 </p>
               </div>
             </div>
