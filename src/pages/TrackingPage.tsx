@@ -351,27 +351,27 @@ export const TrackingPage: React.FC = () => {
         ogImage="/assets/clinigo-logo.png"
       />
 
-      <main className="w-full pt-20 bg-surface flex-1">
+      <main className="w-full pt-4 sm:pt-6 bg-surface flex-1">
         {/* Network status ticker banner */}
         {showBanner && (
-          <div className="w-full bg-surface-container-high px-margin md:px-margin-md lg:px-margin-lg py-space-sm shadow-xs border-b border-outline-variant/20">
+          <div className="w-full bg-slate-50 px-4 sm:px-6 py-2.5 border-b border-slate-200/80 shadow-2xs">
             <div className="max-w-[1280px] w-full mx-auto flex flex-wrap items-center justify-between gap-space-sm text-xs md:text-sm">
               <div className="flex items-center gap-space-sm">
                 <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
                 </span>
-                <span className="font-label-md text-label-md text-on-surface">
+                <span className="text-xs sm:text-sm text-slate-700 font-medium">
                   Réseau Martinique Sud &amp; Centre actif : 42 ambulances et taxis conventionnés en liaison continue avec le SAMU 972.
                 </span>
               </div>
               <div className="flex items-center gap-space-md">
-                <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-[11px] font-bold">
-                  Synchronisé avec CPAM 972
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200/70 text-slate-700 uppercase tracking-wider text-[10px] font-bold">
+                  Synchronisé CPAM
                 </span>
                 <button
                   onClick={() => setShowBanner(false)}
-                  className="text-on-surface-variant hover:text-on-surface flex items-center p-1"
+                  className="text-slate-400 hover:text-slate-700 flex items-center p-1 transition-colors"
                 >
                   <span className="material-symbols-outlined text-sm">close</span>
                 </button>
@@ -383,21 +383,21 @@ export const TrackingPage: React.FC = () => {
         {!isAuthenticated || !user ? (
           /* ÉCRAN SÉCURISÉ : AUCUNE DONNÉE DE TRANSPORT AFFICHÉE SANS CONNEXION */
           <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl flex items-center justify-center min-h-[65vh]">
-            <div className="w-full max-w-xl bg-surface-container-lowest rounded-3xl shadow-[0_8px_30px_rgb(11,28,48,0.08)] border border-outline-variant/30 p-8 sm:p-12 text-center animate-fadeIn">
-              <div className="w-20 h-20 rounded-3xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6 shadow-xs ring-8 ring-primary/5">
+            <div className="w-full max-w-xl bg-white rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200/80 p-8 sm:p-12 text-center animate-fadeIn card-silky">
+              <div className="w-20 h-20 rounded-3xl bg-slate-900 text-white flex items-center justify-center mx-auto mb-6 shadow-sm ring-8 ring-slate-100">
                 <span className="material-symbols-outlined text-4xl">lock</span>
               </div>
 
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-xs font-bold uppercase tracking-wider mb-4">
-                <span className="material-symbols-outlined text-sm">shield</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200/70 text-xs font-bold uppercase tracking-wider mb-4">
+                <span className="material-symbols-outlined text-sm text-teal-700">shield</span>
                 Espace Sécurisé Patient &amp; Tiers-Payant
               </span>
 
-              <h1 className="font-headline-lg text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight mb-3">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
                 Connectez-vous pour voir vos demandes
               </h1>
 
-              <p className="font-body-md text-on-surface-variant max-w-md mx-auto text-sm sm:text-base leading-relaxed mb-8">
+              <p className="text-slate-500 max-w-md mx-auto text-sm sm:text-base leading-relaxed mb-8">
                 Pour des raisons de secret médical et de sécurité de vos données de santé, le récapitulatif de vos transports et le suivi en direct sont accessibles uniquement après connexion à votre compte.
               </p>
 

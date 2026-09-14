@@ -82,31 +82,31 @@ export const CpamRightsPage: React.FC = () => {
         }}
       />
 
-      <main className="w-full pt-20 bg-background flex-1">
+      <main className="w-full pt-4 sm:pt-6 bg-background flex-1">
         <div className="flex flex-col w-full">
           {/* Hero Section */}
-          <section className="relative w-full overflow-hidden bg-surface-container-low py-space-xl lg:py-margin-lg border-b border-outline-variant/30">
-            <div className="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none"></div>
-            <div className="absolute left-1/3 -bottom-20 w-80 h-80 rounded-full bg-secondary/5 blur-2xl pointer-events-none"></div>
+          <section className="relative w-full overflow-hidden bg-gradient-to-b from-slate-50/90 to-white py-12 lg:py-16 border-b border-slate-200/80">
+            <div className="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-teal-500/5 blur-3xl pointer-events-none"></div>
+            <div className="absolute left-1/3 -bottom-20 w-80 h-80 rounded-full bg-slate-400/5 blur-2xl pointer-events-none"></div>
 
             <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg relative z-10">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
                 <div className="lg:col-span-7 flex flex-col gap-space-md">
-                  <div className="inline-flex items-center gap-space-xs self-start px-3 py-1 rounded-full bg-surface-container-highest text-primary border border-outline-variant/30">
-                    <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                    <span className="font-label-sm text-label-sm uppercase tracking-wider font-bold text-xs">
+                  <div className="inline-flex items-center gap-1.5 self-start px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200/70">
+                    <span className="material-symbols-outlined text-[18px] text-teal-700">verified_user</span>
+                    <span className="uppercase tracking-wider font-bold text-xs">
                       Plateforme Régulée ARS &amp; CGSS Martinique 972
                     </span>
                   </div>
 
-                  <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight leading-tight font-bold text-3xl md:text-4xl">
+                  <h1 className="tracking-tight leading-tight font-extrabold text-3xl md:text-4xl text-slate-900">
                     Le réseau unifié de transport sanitaire et de soins en{' '}
-                    <span className="text-primary underline decoration-secondary decoration-4 underline-offset-4">
+                    <span className="text-teal-600 underline decoration-teal-300 decoration-4 underline-offset-4">
                       Martinique
                     </span>
                   </h1>
 
-                  <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl text-base leading-relaxed">
+                  <p className="text-slate-600 max-w-2xl text-base leading-relaxed">
                     Coordination insulaire d'urgence et programmée. Bénéficiez d'une prise en charge
                     conventionnée de Grand'Rivière à Sainte-Anne, en liaison directe avec le SAMU
                     Centre 15 et le CHU de Fort-de-France.
@@ -114,43 +114,43 @@ export const CpamRightsPage: React.FC = () => {
 
                   <div className="flex flex-wrap items-center gap-space-md pt-space-xs">
                     <Link
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-bold shadow-md hover:bg-primary-container hover:shadow-lg transition-all"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 text-white font-bold shadow-md hover:bg-slate-800 transition-all"
                       to="/reserver"
                     >
                       <span className="material-symbols-outlined">calendar_month</span>
                       <span>Réserver un transport dès maintenant</span>
                     </Link>
                     <Link
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-surface-container-highest text-primary font-label-lg text-label-lg font-bold hover:bg-surface-container-high transition-all border border-outline-variant/30"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white text-slate-800 font-bold hover:bg-slate-50 transition-all border border-slate-200 shadow-xs"
                       to="/etablissements"
                     >
-                      <span className="material-symbols-outlined">health_and_safety</span>
+                      <span className="material-symbols-outlined text-teal-600">health_and_safety</span>
                       <span>Accès professionnels de santé</span>
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-space-md pt-space-md">
-                    <div className="flex flex-col p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/30">
-                      <span className="font-headline-md text-headline-md text-primary font-bold text-xl md:text-2xl">
+                  <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4">
+                    <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 card-silky-subtle">
+                      <span className="font-extrabold text-slate-900 text-xl md:text-2xl">
                         34 / 34
                       </span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                      <span className="text-[11px] text-slate-500 mt-0.5">
                         Communes desservies
                       </span>
                     </div>
-                    <div className="flex flex-col p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/30">
-                      <span className="font-headline-md text-headline-md text-secondary font-bold text-xl md:text-2xl">
+                    <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 card-silky-subtle">
+                      <span className="font-extrabold text-teal-600 text-xl md:text-2xl">
                         100%
                       </span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                      <span className="text-[11px] text-slate-500 mt-0.5">
                         Tiers-payant ALD/CSS
                       </span>
                     </div>
-                    <div className="flex flex-col p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/30">
-                      <span className="font-headline-md text-headline-md text-primary font-bold text-xl md:text-2xl">
+                    <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 card-silky-subtle">
+                      <span className="font-extrabold text-slate-900 text-xl md:text-2xl">
                         24/7
                       </span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
+                      <span className="text-[11px] text-slate-500 mt-0.5">
                         Régulation Active
                       </span>
                     </div>

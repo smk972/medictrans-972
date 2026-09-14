@@ -51,7 +51,7 @@ export const RegisterFacilityPage: React.FC = () => {
         canonicalPath="/inscription-etablissement"
       />
       <Header />
-      <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
+      <main className="w-full pt-4 sm:pt-6 bg-surface"><div className="flex flex-col w-full">
 
 <div className="relative w-full overflow-hidden">
 <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent rounded-full blur-3xl pointer-events-none"></div>

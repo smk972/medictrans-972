@@ -208,23 +208,23 @@ export const LoginPage: React.FC = () => {
       />
       <Header />
 
-      <main className="flex-1 pt-28 pb-16 flex items-center justify-center px-4 sm:px-6">
+      <main className="flex-1 pt-8 sm:pt-12 pb-16 flex items-center justify-center px-4 sm:px-6">
         <div className="w-full max-w-xl">
           {/* Header Card */}
           <div className="text-center mb-8">
-            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-md mb-4 ring-4 ring-primary-container/20 transition-all ${headerInfo.iconBg}`}>
+            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-md mb-4 ring-4 ring-slate-100 transition-all ${headerInfo.iconBg}`}>
               <span className="material-symbols-outlined text-3xl">{headerInfo.icon}</span>
             </div>
-            <h1 className="font-headline-md text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {headerInfo.title}
             </h1>
-            <p className="mt-2 text-sm sm:text-base text-on-surface-variant max-w-md mx-auto">
+            <p className="mt-2 text-sm sm:text-base text-slate-500 max-w-md mx-auto">
               {headerInfo.subtitle}
             </p>
           </div>
 
           {/* Main Card */}
-          <div className="bg-surface-container-lowest rounded-3xl shadow-[0_8px_30px_rgb(11,28,48,0.08)] border border-outline-variant/30 p-6 sm:p-8">
+          <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200/80 p-6 sm:p-8 card-silky">
             {/* Session déjà active : Option de déconnexion immédiate à tout moment */}
             {isAuthenticated && user && (
               <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">

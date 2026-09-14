@@ -52,53 +52,53 @@ export const ConfirmationPage: React.FC = () => {
       />
       <Header />
 
-      <main className="w-full pt-20 bg-background flex-1">
+      <main className="w-full pt-4 sm:pt-6 bg-background flex-1">
         <div className="flex flex-col w-full">
           <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-md lg:py-space-xl flex flex-col gap-space-lg">
             {/* Step progress bar */}
-            <section className="bg-surface-container-lowest rounded-2xl shadow-xs p-space-md md:p-space-lg border border-outline-variant/30">
+            <section className="bg-white rounded-3xl shadow-sm p-4 md:p-6 border border-slate-200/80 card-silky-subtle">
               <div className="flex flex-col md:flex-row items-center justify-between gap-space-md">
                 <div className="flex items-center gap-space-sm w-full md:w-auto">
-                  <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shadow-sm">
-                    <span className="material-symbols-outlined text-[20px]">check</span>
+                  <div className="w-9 h-9 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[18px]">check</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider text-xs">
+                    <span className="text-[11px] text-teal-700 uppercase font-bold tracking-wider">
                       Étape 01
                     </span>
-                    <span className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
+                    <span className="text-xs font-bold text-slate-900">
                       Trajet validé
                     </span>
                   </div>
                 </div>
 
-                <div className="hidden md:block h-0.5 flex-1 mx-space-md bg-secondary/30 rounded-full"></div>
+                <div className="hidden md:block h-0.5 flex-1 mx-space-md bg-teal-600/30 rounded-full"></div>
 
                 <div className="flex items-center gap-space-sm w-full md:w-auto">
-                  <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shadow-sm">
-                    <span className="material-symbols-outlined text-[20px]">check</span>
+                  <div className="w-9 h-9 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[18px]">check</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider text-xs">
+                    <span className="text-[11px] text-teal-700 uppercase font-bold tracking-wider">
                       Étape 02
                     </span>
-                    <span className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
+                    <span className="text-xs font-bold text-slate-900">
                       Patient &amp; PMT
                     </span>
                   </div>
                 </div>
 
-                <div className="hidden md:block h-0.5 flex-1 mx-space-md bg-secondary/30 rounded-full"></div>
+                <div className="hidden md:block h-0.5 flex-1 mx-space-md bg-teal-600/30 rounded-full"></div>
 
                 <div className="flex items-center gap-space-sm w-full md:w-auto">
-                  <div className="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md animate-pulse">
-                    <span className="material-symbols-outlined text-[20px]">task_alt</span>
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-sm animate-pulse">
+                    <span className="material-symbols-outlined text-[18px]">task_alt</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider text-xs">
+                    <span className="text-[11px] text-slate-900 uppercase font-bold tracking-wider">
                       Étape 03
                     </span>
-                    <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm">
+                    <span className="text-xs font-bold text-slate-900">
                       Confirmation active
                     </span>
                   </div>
@@ -107,7 +107,7 @@ export const ConfirmationPage: React.FC = () => {
             </section>
 
             {/* Confirmation Banner */}
-            <section className="bg-gradient-to-r from-primary via-primary-container to-primary text-on-primary rounded-2xl p-space-md md:p-space-lg shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md relative overflow-hidden">
+            <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden card-silky">
               <div className="flex items-start gap-space-md relative z-10">
                 <div className="p-space-sm bg-white/15 rounded-2xl backdrop-blur-md">
                   <span className="material-symbols-outlined text-[40px] text-secondary-fixed">

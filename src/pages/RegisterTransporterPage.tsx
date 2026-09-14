@@ -53,7 +53,7 @@ export const RegisterTransporterPage: React.FC = () => {
         canonicalPath="/inscription-transporteur"
       />
       <Header />
-      <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
+      <main className="w-full pt-4 sm:pt-6 bg-surface"><div className="flex flex-col w-full">
 
 <div className="w-full bg-surface-container-high px-margin lg:px-margin-lg py-space-sm text-on-surface">
 <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-xs">

@@ -470,52 +470,52 @@ export const BookingPage: React.FC = () => {
         ogImage="/assets/medictrans_hero_discover.jpg"
       />
 
-      <main className="w-full pt-20 bg-surface flex-1">
+      <main className="w-full pt-4 sm:pt-6 bg-surface flex-1">
         {/* Step Indicator Header */}
-        <section className="w-full bg-surface-container-low py-space-lg shadow-sm border-b border-outline-variant/30">
+        <section className="w-full bg-slate-50/80 py-5 shadow-xs border-b border-slate-200/80">
           <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
               <div className="flex flex-col">
-                <span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">
+                <span className="text-[11px] text-teal-700 uppercase tracking-widest font-bold">
                   Demande Réf. MT-972-8821
                 </span>
-                <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight font-bold text-2xl md:text-3xl">
+                <h1 className="text-slate-900 tracking-tight font-extrabold text-2xl md:text-3xl">
                   Réservation de Transport Sanitaire
                 </h1>
               </div>
 
               <div className="flex items-center gap-space-sm">
                 <div className="flex items-center gap-space-xs">
-                  <span className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-md text-label-md">
+                  <span className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                     <span className="material-symbols-outlined text-[18px]">check</span>
                   </span>
                   <div className="hidden sm:flex flex-col">
-                    <span className="font-label-sm text-label-sm text-secondary font-semibold">Étape 1</span>
-                    <span className="font-label-md text-label-md text-on-surface">Trajet &amp; Véhicule</span>
+                    <span className="text-[11px] text-teal-700 font-bold">Étape 1</span>
+                    <span className="text-xs font-semibold text-slate-700">Trajet &amp; Véhicule</span>
                   </div>
                 </div>
 
-                <div className="w-8 md:w-12 h-0.5 bg-secondary"></div>
+                <div className="w-8 md:w-12 h-0.5 bg-teal-600/40 rounded-full"></div>
 
                 <div className="flex items-center gap-space-xs">
-                  <span className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-md text-label-md shadow-md font-bold">
+                  <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                     2
                   </span>
                   <div className="flex flex-col">
-                    <span className="font-label-sm text-label-sm text-primary font-bold">Étape active</span>
-                    <span className="font-label-md text-label-md text-primary font-bold">Patient &amp; PMT</span>
+                    <span className="text-[11px] text-slate-900 font-bold">Étape active</span>
+                    <span className="text-xs font-bold text-slate-900">Patient &amp; PMT</span>
                   </div>
                 </div>
 
-                <div className="w-8 md:w-12 h-0.5 bg-surface-container-highest"></div>
+                <div className="w-8 md:w-12 h-0.5 bg-slate-200 rounded-full"></div>
 
-                <div className="flex items-center gap-space-xs opacity-60">
-                  <span className="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-label-md text-label-md">
+                <div className="flex items-center gap-space-xs opacity-50">
+                  <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs">
                     3
                   </span>
                   <div className="hidden sm:flex flex-col">
-                    <span className="font-label-sm text-label-sm text-on-surface-variant">Étape 3</span>
-                    <span className="font-label-md text-label-md text-on-surface-variant">Confirmation</span>
+                    <span className="text-[11px] text-slate-500 font-medium">Étape 3</span>
+                    <span className="text-xs font-medium text-slate-500">Confirmation</span>
                   </div>
                 </div>
               </div>

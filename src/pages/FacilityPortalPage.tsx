@@ -406,7 +406,7 @@ export const FacilityPortalPage: React.FC = () => {
         canonicalPath="/etablissements"
         ogImage="/assets/medictrans_hero_discover.jpg"
       />
-      <main className="w-full pt-20 bg-background min-h-screen"><div className="flex flex-col w-full">
+      <main className="w-full pt-4 sm:pt-6 bg-background min-h-screen"><div className="flex flex-col w-full">
 
 <section className="w-full bg-surface-container-lowest shadow-sm">
 <div className="max-w-[1680px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-space-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-space-md">

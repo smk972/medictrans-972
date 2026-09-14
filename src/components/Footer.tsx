@@ -3,38 +3,39 @@ import { Link } from 'react-router-dom';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-surface-container-low border-t border-outline-variant/30 mt-space-xl">
-      <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-xl mb-space-xl">
+    <footer className="w-full bg-slate-50/90 border-t border-slate-200/80 mt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Col 1 */}
-          <div className="flex flex-col gap-space-sm">
-            <div className="flex items-center gap-2 mb-space-xs">
-              <img
-                src="/assets/clinigo-logo.png"
-                alt="Clinigo - Transport Médical & Services"
-                className="h-9 w-auto object-contain"
-              />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-sm shadow-sm">
+                C
+              </div>
+              <span className="font-extrabold text-base text-slate-900 tracking-tight">
+                clinigo<span className="text-teal-600">.fr</span>
+              </span>
             </div>
-            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            <p className="text-xs text-slate-600 leading-relaxed">
               Plateforme d'intermédiation et de régulation du transport sanitaire conventionné pour
               toute la Martinique (Ambulances, VSL et Taxis Conventionnés).
             </p>
-            <div className="flex items-center gap-space-xs text-secondary font-label-md text-label-md mt-1">
-              <span className="material-symbols-outlined text-[18px]">verified</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60 text-xs font-semibold self-start mt-1">
+              <span className="material-symbols-outlined text-base text-teal-700">verified</span>
               <span>Opérateur Agréé ARS &amp; Conventionné CGSS 972</span>
             </div>
-            <div className="flex flex-col gap-0.5 text-xs text-on-surface-variant mt-2">
+            <div className="flex flex-col gap-0.5 text-xs text-slate-500 mt-1">
               <span>Plateau Technique CHU Zobda-Quitman</span>
               <span>97200 Fort-de-France, Martinique</span>
             </div>
           </div>
 
           {/* Col 2 */}
-          <div className="flex flex-col gap-space-sm">
-            <span className="font-label-lg text-label-lg text-on-surface font-bold">
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-bold text-slate-900 tracking-wider uppercase">
               Établissements Desservis
             </span>
-            <ul className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+            <ul className="flex flex-col gap-1.5 text-xs text-slate-600">
               <li>CHU de Martinique (P. Zobda-Quitman) - Fort-de-France</li>
               <li>Hôpital Mère-Enfant &amp; Clarac - Fort-de-France</li>
               <li>Hôpital Louis Domergue - La Trinité</li>
@@ -47,40 +48,40 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Col 3 */}
-          <div className="flex flex-col gap-space-sm">
-            <span className="font-label-lg text-label-lg text-on-surface font-bold">
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-bold text-slate-900 tracking-wider uppercase">
               Services &amp; Navigation
             </span>
-            <ul className="flex flex-col gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+            <ul className="flex flex-col gap-2 text-xs text-slate-600">
               <li>
-                <Link to="/reserver" className="hover:text-primary transition-colors">
+                <Link to="/reserver" className="hover:text-slate-950 transition-colors">
                   Réserver un transport sanitaire
                 </Link>
               </li>
               <li>
-                <Link to="/suivi" className="hover:text-primary transition-colors">
+                <Link to="/suivi" className="hover:text-slate-950 transition-colors">
                   Suivi de ma demande en direct
                 </Link>
               </li>
               <li>
-                <Link to="/droits-cpam" className="hover:text-primary transition-colors">
+                <Link to="/droits-cpam" className="hover:text-slate-950 transition-colors">
                   Droits CPAM &amp; Prescription Médicale
                 </Link>
               </li>
               <li>
-                <Link to="/etablissements" className="hover:text-primary transition-colors">
+                <Link to="/etablissements" className="hover:text-slate-950 transition-colors">
                   Portail Établissements de Santé
                 </Link>
               </li>
               <li>
-                <Link to="/transporteurs" className="hover:text-primary transition-colors">
+                <Link to="/transporteurs" className="hover:text-slate-950 transition-colors">
                   Espace Transporteurs Régulés
                 </Link>
               </li>
               <li>
                 <Link
                   to="/inscription/transporteur"
-                  className="hover:text-primary transition-colors"
+                  className="hover:text-slate-950 transition-colors"
                 >
                   Adhésion Transporteur Sanitaire
                 </Link>
@@ -89,49 +90,49 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Col 4 */}
-          <div className="flex flex-col gap-space-sm">
-            <span className="font-label-lg text-label-lg text-on-surface font-bold">
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-bold text-slate-900 tracking-wider uppercase">
               Assistance &amp; Régulation 972
             </span>
-            <p className="font-body-sm text-body-sm text-on-surface-variant">
+            <p className="text-xs text-slate-600">
               Permanence d'accès aux soins et transfert médicalisé 24h/24 et 7j/7.
             </p>
             <a
               href="tel:0596720097"
-              className="font-headline-sm text-headline-sm text-primary font-bold hover:text-primary-container transition-colors flex items-center gap-1.5"
+              className="text-lg text-slate-900 font-extrabold hover:text-teal-700 transition-colors flex items-center gap-1.5"
             >
-              <span className="material-symbols-outlined text-xl">call</span>
+              <span className="material-symbols-outlined text-lg text-teal-600">call</span>
               05 96 72 00 97
             </a>
-            <span className="font-body-sm text-body-sm text-on-surface-variant">
+            <span className="text-xs text-slate-500">
               regulation@medtrans-mq.fr
             </span>
-            <div className="mt-2 p-3 bg-surface-container-lowest rounded-lg border border-outline-variant/30">
-              <div className="flex items-center gap-1.5 text-error font-bold text-xs mb-1">
+            <div className="mt-2 p-3 bg-white rounded-xl border border-rose-100 shadow-xs">
+              <div className="flex items-center gap-1.5 text-rose-600 font-bold text-xs mb-1">
                 <span className="material-symbols-outlined text-sm">emergency</span>
                 Urgence Vitale Immédiate
               </div>
-              <p className="text-xs text-on-surface-variant">
+              <p className="text-[11px] text-slate-600 leading-relaxed">
                 En cas de détresse respiratoire ou circulatoire, contactez le{' '}
-                <strong className="text-error font-bold">SAMU Centre 15</strong>.
+                <strong className="text-rose-600 font-bold">SAMU Centre 15</strong>.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="pt-space-lg border-t border-outline-variant/30 flex flex-col md:flex-row items-center justify-between gap-space-md text-xs text-on-surface-variant">
+        <div className="pt-8 border-t border-slate-200/70 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <span>
             © {new Date().getFullYear()} Clinigo (clinigo.fr) • Transport Médical &amp; Services. Plateforme certifiée HDS /
             ARS. Tous droits réservés.
           </span>
           <div className="flex items-center gap-4">
-            <a href="#mentions" className="hover:text-primary transition-colors">
+            <a href="#mentions" className="hover:text-slate-900 transition-colors">
               Mentions légales
             </a>
-            <a href="#rgpd" className="hover:text-primary transition-colors">
+            <a href="#rgpd" className="hover:text-slate-900 transition-colors">
               Protection des données (RGPD Santé)
             </a>
-            <a href="#cgu" className="hover:text-primary transition-colors">
+            <a href="#cgu" className="hover:text-slate-900 transition-colors">
               Conditions Générales
             </a>
           </div>
