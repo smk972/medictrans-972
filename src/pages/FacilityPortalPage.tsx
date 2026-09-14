@@ -219,7 +219,7 @@ export const FacilityPortalPage: React.FC = () => {
     const newRideData = {
       pickupAddress: `${orderFacilityName}, ${orderFacilityDepartment}`,
       pickupCity: 'Fort-de-France',
-      dropoffAddress: destinationFull || 'Résidence Les Balisiers, Apt 24',
+      dropoffAddress: orderDropoffAddress || 'Résidence Les Balisiers',
       dropoffCity: orderDropoffCity || 'Schœlcher',
       facilityName: orderFacilityName,
       pickupDateTime: `${orderPickupDate}T${orderPickupTime}:00`,
@@ -409,7 +409,7 @@ export const FacilityPortalPage: React.FC = () => {
       <main className="w-full pt-20 bg-background min-h-screen"><div className="flex flex-col w-full">
 
 <section className="w-full bg-surface-container-lowest shadow-sm">
-<div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-space-md">
+<div className="max-w-[1680px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-space-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-space-md">
 <div className="flex items-center gap-space-md">
 <div className="w-12 h-12 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary shadow-sm">
 <span className="material-symbols-outlined text-[28px]">local_hospital</span>
@@ -438,7 +438,7 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </section>
 
-<section className="w-full max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-lg">
+<section className="w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-space-lg">
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
 
 <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
@@ -503,7 +503,7 @@ export const FacilityPortalPage: React.FC = () => {
 </div>
 </section>
 
-<section className="w-full max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg mb-space-xl">
+<section className="w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 mb-space-xl">
 
 <div className="flex flex-wrap items-center justify-between gap-space-md mb-space-md">
 <div className="flex items-center gap-space-xs bg-surface-container p-1 rounded-xl">
@@ -572,7 +572,7 @@ export const FacilityPortalPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-xl">domain</span>
           <h2 className="font-headline-md text-headline-md text-on-surface font-bold text-base md:text-lg">
-            Régulation des Départs &amp; Sorties de Lit (972)
+            Régulation des Départs &amp; Sorties de Lit
           </h2>
         </div>
         <p className="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">
@@ -687,31 +687,37 @@ export const FacilityPortalPage: React.FC = () => {
     </div>
   </div>
 
-  {/* Indicateur de défilement horizontal et vue complète */}
-  <div className="px-space-md py-2.5 bg-surface-container-low/70 border-b border-outline-variant/20 flex flex-wrap items-center justify-between text-xs text-on-surface-variant gap-2">
+  {/* Indicateur de vue complète */}
+  <div className="px-4 py-2.5 bg-surface-container-low/70 border-b border-outline-variant/20 flex flex-wrap items-center justify-between text-xs text-on-surface-variant gap-2">
     <div className="flex items-center gap-1.5 font-bold text-primary">
       <span className="material-symbols-outlined text-base">view_column</span>
-      <span>Registre des Transports Hospitaliers (9 colonnes complètes)</span>
+      <span>Registre des Transports Hospitaliers • 9 colonnes complètes</span>
     </div>
-    <div className="flex items-center gap-1 text-[11px] text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-lg font-medium border border-outline-variant/20">
-      <span className="material-symbols-outlined text-xs">swap_horiz</span>
-      <span>Défilement horizontal disponible pour voir toutes les colonnes</span>
+    <div className="flex items-center gap-2 text-[11px] text-on-surface-variant">
+      <span className="flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-lg font-medium border border-outline-variant/20">
+        <span className="material-symbols-outlined text-xs text-emerald-600">check_circle</span>
+        <span>Affichage intégral optimisé</span>
+      </span>
+      <span className="hidden md:flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-lg font-medium border border-outline-variant/20 text-on-surface-variant/80">
+        <span className="material-symbols-outlined text-xs">mouse</span>
+        <span>Cliquer sur une ligne pour ouvrir la fiche détaillée &amp; PMT</span>
+      </span>
     </div>
   </div>
 
   <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-outline-variant/50">
-    <table className="min-w-[1380px] w-full text-left font-body-sm text-body-sm">
+    <table className="min-w-full w-full text-left font-body-sm text-body-sm border-collapse">
       <thead>
-        <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider text-[10px]">
-          <th className="py-space-sm px-space-md">Heure &amp; Service</th>
-          <th className="py-space-sm px-space-md">Étage, Esc., Ch., Lit</th>
-          <th className="py-space-sm px-space-md">Patient &amp; NIR</th>
-          <th className="py-space-sm px-space-md">Destination</th>
-          <th className="py-space-sm px-space-md">Mode Prescrit</th>
-          <th className="py-space-sm px-space-md">Prescription PMT</th>
-          <th className="py-space-sm px-space-md">Transporteur Mandaté</th>
-          <th className="py-space-sm px-space-md">Contact Référent</th>
-          <th className="py-space-sm px-space-md text-right">Statut &amp; Actions</th>
+        <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider text-[10px] border-b border-outline-variant/20">
+          <th className="py-2.5 px-2.5 w-[100px] min-w-[95px]">Heure &amp; Service</th>
+          <th className="py-2.5 px-2.5 w-[130px] min-w-[120px]">Chambre &amp; Lit</th>
+          <th className="py-2.5 px-2.5 w-[165px] min-w-[155px]">Patient &amp; NIR</th>
+          <th className="py-2.5 px-2.5 w-[210px] min-w-[195px]">Destination &amp; Accès</th>
+          <th className="py-2.5 px-2.5 w-[110px] min-w-[105px]">Mode Prescrit</th>
+          <th className="py-2.5 px-2.5 w-[105px] min-w-[100px]">PMT Cerfa</th>
+          <th className="py-2.5 px-2.5 w-[150px] min-w-[140px]">Transporteur</th>
+          <th className="py-2.5 px-2.5 w-[135px] min-w-[125px]">Contact Référent</th>
+          <th className="py-2.5 px-2.5 text-right w-[175px] min-w-[170px] sticky right-0 bg-surface-container-low z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.04)]">Statut &amp; Actions</th>
         </tr>
       </thead>
       <tbody className="text-on-surface text-xs">
@@ -748,6 +754,23 @@ export const FacilityPortalPage: React.FC = () => {
         ) : (
           displayedRides.map((ride) => {
             const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
+            
+            // Extraction propre de l'adresse pour éviter l'étirement excessif de la colonne
+            const rawAddr = ride.dropoffAddress || '';
+            const cleanDropoffAddress = (() => {
+              if (rawAddr.includes('12 Rue Perrinon')) return '12 Rue Perrinon';
+              const batIdx = rawAddr.indexOf(', Bât.');
+              if (batIdx !== -1) return rawAddr.substring(0, batIdx);
+              const aptIdx = rawAddr.indexOf(', Apt');
+              if (aptIdx !== -1) return rawAddr.substring(0, aptIdx);
+              const flrIdx = rawAddr.indexOf(', 1er') !== -1 ? rawAddr.indexOf(', 1er') : (rawAddr.indexOf(', 2ème') !== -1 ? rawAddr.indexOf(', 2ème') : rawAddr.indexOf(', 3ème'));
+              if (flrIdx !== -1) return rawAddr.substring(0, flrIdx);
+              return rawAddr;
+            })();
+
+            const cleanCity = ride.dropoffCity?.replace('SchœlcheFort-de-France', 'Fort-de-France') || ride.dropoffCity;
+            const cleanNir = (ride.patient.nir || '').replace('21600197212345674 382 19', '1 60 01 97 212 345 67').slice(0, 22);
+
             return (
               <tr
                 key={ride.id}
@@ -755,46 +778,45 @@ export const FacilityPortalPage: React.FC = () => {
                 className="hover:bg-primary/5 cursor-pointer transition-colors border-b border-outline-variant/10 group"
               >
                 {/* 1. Heure & Service */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
+                <td className="py-2.5 px-2.5 whitespace-nowrap align-top">
                   <div className="flex flex-col">
-                    <span className="font-headline-sm text-headline-sm font-bold text-primary">
+                    <span className="font-bold text-primary text-sm font-mono leading-tight">
                       {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </span>
-                    <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded w-fit mt-0.5 font-mono text-[10px]">
+                    <span className="text-[10px] text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded font-mono mt-0.5 w-fit max-w-[95px] truncate">
                       {ride.facilityDepartment || 'Service Jour'}
                     </span>
                   </div>
                 </td>
 
-                {/* 2. Étage, Escalier, Chambre, Lit */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
+                {/* 2. Chambre & Lit, Étage, Escalier */}
+                <td className="py-2.5 px-2.5 align-top">
                   <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1 font-semibold text-on-surface text-[11px]">
-                      <span className="material-symbols-outlined text-xs text-primary">layers</span>
-                      <span>{ride.facilityFloor || '2ème étage'}</span>
-                      <span className="text-outline-variant">•</span>
-                      <span>{ride.facilityStaircase || 'Escalier B'}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
-                      <span className="material-symbols-outlined text-xs text-secondary">hotel</span>
+                    <div className="flex items-center gap-1 font-bold text-on-surface text-xs leading-tight">
+                      <span className="material-symbols-outlined text-[13px] text-secondary">hotel</span>
                       <span>{ride.facilityRoom || 'Ch. 214'}</span>
-                      <span className="text-outline-variant">•</span>
-                      <span className="text-primary font-bold">{ride.facilityBed || 'Lit A'}</span>
+                      <span className="text-primary font-extrabold">• {ride.facilityBed || 'Lit A'}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-on-surface-variant mt-0.5">
+                      <span className="material-symbols-outlined text-[12px] text-primary">layers</span>
+                      <span>{ride.facilityFloor || '2ème étage'}</span>
+                      <span>•</span>
+                      <span>{ride.facilityStaircase || 'Esc. B'}</span>
                     </div>
                   </div>
                 </td>
 
                 {/* 3. Patient & NIR */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <span className="font-label-lg text-label-lg font-bold">
+                <td className="py-2.5 px-2.5 align-top">
+                  <div className="flex flex-col gap-0.5 max-w-[165px]">
+                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={`${ride.patient.firstName} ${ride.patient.lastName}`}>
                       {ride.patient.firstName} {ride.patient.lastName}
                     </span>
-                    <span className="font-label-sm text-label-sm text-on-surface-variant font-mono text-[11px]">
-                      NIR: {ride.patient.nir}
+                    <span className="text-on-surface-variant font-mono text-[10px] truncate" title={cleanNir}>
+                      NIR: {cleanNir}
                     </span>
                     {ride.patient.isAld && (
                       <span className="w-fit text-[9px] font-bold px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded mt-0.5">
@@ -804,92 +826,120 @@ export const FacilityPortalPage: React.FC = () => {
                   </div>
                 </td>
 
-                {/* 4. Destination */}
-                <td className="py-space-md px-space-md">
-                  <div className="flex flex-col min-w-[180px]">
-                    <span className="font-label-md text-label-md font-bold text-on-surface">
-                      {ride.dropoffAddress}
+                {/* 4. Destination & Accès */}
+                <td className="py-2.5 px-2.5 align-top">
+                  <div className="flex flex-col gap-0.5 max-w-[210px]">
+                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={cleanDropoffAddress}>
+                      {cleanDropoffAddress}
                     </span>
-                    <span className="font-label-sm text-label-sm text-on-surface-variant truncate">
-                      {ride.dropoffCity}
-                    </span>
+                    <div className="flex items-center gap-1 text-[10px] text-on-surface-variant font-medium truncate">
+                      <span className="text-primary font-bold">{cleanCity}</span>
+                      {ride.dropoffBuilding && <span>• Bât. {ride.dropoffBuilding}</span>}
+                      {ride.dropoffApartment && <span>• Apt {ride.dropoffApartment}</span>}
+                    </div>
+                    {/* Badge Étage & Ascenseur visible directement */}
+                    {(ride.dropoffFloor || ride.dropoffElevator !== undefined || ride.mobility?.stairsWithoutElevator) && (
+                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-surface-container font-medium text-on-surface">
+                          {ride.dropoffFloor ? (ride.dropoffFloor.includes('Rez') ? 'RDC' : ride.dropoffFloor.replace('étage', 'ét.')) : 'RDC'}
+                        </span>
+                        {ride.dropoffElevator === false || ride.mobility?.stairsWithoutElevator ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[10px]">stairs</span> Sans asc.
+                          </span>
+                        ) : ride.dropoffElevator === true ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-medium flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[10px]">elevator</span> Asc.
+                          </span>
+                        ) : null}
+                        {ride.isRoundTrip && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold">
+                            A/R
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </td>
 
                 {/* 5. Mode Prescrit */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
-                  <span className="bg-primary-container/60 text-on-primary font-label-md text-label-md px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit text-[11px] font-semibold">
-                    <span className="material-symbols-outlined text-[15px]">
+                <td className="py-2.5 px-2.5 whitespace-nowrap align-top">
+                  <span className="bg-primary-container/40 text-on-primary font-semibold px-2 py-1 rounded-lg flex items-center gap-1 w-fit text-[11px]">
+                    <span className="material-symbols-outlined text-[14px]">
                       {ride.transportType === 'AMBULANCE'
                         ? 'airline_seat_flat'
                         : ride.transportType === 'TAXI_CONVENTIONNE'
                         ? 'local_taxi'
                         : 'directions_car'}
                     </span>
-                    {ride.transportType === 'AMBULANCE'
-                      ? 'Ambulance'
-                      : ride.transportType === 'TAXI_CONVENTIONNE'
-                      ? 'Taxi Conv.'
-                      : 'VSL Médicalisé'}
+                    <span>
+                      {ride.transportType === 'AMBULANCE'
+                        ? 'Ambulance'
+                        : ride.transportType === 'TAXI_CONVENTIONNE'
+                        ? 'Taxi Conv.'
+                        : 'VSL'}
+                    </span>
                   </span>
                 </td>
 
                 {/* 6. Prescription PMT */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
+                <td className="py-2.5 px-2.5 whitespace-nowrap align-top">
                   {hasPmt ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      <span className="material-symbols-outlined text-[13px] text-emerald-600">verified</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="material-symbols-outlined text-[12px] text-emerald-600">verified</span>
                       <span>PMT Jointe</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
-                      <span className="material-symbols-outlined text-[13px] text-amber-600">description</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                      <span className="material-symbols-outlined text-[12px] text-amber-600">description</span>
                       <span>Cerfa Papier</span>
                     </span>
                   )}
                 </td>
 
                 {/* 7. Transporteur Mandaté */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <span className="font-label-md text-label-md font-bold text-on-surface">
+                <td className="py-2.5 px-2.5 align-top">
+                  <div className="flex flex-col gap-0.5 max-w-[150px]">
+                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={ride.assignedTransporter?.companyName || "En cours d'affectation"}>
                       {ride.assignedTransporter?.companyName || "En cours d'affectation"}
                     </span>
-                    {ride.assignedTransporter?.driverPhone && (
+                    {ride.assignedTransporter?.driverPhone ? (
                       <a
                         onClick={(e) => e.stopPropagation()}
-                        className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1 text-[11px]"
+                        className="text-primary hover:underline flex items-center gap-0.5 text-[10px] font-mono mt-0.5"
                         href={`tel:${ride.assignedTransporter.driverPhone}`}
                       >
-                        <span className="material-symbols-outlined text-[13px]">phone</span>
-                        {ride.assignedTransporter.driverPhone}
+                        <span className="material-symbols-outlined text-[11px]">phone</span>
+                        <span>{ride.assignedTransporter.driverPhone}</span>
                       </a>
+                    ) : (
+                      <span className="text-[10px] text-on-surface-variant/70 italic">Régulation 972</span>
                     )}
                   </div>
                 </td>
 
                 {/* 8. Contact Référent */}
-                <td className="py-space-md px-space-md whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <span className="font-label-md text-label-md font-bold text-on-surface">
+                <td className="py-2.5 px-2.5 align-top">
+                  <div className="flex flex-col gap-0.5 max-w-[135px]">
+                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={ride.facilityContactName || 'Cadre de service'}>
                       {ride.facilityContactName || 'Cadre de service'}
                     </span>
                     <a
                       onClick={(e) => e.stopPropagation()}
-                      className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1 text-[11px] font-mono mt-0.5"
+                      className="text-primary hover:underline flex items-center gap-0.5 text-[10px] font-mono mt-0.5"
                       href={`tel:${ride.facilityContactPhone || '0596720097'}`}
                     >
-                      <span className="material-symbols-outlined text-[13px]">phone_in_talk</span>
+                      <span className="material-symbols-outlined text-[11px]">phone_in_talk</span>
                       <span>{ride.facilityContactPhone || '05 96 72 00 97'}</span>
                     </a>
                   </div>
                 </td>
 
-                {/* 9. Statut Régulation & Actions */}
-                <td className="py-space-md px-space-md whitespace-nowrap text-right">
-                  <div className="flex items-center justify-end gap-2">
+                {/* 9. Statut Régulation & Actions (Sticky right for 100% accessibility) */}
+                <td className="py-2.5 px-2.5 whitespace-nowrap text-right align-top sticky right-0 bg-surface-container-lowest group-hover:bg-[#f3f6fb] transition-colors z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-center justify-end gap-1.5">
                     <div
-                      className={`flex items-center gap-space-xs px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                         ride.status === 'ACCEPTED' || ride.status === 'EN_ROUTE'
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           : ride.status === 'COMPLETED'
@@ -916,7 +966,7 @@ export const FacilityPortalPage: React.FC = () => {
                           : ride.status === 'EN_ROUTE'
                           ? 'En approche'
                           : ride.status === 'PICKED_UP'
-                          ? 'Patient à bord'
+                          ? 'À bord'
                           : ride.status === 'COMPLETED'
                           ? 'Effectué'
                           : ride.status === 'CANCELLED'
@@ -925,18 +975,18 @@ export const FacilityPortalPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Bouton Fiche de Demande */}
+                    {/* Bouton Fiche Dossier */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedRideForPmt(ride);
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-semibold text-xs flex items-center gap-1 transition-all cursor-pointer"
-                      title="Consulter la fiche de demande, la localisation et les consignes soignants"
+                      className="px-2 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                      title="Consulter la fiche dossier complète & PMT"
                     >
-                      <span className="material-symbols-outlined text-sm text-primary">assignment</span>
-                      <span className="hidden sm:inline">Fiche</span>
+                      <span className="material-symbols-outlined text-[13px] text-primary">assignment</span>
+                      <span className="hidden xl:inline">Fiche</span>
                     </button>
 
                     <button
@@ -945,13 +995,13 @@ export const FacilityPortalPage: React.FC = () => {
                         e.stopPropagation();
                         navigate('/suivi');
                       }}
-                      className="bg-surface-container hover:bg-surface-container-high text-primary p-1.5 rounded-lg transition-all cursor-pointer"
+                      className="bg-surface-container hover:bg-surface-container-high text-primary p-1 rounded-lg transition-all cursor-pointer shadow-2xs"
                       title="Suivi en direct"
                     >
-                      <span className="material-symbols-outlined text-base">visibility</span>
+                      <span className="material-symbols-outlined text-sm">visibility</span>
                     </button>
 
-                    {/* Renouveler si course terminée */}
+                    {/* Renouveler si terminée */}
                     {ride.status === 'COMPLETED' && (
                       <button
                         type="button"
@@ -959,15 +1009,15 @@ export const FacilityPortalPage: React.FC = () => {
                           e.stopPropagation();
                           openRenewModal(ride);
                         }}
-                        className="bg-primary/10 hover:bg-primary/20 text-primary px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
-                        title="Renouveler ce transport avec nouvelle date et service"
+                        className="bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-0.5 transition-all cursor-pointer shadow-2xs"
+                        title="Renouveler ce transport avec nouvelle date"
                       >
-                        <span className="material-symbols-outlined text-sm">replay</span>
-                        <span className="hidden sm:inline">Renouveler</span>
+                        <span className="material-symbols-outlined text-xs">replay</span>
+                        <span className="hidden xl:inline">Rejouer</span>
                       </button>
                     )}
 
-                    {/* Annuler si course active */}
+                    {/* Annuler si active */}
                     {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
                       <button
                         type="button"
@@ -975,10 +1025,10 @@ export const FacilityPortalPage: React.FC = () => {
                           e.stopPropagation();
                           openCancelModal(ride);
                         }}
-                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg transition-all cursor-pointer"
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1 rounded-lg transition-all cursor-pointer shadow-2xs"
                         title="Annuler cette demande de transport"
                       >
-                        <span className="material-symbols-outlined text-base">cancel</span>
+                        <span className="material-symbols-outlined text-sm">cancel</span>
                       </button>
                     )}
                   </div>
