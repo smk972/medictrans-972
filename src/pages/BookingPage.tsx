@@ -13,7 +13,7 @@ import { TransportType, Transporter } from '../types';
 import { SEOHead } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 import { NirInput } from '../components/NirInput';
-import { validateNir } from '../utils/nirValidator';
+import { validateNir, autoFixNir } from '../utils/nirValidator';
 import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
 import { useAiChat, FormDraftData } from '../context/AiChatContext';
 
@@ -105,7 +105,14 @@ export const BookingPage: React.FC = () => {
   // Form states - Patient & Médical
   const [lastName, setLastName] = useState(user?.lastName || 'GLISSANT');
   const [firstName, setFirstName] = useState(user?.firstName || 'Aimé');
-  const [nir, setNir] = useState(user?.nir || '1 54 08 97 213 456');
+  const [nir, setNir] = useState(() => {
+    const raw = user?.nir || '1 54 08 97 213 456';
+    const val = validateNir(raw);
+    if (!val.isValid && val.canAutoCalculateKey) {
+      return autoFixNir(raw);
+    }
+    return raw;
+  });
   const nirValidation = useMemo(() => validateNir(nir), [nir]);
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
   const [phone, setPhone] = useState(user?.phone || '06 96 44 20 18');
@@ -291,7 +298,14 @@ export const BookingPage: React.FC = () => {
         setPhone(user.phone);
         setWhatsappPhone(user.phone);
       }
-      if (user.nir) setNir(user.nir);
+      if (user.nir) {
+        const val = validateNir(user.nir);
+        if (!val.isValid && val.canAutoCalculateKey) {
+          setNir(autoFixNir(user.nir));
+        } else {
+          setNir(user.nir);
+        }
+      }
     }
   }, [user]);
 
@@ -299,7 +313,11 @@ export const BookingPage: React.FC = () => {
     e.preventDefault();
 
     // Règle impérative : Le NIR doit obligatoirement répondre aux caractéristiques officielles pour valider la demande
-    if (!nirValidation.isValid) {
+    let currentNir = nir;
+    if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
+      currentNir = autoFixNir(nir);
+      setNir(currentNir);
+    } else if (!nirValidation.isValid) {
       setNirSubmitAttempted(true);
       const el = document.getElementById('patientNir');
       if (el) {
@@ -328,7 +346,7 @@ export const BookingPage: React.FC = () => {
           firstName,
           lastName,
           birthDate,
-          nir,
+          nir: currentNir,
           phone,
           email: user?.email || `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
           address: pickupAddress,
@@ -374,7 +392,7 @@ export const BookingPage: React.FC = () => {
         isRecurring,
         recurringDates: isRecurring ? recurringDates : undefined,
         patientName: `${firstName} ${lastName}`,
-        nir,
+        nir: currentNir,
         phone,
         whatsappOptIn,
         whatsappPhone: whatsappPhone || phone,
@@ -404,7 +422,7 @@ export const BookingPage: React.FC = () => {
         isRecurring,
         recurringDates: isRecurring ? recurringDates : undefined,
         patientName: `${firstName} ${lastName}`,
-        nir,
+        nir: currentNir,
         phone,
         whatsappOptIn,
         whatsappPhone: whatsappPhone || phone,

@@ -565,7 +565,7 @@ export const AdminUsersPage: React.FC = () => {
                     type="text"
                     value={newUser.nir}
                     onChange={e => setNewUser({ ...newUser, nir: e.target.value })}
-                    placeholder="15 chiffres (ex: 1 54 11 97 208 771 19)"
+                    placeholder="15 chiffres (ex: 1 54 11 97 208 771 72)"
                     className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
                   />
                 </div>

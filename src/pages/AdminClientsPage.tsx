@@ -650,7 +650,7 @@ export const AdminClientsPage: React.FC = () => {
                       required
                       value={formNir}
                       onChange={(e) => setFormNir(e.target.value)}
-                      placeholder="1 54 11 97 208 771 19"
+                      placeholder="1 54 11 97 208 771 72"
                       className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-xs text-on-surface outline-none focus:border-primary"
                     />
                   </div>

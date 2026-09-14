@@ -12,7 +12,7 @@ export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
     firstName: 'Christian',
     lastName: 'Marie-Luce',
     phone: '0696 55 44 33',
-    nir: '1 54 11 97 208 771 19',
+    nir: '1 54 11 97 208 771 72',
     avatarUrl: '/assets/headshot.png',
     createdAt: new Date().toISOString()
   },
@@ -359,7 +359,13 @@ export class AuthService {
   public static getLocalUser(): UserProfile | null {
     try {
       const data = localStorage.getItem(STORAGE_KEY_AUTH_USER);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      const user = JSON.parse(data) as UserProfile;
+      if (user?.nir && user.nir.replace(/\s+/g, '') === '154119720877119') {
+        user.nir = '1 54 11 97 208 771 72';
+        this.setLocalUser(user);
+      }
+      return user;
     } catch {
       return null;
     }

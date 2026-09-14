@@ -161,13 +161,10 @@ export const AiChatWidget: React.FC = () => {
                   <h3 className="font-bold text-sm leading-tight text-white">
                     Eva - Aide à la réservation
                   </h3>
-                  <span className="text-[9px] uppercase font-mono font-bold bg-white/20 px-1.5 py-0.5 rounded text-white tracking-wider">
-                    NIVEAU 2
-                  </span>
                 </div>
                 <p className="text-[11px] text-white/85 leading-tight mt-0.5 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                  Assistante Médic'Trans 972
+                  En ligne • Disponible 24h/7j
                 </p>
               </div>
             </div>
@@ -349,7 +346,7 @@ export const AiChatWidget: React.FC = () => {
               </button>
             </div>
             <div className="flex items-center justify-between text-[10px] text-on-surface-variant/70 leading-tight px-1">
-              <span>Eva • Aide à la réservation • Niveau 2</span>
+              <span>Eva • Aide à la réservation</span>
               <span>Urgence vitale : <strong className="text-error font-bold">15</strong></span>
             </div>
           </form>

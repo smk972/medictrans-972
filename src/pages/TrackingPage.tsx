@@ -1409,7 +1409,7 @@ export const TrackingPage: React.FC = () => {
                       <span>Annulation en ligne non autorisée (&lt; 24h00)</span>
                     </div>
                     <p className="leading-relaxed text-[11px]">
-                      Conformément à la réglementation des transports sanitaires en Martinique, <strong>l'annulation autonome en ligne est possible uniquement jusqu'à 24h00 avant l'heure de prise en charge</strong>.
+                      Pour un fonctionnement fluide de la plateforme, <strong>l'annulation autonome en ligne est possible uniquement jusqu'à 24h00 avant l'heure de prise en charge</strong>.
                     </p>
                     <p className="leading-relaxed text-[11px]">
                       Votre trajet étant prévu dans <strong>{hoursUntilPickup <= 0 ? 'moins d\'une heure (ou aujourd\'hui)' : `environ ${Math.round(hoursUntilPickup)} heures`}</strong>, vous devez <strong>contacter directement le transporteur</strong> mandaté pour avertir le chauffeur et la régulation.
