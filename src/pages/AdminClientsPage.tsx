@@ -404,7 +404,7 @@ export const AdminClientsPage: React.FC = () => {
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
-                            {client.firstName[0]?.toUpperCase()}{client.lastName[0]?.toUpperCase()}
+                            {client.firstName?.[0]?.toUpperCase() || ''}{client.lastName?.[0]?.toUpperCase() || 'P'}
                           </div>
                           <div>
                             <div className="font-bold text-on-surface text-sm flex items-center gap-1.5">

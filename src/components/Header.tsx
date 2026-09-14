@@ -127,12 +127,12 @@ export const Header: React.FC = () => {
                     />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-xs ring-2 ring-primary/20">
-                      {user.firstName[0]?.toUpperCase() || 'U'}
+                      {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
                   <div className="hidden md:flex flex-col">
                     <span className="font-label-md text-label-md text-on-surface font-bold leading-tight">
-                      {user.firstName} {user.lastName}
+                      {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                     </span>
                     <span className="font-label-xs text-[11px] text-on-surface-variant leading-tight mt-0.5 truncate max-w-[140px]">
                       {user.facilityName || user.transporterName || roleBadge?.label}
@@ -290,12 +290,12 @@ export const Header: React.FC = () => {
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm">
-                    {user.firstName[0]?.toUpperCase() || 'U'}
+                    {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
                 <div>
                   <div className="text-sm font-bold text-on-surface">
-                    {user.firstName} {user.lastName}
+                    {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                   </div>
                   <div className="text-xs text-on-surface-variant">
                     {user.email}

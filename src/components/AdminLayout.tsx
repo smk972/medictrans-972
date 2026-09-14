@@ -136,11 +136,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               {/* User badge */}
               <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/30">
                 <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
-                  {user ? user.firstName[0]?.toUpperCase() : 'R'}
+                  {user ? (user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'R') : 'R'}
                 </div>
                 <div className="hidden xl:flex flex-col text-left">
                   <span className="text-xs font-bold text-on-surface leading-none">
-                    {user ? `${user.firstName} ${user.lastName}` : 'Régulation Centrale'}
+                    {user ? (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)) : 'Régulation Centrale'}
                   </span>
                   <span className="text-[10px] text-on-surface-variant leading-none mt-1">
                     Administrateur ARS 972

@@ -230,11 +230,11 @@ export const LoginPage: React.FC = () => {
               <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm ring-2 ring-primary/20 shrink-0">
-                    {user.firstName[0]?.toUpperCase() || 'U'}
+                    {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                   <div>
                     <div className="text-xs text-on-surface">
-                      Connecté en tant que <strong className="font-bold">{user.firstName} {user.lastName}</strong> ({user.facilityName || user.transporterName || user.role})
+                      Connecté en tant que <strong className="font-bold">{user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}</strong> ({user.facilityName || user.transporterName || user.role})
                     </div>
                     <div className="text-[11px] text-on-surface-variant font-mono">{user.email}</div>
                   </div>

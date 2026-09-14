@@ -158,8 +158,9 @@ export interface UserProfile {
   id: string;
   email: string;
   role: UserRole;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
   phone?: string;
   avatarUrl?: string;
   facilityId?: string;
