@@ -40,7 +40,7 @@ import {
   Lock
 } from 'lucide-react';
 
-export const HomePage: React.FC = () => {
+export const HomePageDemo: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const { openChat } = useAiChat();
@@ -221,20 +221,51 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFD] text-slate-900 font-sans selection:bg-teal-600 selection:text-white flex flex-col relative overflow-x-hidden">
       <SEOHead
-        title="Clinigo — Transport Médicalisé Conventionné | Ambulances, VSL, Taxis CPAM"
-        description="Votre transport médicalisé conventionné réservé en toute sérénité : VSL, Taxis conventionnés et Ambulances conventionnés CPAM."
+        title="Clinigo — Démo Haute Performance Visuelle | Transport Médicalisé Conventionné"
+        description="Nouveau standard visuel Clinigo : réservation d'Ambulances, VSL et Taxis conventionnés CPAM avec architecture Double-Bezel et prise en charge 100% ALD."
       />
+
+      {/* =========================================================================
+          TOP DEMO CONTROL BANNER
+          ========================================================================= */}
+      <div className="sticky top-0 z-50 bg-gradient-to-r from-slate-950 via-teal-950 to-slate-950 text-white border-b border-teal-500/25 px-4 py-2.5 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 font-medium">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
+            </span>
+            <span className="font-bold text-teal-300 uppercase tracking-wider text-[11px]">Mode Démo / Refonte Visuelle :</span>
+            <span className="hidden sm:inline text-slate-300">Présentation du nouveau design system Clinigo</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link 
+              to="/" 
+              className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-colors text-[11px] font-semibold border border-white/15"
+            >
+              ← Revenir au site actuel
+            </Link>
+            <button 
+              onClick={() => openChat('Peux-tu m\'expliquer les nouvelles fonctionnalités de cette version ?')}
+              className="px-3 py-1 rounded-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold transition-colors text-[11px] shadow-xs cursor-pointer"
+            >
+              Discuter avec l'IA Éva
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* =========================================================================
           DYNAMIC ISLAND FLOATING NAVIGATION
           ========================================================================= */}
-      <div className="sticky top-3 sm:top-4 z-40 px-4 sm:px-6 lg:px-8 pt-2 pb-2 pointer-events-none">
+      <div className="sticky top-11 z-40 px-4 sm:px-6 lg:px-8 pt-3 pb-2 pointer-events-none">
         <nav 
           aria-label="Navigation principale" 
-          className="max-w-6xl mx-auto h-16 sm:h-[68px] rounded-full bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between pointer-events-auto transition-all duration-300"
+          className="max-w-6xl mx-auto h-16 sm:h-[68px] rounded-full bg-white/80 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between pointer-events-auto transition-all duration-300"
         >
           {/* Brand Logo & Tag */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/demo" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-teal-800 to-sky-700 flex items-center justify-center text-white font-black text-lg shadow-md shadow-teal-900/20 group-hover:scale-105 transition-transform">
               C
             </div>

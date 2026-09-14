@@ -66,3 +66,124 @@
   transform: translateY(-3px);
   box-shadow: 0 18px 36px -6px rgba(15, 23, 42, 0.08), 0 6px 14px -3px rgba(15, 23, 42, 0.03);
 }
+
+/* ==========================================================================
+   Smooth Progressive Scroll Reveal (high-end-visual-design Section 5.C)
+   ========================================================================== */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  filter: blur(4px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+
+.scroll-reveal.reveal-active {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.delay-100 { transition-delay: 100ms; }
+.delay-150 { transition-delay: 150ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-250 { transition-delay: 250ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+
+/* ==========================================================================
+   Hero Title Living Animation (Gradient Shift + Ambient Aura + Entrance)
+   ========================================================================== */
+@keyframes heroTitleEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes heroGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes heroAuraPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.04);
+  }
+}
+
+.animate-hero-title {
+  animation: heroTitleEntrance 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-title-gradient {
+  background: linear-gradient(120deg, #0f766e 0%, #0d9488 22%, #06b6d4 45%, #0284c7 68%, #0f766e 100%);
+  background-size: 280% 280%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: heroGradientFlow 6s ease-in-out infinite,
+             heroTitleEntrance 1.05s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+  will-change: background-position, transform, opacity;
+}
+
+.animate-hero-aura {
+  animation: heroAuraPulse 4.5s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ==========================================================================
+   Carousel Active Slide Text Entrance Animation
+   ========================================================================== */
+@keyframes slideTextEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-slide-text {
+  animation: slideTextEntrance 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform, filter;
+}
+
