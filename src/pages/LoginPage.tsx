@@ -98,7 +98,7 @@ export const LoginPage: React.FC = () => {
   };
 
   const getHeaderInfo = () => {
-    if (locationState?.isBookingFlow) {
+    if (locationState?.isBookingFlow || pendingBookingDraft) {
       return {
         title: "Finalisez votre réservation",
         subtitle: "Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge",
@@ -264,7 +264,7 @@ export const LoginPage: React.FC = () => {
             )}
 
             {/* Required Login Notice or Booking Flow Context Banner */}
-            {locationState?.isBookingFlow ? (
+            {(locationState?.isBookingFlow || pendingBookingDraft) ? (
               <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/20 shadow-xs animate-fadeIn">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-sm">
@@ -280,7 +280,7 @@ export const LoginPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-xs sm:text-sm text-on-surface font-medium leading-relaxed">
-                      Créez votre compte en 30 secondes ou connectez-vous pour transmettre votre bon de transport et valider la prise en charge
+                      Créez votre compte ou connectez-vous ci-dessous pour finaliser votre réservation de transport sanitaire .
                     </p>
 
                     {pendingBookingDraft && (
