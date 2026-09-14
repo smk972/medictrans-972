@@ -6,6 +6,8 @@ import { SEOHead } from '../components/SEOHead';
 import { rideService } from '../services/rideService';
 import { Ride, TransportType } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
+import { FileUpload, UploadedFile } from '../components/FileUpload';
+import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
 
 export const FacilityPortalPage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +65,11 @@ export const FacilityPortalPage: React.FC = () => {
   const [orderDropoffAddress, setOrderDropoffAddress] = useState('Résidence Les Balisiers, Apt 24');
   const [orderDropoffCity, setOrderDropoffCity] = useState('Schœlcher');
   const [orderHasPmt, setOrderHasPmt] = useState(true);
-  const [orderDoctor, setOrderDoctor] = useState('Dr. Alix Célestine - Cardiologue');
+  const [orderDoctor, setOrderDoctor] = useState('Dr. Alix Célestine - Cardiologue CHU');
+  const [orderPmtDocument, setOrderPmtDocument] = useState<UploadedFile | null>(null);
+  const [orderPmtTransmissionMode, setOrderPmtTransmissionMode] = useState<'UPLOAD' | 'PAPIER'>('UPLOAD');
+  const [orderPmtMotif, setOrderPmtMotif] = useState<string>("Sortie d'hospitalisation / Retour à domicile");
+  const [previewPmtDoc, setPreviewPmtDoc] = useState<{ name: string; url: string } | null>(null);
 
   // Contraintes de mobilité
   const [orderWheelchair, setOrderWheelchair] = useState(false);
@@ -183,6 +189,11 @@ export const FacilityPortalPage: React.FC = () => {
       facilityContactPhone: orderContactPhone,
       facilityContactName: orderContactName,
       additionalNotes: orderAdditionalNotes,
+      hasPmt: true,
+      pmtUploaded: orderPmtTransmissionMode === 'UPLOAD' && !!orderPmtDocument,
+      pmtFileName: orderPmtDocument?.name || (orderPmtTransmissionMode === 'PAPIER' ? 'PMT_Cerfa_Papier_S3138.pdf' : undefined),
+      pmtFileUrl: orderPmtDocument?.dataUrl,
+      pmtPrescriberDoctor: orderDoctor,
       patient: {
         firstName: orderPatientFirstName,
         lastName: orderPatientLastName.toUpperCase(),
@@ -194,8 +205,12 @@ export const FacilityPortalPage: React.FC = () => {
         city: orderDropoffCity,
         postalCode: '97200',
         isAld: orderIsAld,
-        hasPmt: orderHasPmt,
+        hasPmt: true,
         pmtPrescriberDoctor: orderDoctor,
+        pmtDate: orderPickupDate,
+        pmtUploaded: orderPmtTransmissionMode === 'UPLOAD' && !!orderPmtDocument,
+        pmtFileName: orderPmtDocument?.name || (orderPmtTransmissionMode === 'PAPIER' ? 'PMT_Cerfa_Papier_S3138.pdf' : undefined),
+        pmtFileUrl: orderPmtDocument?.dataUrl,
       },
       mobility: {
         wheelchair: orderWheelchair,
@@ -211,6 +226,7 @@ export const FacilityPortalPage: React.FC = () => {
       const created = await rideService.createRide(newRideData as any);
       setRides((prev) => [created, ...prev]);
       setIsOrderModalOpen(false);
+      setOrderPmtDocument(null);
       setActiveTab('ACTIVE');
       setToastMessage({
         title: 'Transport commandé avec succès !',
@@ -1478,15 +1494,22 @@ export const FacilityPortalPage: React.FC = () => {
                         {selectedRideForPmt.patient.pmtFileName || 'Prescription_Medicale_S3138.pdf'}
                       </span>
                     </div>
-                    <a
-                      href={selectedRideForPmt.patient.pmtFileUrl || '#'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-all flex items-center gap-1 shrink-0"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fileUrl = selectedRideForPmt.patient.pmtFileUrl || (selectedRideForPmt as any).pmtFileUrl;
+                        const fileName = selectedRideForPmt.patient.pmtFileName || (selectedRideForPmt as any).pmtFileName || 'Prescription_Medicale_S3138.pdf';
+                        if (fileUrl) {
+                          setPreviewPmtDoc({ name: fileName, url: fileUrl });
+                        } else {
+                          window.open('/Guide_Administrateur_MedicTrans_972.pdf', '_blank');
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-all flex items-center gap-1 shrink-0 cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-xs">open_in_new</span>
+                      <span className="material-symbols-outlined text-xs">visibility</span>
                       <span>Consulter la PMT</span>
-                    </a>
+                    </button>
                   </div>
                 ) : (
                   <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[11px] flex items-start gap-2">
@@ -1849,11 +1872,129 @@ export const FacilityPortalPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Section 5 : Mode de transport, Date/Heure & Destination */}
+              {/* Section 5 : Prescription Médicale de Transport (PMT Cerfa S3138) & Téléversement Document */}
+              <div className="p-4 rounded-2xl bg-surface-container-low border border-primary/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-base">receipt_long</span>
+                    <span>5. Prescription Médicale de Transport (PMT Cerfa S3138)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                    Pièce Médico-Administrative
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                  Le bon de transport (PMT Cerfa S3138) est indispensable pour le remboursement CPAM/CGSS 972 et le tiers-payant. Vous pouvez téléverser la PMT scannée ou spécifier qu'elle sera remise en main propre.
+                </p>
+
+                {/* Sélecteur de mode de transmission de la PMT */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setOrderPmtTransmissionMode('UPLOAD')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
+                      orderPmtTransmissionMode === 'UPLOAD'
+                        ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20 shadow-xs'
+                        : 'border-outline-variant/30 bg-surface-container-lowest text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-lg">upload_file</span>
+                    </span>
+                    <div>
+                      <span className="font-bold text-xs block">Téléverser la PMT numérique</span>
+                      <span className="text-[10px] text-on-surface-variant block">PDF, scan ou photo du bon Cerfa</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrderPmtTransmissionMode('PAPIER')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
+                      orderPmtTransmissionMode === 'PAPIER'
+                        ? 'border-amber-600 bg-amber-50 text-amber-900 ring-2 ring-amber-500/20 shadow-xs'
+                        : 'border-outline-variant/30 bg-surface-container-lowest text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-lg">description</span>
+                    </span>
+                    <div>
+                      <span className="font-bold text-xs block">PMT Papier remise au chauffeur</span>
+                      <span className="text-[10px] text-on-surface-variant block">Remise physique en chambre lors du départ</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Zone de téléversement si UPLOAD */}
+                {orderPmtTransmissionMode === 'UPLOAD' && (
+                  <div className="pt-1 animate-fadeIn">
+                    <FileUpload
+                      label="Joindre la Prescription Médicale de Transport (PMT)"
+                      description="Fichier PDF, scan ou photo lisible du bon Cerfa signé (max 10 Mo). Chiffrement conforme HDS / ARS Martinique."
+                      category="PMT_FACILITY"
+                      initialDocument={orderPmtDocument}
+                      onDocumentChange={(doc) => setOrderPmtDocument(doc)}
+                    />
+                  </div>
+                )}
+
+                {/* Info si PAPIER */}
+                {orderPmtTransmissionMode === 'PAPIER' && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-start gap-2.5 animate-fadeIn">
+                    <span className="material-symbols-outlined text-amber-700 text-lg shrink-0 mt-0.5">info</span>
+                    <div>
+                      <strong className="block text-amber-900">Consigne équipage ambulancier :</strong>
+                      L'original du formulaire Cerfa S3138 papier devra être impérativement remis à l'ambulancier ou au chauffeur de taxi conventionné par l'équipe soignante lors de la prise en charge du patient dans le service.
+                    </div>
+                  </div>
+                )}
+
+                {/* Médecin Prescripteur et Motif CPAM */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">
+                      Médecin prescripteur hospitalier *
+                    </label>
+                    <input
+                      type="text"
+                      value={orderDoctor}
+                      onChange={(e) => setOrderDoctor(e.target.value)}
+                      placeholder="Ex: Dr. Alix Célestine - Cardiologue CHU"
+                      required
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">
+                      Motif de prise en charge CPAM 972 *
+                    </label>
+                    <select
+                      value={orderPmtMotif}
+                      onChange={(e) => setOrderPmtMotif(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
+                    >
+                      {CPAM_TRANSPORT_MOTIFS.map((group) => (
+                        <optgroup key={group.category} label={`${group.category} ${group.badge ? `(${group.badge})` : ''}`}>
+                          {group.options.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6 : Mode de transport, Date/Heure & Destination */}
               <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-3">
                 <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
                   <span className="material-symbols-outlined text-base">directions_car</span>
-                  <span>5. Transport Prescrit &amp; Destination</span>
+                  <span>6. Transport Prescrit &amp; Destination</span>
                 </div>
 
                 {/* Sélecteur de mode */}
@@ -1925,17 +2066,6 @@ export const FacilityPortalPage: React.FC = () => {
                       className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-on-surface mb-1">Médecin prescripteur hospitalier</label>
-                  <input
-                    type="text"
-                    value={orderDoctor}
-                    onChange={(e) => setOrderDoctor(e.target.value)}
-                    placeholder="Ex: Dr. Alix Célestine - Cardiologue"
-                    className="w-full h-10 px-3 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-medium focus:border-primary outline-none"
-                  />
                 </div>
               </div>
 
@@ -2272,6 +2402,54 @@ export const FacilityPortalPage: React.FC = () => {
           >
             <span className="material-symbols-outlined text-base">close</span>
           </button>
+        </div>
+      )}
+
+      {/* Modal Aperçu Document PMT */}
+      {previewPmtDoc && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest w-full max-w-4xl max-h-[90vh] rounded-3xl p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant/30">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-2xl text-emerald-600">description</span>
+                <div>
+                  <h4 className="font-bold text-sm text-on-surface">{previewPmtDoc.name}</h4>
+                  <span className="text-[10px] text-on-surface-variant font-mono">Prescription Médicale de Transport certifiée HDS / ARS 972</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewPmtDoc(null)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+            <div className="flex-1 min-h-[400px] max-h-[65vh] bg-surface-container-low rounded-2xl overflow-hidden flex items-center justify-center p-2">
+              {previewPmtDoc.url.startsWith('data:image/') ? (
+                <img src={previewPmtDoc.url} alt="PMT" className="max-w-full max-h-full object-contain rounded-xl" />
+              ) : (
+                <iframe src={previewPmtDoc.url} title="PMT Document" className="w-full h-full border-0 rounded-xl" />
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setPreviewPmtDoc(null)}
+                className="px-4 py-2 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container"
+              >
+                Fermer
+              </button>
+              <a
+                href={previewPmtDoc.url}
+                download={previewPmtDoc.name}
+                className="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold flex items-center gap-1.5 shadow-xs"
+              >
+                <span className="material-symbols-outlined text-base">download</span>
+                <span>Télécharger</span>
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
