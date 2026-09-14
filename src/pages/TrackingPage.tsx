@@ -351,7 +351,7 @@ export const TrackingPage: React.FC = () => {
         ogImage="/assets/clinigo-logo.png"
       />
 
-      <main className="w-full pt-4 sm:pt-6 bg-surface flex-1">
+      <main className="w-full pt-4 sm:pt-6 bg-[#F8FAFD] flex-1">
         {/* Network status ticker banner */}
         {showBanner && (
           <div className="w-full bg-slate-50 px-4 sm:px-6 py-2.5 border-b border-slate-200/80 shadow-2xs">
@@ -554,7 +554,7 @@ export const TrackingPage: React.FC = () => {
                 <>
                   {/* Active Card (si disponible) */}
                   {activeRide && (
-                    <div className="relative bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md overflow-hidden border border-outline-variant/30">
+                    <div className="relative bg-white rounded-3xl shadow-sm p-6 sm:p-8 flex flex-col gap-6 overflow-hidden border border-slate-200/80 card-silky">
                       <div className="flex flex-wrap items-center justify-between gap-space-sm relative z-10">
                         <div className="flex items-center gap-space-sm">
                           {activeRide.status === 'PENDING' ? (
@@ -808,16 +808,16 @@ export const TrackingPage: React.FC = () => {
                   )}
 
                   {/* History Table & Archives */}
-                  <div className="bg-surface-container-lowest rounded-2xl shadow-sm p-space-lg flex flex-col gap-space-md border border-outline-variant/30">
+                  <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 flex flex-col gap-6 border border-slate-200/80 card-silky">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-sm">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-primary text-xl">history</span>
-                          <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold text-base">
+                          <span className="material-symbols-outlined text-teal-700 text-xl">history</span>
+                          <h2 className="text-base sm:text-lg text-slate-900 font-extrabold tracking-tight">
                             Historique des demandes &amp; Transports
                           </h2>
                         </div>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                        <p className="text-xs text-slate-500 font-medium">
                           {rides.length} transport(s) au total · {filteredRides.length} affiché(s)
                         </p>
                       </div>

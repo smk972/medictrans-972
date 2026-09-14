@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { SEOHead } from './SEOHead';
 import { useAuth } from '../contexts/AuthContext';
+import { BrandLogo } from './BrandLogo';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -49,18 +50,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <header className="sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant/30 shadow-xs">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
           <div className="h-16 flex items-center justify-between gap-2 xl:gap-4">
-            {/* Left: Logo + Administration Badge */}
+            {/* Left: Logo */}
             <div className="flex items-center gap-2.5 shrink-0">
-              <Link to="/admin" className="flex items-center gap-2 shrink-0 group">
-                <img
-                  alt="Logo Clinigo"
-                  className="h-8 sm:h-9 w-auto object-contain group-hover:scale-105 transition-transform"
-                  src="/assets/clinigo-logo.png"
-                />
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-primary/10 text-primary border border-primary/20">
-                  RÉGULATION
-                </span>
-              </Link>
+              <BrandLogo to="/admin" />
             </div>
 
             {/* Middle: Back-Office Navigation Tabs (All 7 modules clearly visible) */}

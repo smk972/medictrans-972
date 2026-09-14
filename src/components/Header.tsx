@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../context/AiChatContext';
+import { BrandLogo } from './BrandLogo';
 
 export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -57,24 +58,7 @@ export const Header: React.FC = () => {
     <header className="sticky top-3 sm:top-4 z-50 w-full px-4 sm:px-6">
       <div className="max-w-6xl mx-auto h-16 sm:h-[68px] rounded-full bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between transition-all duration-300">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-teal-800 to-sky-700 flex items-center justify-center text-white font-black text-lg shadow-md shadow-teal-900/20 group-hover:scale-105 transition-transform shrink-0">
-            C
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-lg font-black tracking-tight text-slate-900 leading-none">
-                clinigo<span className="text-teal-600">.fr</span>
-              </span>
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200/80 uppercase tracking-wider">
-                Pro v2
-              </span>
-            </div>
-            <span className="text-[10px] font-semibold text-slate-500 tracking-wide hidden sm:inline">
-              Réseau Médical Conventionné
-            </span>
-          </div>
-        </Link>
+        <BrandLogo />
 
         {/* Desktop Nav */}
         <nav className="hidden xl:flex items-center gap-1 sm:gap-1.5 shrink-0">

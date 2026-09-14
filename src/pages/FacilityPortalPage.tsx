@@ -398,7 +398,7 @@ export const FacilityPortalPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
+    <div className="min-h-screen bg-[#F8FAFD] text-slate-900 font-sans antialiased">
       <Header />
       <SEOHead
         title="Portail Établissements de Santé Martinique | Régulation Sorties d'Hospitalisation"
@@ -406,93 +406,94 @@ export const FacilityPortalPage: React.FC = () => {
         canonicalPath="/etablissements"
         ogImage="/assets/medictrans_hero_discover.jpg"
       />
-      <main className="w-full pt-4 sm:pt-6 bg-background min-h-screen"><div className="flex flex-col w-full">
+      <main className="w-full pt-4 sm:pt-6 bg-[#F8FAFD] min-h-screen">
+        <div className="flex flex-col w-full">
 
-<section className="w-full bg-surface-container-lowest shadow-sm">
-<div className="max-w-[1680px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-space-md flex flex-col xl:flex-row items-start xl:items-center justify-between gap-space-md">
-<div className="flex items-center gap-space-md">
-<div className="w-12 h-12 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary shadow-sm">
-<span className="material-symbols-outlined text-[28px]">local_hospital</span>
-</div>
-<div className="flex flex-col">
-<div className="flex items-center gap-space-xs">
-<span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider font-bold">Portail Hospitalier Dédié</span>
-<span className="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">Raccordement ROR &amp; DPI Direct</span>
-</div>
-<h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">CHU Pierre Zobda-Quitman</h1>
-<p className="font-body-sm text-body-sm text-on-surface-variant">Service Néphrologie, Dialyse &amp; Hémodialyse Lourde • Pavillon M - Niveau 3</p>
-</div>
-</div>
+          <section className="w-full bg-white border-b border-slate-200/80 shadow-xs">
+            <div className="max-w-[1680px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 shadow-xs shrink-0">
+                  <span className="material-symbols-outlined text-[28px]">local_hospital</span>
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-teal-700 uppercase tracking-wider font-bold">Portail Hospitalier Dédié</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                    <span className="text-xs text-slate-500">Raccordement ROR &amp; DPI Direct</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">CHU Pierre Zobda-Quitman</h1>
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium">Service Néphrologie, Dialyse &amp; Hémodialyse Lourde • Pavillon M - Niveau 3</p>
+                </div>
+              </div>
 
-<div className="flex flex-wrap items-center gap-space-sm bg-surface-container-low px-space-md py-space-sm rounded-xl">
-<div className="flex items-center gap-space-xs text-primary">
-<span className="material-symbols-outlined text-[20px]">ring_volume</span>
-<span className="font-label-md text-label-md font-bold">Astreinte Cadre Régulateur :</span>
-</div>
-<a className="font-headline-sm text-headline-sm text-primary hover:text-primary-container transition-colors tracking-tight" href="tel:0596720097">
-          05 96 72 00 97
-        </a>
-<span className="bg-secondary text-on-secondary px-space-xs py-0.5 rounded-full font-label-sm text-label-sm font-bold">LIGNE DIRECTE DÉDIÉE</span>
-</div>
-</div>
-</section>
+              <div className="flex flex-wrap items-center gap-3 bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-2xl">
+                <div className="flex items-center gap-1.5 text-teal-800">
+                  <span className="material-symbols-outlined text-[20px]">ring_volume</span>
+                  <span className="text-xs font-bold">Astreinte Cadre Régulateur :</span>
+                </div>
+                <a className="text-lg font-black text-teal-800 hover:text-teal-900 transition-colors tracking-tight font-mono" href="tel:0596720097">
+                  05 96 72 00 97
+                </a>
+                <span className="bg-teal-800 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider">LIGNE DIRECTE DÉDIÉE</span>
+              </div>
+            </div>
+          </section>
 
-<section className="w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-space-lg">
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+          <section className="w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-<div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
-<div className="flex items-center justify-between">
-<span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-bold">Sorties Attendues</span>
-<span className="material-symbols-outlined text-primary text-[22px]">calendar_today</span>
-</div>
-<div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-primary font-bold">{rides.length}</span>
-<span className="font-label-md text-label-md text-on-surface-variant">patients programmés</span>
-</div>
-<div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
-<div className="bg-primary h-full w-[100%] rounded-full"></div>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">Synchronisation directe réseau 972</span>
-</div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all card-silky-subtle flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Sorties Attendues</span>
+                  <span className="material-symbols-outlined text-teal-700 text-[22px]">calendar_today</span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-3">
+                  <span className="text-3xl font-black text-slate-900">{rides.length}</span>
+                  <span className="text-xs text-slate-500">patients programmés</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div className="bg-teal-600 h-full w-[100%] rounded-full"></div>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-2">Synchronisation directe réseau 972</span>
+              </div>
 
-<div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
-<div className="flex items-center justify-between">
-<span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Départs Assignés</span>
-<span className="material-symbols-outlined text-secondary text-[22px]">check_circle</span>
-</div>
-<div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-secondary font-bold">{assignedCount}</span>
-<span className="font-label-md text-label-md text-secondary">transporteurs confirmés</span>
-</div>
-<div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
-<div className="bg-secondary h-full w-[100%] rounded-full"></div>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">Rotations sécurisées</span>
-</div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all card-silky-subtle flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wider text-teal-700 font-bold">Départs Assignés</span>
+                  <span className="material-symbols-outlined text-teal-700 text-[22px]">check_circle</span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-3">
+                  <span className="text-3xl font-black text-teal-700">{assignedCount}</span>
+                  <span className="text-xs text-slate-500">transporteurs confirmés</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div className="bg-teal-600 h-full w-[100%] rounded-full"></div>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-2">Rotations sécurisées</span>
+              </div>
 
-<div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
-<div className="flex items-center justify-between">
-<span className="font-label-sm text-label-sm uppercase tracking-wider text-tertiary font-bold">En cours de dispatch</span>
-<span className="material-symbols-outlined text-tertiary text-[22px] animate-spin">sync</span>
-</div>
-<div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-tertiary font-bold">{pendingCount}</span>
-<span className="font-label-md text-label-md text-on-surface-variant">recherches actives</span>
-</div>
-<div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
-<div className="bg-tertiary h-full w-[100%] rounded-full"></div>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">File d'attente automatisée 972</span>
-</div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all card-silky-subtle flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wider text-amber-600 font-bold">En cours de dispatch</span>
+                  <span className="material-symbols-outlined text-amber-600 text-[22px] animate-spin">sync</span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-3">
+                  <span className="text-3xl font-black text-amber-600">{pendingCount}</span>
+                  <span className="text-xs text-slate-500">recherches actives</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div className="bg-amber-500 h-full w-[100%] rounded-full"></div>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-2">File d'attente automatisée 972</span>
+              </div>
 
-<div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
-<div className="flex items-center justify-between">
-<span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface font-bold">Délai d'Affectation</span>
-<span className="material-symbols-outlined text-primary text-[22px]">timer</span>
-</div>
-<div className="flex items-baseline gap-space-xs mt-space-sm">
-<span className="font-headline-xl text-headline-xl text-primary font-bold">4<span className="font-headline-sm text-headline-sm font-normal">m</span> 12<span className="font-headline-sm text-headline-sm font-normal">s</span></span>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all card-silky-subtle flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wider text-slate-700 font-bold">Délai d'Affectation</span>
+                  <span className="material-symbols-outlined text-teal-700 text-[22px]">timer</span>
+                </div>
+                <div className="flex items-baseline gap-1 mt-3">
+                  <span className="text-3xl font-black text-slate-900">4<span className="text-lg font-normal text-slate-500">m</span> 12<span className="text-lg font-normal text-slate-500">s</span></span>
 <span className="font-label-md text-label-md text-secondary font-bold">-18% vs moyenne</span>
 </div>
 <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">

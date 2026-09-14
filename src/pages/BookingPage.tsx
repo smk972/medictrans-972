@@ -1253,25 +1253,25 @@ export const BookingPage: React.FC = () => {
                         type="button"
                         disabled={mobility === 'allonge' || oxygen}
                         onClick={() => setTransportType('taxi')}
-                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
+                        className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
                           transportType === 'taxi'
-                            ? 'bg-surface-container-low border-primary ring-2 ring-primary/20 shadow-xs'
+                            ? 'bg-white border-teal-600 ring-2 ring-teal-500/20 shadow-md card-silky'
                             : (mobility === 'allonge' || oxygen)
-                            ? 'opacity-40 bg-surface-container-highest/30 border-outline-variant/20 cursor-not-allowed'
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                            ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs card-silky-subtle'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="material-symbols-outlined text-primary text-xl">local_taxi</span>
+                          <span className="material-symbols-outlined text-teal-700 text-xl">local_taxi</span>
                           {transportType === 'taxi' ? (
-                            <span className="material-symbols-outlined text-primary text-base">check_circle</span>
+                            <span className="material-symbols-outlined text-teal-700 text-base">check_circle</span>
                           ) : (mobility === 'allonge' || oxygen) ? (
-                            <span className="material-symbols-outlined text-outline text-sm" title="Incompatible avec position allongée ou oxygène">lock</span>
+                            <span className="material-symbols-outlined text-slate-400 text-sm" title="Incompatible avec position allongée ou oxygène">lock</span>
                           ) : null}
                         </div>
                         <div>
-                          <div className="font-bold text-xs text-on-surface">Taxi Conventionné</div>
-                          <div className="text-[10px] text-on-surface-variant leading-tight">Patient assis autonome, sans équipement lourd.</div>
+                          <div className="font-bold text-xs text-slate-900">Taxi Conventionné</div>
+                          <div className="text-[10px] text-slate-500 leading-tight mt-0.5">Patient assis autonome, sans équipement lourd.</div>
                         </div>
                       </button>
 
@@ -1280,25 +1280,25 @@ export const BookingPage: React.FC = () => {
                         type="button"
                         disabled={mobility === 'allonge' || oxygen}
                         onClick={() => setTransportType('vsl')}
-                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
+                        className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
                           transportType === 'vsl'
-                            ? 'bg-surface-container-low border-primary ring-2 ring-primary/20 shadow-xs'
+                            ? 'bg-white border-teal-600 ring-2 ring-teal-500/20 shadow-md card-silky'
                             : (mobility === 'allonge' || oxygen)
-                            ? 'opacity-40 bg-surface-container-highest/30 border-outline-variant/20 cursor-not-allowed'
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                            ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs card-silky-subtle'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="material-symbols-outlined text-primary text-xl">airport_shuttle</span>
+                          <span className="material-symbols-outlined text-teal-700 text-xl">airport_shuttle</span>
                           {transportType === 'vsl' ? (
-                            <span className="material-symbols-outlined text-primary text-base">check_circle</span>
+                            <span className="material-symbols-outlined text-teal-700 text-base">check_circle</span>
                           ) : (mobility === 'allonge' || oxygen) ? (
-                            <span className="material-symbols-outlined text-outline text-sm" title="Incompatible avec position allongée ou oxygène">lock</span>
+                            <span className="material-symbols-outlined text-slate-400 text-sm" title="Incompatible avec position allongée ou oxygène">lock</span>
                           ) : null}
                         </div>
                         <div>
-                          <div className="font-bold text-xs text-on-surface">VSL Sanitaire</div>
-                          <div className="text-[10px] text-on-surface-variant leading-tight">Assis avec aide, fauteuil pliable, désinfection.</div>
+                          <div className="font-bold text-xs text-slate-900">VSL Sanitaire</div>
+                          <div className="text-[10px] text-slate-500 leading-tight mt-0.5">Assis avec aide, fauteuil pliable, désinfection.</div>
                         </div>
                       </button>
 
@@ -1306,10 +1306,10 @@ export const BookingPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setTransportType('ambulance')}
-                        className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
+                        className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-1.5 ${
                           transportType === 'ambulance'
-                            ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/20 shadow-xs'
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:bg-surface-container-low'
+                            ? 'bg-white border-amber-500 ring-2 ring-amber-500/20 shadow-md card-silky'
+                            : 'bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-xs card-silky-subtle'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -1319,13 +1319,13 @@ export const BookingPage: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <div className="font-bold text-xs text-on-surface flex items-center gap-1">
+                          <div className="font-bold text-xs text-slate-900 flex items-center gap-1">
                             Ambulance A/C
                             {(mobility === 'allonge' || oxygen) && (
-                              <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-extrabold">OBLIGATOIRE</span>
+                              <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded font-extrabold">OBLIGATOIRE</span>
                             )}
                           </div>
-                          <div className="text-[10px] text-on-surface-variant leading-tight">Position allongée, brancard, oxygène, équipage.</div>
+                          <div className="text-[10px] text-slate-500 leading-tight mt-0.5">Position allongée, brancard, oxygène, équipage.</div>
                         </div>
                       </button>
                     </div>

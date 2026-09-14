@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BrandLogo } from './BrandLogo';
 
 export const Footer: React.FC = () => {
   return (
@@ -8,14 +9,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Col 1 */}
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-sm shadow-sm">
-                C
-              </div>
-              <span className="font-extrabold text-base text-slate-900 tracking-tight">
-                clinigo<span className="text-teal-600">.fr</span>
-              </span>
-            </div>
+            <BrandLogo className="mb-1" />
             <p className="text-xs text-slate-600 leading-relaxed">
               Plateforme d'intermédiation et de régulation du transport sanitaire conventionné pour
               toute la Martinique (Ambulances, VSL et Taxis Conventionnés).
