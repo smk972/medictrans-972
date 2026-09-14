@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
-import { rideService } from '../services/rideService';
+import { AdminService } from '../services/adminService';
 import { Facility } from '../types';
 import { GoogleMapView } from '../components/GoogleMapView';
+import { MARTINIQUE_COMMUNES } from '../services/rideService';
+import { useAuth } from '../contexts/AuthContext';
 
 export const AdminFacilitiesPage: React.FC = () => {
+  const { user } = useAuth();
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,12 +18,36 @@ export const AdminFacilitiesPage: React.FC = () => {
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
-  const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Department management
+  const [newDeptName, setNewDeptName] = useState('');
+
+  // Modals
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
+  const [passwordModalFacility, setPasswordModalFacility] = useState<Facility | null>(null);
+  const [facilityPasswordValue, setFacilityPasswordValue] = useState('');
+  const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
+
+  // Form states
+  const [formName, setFormName] = useState('');
+  const [formFiness, setFormFiness] = useState('');
+  const [formType, setFormType] = useState<Facility['type']>('HOSPITAL');
+  const [formAddress, setFormAddress] = useState('');
+  const [formCity, setFormCity] = useState('Fort-de-France');
+  const [formContactName, setFormContactName] = useState('');
+  const [formContactRole, setFormContactRole] = useState('Cadre Supérieur de Santé');
+  const [formContactPhone, setFormContactPhone] = useState('0596 ');
+  const [formContactEmail, setFormContactEmail] = useState('');
+  const [formDepartments, setFormDepartments] = useState<string>('Cardiologie, Néphrologie & Dialyse, Urgences');
+
+  // Toast
+  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await rideService.getAllFacilities();
+      const data = await AdminService.getAllFacilities();
       setFacilities(data);
       if (data.length > 0 && !selectedFacility) {
         setSelectedFacility(data[0]);
@@ -52,15 +79,163 @@ export const AdminFacilitiesPage: React.FC = () => {
     return matchSearch && matchType;
   });
 
+  const openCreateModal = () => {
+    setFormName('');
+    setFormFiness(`9702${Math.floor(10000 + Math.random() * 90000)}`);
+    setFormType('HOSPITAL');
+    setFormAddress('Route de Châteauboeuf');
+    setFormCity('Fort-de-France');
+    setFormContactName('Cadre de permanence');
+    setFormContactRole('Cadre Supérieur de Santé');
+    setFormContactPhone('0596 55 20 00');
+    setFormContactEmail('coordination@chu-martinique.fr');
+    setFormDepartments('Néphrologie, Oncologie, Chirurgie Ambulatoire, Cardiologie');
+    setIsCreateModalOpen(true);
+  };
+
+  const openEditModal = (facility: Facility) => {
+    setEditingFacility(facility);
+    setFormName(facility.name);
+    setFormFiness(facility.finess);
+    setFormType(facility.type);
+    setFormAddress(facility.address);
+    setFormCity(facility.city);
+    setFormContactName(facility.contactName);
+    setFormContactRole(facility.contactRole);
+    setFormContactPhone(facility.contactPhone);
+    setFormContactEmail(facility.contactEmail);
+    setFormDepartments(facility.departments.join(', '));
+  };
+
+  const handleSaveFacility = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim() || !formFiness.trim()) {
+      alert('Veuillez remplir le nom et le numéro FINESS.');
+      return;
+    }
+
+    try {
+      const depts = formDepartments
+        .split(',')
+        .map(d => d.trim())
+        .filter(Boolean);
+
+      const payload = {
+        name: formName.trim(),
+        finess: formFiness.trim(),
+        type: formType,
+        address: formAddress.trim(),
+        city: formCity,
+        contactName: formContactName.trim(),
+        contactRole: formContactRole.trim(),
+        contactPhone: formContactPhone.trim(),
+        contactEmail: formContactEmail.trim().toLowerCase(),
+        departments: depts
+      };
+
+      if (editingFacility) {
+        await AdminService.updateFacility(editingFacility.id, payload, user?.email);
+        setToastMessage({
+          title: 'Établissement Modifié',
+          desc: `Les modifications de ${payload.name} ont été enregistrées.`
+        });
+        setEditingFacility(null);
+      } else {
+        const created = await AdminService.createFacility(payload, user?.email);
+        setToastMessage({
+          title: 'Établissement Créé',
+          desc: `La structure ${created.name} (FINESS ${created.finess}) a été ajoutée.`
+        });
+        setIsCreateModalOpen(false);
+      }
+      await loadData();
+    } catch (err) {
+      console.error('Erreur sauvegarde établissement:', err);
+      alert('Erreur lors de la sauvegarde.');
+    }
+  };
+
+  const handleDeleteFacility = async (facility: Facility) => {
+    if (!confirm(`Confirmez-vous la suppression de l'établissement ${facility.name} ?`)) return;
+    try {
+      await AdminService.deleteFacility(facility.id, user?.email);
+      setToastMessage({
+        title: 'Établissement Supprimé',
+        desc: `${facility.name} a été retiré du répertoire.`
+      });
+      setSelectedFacility(null);
+      await loadData();
+    } catch (err) {
+      console.error('Erreur suppression:', err);
+      alert('Erreur lors de la suppression.');
+    }
+  };
+
+  const handleAddDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFacility || !newDeptName.trim()) return;
+
+    try {
+      await AdminService.addFacilityDepartment(selectedFacility.id, newDeptName.trim(), user?.email);
+      setToastMessage({
+        title: 'Service Ajouté',
+        desc: `Le service "${newDeptName.trim()}" a été ajouté à ${selectedFacility.name}.`
+      });
+      setNewDeptName('');
+      await loadData();
+    } catch (err) {
+      console.error('Erreur ajout service:', err);
+    }
+  };
+
+  const handleRemoveDepartment = async (dept: string) => {
+    if (!selectedFacility) return;
+    try {
+      await AdminService.removeFacilityDepartment(selectedFacility.id, dept, user?.email);
+      setToastMessage({
+        title: 'Service Retiré',
+        desc: `Le service "${dept}" a été supprimé de ${selectedFacility.name}.`
+      });
+      await loadData();
+    } catch (err) {
+      console.error('Erreur retrait service:', err);
+    }
+  };
+
+  const handleOpenPasswordModal = (facility: Facility) => {
+    setPasswordModalFacility(facility);
+    setFacilityPasswordValue(`CH972-${Math.random().toString(36).slice(-5).toUpperCase()}!`);
+    setPasswordFeedback(null);
+  };
+
+  const handleConfirmPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordModalFacility || !facilityPasswordValue.trim()) return;
+
+    try {
+      const res = await AdminService.resetFacilityPassword(passwordModalFacility.id, facilityPasswordValue.trim(), user?.email);
+      setPasswordFeedback(res.password);
+      setToastMessage({
+        title: 'Accès Coordinateur Réinitialisé',
+        desc: `Nouveau mot de passe généré pour ${passwordModalFacility.name} (${res.email}).`
+      });
+      await loadData();
+    } catch (err) {
+      console.error('Erreur réinitialisation mdp hôpital:', err);
+    }
+  };
+
   const handleAddStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStaffName || !selectedFacility) return;
 
-    setFeedback(`Cadre de santé "${newStaffName}" habilité(e) avec succès.`);
+    setToastMessage({
+      title: 'Cadre Habilité',
+      desc: `Le cadre de santé "${newStaffName}" a été habilité(e) avec succès.`
+    });
     setNewStaffName('');
     setNewStaffRole('');
     setNewStaffPhone('');
-    setTimeout(() => setFeedback(null), 3000);
   };
 
   const totalDischarges = facilities.reduce((acc, f) => acc + (f.activeDischargesCount || 0), 0);
@@ -72,6 +247,13 @@ export const AdminFacilitiesPage: React.FC = () => {
       subtitle="Répertoire hospitalier, points de dépose paramétrés et régulation des départs soignants"
       actions={
         <div className="flex items-center gap-2">
+          <button
+            onClick={openCreateModal}
+            className="px-3.5 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-xs cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">add_business</span>
+            <span>+ Nouvel Établissement</span>
+          </button>
           <button
             onClick={loadData}
             className="p-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant transition-colors"
@@ -99,291 +281,553 @@ export const AdminFacilitiesPage: React.FC = () => {
         <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs">
           <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Cadres Habilités</span>
           <div className="text-3xl font-extrabold text-secondary font-mono mt-1">{totalStaff}</div>
-          <p className="text-[11px] text-on-surface-variant mt-1">Coordonnateurs de soins et cadres de santé</p>
+          <p className="text-[11px] text-on-surface-variant mt-1">Personnel soignant avec accès régulation</p>
         </div>
 
         <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs">
-          <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Traçabilité Numérique PMT</span>
-          <div className="text-3xl font-extrabold text-secondary font-mono mt-1">100%</div>
-          <p className="text-[11px] text-on-surface-variant mt-1">Conforme Cerfa S3138 et BPEC 972</p>
+          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Services Paramétrés</span>
+          <div className="text-3xl font-extrabold text-emerald-700 font-mono mt-1">
+            {facilities.reduce((acc, f) => acc + f.departments.length, 0)}
+          </div>
+          <p className="text-[11px] text-on-surface-variant mt-1">Départements, lits et consultations</p>
         </div>
       </div>
 
-      {feedback && (
-        <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-fadeIn">
-          <span className="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
-          <span>{feedback}</span>
-        </div>
-      )}
-
-      {/* Main Two-Column View */}
+      {/* Main Content: Split Master-Detail */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Col: Facilities List (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-surface-container-lowest p-4 rounded-3xl border border-outline-variant/30 shadow-xs space-y-3">
-            <h2 className="text-sm font-extrabold text-on-surface uppercase tracking-wider">
-              Répertoire Hospitalier ({filteredFacilities.length})
-            </h2>
-
-            {/* Search Input */}
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-lg">
+        {/* Left Col: Facilities List */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* Search & Filters */}
+          <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-lg">
                 search
               </span>
               <input
                 type="text"
+                placeholder="Rechercher par nom, commune, FINESS, cadre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher par nom, ville, FINESS..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-outline-variant/50 text-xs bg-surface-container-lowest outline-none focus:border-primary"
+                className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-outline-variant/40 bg-surface-container-low/40 focus:bg-surface-container-lowest focus:border-primary outline-none transition-all"
               />
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-1">
-              {[
-                { id: 'ALL', label: 'Tous' },
-                { id: 'HOSPITAL', label: 'Hôpitaux' },
-                { id: 'CLINIC', label: 'Cliniques' },
-                { id: 'DIALYSIS', label: 'Dialyses' }
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTypeFilter(t.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                    typeFilter === t.id
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-surface-container text-on-surface-variant'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-semibold text-on-surface outline-none"
+            >
+              <option value="ALL">Toutes les structures</option>
+              <option value="HOSPITAL">Hôpitaux Publics (CHU)</option>
+              <option value="CLINIC">Cliniques Privées</option>
+              <option value="DIALYSIS">Centres de Dialyse</option>
+            </select>
+          </div>
 
-            {/* List */}
-            <div className="space-y-2 pt-2 max-h-[600px] overflow-y-auto pr-1">
-              {filteredFacilities.map((f) => {
-                const isSelected = selectedFacility?.id === f.id;
+          {/* Cards List */}
+          <div className="space-y-3">
+            {isLoading ? (
+              <div className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 text-center text-xs text-on-surface-variant font-semibold">
+                Chargement des structures hospitalières...
+              </div>
+            ) : filteredFacilities.length === 0 ? (
+              <div className="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/30 text-center text-xs text-on-surface-variant">
+                Aucun établissement ne correspond aux filtres.
+              </div>
+            ) : (
+              filteredFacilities.map((facility) => {
+                const isSelected = selectedFacility?.id === facility.id;
                 return (
                   <div
-                    key={f.id}
-                    onClick={() => setSelectedFacility(f)}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    key={facility.id}
+                    onClick={() => setSelectedFacility(facility)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20'
-                        : 'border-outline-variant/30 hover:border-outline-variant/70 bg-surface-container-lowest'
+                        ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary'
+                        : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline-variant hover:shadow-xs'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-xs font-extrabold text-on-surface leading-tight">
-                          {f.name}
-                        </h3>
-                        <span className="text-[11px] text-on-surface-variant">
-                          {f.city} • FINESS {f.finess}
-                        </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                          facility.type === 'HOSPITAL' ? 'bg-blue-50 text-blue-800' :
+                          facility.type === 'CLINIC' ? 'bg-indigo-50 text-indigo-800' :
+                          'bg-emerald-50 text-emerald-800'
+                        }`}>
+                          <span className="material-symbols-outlined text-xl">
+                            {facility.type === 'DIALYSIS' ? 'water_drop' : 'local_hospital'}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-on-surface leading-tight">
+                            {facility.name}
+                          </h4>
+                          <div className="flex items-center gap-2 text-[11px] text-on-surface-variant mt-1">
+                            <span className="font-mono font-bold text-primary">FINESS {facility.finess}</span>
+                            <span>•</span>
+                            <span>{facility.city}</span>
+                            <span>•</span>
+                            <span className="font-semibold text-secondary">{facility.departments.length} services</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20 shrink-0">
-                        {f.type}
-                      </span>
-                    </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-outline-variant/20 flex items-center justify-between text-[11px] text-on-surface-variant">
-                      <span className="font-semibold text-primary">
-                        {f.activeDischargesCount || 0} sorties régulées
-                      </span>
-                      <span className="font-semibold text-on-surface">
-                        {f.authorizedStaffCount || 0} cadres habilités
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openEditModal(facility); }}
+                          className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant text-xs cursor-pointer"
+                          title="Modifier la fiche"
+                        >
+                          <span className="material-symbols-outlined text-base">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleOpenPasswordModal(facility); }}
+                          className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-800 text-xs cursor-pointer"
+                          title="Gérer les accès et mots de passe"
+                        >
+                          <span className="material-symbols-outlined text-base">lock_reset</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteFacility(facility); }}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-700 text-xs cursor-pointer"
+                          title="Supprimer"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
         </div>
 
-        {/* Right Col: Facility Detail View (7 cols) */}
-        <div className="lg:col-span-7">
+        {/* Right Col: Facility Details & Services Management */}
+        <div className="lg:col-span-5">
           {selectedFacility ? (
-            <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-xs space-y-6">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+            <div className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/30 shadow-xs space-y-6 sticky top-20">
+              <div className="flex items-start justify-between border-b border-outline-variant/20 pb-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-extrabold text-on-surface">
-                      {selectedFacility.name}
-                    </h2>
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      FINESS {selectedFacility.finess}
-                    </span>
-                  </div>
-                  <p className="text-xs text-on-surface-variant mt-1">
-                    {selectedFacility.address}, {selectedFacility.city} • Tél : {selectedFacility.contactPhone}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                    ⭐ Note {selectedFacility.rating || 4.9} / 5
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Détails & Services Hospitaliers
+                  </span>
+                  <h3 className="text-base font-extrabold text-on-surface mt-0.5 leading-snug">
+                    {selectedFacility.name}
+                  </h3>
+                  <div className="text-[11px] text-on-surface-variant mt-1">
+                    {selectedFacility.address}, {selectedFacility.city}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => openEditModal(selectedFacility)}
+                  className="px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low hover:bg-surface-container text-xs font-bold text-on-surface flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                  <span>Modifier</span>
+                </button>
               </div>
 
-              {/* Localisation Google Maps */}
-              <div className="w-full h-44 rounded-2xl overflow-hidden shadow-xs border border-outline-variant/20">
-                <GoogleMapView
-                  mode="facility"
-                  facilityName={`${selectedFacility.name}, ${selectedFacility.city}`}
-                  height="100%"
-                />
-              </div>
-
-              {/* Paramétrage des Points de Dépose */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-on-surface">
-                  Points de Dépose & Sas de Prise en Charge Paramétrés
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(selectedFacility.dropoffPoints || [
-                    { name: 'Quai Ambulances Niveau 0', type: 'BRANCARDAGE', notes: 'Accès Urgences & Sas Déchoquage' },
-                    { name: 'Dépose-minute Entrée Sud', type: 'VSL_TAXI', notes: 'Consultations & Ambulatoire' }
-                  ]).map((pt, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-on-surface">{pt.name}</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-primary/10 text-primary">
-                          {pt.type}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-on-surface-variant">{pt.notes}</p>
-                    </div>
-                  ))}
+              {/* Contact Coordinateur Référent */}
+              <div className="p-4 rounded-2xl bg-surface-container-low/50 border border-outline-variant/20 space-y-2 text-xs">
+                <div className="font-bold text-on-surface flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-primary">person_check</span>
+                    Cadre Coordinateur Référent
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPasswordModal(selectedFacility)}
+                    className="text-primary font-bold hover:underline text-[11px]"
+                  >
+                    Réinitialiser MDP
+                  </button>
+                </div>
+                <div className="text-on-surface font-semibold">{selectedFacility.contactName} ({selectedFacility.contactRole})</div>
+                <div className="text-[11px] text-on-surface-variant flex items-center gap-3">
+                  <a href={`tel:${selectedFacility.contactPhone}`} className="text-primary hover:underline flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">phone</span>
+                    {selectedFacility.contactPhone}
+                  </a>
+                  <a href={`mailto:${selectedFacility.contactEmail}`} className="text-on-surface-variant hover:underline flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">mail</span>
+                    {selectedFacility.contactEmail}
+                  </a>
                 </div>
               </div>
 
-              {/* Pôles & Services Hospitaliers */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-on-surface">
-                  Pôles & Services Actifs Raccordés ({selectedFacility.departments.length})
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedFacility.departments.map((dept, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 rounded-xl text-xs font-semibold bg-surface-container text-on-surface border border-outline-variant/30"
-                    >
-                      {dept}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cadres de Santé Habilités */}
+              {/* Services Hospitaliers Paramétrés */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-on-surface">
-                    Cadres de Santé & Référents Sorties Habilités
-                  </h3>
-                  <span className="text-[11px] text-secondary font-bold">
-                    {selectedFacility.authorizedStaffCount || 12} habilitations actives
-                  </span>
+                  <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-secondary">hotel</span>
+                    Services & Départements ({selectedFacility.departments.length})
+                  </h4>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="p-3 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-secondary/10 text-secondary flex items-center justify-center font-bold text-xs">
-                        {selectedFacility.contactName[0]}
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-on-surface block">
-                          {selectedFacility.contactName}
-                        </span>
-                        <span className="text-[11px] text-on-surface-variant">
-                          {selectedFacility.contactRole} • {selectedFacility.contactPhone}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Référent Principal
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedFacility.departments.map((dept) => (
+                    <span
+                      key={dept}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-container border border-outline-variant/30 text-xs font-medium text-on-surface group"
+                    >
+                      <span>{dept}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDepartment(dept)}
+                        className="text-on-surface-variant hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Supprimer ce service"
+                      >
+                        <span className="material-symbols-outlined text-xs">close</span>
+                      </button>
                     </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                        M
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-on-surface block">
-                          Mireille Rosamond
-                        </span>
-                        <span className="text-[11px] text-on-surface-variant">
-                          Cadre de Santé - Pôle Ambulatoire • 0596 55 20 44
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      Habilité(e) 24/7
-                    </span>
-                  </div>
+                  ))}
                 </div>
 
-                {/* Form to add staff member */}
-                <form onSubmit={handleAddStaff} className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-2.5">
-                  <span className="text-xs font-bold text-on-surface block">
-                    + Habiliter un nouveau soignant au déclenchement
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      type="text"
-                      required
-                      value={newStaffName}
-                      onChange={(e) => setNewStaffName(e.target.value)}
-                      placeholder="Prénom & Nom"
-                      className="px-3 py-1.5 rounded-xl border border-outline-variant/50 text-xs bg-surface-container-lowest outline-none"
-                    />
+                {/* Formulaire ajout rapide de service */}
+                <form onSubmit={handleAddDepartment} className="flex items-center gap-2 pt-2">
+                  <input
+                    type="text"
+                    value={newDeptName}
+                    onChange={(e) => setNewDeptName(e.target.value)}
+                    placeholder="Ajouter un service (ex: Maternité, Soins Intensifs...)"
+                    className="flex-1 p-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs hover:bg-primary/90 transition-all cursor-pointer"
+                  >
+                    Ajouter
+                  </button>
+                </form>
+              </div>
+
+              {/* Habiliter un nouveau cadre */}
+              <div className="pt-4 border-t border-outline-variant/20 space-y-3">
+                <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm text-primary">clinical_notes</span>
+                  Habiliter un Nouveau Cadre Soignant
+                </h4>
+
+                <form onSubmit={handleAddStaff} className="space-y-2.5 text-xs">
+                  <input
+                    type="text"
+                    required
+                    value={newStaffName}
+                    onChange={(e) => setNewStaffName(e.target.value)}
+                    placeholder="Nom et prénom du cadre de santé"
+                    className="w-full p-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs outline-none focus:border-primary"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
                       required
                       value={newStaffRole}
                       onChange={(e) => setNewStaffRole(e.target.value)}
                       placeholder="Fonction / Service"
-                      className="px-3 py-1.5 rounded-xl border border-outline-variant/50 text-xs bg-surface-container-lowest outline-none"
+                      className="w-full p-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs outline-none focus:border-primary"
                     />
                     <input
                       type="tel"
+                      required
                       value={newStaffPhone}
                       onChange={(e) => setNewStaffPhone(e.target.value)}
                       placeholder="Ligne directe / Mobile"
-                      className="px-3 py-1.5 rounded-xl border border-outline-variant/50 text-xs bg-surface-container-lowest outline-none"
+                      className="w-full p-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs outline-none focus:border-primary"
                     />
                   </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="px-4 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container"
-                    >
-                      Enregistrer l'Habilitation
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Enregistrer l'habilitation
+                  </button>
                 </form>
               </div>
             </div>
           ) : (
-            <div className="bg-surface-container-lowest rounded-3xl p-12 border border-outline-variant/30 text-center text-on-surface-variant">
-              <span className="material-symbols-outlined text-4xl mb-2">local_hospital</span>
-              <p className="text-sm font-bold text-on-surface">Sélectionnez un établissement</p>
-              <p className="text-xs">Cliquez sur une structure dans la liste à gauche pour voir sa configuration complète.</p>
+            <div className="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant/30 text-center text-xs text-on-surface-variant">
+              Sélectionnez une structure hospitalière pour afficher et modifier ses services.
             </div>
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL : CRÉER / MODIFIER ÉTABLISSEMENT                                   */}
+      {/* ========================================================================= */}
+      {(isCreateModalOpen || editingFacility) && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="max-w-xl w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4 my-8">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-xl">
+                    {editingFacility ? 'edit_square' : 'add_business'}
+                  </span>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    {editingFacility ? `Modifier ${editingFacility.name}` : 'Ajouter un nouvel établissement de santé'}
+                  </h3>
+                  <span className="text-[11px] text-on-surface-variant">
+                    Paramétrage FINESS, localisation géographique et services
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setIsCreateModalOpen(false); setEditingFacility(null); }}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFacility} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1">Nom officiel de l'établissement *</label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="CHU de Martinique - Hôpital Pierre Zobda-Quitman"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Numéro FINESS (9 chiffres) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formFiness}
+                    onChange={(e) => setFormFiness(e.target.value)}
+                    placeholder="970200021"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-xs outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Catégorie d'établissement *</label>
+                  <select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value as any)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary font-medium"
+                  >
+                    <option value="HOSPITAL">Hôpital Public (CHU)</option>
+                    <option value="CLINIC">Clinique Privée</option>
+                    <option value="DIALYSIS">Centre de Dialyse</option>
+                    <option value="EHPAD">EHPAD / Résidence</option>
+                    <option value="REHAB">Centre de Rééducation (SSR)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Adresse physique *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formAddress}
+                    onChange={(e) => setFormAddress(e.target.value)}
+                    placeholder="Route de Châteauboeuf"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Commune 972 *</label>
+                  <select
+                    value={formCity}
+                    onChange={(e) => setFormCity(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                  >
+                    {MARTINIQUE_COMMUNES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-outline-variant/20">
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Cadre Coordinateur Référent *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formContactName}
+                    onChange={(e) => setFormContactName(e.target.value)}
+                    placeholder="Marie-Paule Valaire"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1">Téléphone direct régulation *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={formContactPhone}
+                    onChange={(e) => setFormContactPhone(e.target.value)}
+                    placeholder="0596 55 20 00"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1">Email de liaison *</label>
+                <input
+                  type="email"
+                  required
+                  value={formContactEmail}
+                  onChange={(e) => setFormContactEmail(e.target.value)}
+                  placeholder="coordination.transports@chu-martinique.fr"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1">
+                  Services hospitaliers initiaux (séparés par des virgules) :
+                </label>
+                <input
+                  type="text"
+                  value={formDepartments}
+                  onChange={(e) => setFormDepartments(e.target.value)}
+                  placeholder="Cardiologie, Néphrologie, Oncologie, Chirurgie Ambulatoire..."
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+                <button
+                  type="button"
+                  onClick={() => { setIsCreateModalOpen(false); setEditingFacility(null); }}
+                  className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">save</span>
+                  <span>{editingFacility ? 'Mettre à jour' : 'Créer l\'établissement'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : RÉINITIALISATION DU MOT DE PASSE COORDINATEUR                    */}
+      {/* ========================================================================= */}
+      {passwordModalFacility && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="max-w-md w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4 my-8">
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center border border-amber-200">
+                  <span className="material-symbols-outlined text-xl">key</span>
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface">Accès Coordinateur Hospitalier</h3>
+                  <span className="text-[11px] text-on-surface-variant">
+                    {passwordModalFacility.name}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPasswordModalFacility(null)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmPasswordReset} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1">
+                  Nouveau mot de passe de connexion au portail soignant :
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={facilityPasswordValue}
+                    onChange={(e) => setFacilityPasswordValue(e.target.value)}
+                    className="flex-1 p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFacilityPasswordValue(`CH972-${Math.random().toString(36).slice(-5).toUpperCase()}!`)}
+                    className="px-3 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-xs cursor-pointer shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-base">autorenew</span>
+                  </button>
+                </div>
+              </div>
+
+              {passwordFeedback && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] space-y-1">
+                  <div className="font-bold flex items-center gap-1 text-emerald-800">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                    <span>Accès mis à jour avec succès !</span>
+                  </div>
+                  <div className="font-mono text-xs font-bold bg-white p-2 rounded-lg border border-emerald-200 select-all">
+                    {passwordFeedback}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-2 border-t border-outline-variant/20">
+                <button
+                  type="button"
+                  onClick={() => setPasswordModalFacility(null)}
+                  className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  Fermer
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">save</span>
+                  <span>Enregistrer le mot de passe</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 max-w-md bg-surface-container-lowest text-on-surface p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-3 border border-outline-variant/40 animate-fadeIn">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-base">check_circle</span>
+          </div>
+          <div className="flex-1 text-xs">
+            <div className="font-bold text-on-surface text-sm">{toastMessage.title}</div>
+            <p className="text-on-surface-variant mt-0.5 leading-relaxed">{toastMessage.desc}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="text-on-surface-variant hover:text-on-surface cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      )}
     </AdminLayout>
   );
 };

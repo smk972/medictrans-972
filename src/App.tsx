@@ -14,8 +14,11 @@ import { LoginPage } from './pages/LoginPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminSupervisionPage } from './pages/AdminSupervisionPage';
-import { AdminTransportersPage } from './pages/AdminTransportersPage';
+import { AdminClientsPage } from './pages/AdminClientsPage';
 import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage';
+import { AdminTransportersPage } from './pages/AdminTransportersPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function ScrollToTop() {
@@ -88,10 +91,10 @@ export const App: React.FC = () => {
             } 
           />
           <Route 
-            path="/admin/transporteurs" 
+            path="/admin/clients" 
             element={
               <ProtectedRoute requiredRole="ADMIN">
-                <AdminTransportersPage />
+                <AdminClientsPage />
               </ProtectedRoute>
             } 
           />
@@ -100,6 +103,30 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute requiredRole="ADMIN">
                 <AdminFacilitiesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/transporteurs" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminTransportersPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/utilisateurs" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminUsersPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/parametres" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSettingsPage />
               </ProtectedRoute>
             } 
           />

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
-import { rideService } from '../services/rideService';
+import { adminService } from '../services/adminService';
 import { Transporter } from '../types';
+import { MARTINIQUE_COMMUNES } from '../services/rideService';
 
 export const AdminTransportersPage: React.FC = () => {
   const [transporters, setTransporters] = useState<Transporter[]>([]);
@@ -11,16 +12,49 @@ export const AdminTransportersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
+  // Modals
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Create Form State
+  const [newTransporter, setNewTransporter] = useState({
+    companyName: '',
+    siret: '',
+    arsLicense: '',
+    cpamConventionNumber: '',
+    address: '',
+    city: 'Fort-de-France',
+    postalCode: '97200',
+    phone: '',
+    email: '',
+    fleetAmbulances: 2,
+    fleetVsl: 2,
+    fleetTaxis: 1,
+    zone: 'Ensemble du territoire martiniquais (34 communes)',
+    verified: true,
+    initialPassword: `AMB972-${Math.random().toString(36).slice(-5).toUpperCase()}!`
+  });
+
+  // Edit Form State
+  const [editForm, setEditForm] = useState<Transporter | null>(null);
+
+  // Password Reset State
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [passwordCopied, setPasswordCopied] = useState(false);
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await rideService.getAllTransporters();
+      const data = await adminService.getAllTransporters();
       setTransporters(data);
       if (data.length > 0 && !selectedTransporter) {
         setSelectedTransporter(data[0]);
       } else if (selectedTransporter) {
-        const refreshed = data.find(t => t.id === selectedTransporter.id);
+        const refreshed = data.find((t: Transporter) => t.id === selectedTransporter.id);
         if (refreshed) setSelectedTransporter(refreshed);
+        else if (data.length > 0) setSelectedTransporter(data[0]);
       }
     } catch (err) {
       console.error('Erreur chargement transporteurs:', err);
@@ -51,15 +85,145 @@ export const AdminTransportersPage: React.FC = () => {
   });
 
   const handleToggleVerification = async (transporter: Transporter) => {
-    const newVerified = !transporter.verified;
-    await rideService.updateTransporterVerification(transporter.id, newVerified);
-    setActionFeedback(
-      newVerified
-        ? `Agrément validé avec succès pour ${transporter.companyName}.`
-        : `Statut suspendu pour ${transporter.companyName}.`
-    );
-    await loadData();
-    setTimeout(() => setActionFeedback(null), 3000);
+    try {
+      const updated = await adminService.toggleTransporterVerification(transporter.id);
+      setActionFeedback(
+        updated.verified
+          ? `Agrément ARS validé et actif pour ${transporter.companyName}.`
+          : `Agrément suspendu pour ${transporter.companyName}.`
+      );
+      await loadData();
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors du changement de statut');
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setNewTransporter({
+      companyName: '',
+      siret: '',
+      arsLicense: `ARS-972-${Math.floor(1000 + Math.random() * 9000)}`,
+      cpamConventionNumber: `CPAM-972-${Math.floor(10000 + Math.random() * 90000)}`,
+      address: '',
+      city: 'Fort-de-France',
+      postalCode: '97200',
+      phone: '0596 ',
+      email: '',
+      fleetAmbulances: 2,
+      fleetVsl: 2,
+      fleetTaxis: 1,
+      zone: 'Ensemble du territoire martiniquais (34 communes)',
+      verified: true,
+      initialPassword: `AMB972-${Math.random().toString(36).slice(-5).toUpperCase()}!`
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleSaveCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTransporter.companyName.trim()) {
+      alert('Veuillez saisir la raison sociale de la société.');
+      return;
+    }
+    try {
+      const created = await adminService.createTransporter({
+        companyName: newTransporter.companyName.trim(),
+        siret: newTransporter.siret.trim() || `${Math.floor(100000000 + Math.random() * 900000000)}00018`,
+        arsLicense: newTransporter.arsLicense.trim(),
+        cpamConventionNumber: newTransporter.cpamConventionNumber.trim(),
+        address: newTransporter.address.trim() || 'Martinique',
+        city: newTransporter.city,
+        postalCode: newTransporter.postalCode,
+        phone: newTransporter.phone.trim() || '0596 00 00 00',
+        email: newTransporter.email.trim() || `dispatch@${newTransporter.companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.mq`,
+        fleetAmbulances: Number(newTransporter.fleetAmbulances) || 0,
+        fleetVsl: Number(newTransporter.fleetVsl) || 0,
+        fleetTaxis: Number(newTransporter.fleetTaxis) || 0,
+        verified: newTransporter.verified,
+        zone: newTransporter.zone,
+        complianceRate: 99,
+        avgApproachMinutes: 14
+      });
+
+      setShowCreateModal(false);
+      setActionFeedback(`Société ${created.companyName} ajoutée avec succès.`);
+      await loadData();
+      setSelectedTransporter(created);
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la création du transporteur');
+    }
+  };
+
+  const handleOpenEdit = () => {
+    if (!selectedTransporter) return;
+    setEditForm({ ...selectedTransporter });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm) return;
+    try {
+      const updated = await adminService.updateTransporter(editForm.id, {
+        companyName: editForm.companyName,
+        siret: editForm.siret,
+        arsLicense: editForm.arsLicense,
+        cpamConventionNumber: editForm.cpamConventionNumber,
+        address: editForm.address,
+        city: editForm.city,
+        postalCode: editForm.postalCode,
+        phone: editForm.phone,
+        email: editForm.email,
+        fleetAmbulances: Number(editForm.fleetAmbulances) || 0,
+        fleetVsl: Number(editForm.fleetVsl) || 0,
+        fleetTaxis: Number(editForm.fleetTaxis) || 0,
+        zone: editForm.zone
+      });
+
+      setShowEditModal(false);
+      setActionFeedback(`Fiche de ${updated.companyName} mise à jour avec succès.`);
+      await loadData();
+      setSelectedTransporter(updated);
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la modification');
+    }
+  };
+
+  const handleOpenPasswordReset = () => {
+    if (!selectedTransporter) return;
+    const newPass = `AMB972-${Math.random().toString(36).slice(-5).toUpperCase()}!`;
+    setGeneratedPassword(newPass);
+    setPasswordCopied(false);
+    setShowPasswordModal(true);
+  };
+
+  const handleConfirmPasswordReset = async () => {
+    if (!selectedTransporter) return;
+    try {
+      await adminService.resetTransporterPassword(selectedTransporter.id, generatedPassword);
+      setShowPasswordModal(false);
+      setActionFeedback(`Mot de passe réinitialisé pour ${selectedTransporter.companyName}.`);
+      setTimeout(() => setActionFeedback(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la réinitialisation');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedTransporter) return;
+    try {
+      await adminService.deleteTransporter(selectedTransporter.id);
+      setShowDeleteModal(false);
+      setActionFeedback(`Société ${selectedTransporter.companyName} supprimée.`);
+      setSelectedTransporter(null);
+      await loadData();
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la suppression');
+    }
   };
 
   // Fleet Totals
@@ -71,9 +235,16 @@ export const AdminTransportersPage: React.FC = () => {
   return (
     <AdminLayout
       title="Sociétés Conventionnées & Agréments"
-      subtitle="Gestion des entreprises de transport sanitaire agréées ARS Martinique et conventionnées CPAM"
+      subtitle="Gestion granulaire des entreprises de transport sanitaire agréées ARS Martinique et conventionnées CPAM"
       actions={
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">add</span>
+            <span>Nouveau Transporteur</span>
+          </button>
           <button
             onClick={loadData}
             className="p-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant transition-colors"
@@ -151,30 +322,30 @@ export const AdminTransportersPage: React.FC = () => {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setStatusFilter('ALL')}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                   statusFilter === 'ALL'
                     ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container text-on-surface-variant'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 Toutes ({transporters.length})
               </button>
               <button
                 onClick={() => setStatusFilter('VERIFIED')}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                   statusFilter === 'VERIFIED'
                     ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container text-on-surface-variant'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 Agréées ({transporters.filter(t => t.verified).length})
               </button>
               <button
                 onClick={() => setStatusFilter('PENDING')}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                   statusFilter === 'PENDING'
                     ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container text-on-surface-variant'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 En attente ({transporters.filter(t => !t.verified).length})
@@ -230,6 +401,11 @@ export const AdminTransportersPage: React.FC = () => {
                   </div>
                 );
               })}
+              {filteredTransporters.length === 0 && (
+                <div className="p-8 text-center text-xs text-on-surface-variant">
+                  Aucune société trouvée pour ce critère.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -241,7 +417,7 @@ export const AdminTransportersPage: React.FC = () => {
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-lg font-extrabold text-on-surface">
                       {selectedTransporter.companyName}
                     </h2>
@@ -256,35 +432,56 @@ export const AdminTransportersPage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-on-surface-variant mt-1">
-                    {selectedTransporter.address}, {selectedTransporter.city} • Tél : {selectedTransporter.phone}
+                    {selectedTransporter.address}, {selectedTransporter.city} ({selectedTransporter.postalCode}) • Tél : {selectedTransporter.phone} • Email : {selectedTransporter.email || 'dispatch@medictrans.mq'}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <button
                     onClick={() => handleToggleVerification(selectedTransporter)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
                       selectedTransporter.verified
                         ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                        : 'bg-primary text-on-primary hover:bg-primary-container'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700'
                     }`}
                   >
                     {selectedTransporter.verified ? 'Suspendre l\'Agrément' : 'Valider l\'Agrément ARS'}
+                  </button>
+                  <button
+                    onClick={handleOpenEdit}
+                    className="p-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest hover:bg-surface-container text-on-surface transition-colors cursor-pointer"
+                    title="Modifier la fiche"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                  </button>
+                  <button
+                    onClick={handleOpenPasswordReset}
+                    className="p-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest hover:bg-surface-container text-secondary transition-colors cursor-pointer"
+                    title="Réinitialiser le mot de passe dispatch"
+                  >
+                    <span className="material-symbols-outlined text-base">lock_reset</span>
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="p-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    title="Supprimer la société"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
                   </button>
                 </div>
               </div>
 
               {/* Administrative IDs */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20">
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20">
                   <span className="text-[10px] font-bold text-on-surface-variant uppercase block">Numéro SIRET</span>
                   <span className="font-mono text-xs font-bold text-on-surface">{selectedTransporter.siret}</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20">
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20">
                   <span className="text-[10px] font-bold text-on-surface-variant uppercase block">Agrément ARS Martinique</span>
                   <span className="font-mono text-xs font-bold text-primary">{selectedTransporter.arsLicense}</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20">
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20">
                   <span className="text-[10px] font-bold text-on-surface-variant uppercase block">Convention CPAM / CGSS</span>
                   <span className="font-mono text-xs font-bold text-secondary">{selectedTransporter.cpamConventionNumber}</span>
                 </div>
@@ -367,6 +564,469 @@ export const AdminTransportersPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* CREATE MODAL */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-2xl w-full p-6 border border-outline-variant/40 shadow-xl space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">add_business</span>
+                <h3 className="text-base font-extrabold text-on-surface">Nouvelle Société de Transport Sanitaire</h3>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-on-surface-variant hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCreate} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Raison Sociale *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTransporter.companyName}
+                    onChange={e => setNewTransporter({ ...newTransporter, companyName: e.target.value })}
+                    placeholder="Ex: Ambulances Madinina Secours"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Numéro SIRET *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTransporter.siret}
+                    onChange={e => setNewTransporter({ ...newTransporter, siret: e.target.value })}
+                    placeholder="14 chiffres (ex: 80123456700018)"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">N° Agrément ARS Martinique *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTransporter.arsLicense}
+                    onChange={e => setNewTransporter({ ...newTransporter, arsLicense: e.target.value })}
+                    placeholder="Ex: ARS-972-2024-08"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">N° Convention CPAM / CGSS *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newTransporter.cpamConventionNumber}
+                    onChange={e => setNewTransporter({ ...newTransporter, cpamConventionNumber: e.target.value })}
+                    placeholder="Ex: CPAM-972-CONV-019"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Commune d'Attache *</label>
+                  <select
+                    value={newTransporter.city}
+                    onChange={e => setNewTransporter({ ...newTransporter, city: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  >
+                    {MARTINIQUE_COMMUNES.map(commune => (
+                      <option key={commune} value={commune}>{commune}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Adresse du Dépôt / Siège</label>
+                  <input
+                    type="text"
+                    value={newTransporter.address}
+                    onChange={e => setNewTransporter({ ...newTransporter, address: e.target.value })}
+                    placeholder="Ex: ZI Petit Manoir"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Téléphone Dispatch / Régulation *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={newTransporter.phone}
+                    onChange={e => setNewTransporter({ ...newTransporter, phone: e.target.value })}
+                    placeholder="0596 00 00 00"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Email du Dispatch</label>
+                  <input
+                    type="email"
+                    value={newTransporter.email}
+                    onChange={e => setNewTransporter({ ...newTransporter, email: e.target.value })}
+                    placeholder="dispatch@societe.mq"
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Composition Flotte */}
+              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-2">
+                <label className="font-bold text-on-surface block">Composition initiale du parc de véhicules</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-[11px] text-on-surface-variant font-semibold">Ambulances A/B</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newTransporter.fleetAmbulances}
+                      onChange={e => setNewTransporter({ ...newTransporter, fleetAmbulances: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono text-center outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-on-surface-variant font-semibold">VSL Médicalisés</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newTransporter.fleetVsl}
+                      onChange={e => setNewTransporter({ ...newTransporter, fleetVsl: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono text-center outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-on-surface-variant font-semibold">Taxis Conventionnés</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newTransporter.fleetTaxis}
+                      onChange={e => setNewTransporter({ ...newTransporter, fleetTaxis: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono text-center outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mot de passe initial */}
+              <div className="space-y-1">
+                <label className="font-bold text-on-surface">Mot de passe provisoire du compte dispatch</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newTransporter.initialPassword}
+                    onChange={e => setNewTransporter({ ...newTransporter, initialPassword: e.target.value })}
+                    className="flex-1 p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest font-mono text-xs focus:border-primary outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setNewTransporter({ ...newTransporter, initialPassword: `AMB972-${Math.random().toString(36).slice(-5).toUpperCase()}!` })}
+                    className="px-3 py-2.5 rounded-xl border border-outline-variant/40 bg-surface-container text-xs font-bold hover:bg-surface-container-high transition-colors"
+                  >
+                    Régénérer
+                  </button>
+                </div>
+                <p className="text-[10px] text-on-surface-variant">Ce mot de passe servira au dispatching du transporteur pour se connecter à l'espace transporteur.</p>
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 rounded-xl border border-outline-variant/40 text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-xs hover:bg-primary/90 transition-colors"
+                >
+                  Créer la Fiche Transporteur
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && editForm && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-2xl w-full p-6 border border-outline-variant/40 shadow-xl space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-xl">edit</span>
+                <h3 className="text-base font-extrabold text-on-surface">Modifier la Fiche Transporteur</h3>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-on-surface-variant hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Raison Sociale</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.companyName}
+                    onChange={e => setEditForm({ ...editForm, companyName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Numéro SIRET</label>
+                  <input
+                    type="text"
+                    value={editForm.siret}
+                    onChange={e => setEditForm({ ...editForm, siret: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">N° Agrément ARS Martinique</label>
+                  <input
+                    type="text"
+                    value={editForm.arsLicense}
+                    onChange={e => setEditForm({ ...editForm, arsLicense: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">N° Convention CPAM / CGSS</label>
+                  <input
+                    type="text"
+                    value={editForm.cpamConventionNumber}
+                    onChange={e => setEditForm({ ...editForm, cpamConventionNumber: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Commune</label>
+                  <select
+                    value={editForm.city}
+                    onChange={e => setEditForm({ ...editForm, city: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  >
+                    {MARTINIQUE_COMMUNES.map(commune => (
+                      <option key={commune} value={commune}>{commune}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Adresse du Siège</label>
+                  <input
+                    type="text"
+                    value={editForm.address}
+                    onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Téléphone Dispatch</label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-on-surface">Email de Notification</label>
+                  <input
+                    type="email"
+                    value={editForm.email || ''}
+                    onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Composition Flotte */}
+              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-2">
+                <label className="font-bold text-on-surface block">Parc de véhicules conventionnés</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-[11px] text-on-surface-variant font-semibold">Ambulances A/B</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.fleetAmbulances || 0}
+                      onChange={e => setEditForm({ ...editForm, fleetAmbulances: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono text-center outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-on-surface-variant font-semibold">VSL Médicalisés</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.fleetVsl || 0}
+                      onChange={e => setEditForm({ ...editForm, fleetVsl: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono text-center outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-on-surface-variant font-semibold">Taxis Conventionnés</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.fleetTaxis || 0}
+                      onChange={e => setEditForm({ ...editForm, fleetTaxis: parseInt(e.target.value) || 0 })}
+                      className="w-full p-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs font-mono text-center outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-on-surface">Bassin Territorial / Zone de rayonnement</label>
+                <input
+                  type="text"
+                  value={editForm.zone || ''}
+                  onChange={e => setEditForm({ ...editForm, zone: e.target.value })}
+                  placeholder="Ex: Bassin Sud (Marin, Rivière-Pilote, Sainte-Luce, Le Diamant) & CHU"
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs focus:border-primary outline-none"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 rounded-xl border border-outline-variant/40 text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-xs hover:bg-primary/90 transition-colors"
+                >
+                  Enregistrer les Modifications
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PASSWORD RESET MODAL */}
+      {showPasswordModal && selectedTransporter && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-md w-full p-6 border border-outline-variant/40 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 text-secondary">
+              <span className="material-symbols-outlined text-2xl">lock_reset</span>
+              <h3 className="text-base font-extrabold text-on-surface">Réinitialiser Mot de Passe Dispatch</h3>
+            </div>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Générer un mot de passe sécurisé pour l'accès dispatch de la société <strong className="text-on-surface">{selectedTransporter.companyName}</strong>.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-on-surface">Nouveau mot de passe généré :</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={generatedPassword}
+                  onChange={e => setGeneratedPassword(e.target.value)}
+                  className="flex-1 p-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest font-mono text-xs font-bold text-primary outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPassword);
+                    setPasswordCopied(true);
+                    setTimeout(() => setPasswordCopied(false), 2000);
+                  }}
+                  className="px-3 py-2.5 rounded-xl border border-outline-variant/40 bg-surface-container text-xs font-bold hover:bg-surface-container-high transition-colors"
+                >
+                  {passwordCopied ? 'Copié !' : 'Copier'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGeneratedPassword(`AMB972-${Math.random().toString(36).slice(-5).toUpperCase()}!`)}
+                className="text-[11px] font-bold text-primary hover:underline"
+              >
+                Générer un autre mot de passe
+              </button>
+            </div>
+
+            <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 rounded-xl border border-outline-variant/40 text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPasswordReset}
+                className="px-5 py-2 rounded-xl bg-secondary text-on-secondary text-xs font-bold shadow-xs hover:bg-secondary/90 transition-colors"
+              >
+                Valider la Réinitialisation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE MODAL */}
+      {showDeleteModal && selectedTransporter && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-md w-full p-6 border border-rose-200 shadow-xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <span className="material-symbols-outlined text-2xl">warning</span>
+              <h3 className="text-base font-extrabold text-on-surface">Supprimer le transporteur</h3>
+            </div>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer définitivement la société <strong className="text-on-surface">{selectedTransporter.companyName}</strong> (SIRET: {selectedTransporter.siret}) ?
+              Cette action retirera cette entreprise des propositions de dispatching territorial.
+            </p>
+            <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-outline-variant/40 text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-xs hover:bg-rose-700 transition-colors"
+              >
+                Confirmer la Suppression
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

@@ -110,6 +110,7 @@ export interface Transporter {
   email: string;
   address: string;
   city: string;
+  postalCode?: string;
   fleetAmbulances: number;
   fleetVsl: number;
   fleetTaxis: number;
@@ -163,3 +164,52 @@ export interface AuthState {
   isLoading: boolean;
   error: string | null;
 }
+
+export interface ClientRecord {
+  id: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  nir: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  isAld: boolean;
+  aldReason?: string;
+  hasPmt: boolean;
+  pmtPrescriberDoctor?: string;
+  mobility: MobilityNeeds;
+  status: 'ACTIVE' | 'SUSPENDED';
+  createdAt: string;
+  updatedAt?: string;
+  notes?: string;
+  password?: string;
+  temporaryPassword?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  adminEmail: string;
+  action: string;
+  targetType: 'CLIENT' | 'FACILITY' | 'TRANSPORTER' | 'USER' | 'RIDE' | 'SETTINGS';
+  targetId?: string;
+  details: string;
+}
+
+export interface SystemSettings {
+  bannerActive: boolean;
+  bannerLevel: 'INFO' | 'WARNING' | 'CRITICAL';
+  bannerText: string;
+  cancellationThresholdHours: number;
+  defaultDispatchRadiusKm: number;
+  cpamBaseForfaitAmbulance: number;
+  cpamBaseForfaitVsl: number;
+  cpamRatePerKm: number;
+  cpamNightSundaySurchargePercent: number;
+  lastUpdatedBy?: string;
+  lastUpdatedAt?: string;
+}
+
