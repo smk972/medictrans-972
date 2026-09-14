@@ -81,9 +81,6 @@ export const Header: React.FC = () => {
           <NavLink to="/suivi" className={navLinkClass}>
             Mes Demandes
           </NavLink>
-          <NavLink to="/droits-cpam" className={navLinkClass}>
-            Droits CPAM
-          </NavLink>
           <NavLink to="/etablissements" className={navLinkClass}>
             Portail Établissements
           </NavLink>
@@ -347,13 +344,6 @@ export const Header: React.FC = () => {
               className="px-4 py-2.5 rounded-lg font-label-md text-on-surface hover:bg-surface-container transition-colors"
             >
               Mes Demandes & Trajets
-            </Link>
-            <Link
-              to="/droits-cpam"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-lg font-label-md text-on-surface hover:bg-surface-container transition-colors"
-            >
-              Droits CPAM & Remboursement
             </Link>
             <Link
               to="/etablissements"
