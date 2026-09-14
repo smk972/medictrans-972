@@ -106,19 +106,19 @@ export const HomePage: React.FC = () => {
                   Service conçu pour les patients, proches aidants et équipes soignantes.
                 </p>
 
-                {/* Quick island metrics counter bar */}
+                {/* Quick metrics counter bar */}
                 <div className="flex items-center flex-wrap justify-center gap-space-lg mt-space-md text-on-surface-variant font-label-md text-label-md">
                   <div className="flex items-center gap-space-xs">
                     <span className="material-symbols-outlined text-secondary">verified_user</span>
-                    <span>85+ Transporteurs Certifiés</span>
+                    <span>Des transporteurs certifiés en France et DOM</span>
                   </div>
                   <div className="flex items-center gap-space-xs">
                     <span className="material-symbols-outlined text-primary">local_hospital</span>
-                    <span>Tous Établissements 972</span>
+                    <span>Tous Établissements de santé</span>
                   </div>
                   <div className="flex items-center gap-space-xs">
                     <span className="material-symbols-outlined text-secondary">schedule</span>
-                    <span>Régulation 24h/24 &amp; 7j/7</span>
+                    <span>Disponible 24h/24 &amp; 7j/7</span>
                   </div>
                 </div>
               </div>
