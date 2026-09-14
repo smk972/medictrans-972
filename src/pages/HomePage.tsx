@@ -124,8 +124,8 @@ export const HomePage: React.FC = () => {
               </div>
 
               {/* Main Express Reservation Bento Card */}
-              <div className="w-full max-w-4xl mx-auto bg-surface-container-lowest rounded-2xl shadow-xl p-space-md md:p-space-xl border border-outline-variant/30">
-                <div className="flex items-center justify-between pb-space-md mb-space-md bg-surface-container-low -mx-space-md md:-mx-space-xl -mt-space-md md:-mt-space-xl px-space-md md:px-space-xl pt-space-md md:pt-space-md rounded-t-2xl border-b border-outline-variant/30">
+              <div className="w-full max-w-4xl mx-auto bg-surface-container-lowest rounded-3xl shadow-silky-xl p-space-md md:p-space-xl border border-slate-200/80 transition-shadow duration-300">
+                <div className="flex items-center justify-between pb-space-md mb-space-md bg-surface-container-low -mx-space-md md:-mx-space-xl -mt-space-md md:-mt-space-xl px-space-md md:px-space-xl pt-space-md md:pt-space-md rounded-t-3xl border-b border-slate-200/60">
                   <div className="flex items-center gap-space-sm">
                     <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm">
                       <span className="material-symbols-outlined">speed</span>
@@ -160,10 +160,10 @@ export const HomePage: React.FC = () => {
                       {/* Option 1: Taxi conventionné */}
                       <div
                         onClick={() => setTransportType('taxi')}
-                        className={`transport-option-card relative cursor-pointer p-space-md rounded-xl transition-all duration-200 border-2 ${
+                        className={`transport-option-card relative cursor-pointer p-space-md rounded-2xl transition-all duration-300 ease-out border-2 ${
                           transportType === 'taxi'
-                            ? 'bg-surface-container-low border-primary shadow-md ring-2 ring-primary/20'
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline hover:shadow-sm'
+                            ? 'bg-surface-container-low/70 border-primary shadow-silky-md ring-2 ring-primary/20 -translate-y-1'
+                            : 'bg-surface-container-lowest border-slate-200/80 shadow-silky-sm hover:-translate-y-1.5 hover:shadow-silky-hover hover:border-primary/50'
                         }`}
                       >
                         {transportType === 'taxi' && (
@@ -189,10 +189,10 @@ export const HomePage: React.FC = () => {
                       {/* Option 2: VSL */}
                       <div
                         onClick={() => setTransportType('vsl')}
-                        className={`transport-option-card relative cursor-pointer p-space-md rounded-xl transition-all duration-200 border-2 ${
+                        className={`transport-option-card relative cursor-pointer p-space-md rounded-2xl transition-all duration-300 ease-out border-2 ${
                           transportType === 'vsl'
-                            ? 'bg-surface-container-low border-secondary shadow-md ring-2 ring-secondary/20'
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline hover:shadow-sm'
+                            ? 'bg-surface-container-low/70 border-secondary shadow-silky-md ring-2 ring-secondary/20 -translate-y-1'
+                            : 'bg-surface-container-lowest border-slate-200/80 shadow-silky-sm hover:-translate-y-1.5 hover:shadow-silky-hover hover:border-secondary/50'
                         }`}
                       >
                         {transportType === 'vsl' && (
@@ -218,10 +218,10 @@ export const HomePage: React.FC = () => {
                       {/* Option 3: Ambulance */}
                       <div
                         onClick={() => setTransportType('ambulance')}
-                        className={`transport-option-card relative cursor-pointer p-space-md rounded-xl transition-all duration-200 border-2 ${
+                        className={`transport-option-card relative cursor-pointer p-space-md rounded-2xl transition-all duration-300 ease-out border-2 ${
                           transportType === 'ambulance'
-                            ? 'bg-surface-container-low border-error shadow-md ring-2 ring-error/20'
-                            : 'bg-surface-container-lowest border-outline-variant/30 hover:border-outline hover:shadow-sm'
+                            ? 'bg-surface-container-low/70 border-error shadow-silky-md ring-2 ring-error/20 -translate-y-1'
+                            : 'bg-surface-container-lowest border-slate-200/80 shadow-silky-sm hover:-translate-y-1.5 hover:shadow-silky-hover hover:border-error/50'
                         }`}
                       >
                         {transportType === 'ambulance' && (
@@ -343,21 +343,21 @@ export const HomePage: React.FC = () => {
                     </div>
 
                     {/* Aller simple vs Aller & Retour */}
-                    <div className="mt-space-md bg-surface-container-low rounded-xl p-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md border border-outline-variant/30">
+                    <div className="mt-space-md bg-surface-container-low/80 rounded-2xl p-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md border border-slate-200/70 shadow-silky-xs">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-space-md">
                         <span className="font-label-md text-label-md text-on-surface whitespace-nowrap font-semibold">
                           Type de parcours :
                         </span>
                         <div
-                          className="inline-flex items-center p-1 bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant/30 gap-1"
+                          className="inline-flex items-center p-1 bg-surface-container-lowest rounded-xl shadow-silky-xs border border-slate-200/80 gap-1"
                           role="radiogroup"
                         >
                           <button
                             type="button"
                             onClick={() => setTripType('aller-simple')}
-                            className={`px-3 py-1.5 rounded font-label-md text-label-md transition-colors ${
+                            className={`px-4 py-2 rounded-lg font-label-md text-label-md transition-all duration-200 ${
                               tripType === 'aller-simple'
-                                ? 'bg-primary text-on-primary font-bold'
+                                ? 'bg-primary text-on-primary font-bold shadow-sm'
                                 : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                             }`}
                           >
@@ -366,9 +366,9 @@ export const HomePage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setTripType('aller-retour')}
-                            className={`px-3 py-1.5 rounded font-label-md text-label-md transition-colors ${
+                            className={`px-4 py-2 rounded-lg font-label-md text-label-md transition-all duration-200 ${
                               tripType === 'aller-retour'
-                                ? 'bg-primary text-on-primary font-bold'
+                                ? 'bg-primary text-on-primary font-bold shadow-sm'
                                 : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                             }`}
                           >
@@ -377,7 +377,7 @@ export const HomePage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 text-secondary bg-surface-container-lowest px-3 py-2 rounded-lg shadow-sm shrink-0 border border-outline-variant/30 w-fit">
+                      <div className="flex items-center gap-2 text-secondary bg-surface-container-lowest px-3.5 py-2 rounded-xl shadow-silky-xs shrink-0 border border-slate-200/80 w-fit">
                         <span className="material-symbols-outlined text-xl">description</span>
                         <span className="font-label-sm text-label-sm font-bold">
                           PMT Obligatoire pour Tiers Payant
@@ -394,7 +394,7 @@ export const HomePage: React.FC = () => {
                     </div>
 
                     <button
-                      className="w-full sm:w-auto px-8 h-14 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-space-sm shrink-0 hover:scale-[1.02] active:scale-[0.99]"
+                      className="w-full sm:w-auto px-8 h-14 rounded-2xl bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-silky-md hover:shadow-silky-hover transition-all duration-300 flex items-center justify-center gap-space-sm shrink-0 hover:-translate-y-0.5 active:translate-y-0"
                       type="submit"
                     >
                       <span>Continuer ma réservation</span>
@@ -407,11 +407,11 @@ export const HomePage: React.FC = () => {
           </section>
 
           {/* Value propositions banner */}
-          <section className="w-full bg-surface-container py-space-lg border-y border-outline-variant/20">
+          <section className="w-full bg-surface-container/60 py-space-lg border-y border-slate-200/50">
             <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
-                <div className="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/20">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="flex items-start gap-space-sm p-4 bg-surface-container-lowest rounded-2xl shadow-silky border border-slate-200/70 hover:-translate-y-1 hover:shadow-silky-hover hover:border-slate-300 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <span className="material-symbols-outlined">health_and_safety</span>
                   </div>
                   <div>
@@ -424,8 +424,8 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/20">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+                <div className="flex items-start gap-space-sm p-4 bg-surface-container-lowest rounded-2xl shadow-silky border border-slate-200/70 hover:-translate-y-1 hover:shadow-silky-hover hover:border-slate-300 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
                     <span className="material-symbols-outlined">verified</span>
                   </div>
                   <div>
@@ -438,8 +438,8 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/20">
-                  <div className="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container shrink-0">
+                <div className="flex items-start gap-space-sm p-4 bg-surface-container-lowest rounded-2xl shadow-silky border border-slate-200/70 hover:-translate-y-1 hover:shadow-silky-hover hover:border-slate-300 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary-container shrink-0">
                     <span className="material-symbols-outlined">local_shipping</span>
                   </div>
                   <div>
@@ -452,8 +452,8 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-space-sm p-space-sm bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/20">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+                <div className="flex items-start gap-space-sm p-4 bg-surface-container-lowest rounded-2xl shadow-silky border border-slate-200/70 hover:-translate-y-1 hover:shadow-silky-hover hover:border-slate-300 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
                     <span className="material-symbols-outlined">support_agent</span>
                   </div>
                   <div>
@@ -487,13 +487,13 @@ export const HomePage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-space-xl relative">
                 {/* Step 1 */}
-                <div className="relative bg-surface-container-low rounded-2xl p-space-lg flex flex-col shadow-sm border border-outline-variant/30 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-full bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-md font-bold">
+                <div className="group relative bg-surface-container-lowest rounded-3xl p-space-lg flex flex-col shadow-silky border border-slate-200/70 hover:-translate-y-2 hover:shadow-silky-hover hover:border-primary/40 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-silky-sm font-bold">
                     1
                   </div>
-                  <div className="h-48 rounded-xl overflow-hidden mb-space-md bg-surface-container shadow-inner">
+                  <div className="h-48 rounded-2xl overflow-hidden mb-space-md bg-surface-container shadow-inner">
                     <img
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       alt="Prescription Médicale de Transport"
                       src="/assets/step1_prescription.jpg"
                     />
@@ -508,13 +508,13 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Step 2 */}
-                <div className="relative bg-surface-container-low rounded-2xl p-space-lg flex flex-col shadow-sm border border-outline-variant/30 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-full bg-secondary text-on-secondary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-md font-bold">
+                <div className="group relative bg-surface-container-lowest rounded-3xl p-space-lg flex flex-col shadow-silky border border-slate-200/70 hover:-translate-y-2 hover:shadow-silky-hover hover:border-secondary/40 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-secondary text-on-secondary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-silky-sm font-bold">
                     2
                   </div>
-                  <div className="h-48 rounded-xl overflow-hidden mb-space-md bg-surface-container shadow-inner">
+                  <div className="h-48 rounded-2xl overflow-hidden mb-space-md bg-surface-container shadow-inner">
                     <img
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       alt="Centre de régulation des transports en Martinique"
                       src="/assets/step2_dispatch.jpg"
                     />
@@ -529,13 +529,13 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Step 3 */}
-                <div className="relative bg-surface-container-low rounded-2xl p-space-lg flex flex-col shadow-sm border border-outline-variant/30 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-full bg-tertiary text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-md font-bold">
+                <div className="group relative bg-surface-container-lowest rounded-3xl p-space-lg flex flex-col shadow-silky border border-slate-200/70 hover:-translate-y-2 hover:shadow-silky-hover hover:border-tertiary/40 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-tertiary text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center mb-space-md shadow-silky-sm font-bold">
                     3
                   </div>
-                  <div className="h-48 rounded-xl overflow-hidden mb-space-md bg-surface-container shadow-inner">
+                  <div className="h-48 rounded-2xl overflow-hidden mb-space-md bg-surface-container shadow-inner">
                     <img
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       alt="Ambulancier accueillant un patient en Martinique"
                       src="/assets/step3_care.jpg"
                     />
@@ -574,7 +574,7 @@ export const HomePage: React.FC = () => {
                     même dans les communes du Nord montagneux ou les zones isolées du Sud.
                   </p>
                   <div className="grid grid-cols-2 gap-space-sm mt-space-sm">
-                    <div className="bg-surface-container-lowest p-space-sm rounded-xl shadow-xs border border-outline-variant/30">
+                    <div className="bg-surface-container-lowest p-space-sm rounded-2xl shadow-silky border border-slate-200/70 hover:-translate-y-1 hover:shadow-silky-md transition-all duration-300">
                       <span className="font-headline-md text-headline-md text-primary block font-bold text-2xl">
                         34
                       </span>
@@ -582,7 +582,7 @@ export const HomePage: React.FC = () => {
                         Communes de Martinique desservies
                       </span>
                     </div>
-                    <div className="bg-surface-container-lowest p-space-sm rounded-xl shadow-xs border border-outline-variant/30">
+                    <div className="bg-surface-container-lowest p-space-sm rounded-2xl shadow-silky border border-slate-200/70 hover:-translate-y-1 hover:shadow-silky-md transition-all duration-300">
                       <span className="font-headline-md text-headline-md text-secondary block font-bold text-2xl">
                         &lt; 15 min
                       </span>
@@ -603,7 +603,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <div className="lg:col-span-7 relative">
-                  <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-lg relative border border-outline-variant/30">
+                  <div className="w-full h-[400px] rounded-3xl overflow-hidden shadow-silky-lg hover:shadow-silky-xl transition-shadow duration-300 relative border border-slate-200/80">
                     <GoogleMapView mode="fleet" height="100%" />
                   </div>
                 </div>
@@ -630,7 +630,7 @@ export const HomePage: React.FC = () => {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-space-md mt-space-sm">
-                    <div className="bg-primary-container/40 p-space-sm rounded-xl backdrop-blur-sm border border-white/10">
+                    <div className="bg-primary-container/40 p-space-sm rounded-2xl backdrop-blur-sm border border-white/10 hover:-translate-y-1 hover:bg-primary-container/60 hover:shadow-silky-hover transition-all duration-300">
                       <span className="material-symbols-outlined text-secondary-fixed text-2xl mb-1">
                         domain_verification
                       </span>
@@ -642,7 +642,7 @@ export const HomePage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="bg-primary-container/40 p-space-sm rounded-xl backdrop-blur-sm border border-white/10">
+                    <div className="bg-primary-container/40 p-space-sm rounded-2xl backdrop-blur-sm border border-white/10 hover:-translate-y-1 hover:bg-primary-container/60 hover:shadow-silky-hover transition-all duration-300">
                       <span className="material-symbols-outlined text-secondary-fixed text-2xl mb-1">
                         alarm_on
                       </span>
@@ -654,7 +654,7 @@ export const HomePage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="bg-primary-container/40 p-space-sm rounded-xl backdrop-blur-sm border border-white/10">
+                    <div className="bg-primary-container/40 p-space-sm rounded-2xl backdrop-blur-sm border border-white/10 hover:-translate-y-1 hover:bg-primary-container/60 hover:shadow-silky-hover transition-all duration-300">
                       <div className="flex items-center justify-between mb-1">
                         <span className="material-symbols-outlined text-secondary-fixed text-2xl">
                           security
@@ -674,7 +674,7 @@ export const HomePage: React.FC = () => {
 
                   <div className="flex flex-wrap items-center gap-space-md mt-space-sm">
                     <Link
-                      className="px-6 h-12 rounded-xl bg-surface-container-lowest text-primary font-label-md text-label-md font-bold hover:bg-surface-container-high transition-colors flex items-center gap-2 shadow-sm"
+                      className="px-6 h-12 rounded-xl bg-surface-container-lowest text-primary font-label-md text-label-md font-bold hover:bg-surface-container-high shadow-silky-xs hover:shadow-silky-sm hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
                       to="/etablissements"
                     >
                       <span className="material-symbols-outlined">login</span>
@@ -690,7 +690,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <div className="lg:col-span-5">
-                  <div className="bg-surface-container-lowest text-on-surface p-space-lg rounded-2xl shadow-xl flex flex-col gap-space-md border border-outline-variant/30">
+                  <div className="bg-surface-container-lowest text-on-surface p-space-lg rounded-3xl shadow-silky-xl hover:-translate-y-1 hover:shadow-silky-hover transition-all duration-300 flex flex-col gap-space-md border border-slate-200/80">
                     <div className="flex items-center gap-space-sm">
                       <img
                         className="w-14 h-14 rounded-full object-cover shadow-sm ring-2 ring-primary/20"
@@ -711,7 +711,7 @@ export const HomePage: React.FC = () => {
                       patientent plus des heures dans les couloirs du centre, et notre équipe consacre
                       son temps aux soins plutôt qu'aux recherches d'ambulances.”
                     </p>
-                    <div className="flex items-center justify-between pt-space-sm bg-surface-container-low rounded-xl p-3 border border-outline-variant/20">
+                    <div className="flex items-center justify-between pt-space-sm bg-surface-container-low rounded-2xl p-3.5 border border-slate-200/60">
                       <div className="flex flex-col">
                         <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
                           Indice de satisfaction CHU
@@ -742,7 +742,7 @@ export const HomePage: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
                 {/* Review 1 */}
-                <div className="bg-surface-container-lowest p-space-lg rounded-2xl shadow-xs border border-outline-variant/30 flex flex-col justify-between hover:shadow-sm transition-shadow">
+                <div className="bg-surface-container-lowest p-space-lg rounded-3xl shadow-silky border border-slate-200/70 flex flex-col justify-between hover:-translate-y-2 hover:shadow-silky-hover hover:border-primary/40 transition-all duration-300">
                   <div className="flex flex-col gap-space-sm">
                     <div className="flex items-center gap-1 text-secondary">
                       {[...Array(5)].map((_, i) => (
@@ -757,7 +757,7 @@ export const HomePage: React.FC = () => {
                       l'aident jusqu'à la porte du cabinet.”
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 mt-space-md pt-space-sm border-t border-outline-variant/20">
+                  <div className="flex items-center gap-3 mt-space-md pt-space-sm border-t border-slate-200/60">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">
                       JL
                     </div>
@@ -773,7 +773,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Review 2 */}
-                <div className="bg-surface-container-lowest p-space-lg rounded-2xl shadow-xs border border-outline-variant/30 flex flex-col justify-between hover:shadow-sm transition-shadow">
+                <div className="bg-surface-container-lowest p-space-lg rounded-3xl shadow-silky border border-slate-200/70 flex flex-col justify-between hover:-translate-y-2 hover:shadow-silky-hover hover:border-secondary/40 transition-all duration-300">
                   <div className="flex flex-col gap-space-sm">
                     <div className="flex items-center gap-1 text-secondary">
                       {[...Array(5)].map((_, i) => (
@@ -788,7 +788,7 @@ export const HomePage: React.FC = () => {
                       brancardage impeccable au troisième étage sans ascenseur.”
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 mt-space-md pt-space-sm border-t border-outline-variant/20">
+                  <div className="flex items-center gap-3 mt-space-md pt-space-sm border-t border-slate-200/60">
                     <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-bold text-secondary text-sm">
                       MV
                     </div>
@@ -804,7 +804,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Review 3 */}
-                <div className="bg-surface-container-lowest p-space-lg rounded-2xl shadow-xs border border-outline-variant/30 flex flex-col justify-between hover:shadow-sm transition-shadow">
+                <div className="bg-surface-container-lowest p-space-lg rounded-3xl shadow-silky border border-slate-200/70 flex flex-col justify-between hover:-translate-y-2 hover:shadow-silky-hover hover:border-tertiary/40 transition-all duration-300">
                   <div className="flex flex-col gap-space-sm">
                     <div className="flex items-center gap-1 text-secondary">
                       {[...Array(5)].map((_, i) => (
@@ -819,7 +819,7 @@ export const HomePage: React.FC = () => {
                       inutile. Tout est clair et réglé en tiers-payant.”
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 mt-space-md pt-space-sm border-t border-outline-variant/20">
+                  <div className="flex items-center gap-3 mt-space-md pt-space-sm border-t border-slate-200/60">
                     <div className="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center font-bold text-tertiary text-sm">
                       PT
                     </div>
@@ -840,9 +840,9 @@ export const HomePage: React.FC = () => {
           {/* Emergency CTA Banner */}
           <section className="w-full bg-surface-container-lowest py-space-xl">
             <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg">
-              <div className="bg-gradient-to-r from-surface-container-low to-surface-container p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-space-lg border border-outline-variant/30">
+              <div className="bg-gradient-to-r from-surface-container-low to-surface-container p-space-lg md:p-space-xl rounded-3xl shadow-silky-md hover:shadow-silky-lg transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-space-lg border border-slate-200/80">
                 <div className="flex items-center gap-space-md">
-                  <div className="w-14 h-14 rounded-2xl bg-error text-on-error flex items-center justify-center shrink-0 shadow-md">
+                  <div className="w-14 h-14 rounded-2xl bg-error text-on-error flex items-center justify-center shrink-0 shadow-silky-md">
                     <span className="material-symbols-outlined text-3xl">phone_in_talk</span>
                   </div>
                   <div>
@@ -858,14 +858,14 @@ export const HomePage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row items-center gap-space-sm shrink-0 w-full md:w-auto">
                   <a
-                    className="w-full sm:w-auto px-6 h-12 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm transition-all font-bold"
+                    className="w-full sm:w-auto px-6 h-12 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 shadow-silky-xs hover:shadow-silky-sm hover:-translate-y-0.5 transition-all font-bold"
                     href="tel:0596720097"
                   >
                     <span className="material-symbols-outlined">call</span>
                     <span>05 96 72 00 97</span>
                   </a>
                   <a
-                    className="w-full sm:w-auto px-6 h-12 rounded-xl bg-error hover:bg-error/90 text-on-error font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm transition-all font-bold"
+                    className="w-full sm:w-auto px-6 h-12 rounded-xl bg-error hover:bg-error/90 text-on-error font-label-md text-label-md flex items-center justify-center gap-2 shadow-silky-xs hover:shadow-silky-sm hover:-translate-y-0.5 transition-all font-bold"
                     href="tel:15"
                   >
                     <span className="material-symbols-outlined">emergency</span>

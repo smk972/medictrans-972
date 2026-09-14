@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AiChatProvider } from './context/AiChatContext';
 import { AiChatWidget } from './components/AiChatWidget';
 import { HomePage } from './pages/HomePage';
+import { HomePagePreview } from './pages/HomePagePreview';
 import { BookingPage } from './pages/BookingPage';
 import { ConfirmationPage } from './pages/ConfirmationPage';
 import { TrackingPage } from './pages/TrackingPage';
@@ -39,6 +40,7 @@ export const App: React.FC = () => {
           <ScrollToTop />
           <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/preview" element={<HomePagePreview />} />
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />

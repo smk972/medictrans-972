@@ -103,6 +103,15 @@ export default {
         "headline-xl-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.01em", "fontWeight": "700" }],
         "headline-xl": ["2.25rem", { "lineHeight": "2.75rem", "letterSpacing": "-0.02em", "fontWeight": "700" }],
         "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" }]
+      },
+      boxShadow: {
+        "silky-xs": "0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 1px 2px -1px rgba(15, 23, 42, 0.02)",
+        "silky-sm": "0 2px 8px -1px rgba(15, 23, 42, 0.04), 0 1px 4px -1px rgba(15, 23, 42, 0.02)",
+        "silky": "0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02)",
+        "silky-md": "0 10px 25px -3px rgba(15, 23, 42, 0.05), 0 4px 10px -2px rgba(15, 23, 42, 0.025)",
+        "silky-lg": "0 16px 36px -4px rgba(15, 23, 42, 0.07), 0 6px 14px -3px rgba(15, 23, 42, 0.03)",
+        "silky-xl": "0 24px 48px -8px rgba(15, 23, 42, 0.09), 0 8px 20px -4px rgba(15, 23, 42, 0.035)",
+        "silky-hover": "0 20px 38px -6px rgba(15, 23, 42, 0.09), 0 8px 16px -3px rgba(15, 23, 42, 0.04)"
       }
     }
   },
