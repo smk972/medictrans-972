@@ -139,10 +139,6 @@ export const HomePage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-secondary bg-surface-container-lowest px-3 py-1.5 rounded-full border border-outline-variant/40">
-                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-                    Régulation Directe 972
-                  </div>
                 </div>
 
                 <form className="space-y-space-lg" onSubmit={handleFormSubmit}>
