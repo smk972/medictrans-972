@@ -280,6 +280,9 @@ export const INITIAL_RIDES: Ride[] = [
       needsEscort: true,
       notes: 'Consultation cardiologie de contrôle - Transport effectué avec succès'
     },
+    appointmentTime: '08:30',
+    transporterPickupTime: '07:35',
+    estimatedArrivalTime: '08:15',
     assignedTransporter: {
       companyName: 'Taxis Médicaux Sud Caraïbes',
       driverName: 'Jean-Luc Euphrasie',
@@ -303,6 +306,9 @@ export const INITIAL_RIDES: Ride[] = [
     transportType: 'VSL',
     status: 'ACCEPTED',
     source: 'PATIENT',
+    appointmentTime: '10:00',
+    transporterPickupTime: '09:05',
+    estimatedArrivalTime: '09:40',
     patient: {
       firstName: 'Christian',
       lastName: 'Marie-Luce',
@@ -430,6 +436,9 @@ export const INITIAL_RIDES: Ride[] = [
       needsEscort: false,
       notes: 'Séance de dialyse programmée à 14h30 - Patient autonome'
     },
+    appointmentTime: '14:30',
+    transporterPickupTime: '13:45',
+    estimatedArrivalTime: '14:15',
     assignedTransporter: {
       companyName: 'Ambulances Madinina Secours',
       driverName: 'Sébastien Larcher',
@@ -452,6 +461,7 @@ export const INITIAL_RIDES: Ride[] = [
     transportType: 'VSL',
     status: 'PENDING',
     source: 'PATIENT',
+    appointmentTime: '11:00',
     patient: {
       firstName: 'Dimitri',
       lastName: 'Kanor',
@@ -494,6 +504,7 @@ export const INITIAL_RIDES: Ride[] = [
     transportType: 'AMBULANCE',
     status: 'PENDING',
     source: 'PATIENT',
+    appointmentTime: '09:30',
     patient: {
       firstName: 'Marcel',
       lastName: 'Ventura',
@@ -534,6 +545,9 @@ export const INITIAL_RIDES: Ride[] = [
     transportType: 'VSL',
     status: 'ACCEPTED',
     source: 'FACILITY',
+    appointmentTime: '15:15',
+    transporterPickupTime: '14:20',
+    estimatedArrivalTime: '14:50',
     facilityDepartment: 'Chirurgie Orthopédique',
     facilityFloor: '2ème étage',
     facilityStaircase: 'Escalier B',
@@ -590,6 +604,9 @@ export const INITIAL_RIDES: Ride[] = [
     transportType: 'TAXI_CONVENTIONNE',
     status: 'PENDING',
     source: 'PATIENT',
+    appointmentTime: '09:45',
+    isRecurring: true,
+    recurringDates: [getFutureIso(2, 9, 0).slice(0, 10), getFutureIso(4, 9, 0).slice(0, 10), getFutureIso(7, 9, 0).slice(0, 10)],
     patient: {
       firstName: 'Gérard',
       lastName: 'Théodore',
@@ -819,7 +836,8 @@ export const rideService = {
   async updateRideStatus(
     reference: string, 
     status: RideStatus, 
-    assigned?: Ride['assignedTransporter']
+    assigned?: Ride['assignedTransporter'],
+    timingUpdates?: { transporterPickupTime?: string; estimatedArrivalTime?: string }
   ): Promise<Ride | null> {
     const rides = await this.getAllRides();
     const index = rides.findIndex(r => r.reference.toUpperCase() === reference.trim().toUpperCase());
@@ -830,6 +848,13 @@ export const rideService = {
       rides[index].assignedTransporter = assigned;
     } else if (status === 'PENDING') {
       delete rides[index].assignedTransporter;
+    }
+
+    if (timingUpdates?.transporterPickupTime) {
+      rides[index].transporterPickupTime = timingUpdates.transporterPickupTime;
+    }
+    if (timingUpdates?.estimatedArrivalTime) {
+      rides[index].estimatedArrivalTime = timingUpdates.estimatedArrivalTime;
     }
 
     if (isSupabaseConfigured() && supabase) {
@@ -1135,6 +1160,11 @@ export const rideService = {
         vehiclePlate: row.vehicle_plate || 'GH-972-MQ',
         etaMinutes: row.eta_minutes || 15
       } : undefined,
+      appointmentTime: row.appointment_time || undefined,
+      transporterPickupTime: row.transporter_pickup_time || undefined,
+      estimatedArrivalTime: row.estimated_arrival_time || undefined,
+      isRecurring: row.is_recurring || false,
+      recurringDates: row.recurring_dates || undefined,
       source: row.source || 'PATIENT',
       facilityDepartment: row.facility_department,
       bedDischargeNumber: row.bed_discharge_number

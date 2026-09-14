@@ -76,6 +76,11 @@ export interface Ride {
   additionalNotes?: string;
   estimatedDistanceKm?: number;
   estimatedDurationMin?: number;
+  appointmentTime?: string; // Heure du rendez-vous médical à destination (ex: '09:30')
+  transporterPickupTime?: string; // Heure de prise en charge confirmée par le transporteur (ex: '08:45')
+  estimatedArrivalTime?: string; // Heure d'arrivée estimée à destination calculée selon prise en charge (ex: '09:10')
+  isRecurring?: boolean; // Indicateur transport récurrent (série de soins)
+  recurringDates?: string[]; // Dates sélectionnées pour la récurrence
   pricing?: RidePricing;
 }
 

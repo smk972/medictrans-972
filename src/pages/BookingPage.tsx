@@ -61,6 +61,45 @@ export const BookingPage: React.FC = () => {
   const [transportTime, setTransportTime] = useState(initialTime);
   const [isEditingRoute, setIsEditingRoute] = useState(false);
 
+  // Form states - Rendez-vous & Récurrence
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDates, setRecurringDates] = useState<string[]>([initialDate]);
+  const [newDateInput, setNewDateInput] = useState('');
+
+  const handleAddRecurringDate = () => {
+    if (!newDateInput) return;
+    if (!recurringDates.includes(newDateInput)) {
+      const updated = [...recurringDates, newDateInput].sort();
+      setRecurringDates(updated);
+      setNewDateInput('');
+    }
+  };
+
+  const handleRemoveRecurringDate = (dateToRemove: string) => {
+    if (recurringDates.length <= 1) return;
+    setRecurringDates(recurringDates.filter((d) => d !== dateToRemove));
+  };
+
+  const handleApplyPreset = (type: 'dialyse' | 'semaine') => {
+    const base = new Date(transportDate);
+    const dates: string[] = [];
+    if (type === 'dialyse') {
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i * 2);
+        dates.push(d.toISOString().slice(0, 10));
+      }
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        dates.push(d.toISOString().slice(0, 10));
+      }
+    }
+    setRecurringDates(dates);
+    setIsRecurring(true);
+  };
+
   // Form states - Patient & Médical
   const [lastName, setLastName] = useState(user?.lastName || 'GLISSANT');
   const [firstName, setFirstName] = useState(user?.firstName || 'Aimé');
@@ -220,6 +259,9 @@ export const BookingPage: React.FC = () => {
         source: 'PATIENT',
         estimatedDistanceKm: ridePricing.distanceKm,
         estimatedDurationMin: ridePricing.durationMinutes,
+        appointmentTime: transportTime,
+        isRecurring,
+        recurringDates: isRecurring ? recurringDates : undefined,
         pricing: ridePricing,
       });
 
@@ -231,6 +273,9 @@ export const BookingPage: React.FC = () => {
         transportType,
         transportDate,
         transportTime,
+        appointmentTime: transportTime,
+        isRecurring,
+        recurringDates: isRecurring ? recurringDates : undefined,
         patientName: `${firstName} ${lastName}`,
         nir,
         phone,
@@ -255,6 +300,9 @@ export const BookingPage: React.FC = () => {
         transportType,
         transportDate,
         transportTime,
+        appointmentTime: transportTime,
+        isRecurring,
+        recurringDates: isRecurring ? recurringDates : undefined,
         patientName: `${firstName} ${lastName}`,
         nir,
         phone,
@@ -449,6 +497,206 @@ export const BookingPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Card 0-bis: Date du transport, Heure du rendez-vous médical & Récurrence */}
+              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-space-sm">
+                    <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+                      <span className="material-symbols-outlined">schedule</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                        Rendez-vous Médical &amp; Programmation
+                      </h2>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                        Heure de votre convocation et options de transports récurrents
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-label-sm text-label-sm bg-surface-container text-primary px-2.5 py-1 rounded-full font-bold">
+                    Ponctualité garantie
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+                  {/* Date du transport */}
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="bookingTransportDate"
+                      className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm text-primary">calendar_month</span>
+                      <span>Date du premier transport</span>
+                      <span className="text-error ml-0.5">*</span>
+                    </label>
+                    <input
+                      id="bookingTransportDate"
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                      type="date"
+                      required
+                      value={transportDate}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setTransportDate(newDate);
+                        if (!isRecurring) {
+                          setRecurringDates([newDate]);
+                        } else if (!recurringDates.includes(newDate)) {
+                          setRecurringDates([newDate, ...recurringDates.slice(1)]);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Heure de rendez-vous médical */}
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="bookingAppointmentTime"
+                      className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-sm text-primary">alarm</span>
+                      <span>Heure de votre rendez-vous médical</span>
+                      <span className="text-error ml-0.5">*</span>
+                    </label>
+                    <input
+                      id="bookingAppointmentTime"
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs text-center font-bold"
+                      type="time"
+                      required
+                      value={transportTime}
+                      onChange={(e) => setTransportTime(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Bannière explicative obligatoire pour le client */}
+                  <div className="md:col-span-2 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-xs text-on-surface flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">info</span>
+                    <div className="leading-relaxed">
+                      <strong className="text-primary font-bold">Rappel ponctualité :</strong> Veuillez indiquer ci-dessus l'<strong>heure de votre convocation médicale</strong> à l'établissement ou chez le spécialiste. Votre transporteur sanitaire calculera automatiquement l'<strong>heure de prise en charge à votre domicile</strong> en fonction de la durée du trajet et de la circulation, et vous la notifiera dès acceptation de la course.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section Transports Récurrents */}
+                <div className="p-space-md rounded-xl bg-surface-container-low/60 border border-outline-variant/30 flex flex-col gap-space-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-secondary text-lg">event_repeat</span>
+                      <div>
+                        <span className="font-bold text-xs text-on-surface block">
+                          Transport Récurrent / Série de soins
+                        </span>
+                        <span className="text-[11px] text-on-surface-variant">
+                          Dialyse (3x/semaine), chimiothérapie, radiothérapie, rééducation SSR...
+                        </span>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="isRecurringToggle"
+                        checked={isRecurring}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setIsRecurring(checked);
+                          if (checked && !recurringDates.includes(transportDate)) {
+                            setRecurringDates([transportDate]);
+                          }
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+                    </label>
+                  </div>
+
+                  {isRecurring && (
+                    <div className="mt-2 pt-3 border-t border-outline-variant/20 flex flex-col gap-3 animate-fadeIn">
+                      <p className="text-xs text-on-surface-variant">
+                        Sélectionnez les dates des transports pour planifier l'ensemble de vos séances régulières en Martinique :
+                      </p>
+
+                      {/* Raccourcis rapides de récurrence */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] font-bold text-on-surface-variant">Raccourcis :</span>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset('dialyse')}
+                          className="px-2.5 py-1 rounded-lg bg-surface-container text-xs font-semibold text-secondary hover:bg-surface-container-high border border-outline-variant/30 transition-colors flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-xs">healing</span>
+                          <span>Série Dialyse (3 séances)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset('semaine')}
+                          className="px-2.5 py-1 rounded-lg bg-surface-container text-xs font-semibold text-primary hover:bg-surface-container-high border border-outline-variant/30 transition-colors flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-xs">date_range</span>
+                          <span>Semaine continue (5 jours)</span>
+                        </button>
+                      </div>
+
+                      {/* Sélecteur d'ajout de date individuelle */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={newDateInput}
+                          onChange={(e) => setNewDateInput(e.target.value)}
+                          className="h-10 px-3 bg-surface-container-lowest rounded-xl font-body-sm text-body-sm text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddRecurringDate}
+                          disabled={!newDateInput}
+                          className="px-3 py-2 rounded-xl bg-secondary text-white font-bold text-xs hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-xs"
+                        >
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          <span>Ajouter cette date</span>
+                        </button>
+                      </div>
+
+                      {/* Liste des badges de dates programmées */}
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-on-surface">
+                            {recurringDates.length} date(s) de transport sélectionnée(s) :
+                          </span>
+                          <span className="text-[11px] text-secondary font-semibold">
+                            Tous vos trajets seront confirmés
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {recurringDates.map((dateStr, idx) => (
+                            <div
+                              key={dateStr}
+                              className="px-3 py-1.5 rounded-xl bg-surface-container-lowest border border-secondary/30 text-secondary text-xs font-semibold flex items-center gap-2 shadow-xs"
+                            >
+                              <span className="material-symbols-outlined text-xs">event</span>
+                              <span>
+                                Séance #{idx + 1} : {new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', {
+                                  weekday: 'short',
+                                  day: 'numeric',
+                                  month: 'short'
+                                })}
+                              </span>
+                              {recurringDates.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveRecurringDate(dateStr)}
+                                  className="text-on-surface-variant hover:text-error ml-1"
+                                  title="Retirer cette date"
+                                >
+                                  <span className="material-symbols-outlined text-sm">close</span>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Card 1: Fiche d'identité */}
@@ -1165,7 +1413,7 @@ export const BookingPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-space-sm">
                   <div className="p-space-sm bg-surface-container-low rounded-xl flex flex-col gap-0.5 border border-outline-variant/30">
                     <span className="font-label-sm text-label-sm text-on-surface-variant text-xs">
-                      Date &amp; Heure
+                      RDV Médical sur place
                     </span>
                     <span className="font-label-md text-label-md text-on-surface font-bold text-xs">
                       {transportDate}
@@ -1173,6 +1421,14 @@ export const BookingPage: React.FC = () => {
                     <span className="font-headline-sm text-headline-sm text-primary font-bold">
                       {transportTime}
                     </span>
+                    <span className="text-[10px] text-secondary font-medium leading-tight mt-0.5">
+                      Prise en charge calculée par le transporteur
+                    </span>
+                    {isRecurring && (
+                      <span className="mt-1 px-1.5 py-0.5 bg-secondary/15 text-secondary rounded text-[10px] font-bold text-center">
+                        Récurrent ({recurringDates.length} séances)
+                      </span>
+                    )}
                   </div>
 
                   <div className="p-space-sm bg-surface-container-low rounded-xl flex flex-col gap-0.5 border border-outline-variant/30">

@@ -158,6 +158,19 @@ export const TrackingPage: React.FC = () => {
   const completedCount = rides.filter((r) => r.status === 'COMPLETED').length;
   const cancelledCount = rides.filter((r) => r.status === 'CANCELLED').length;
 
+  // Calcul du délai restant avant la prise en charge (pour la règle des 24h00)
+  const getHoursUntilPickup = (ride: Ride | null): number => {
+    if (!ride) return 0;
+    const datePart = ride.pickupDateTime ? ride.pickupDateTime.slice(0, 10) : new Date().toISOString().slice(0, 10);
+    let pickupTimestamp: number;
+    if (ride.transporterPickupTime && ride.transporterPickupTime.includes(':')) {
+      pickupTimestamp = new Date(`${datePart}T${ride.transporterPickupTime}:00`).getTime();
+    } else {
+      pickupTimestamp = new Date(ride.pickupDateTime).getTime();
+    }
+    return (pickupTimestamp - Date.now()) / (1000 * 60 * 60);
+  };
+
   const openCancelModal = (ride: Ride) => {
     setRideToCancel(ride);
     setCancelReason('RDV_REPORTE');
@@ -465,29 +478,57 @@ export const TrackingPage: React.FC = () => {
                             Transport n°{activeRide.reference}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm">
-                            {new Date(activeRide.pickupDateTime).toLocaleDateString('fr-FR', {
-                              weekday: 'short',
-                              day: 'numeric',
-                              month: 'short',
-                            })}{' '}
-                            ·{' '}
-                            {new Date(activeRide.pickupDateTime).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs">alarm</span>
+                              <span>RDV Médical : {activeRide.appointmentTime || new Date(activeRide.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </span>
+                            {activeRide.transporterPickupTime ? (
+                              <span className="font-bold text-secondary bg-secondary/15 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">local_shipping</span>
+                                <span>Prise en charge : {activeRide.transporterPickupTime}</span>
+                                {activeRide.estimatedArrivalTime && (
+                                  <span>➔ Arrivée estimée : {activeRide.estimatedArrivalTime}</span>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-lg text-[11px] font-medium">
+                                Prise en charge calculée par le transporteur
+                              </span>
+                            )}
+                            {activeRide.isRecurring && (
+                              <span className="font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-lg text-[11px] flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">event_repeat</span>
+                                <span>Récurrent ({activeRide.recurringDates?.length || 1} séances)</span>
+                              </span>
+                            )}
+                          </div>
                           {activeRide.status !== 'COMPLETED' && activeRide.status !== 'CANCELLED' && (
-                            <button
-                              type="button"
-                              onClick={() => openCancelModal(activeRide)}
-                              className="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1 transition-all"
-                              title="Annuler cette demande de transport"
-                            >
-                              <span className="material-symbols-outlined text-[15px]">cancel</span>
-                              <span>Annuler</span>
-                            </button>
+                            (() => {
+                              const hoursLeft = getHoursUntilPickup(activeRide);
+                              const isOver24h = hoursLeft >= 24;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => openCancelModal(activeRide)}
+                                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all ${
+                                    isOver24h
+                                      ? 'border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700'
+                                      : 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800'
+                                  }`}
+                                  title={isOver24h ? "Annulation gratuite en ligne (> 24h avant départ)" : "Moins de 24h avant prise en charge : contact transporteur requis"}
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">
+                                    {isOver24h ? 'cancel' : 'phone_in_talk'}
+                                  </span>
+                                  <span>Annuler</span>
+                                  <span className="text-[10px] opacity-75 font-semibold">
+                                    ({isOver24h ? '> 24h' : '< 24h'})
+                                  </span>
+                                </button>
+                              );
+                            })()
                           )}
                         </div>
                       </div>
@@ -770,18 +811,21 @@ export const TrackingPage: React.FC = () => {
                                     <span className="font-mono text-primary font-bold block">
                                       {ride.reference}
                                     </span>
-                                    <span className="text-on-surface-variant font-label-sm text-label-sm">
+                                    <span className="text-on-surface-variant font-label-sm text-label-sm block">
                                       {new Date(ride.pickupDateTime).toLocaleDateString('fr-FR', {
                                         day: '2-digit',
                                         month: '2-digit',
                                         year: 'numeric',
-                                      })}{' '}
-                                      ·{' '}
-                                      {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
                                       })}
                                     </span>
+                                    <span className="text-primary font-bold text-[11px] block">
+                                      RDV : {ride.appointmentTime || new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    {ride.transporterPickupTime && (
+                                      <span className="text-secondary font-semibold text-[10px] block">
+                                        Prise en charge : {ride.transporterPickupTime}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="py-3.5 px-4 align-top">
                                     <span className="font-label-md text-label-md text-on-surface block font-semibold">
@@ -1010,6 +1054,37 @@ export const TrackingPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Horaires & Programmation */}
+              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Horaires de la prise en charge</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+                    <span className="text-[10px] text-on-surface-variant block">RDV Médical :</span>
+                    <span className="font-extrabold text-xs text-primary font-mono">
+                      {selectedRideModal.appointmentTime || new Date(selectedRideModal.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+                    <span className="text-[10px] text-on-surface-variant block">Prise en charge :</span>
+                    <span className="font-extrabold text-xs text-secondary font-mono">
+                      {selectedRideModal.transporterPickupTime || 'En calcul transporteur'}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+                    <span className="text-[10px] text-on-surface-variant block">Arrivée estimée :</span>
+                    <span className="font-extrabold text-xs text-on-surface font-mono">
+                      {selectedRideModal.estimatedArrivalTime || '~'}
+                    </span>
+                  </div>
+                </div>
+                {selectedRideModal.isRecurring && (
+                  <div className="text-[11px] text-purple-900 bg-purple-50 p-2 rounded-xl border border-purple-200 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-xs">event_repeat</span>
+                    <span>Transport récurrent : {selectedRideModal.recurringDates?.length || 1} dates de transport programmées.</span>
+                  </div>
+                )}
+              </div>
+
               {/* Véhicule & Transporteur */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/30">
@@ -1120,97 +1195,167 @@ export const TrackingPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Confirmation Annulation Demandeur / Patient */}
-      {rideToCancel && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="max-w-md w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-lg">cancel</span>
-                </span>
-                <h3 className="text-base font-bold text-on-surface">
-                  Annuler la réservation #{rideToCancel.reference}
-                </h3>
-              </div>
-              <button
-                onClick={() => setRideToCancel(null)}
-                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
+      {/* Modal Confirmation Annulation Demandeur / Patient (Règle des 24h00) */}
+      {rideToCancel && (() => {
+        const hoursUntilPickup = getHoursUntilPickup(rideToCancel);
+        const canCancelOnline = hoursUntilPickup >= 24;
+        const transporterPhone = rideToCancel.assignedTransporter?.driverPhone || '0596 75 20 20';
+        const transporterCompany = rideToCancel.assignedTransporter?.companyName || 'Médic\'Trans Régulation 972';
 
-            <p className="text-xs text-on-surface-variant leading-relaxed">
-              Êtes-vous certain de vouloir annuler ce transport sanitaire ? Si un chauffeur avait déjà été mobilisé, il sera automatiquement libéré.
-            </p>
-
-            <div className="space-y-2 text-xs">
-              <label className="block text-[11px] font-bold uppercase text-on-surface-variant">
-                Motif de l'annulation :
-              </label>
-              {[
-                { id: 'RDV_REPORTE', label: '📅 Rendez-vous médical décalé ou reporté' },
-                { id: 'ETAT_SANTE', label: '🩺 Évolution clinique / consultation non nécessaire' },
-                { id: 'PROCHE_TRANSPORTE', label: '🚗 Transport assuré par un proche / famille' },
-                { id: 'ERREUR_DEMANDE', label: '⚠️ Erreur lors de la réservation' },
-                { id: 'AUTRE', label: '📝 Autre motif' }
-              ].map((reason) => (
-                <label
-                  key={reason.id}
-                  onClick={() => setCancelReason(reason.id)}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                    cancelReason === reason.id
-                      ? 'border-rose-300 bg-rose-50/70 text-rose-900 font-semibold'
-                      : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
-                  }`}
+        return (
+          <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+            <div className="max-w-md w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    canCancelOnline ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    <span className="material-symbols-outlined text-lg">
+                      {canCancelOnline ? 'cancel' : 'lock_clock'}
+                    </span>
+                  </span>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Annulation de la course #{rideToCancel.reference}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setRideToCancel(null)}
+                  className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant"
                 >
-                  <input
-                    type="radio"
-                    name="patientCancelReason"
-                    value={reason.id}
-                    checked={cancelReason === reason.id}
-                    onChange={() => setCancelReason(reason.id)}
-                    className="accent-rose-600"
-                  />
-                  <span>{reason.label}</span>
-                </label>
-              ))}
-
-              <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant mt-2 mb-1">
-                  Commentaire (optionnel) :
-                </label>
-                <input
-                  type="text"
-                  value={cancelCustomNote}
-                  onChange={(e) => setCancelCustomNote(e.target.value)}
-                  placeholder="Précisions éventuelles..."
-                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-rose-500"
-                />
+                  <span className="material-symbols-outlined text-xl">close</span>
+                </button>
               </div>
-            </div>
 
-            <div className="pt-2 flex items-center gap-2 border-t border-outline-variant/20">
-              <button
-                type="button"
-                onClick={() => setRideToCancel(null)}
-                className="flex-1 py-2.5 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
-              >
-                Garder ma réservation
-              </button>
-              <button
-                type="button"
-                onClick={confirmCancelRide}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-base">cancel</span>
-                <span>Confirmer l'annulation</span>
-              </button>
+              {!canCancelOnline ? (
+                /* CAS < 24h00 : Annulation en ligne bloquée, contact direct transporteur obligatoire */
+                <div className="space-y-3 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-950 space-y-2">
+                    <div className="flex items-center gap-1.5 font-extrabold text-amber-900 text-sm">
+                      <span className="material-symbols-outlined text-amber-700 text-base">warning</span>
+                      <span>Annulation en ligne non autorisée (&lt; 24h00)</span>
+                    </div>
+                    <p className="leading-relaxed text-[11px]">
+                      Conformément à la réglementation des transports sanitaires en Martinique, <strong>l'annulation autonome en ligne est possible uniquement jusqu'à 24h00 avant l'heure de prise en charge</strong>.
+                    </p>
+                    <p className="leading-relaxed text-[11px]">
+                      Votre trajet étant prévu dans <strong>{hoursUntilPickup <= 0 ? 'moins d\'une heure (ou aujourd\'hui)' : `environ ${Math.round(hoursUntilPickup)} heures`}</strong>, vous devez <strong>contacter directement le transporteur</strong> mandaté pour avertir le chauffeur et la régulation.
+                    </p>
+                  </div>
+
+                  <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30 space-y-2 text-xs">
+                    <span className="font-bold text-on-surface text-[11px] uppercase tracking-wider block">
+                      Transporteur à joindre impérativement :
+                    </span>
+                    <div>
+                      <div className="font-extrabold text-sm text-on-surface">{transporterCompany}</div>
+                      {rideToCancel.assignedTransporter?.driverName && (
+                        <div className="text-on-surface-variant text-[11px]">
+                          Chauffeur : {rideToCancel.assignedTransporter.driverName} ({rideToCancel.assignedTransporter.vehiclePlate})
+                        </div>
+                      )}
+                    </div>
+                    <a
+                      href={`tel:${transporterPhone.replace(/\s+/g, '')}`}
+                      className="w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                    >
+                      <span className="material-symbols-outlined text-base">call</span>
+                      <span>Appeler le transporteur : {transporterPhone}</span>
+                    </a>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end border-t border-outline-variant/20">
+                    <button
+                      type="button"
+                      onClick={() => setRideToCancel(null)}
+                      className="px-5 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs font-bold hover:bg-surface-container-high transition-all"
+                    >
+                      Compris, je garde ma réservation
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* CAS >= 24h00 : Annulation en ligne autorisée */
+                <>
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-700 text-base shrink-0">verified</span>
+                    <span>
+                      <strong>Annulation en ligne autorisée :</strong> Votre demande intervient à plus de 24h avant la prise en charge (délai restant : ~{Math.round(hoursUntilPickup)}h).
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    Êtes-vous certain de vouloir annuler ce transport sanitaire ? Si un chauffeur avait déjà été mobilisé, il sera automatiquement libéré.
+                  </p>
+
+                  <div className="space-y-2 text-xs">
+                    <label className="block text-[11px] font-bold uppercase text-on-surface-variant">
+                      Motif de l'annulation :
+                    </label>
+                    {[
+                      { id: 'RDV_REPORTE', label: '📅 Rendez-vous médical décalé ou reporté' },
+                      { id: 'ETAT_SANTE', label: '🩺 Évolution clinique / consultation non nécessaire' },
+                      { id: 'PROCHE_TRANSPORTE', label: '🚗 Transport assuré par un proche / famille' },
+                      { id: 'ERREUR_DEMANDE', label: '⚠️ Erreur lors de la réservation' },
+                      { id: 'AUTRE', label: '📝 Autre motif' }
+                    ].map((reason) => (
+                      <label
+                        key={reason.id}
+                        onClick={() => setCancelReason(reason.id)}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                          cancelReason === reason.id
+                            ? 'border-rose-300 bg-rose-50/70 text-rose-900 font-semibold'
+                            : 'border-outline-variant/30 hover:bg-surface-container text-on-surface'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="patientCancelReason"
+                          value={reason.id}
+                          checked={cancelReason === reason.id}
+                          onChange={() => setCancelReason(reason.id)}
+                          className="accent-rose-600"
+                        />
+                        <span>{reason.label}</span>
+                      </label>
+                    ))}
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-on-surface-variant mt-2 mb-1">
+                        Commentaire (optionnel) :
+                      </label>
+                      <input
+                        type="text"
+                        value={cancelCustomNote}
+                        onChange={(e) => setCancelCustomNote(e.target.value)}
+                        placeholder="Précisions éventuelles..."
+                        className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-rose-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-2 border-t border-outline-variant/20">
+                    <button
+                      type="button"
+                      onClick={() => setRideToCancel(null)}
+                      className="flex-1 py-2.5 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all"
+                    >
+                      Garder ma réservation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmCancelRide}
+                      className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-base">cancel</span>
+                      <span>Confirmer l'annulation</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Toast Notification */}
       {toastMessage && (

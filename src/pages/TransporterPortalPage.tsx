@@ -159,6 +159,7 @@ export const TransporterPortalPage: React.FC = () => {
   const [planningSearch, setPlanningSearch] = useState('');
   const [selectedMissionForRecap, setSelectedMissionForRecap] = useState<Ride | null>(null);
   const [missionToAccept, setMissionToAccept] = useState<Ride | null>(null);
+  const [transporterPickupTimeInput, setTransporterPickupTimeInput] = useState<string>('08:30');
   const [missionToDecline, setMissionToDecline] = useState<Ride | null>(null);
   const [declineReason, setDeclineReason] = useState<string>('FLOTTE_INDISPONIBLE');
   const [declinedRefs, setDeclinedRefs] = useState<string[]>(() => {
@@ -840,67 +841,45 @@ export const TransporterPortalPage: React.FC = () => {
     setDriverToDelete(null);
   };
 
-  // 1-CLIC ACCEPTATION DIRECTE (Fluidité instantanée)
-  const handleDirectAccept = async (mission: Ride) => {
-    // Sélectionner le véhicule le plus adapté dans la flotte
-    const matchingVehicle =
-      fleet.find((v) => v.type === mission.transportType && v.status === 'DISPONIBLE') ||
-      fleet.find((v) => v.type === mission.transportType) ||
-      fleet[0];
-
-    if (!matchingVehicle) {
-      setToastMessage({
-        title: 'Aucun véhicule disponible',
-        desc: 'Veuillez ajouter un véhicule dans votre flotte avant de valider la course.',
-        type: 'error'
-      });
-      return;
-    }
-
-    const assignedData = {
-      companyName: transporterName,
-      driverName: matchingVehicle.driver,
-      driverPhone: matchingVehicle.phone || transporterPhone,
-      vehiclePlate: matchingVehicle.plate,
-      etaMinutes: 15
-    };
-
-    // Mise à jour optimiste immédiate (0ms)
-    setRides((prev) =>
-      prev.map((r) =>
-        r.reference.toUpperCase() === mission.reference.toUpperCase()
-          ? { ...r, status: 'ACCEPTED' as RideStatus, assignedTransporter: assignedData }
-          : r
-      )
-    );
-
-    setFleet((prev) =>
-      prev.map((v) => (v.plate === matchingVehicle.plate ? { ...v, status: 'EN_MISSION' } : v))
-    );
-
-    setToastMessage({
-      title: 'Course acceptée avec succès !',
-      desc: `Mission #${mission.reference} (${mission.patient.firstName} ${mission.patient.lastName}) affectée à ${matchingVehicle.driver} (${matchingVehicle.plate}).`,
-      type: 'success'
-    });
-
-    setActiveTab((prev) => (prev === 'PLANNING' ? 'PLANNING' : 'ACTIVES'));
-
-    // Sauvegarde en arrière-plan Supabase / Local
-    try {
-      await rideService.updateRideStatus(mission.reference, 'ACCEPTED', assignedData);
-    } catch (err) {
-      console.error('Erreur acceptation directe:', err);
-    }
+  // Calcul dynamique de l'arrivée estimée selon l'heure de prise en charge et la durée de route
+  const calculateEstimatedArrival = (pickupTime: string, durationMinutes: number): string => {
+    if (!pickupTime || !pickupTime.includes(':')) return '';
+    const [hours, minutes] = pickupTime.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return '';
+    const totalMinutes = hours * 60 + minutes + Math.round(durationMinutes);
+    const arrivalHours = Math.floor(totalMinutes / 60) % 24;
+    const arrivalMinutes = totalMinutes % 60;
+    return `${String(arrivalHours).padStart(2, '0')}:${String(arrivalMinutes).padStart(2, '0')}`;
   };
 
-  // Déclencher le modal d'affectation manuelle (Chauffeur / Véhicule / ETA personnalisés)
+  // ACCEPTATION DE LA MISSION : ouverture du modal avec saisie obligatoire de la prise en charge
+  const handleDirectAccept = (mission: Ride) => {
+    openAcceptModal(mission);
+  };
+
+  // Déclencher le modal d'affectation (Chauffeur / Véhicule / Heure de prise en charge calculée)
   const openAcceptModal = (mission: Ride) => {
     setMissionToAccept(mission);
     const match = fleet.find((v) => v.type === mission.transportType) || fleet[0];
     setSelectedDriver(match.driver);
     setSelectedPlate(match.plate);
     setSelectedEta(15);
+
+    // Initialiser l'heure de prise en charge suggérée selon l'heure du RDV médical
+    const appTime = mission.appointmentTime || (
+      mission.pickupDateTime ? new Date(mission.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '09:00'
+    );
+    const duration = mission.estimatedDurationMin || mission.pricing?.durationMinutes || 25;
+    const [h, m] = appTime.split(':').map(Number);
+    if (!isNaN(h) && !isNaN(m)) {
+      const appTotalMins = h * 60 + m;
+      const suggestedPickupTotalMins = Math.max(0, appTotalMins - (Math.round(duration) + 15));
+      const sugH = Math.floor(suggestedPickupTotalMins / 60) % 24;
+      const sugM = suggestedPickupTotalMins % 60;
+      setTransporterPickupTimeInput(`${String(sugH).padStart(2, '0')}:${String(sugM).padStart(2, '0')}`);
+    } else {
+      setTransporterPickupTimeInput('08:30');
+    }
   };
 
   const confirmAcceptMission = async () => {
@@ -920,11 +899,20 @@ export const TransporterPortalPage: React.FC = () => {
       etaMinutes: selectedEta
     };
 
+    const travelDuration = missionToAccept.estimatedDurationMin || missionToAccept.pricing?.durationMinutes || 25;
+    const calculatedArrival = calculateEstimatedArrival(transporterPickupTimeInput, travelDuration);
+
     // Mise à jour optimiste immédiate
     setRides((prev) =>
       prev.map((r) =>
         r.reference.toUpperCase() === missionRef.toUpperCase()
-          ? { ...r, status: 'ACCEPTED' as RideStatus, assignedTransporter: assignedData }
+          ? { 
+              ...r, 
+              status: 'ACCEPTED' as RideStatus, 
+              assignedTransporter: assignedData,
+              transporterPickupTime: transporterPickupTimeInput,
+              estimatedArrivalTime: calculatedArrival
+            }
           : r
       )
     );
@@ -934,8 +922,8 @@ export const TransporterPortalPage: React.FC = () => {
     );
 
     setToastMessage({
-      title: 'Mission validée & affectée !',
-      desc: `La course #${missionRef} (${missionToAccept.patient.firstName} ${missionToAccept.patient.lastName}) a été assignée à ${selectedDriver} (${selectedPlate}).`,
+      title: 'Course acceptée & Prise en charge validée !',
+      desc: `Mission #${missionRef} validée. Prise en charge à ${transporterPickupTimeInput} (Arrivée estimée : ${calculatedArrival}).`,
       type: 'success'
     });
 
@@ -943,7 +931,10 @@ export const TransporterPortalPage: React.FC = () => {
     setActiveTab((prev) => (prev === 'PLANNING' ? 'PLANNING' : 'ACTIVES'));
 
     try {
-      await rideService.updateRideStatus(missionRef, 'ACCEPTED', assignedData);
+      await rideService.updateRideStatus(missionRef, 'ACCEPTED', assignedData, {
+        transporterPickupTime: transporterPickupTimeInput,
+        estimatedArrivalTime: calculatedArrival
+      });
     } catch (err) {
       console.error('Erreur acceptation:', err);
       setToastMessage({
@@ -3464,6 +3455,77 @@ export const TransporterPortalPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Heure de prise en charge et Arrivée estimée calculée */}
+            {(() => {
+              const appTime = missionToAccept.appointmentTime || (
+                missionToAccept.pickupDateTime ? new Date(missionToAccept.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '09:00'
+              );
+              const duration = missionToAccept.estimatedDurationMin || missionToAccept.pricing?.durationMinutes || 25;
+              const calculatedArrival = calculateEstimatedArrival(transporterPickupTimeInput, duration);
+
+              let isLate = false;
+              if (transporterPickupTimeInput && appTime) {
+                const [ah, am] = appTime.split(':').map(Number);
+                const [ch, cm] = calculatedArrival.split(':').map(Number);
+                if (!isNaN(ah) && !isNaN(am) && !isNaN(ch) && !isNaN(cm)) {
+                  isLate = (ch * 60 + cm) > (ah * 60 + am);
+                }
+              }
+
+              return (
+                <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant/30 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-on-surface-variant font-bold flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-primary text-sm">schedule</span>
+                      Rendez-vous médical patient :
+                    </span>
+                    <span className="font-extrabold text-sm text-primary font-mono bg-primary/10 px-2 py-0.5 rounded-md">
+                      {appTime}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label 
+                      htmlFor="transporterPickupTimeInput"
+                      className="text-[11px] font-bold uppercase text-on-surface-variant flex items-center justify-between"
+                    >
+                      <span>Heure de prise en charge confirmée :</span>
+                      <span className="text-[10px] text-secondary font-semibold">Trajet estimé : ~{duration} min</span>
+                    </label>
+                    <input
+                      id="transporterPickupTimeInput"
+                      type="time"
+                      value={transporterPickupTimeInput}
+                      onChange={(e) => setTransporterPickupTimeInput(e.target.value)}
+                      required
+                      className="w-full p-2.5 rounded-xl border border-secondary/50 bg-surface-container-lowest font-mono font-bold text-sm text-on-surface outline-none focus:ring-2 focus:ring-secondary text-center shadow-xs"
+                    />
+                  </div>
+
+                  <div className={`p-2.5 rounded-xl text-xs flex items-center justify-between border ${
+                    isLate
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  }`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-base">
+                        {isLate ? 'warning' : 'check_circle'}
+                      </span>
+                      <span className="font-semibold">Arrivée estimée à destination :</span>
+                    </div>
+                    <span className="font-mono font-extrabold text-sm">
+                      {calculatedArrival}
+                    </span>
+                  </div>
+                  {isLate && (
+                    <p className="text-[10px] text-amber-700 leading-tight">
+                      ⚠️ Attention : Avec ce départ, l'arrivée calculée ({calculatedArrival}) dépasse l'heure du rendez-vous ({appTime}).
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
               <button
                 type="button"
@@ -4045,25 +4107,49 @@ export const TransporterPortalPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Bannière de Statut */}
+            {/* Bannière de Statut & Horaires */}
             {selectedMissionForRecap.status === 'PENDING' ? (
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300/80 text-emerald-950 text-xs flex items-start gap-3">
                 <span className="material-symbols-outlined text-emerald-600 text-xl shrink-0 mt-0.5">event_available</span>
-                <div>
+                <div className="flex-1">
                   <div className="font-bold text-emerald-900 text-sm">Course disponible à réserver en avance</div>
                   <p className="text-emerald-800 text-[11px] mt-0.5 leading-relaxed">
-                    Cette course programmée est ouverte à l'acceptation anticipée. Vous pouvez l'attribuer immédiatement à un chauffeur et un véhicule de votre flotte pour sécuriser votre planning.
+                    Rendez-vous médical patient : <strong>{selectedMissionForRecap.appointmentTime || new Date(selectedMissionForRecap.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</strong>.
+                    {selectedMissionForRecap.isRecurring && ` • Transport récurrent (${selectedMissionForRecap.recurringDates?.length || 0} dates programmées).`}
+                  </p>
+                  <p className="text-emerald-700 text-[10px] mt-1 font-medium">
+                    Vous indiquerez votre heure de prise en charge au domicile lors de l'acceptation de la mission.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-3">
                 <span className="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">verified</span>
-                <div>
+                <div className="flex-1">
                   <div className="font-bold text-blue-900 text-sm">Course confirmée dans votre planning</div>
                   <p className="text-blue-800 text-[11px] mt-0.5 leading-relaxed">
-                    Assignée à : <strong>{selectedMissionForRecap.assignedTransporter?.driverName || transporterName}</strong> ({selectedMissionForRecap.assignedTransporter?.vehiclePlate || 'Véhicule flotte'}) • Tél : {selectedMissionForRecap.assignedTransporter?.driverPhone || transporterPhone}.
+                    Assignée à : <strong>{selectedMissionForRecap.assignedTransporter?.driverName || transporterName}</strong> ({selectedMissionForRecap.assignedTransporter?.vehiclePlate || 'Véhicule flotte'}).
                   </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold font-mono">
+                      RDV : {selectedMissionForRecap.appointmentTime || new Date(selectedMissionForRecap.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {selectedMissionForRecap.transporterPickupTime && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold font-mono">
+                        Prise en charge : {selectedMissionForRecap.transporterPickupTime}
+                      </span>
+                    )}
+                    {selectedMissionForRecap.estimatedArrivalTime && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold font-mono">
+                        Arrivée estimée : {selectedMissionForRecap.estimatedArrivalTime}
+                      </span>
+                    )}
+                    {selectedMissionForRecap.isRecurring && (
+                      <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-bold">
+                        Récurrent ({selectedMissionForRecap.recurringDates?.length} dates)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

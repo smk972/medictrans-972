@@ -52,6 +52,7 @@ export const HomePage: React.FC = () => {
       destinationFacility,
       transportDate,
       transportTime,
+      appointmentTime: transportTime,
       tripType,
     };
     try {
@@ -320,7 +321,7 @@ export const HomePage: React.FC = () => {
                         />
                       </div>
 
-                      {/* Heure */}
+                      {/* Heure de rendez-vous médical */}
                       <div className="flex flex-col gap-1.5">
                         <label
                           className="font-label-md text-label-md text-on-surface flex items-center gap-1 font-semibold"
@@ -329,7 +330,7 @@ export const HomePage: React.FC = () => {
                           <span className="material-symbols-outlined text-base text-primary">
                             schedule
                           </span>
-                          Heure souhaitée sur place
+                          Heure de votre rendez-vous médical
                         </label>
                         <input
                           className="w-full h-12 px-4 rounded-xl bg-surface-container-lowest text-on-surface font-body-md text-body-md border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary shadow-sm text-center"
@@ -339,6 +340,9 @@ export const HomePage: React.FC = () => {
                           value={transportTime}
                           onChange={(e) => setTransportTime(e.target.value)}
                         />
+                        <p className="text-[11px] text-on-surface-variant leading-tight">
+                          Indiquez l'heure de votre convocation ou rendez-vous. Votre transporteur calculera et confirmera l'heure de prise en charge à domicile.
+                        </p>
                       </div>
                     </div>
 

@@ -266,14 +266,14 @@ export const ConfirmationPage: React.FC = () => {
                   <div className="flex flex-col sm:flex-row items-center justify-between p-space-sm bg-surface-container-low rounded-xl gap-space-sm border border-outline-variant/20">
                     <div className="flex items-center gap-space-sm">
                       <div className="p-2 rounded-lg bg-primary text-on-primary">
-                        <span className="material-symbols-outlined text-[20px]">schedule</span>
+                        <span className="material-symbols-outlined text-[20px]">alarm</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase text-[10px]">
-                          Rendez-vous départ
+                          Rendez-vous médical sur place
                         </span>
                         <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                          Prise en charge à {bookingData?.transportTime || '08h30'}
+                          {bookingData?.appointmentTime || bookingData?.transportTime || '09h00'}
                         </span>
                       </div>
                     </div>
@@ -282,18 +282,34 @@ export const ConfirmationPage: React.FC = () => {
 
                     <div className="flex items-center gap-space-sm">
                       <div className="p-2 rounded-lg bg-secondary text-on-secondary">
-                        <span className="material-symbols-outlined text-[20px]">event_available</span>
+                        <span className="material-symbols-outlined text-[20px]">local_shipping</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="font-label-sm text-label-sm text-on-surface-variant uppercase text-[10px]">
-                          Convocation médicale
+                          Prise en charge à domicile
                         </span>
                         <span className="font-headline-sm text-headline-sm text-secondary font-bold text-sm">
-                          Séance d'hémodialyse 09h00
+                          Calculée et confirmée par le transporteur
                         </span>
                       </div>
                     </div>
                   </div>
+
+                  {bookingData?.isRecurring && bookingData?.recurringDates && bookingData.recurringDates.length > 0 && (
+                    <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 text-purple-900 text-xs flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span className="material-symbols-outlined text-sm">event_repeat</span>
+                        <span>Transport Récurrent ({bookingData.recurringDates.length} séances programmées)</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {bookingData.recurringDates.map((dateStr: string, idx: number) => (
+                          <span key={dateStr} className="px-2 py-0.5 rounded-lg bg-white border border-purple-300 text-[11px] font-semibold text-purple-800">
+                            Séance {idx + 1} : {dateStr}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                     <div className="p-space-md bg-surface-container-low/60 rounded-xl flex flex-col justify-between gap-space-sm border border-outline-variant/20">
