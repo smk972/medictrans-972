@@ -82,6 +82,12 @@ export interface Ride {
   isRecurring?: boolean; // Indicateur transport récurrent (série de soins)
   recurringDates?: string[]; // Dates sélectionnées pour la récurrence
   pricing?: RidePricing;
+  dropoffFloor?: string;
+  dropoffElevator?: boolean;
+  dropoffBuilding?: string;
+  dropoffApartment?: string;
+  dropoffDoorCode?: string;
+  hasCompanion?: boolean;
 }
 
 export interface RidePricing {
