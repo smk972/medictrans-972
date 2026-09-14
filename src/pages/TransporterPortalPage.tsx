@@ -3228,7 +3228,8 @@ export const TransporterPortalPage: React.FC = () => {
                     return (
                       <div
                         key={mission.id}
-                        className={`p-5 rounded-3xl bg-surface-container-lowest border shadow-xs flex flex-col justify-between gap-4 transition-all hover:shadow-md ${
+                        onClick={() => setSelectedMissionForDetails(mission)}
+                        className={`p-5 rounded-3xl bg-surface-container-lowest border shadow-xs flex flex-col justify-between gap-4 transition-all hover:shadow-md cursor-pointer hover:border-primary/40 ${
                           isCancelled
                             ? 'border-rose-200/80 bg-rose-50/20'
                             : 'border-outline-variant/25'

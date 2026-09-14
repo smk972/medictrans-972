@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -19,6 +19,16 @@ export const FacilityPortalPage: React.FC = () => {
   const [cancelReason, setCancelReason] = useState<string>('SORTIE_REPORTEE');
   const [cancelCustomNote, setCancelCustomNote] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
+
+  // État Renouvellement
+  const [rideToRenew, setRideToRenew] = useState<Ride | null>(null);
+  const [renewDate, setRenewDate] = useState<string>('');
+  const [renewAppointmentTime, setRenewAppointmentTime] = useState<string>('09:00');
+  const [renewDepartment, setRenewDepartment] = useState<string>('');
+  const [renewFloor, setRenewFloor] = useState<string>('');
+  const [renewRoom, setRenewRoom] = useState<string>('');
+  const [renewNotes, setRenewNotes] = useState<string>('');
+  const [isRenewing, setIsRenewing] = useState<boolean>(false);
 
   // État Modal "Commander un transport"
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -62,24 +72,88 @@ export const FacilityPortalPage: React.FC = () => {
   const [orderStairs, setOrderStairs] = useState(false);
   const [orderNeedsEscort, setOrderNeedsEscort] = useState(false);
 
+  const loadFacilityRides = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const all = await rideService.getAllRides();
+      setRides(all);
+    } catch (err) {
+      console.warn('Erreur chargement sorties hôpital:', err);
+      setRides([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-
-    const loadFacilityRides = async () => {
-      setIsLoading(true);
-      try {
-        const all = await rideService.getAllRides();
-        setRides(all);
-      } catch (err) {
-        console.warn('Erreur chargement sorties hôpital:', err);
-        setRides([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadFacilityRides();
-  }, []);
+  }, [loadFacilityRides]);
+
+  const openRenewModal = (ride: Ride) => {
+    setRideToRenew(ride);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setRenewDate(tomorrow.toISOString().split('T')[0]);
+    setRenewAppointmentTime(
+      ride.appointmentTime ||
+      (ride.pickupDateTime ? new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '09:00')
+    );
+    setRenewDepartment(ride.facilityDepartment || '');
+    setRenewFloor(ride.facilityFloor || '');
+    setRenewRoom(ride.facilityRoom || '');
+    setRenewNotes('');
+  };
+
+  const handleConfirmRenew = async () => {
+    if (!rideToRenew || !renewDate || !renewAppointmentTime) return;
+    setIsRenewing(true);
+    try {
+      const newPickupDateTime = new Date(`${renewDate}T${renewAppointmentTime}:00`).toISOString();
+      const payload: Omit<Ride, 'id' | 'reference' | 'createdAt' | 'status'> = {
+        pickupAddress: rideToRenew.pickupAddress,
+        pickupCity: rideToRenew.pickupCity,
+        dropoffAddress: rideToRenew.dropoffAddress,
+        dropoffCity: rideToRenew.dropoffCity,
+        facilityName: rideToRenew.facilityName,
+        facilityDepartment: renewDepartment.trim() || rideToRenew.facilityDepartment,
+        facilityFloor: renewFloor.trim() || rideToRenew.facilityFloor,
+        facilityRoom: renewRoom.trim() || rideToRenew.facilityRoom,
+        facilityStaircase: rideToRenew.facilityStaircase,
+        facilityBed: rideToRenew.facilityBed,
+        facilityContactName: rideToRenew.facilityContactName,
+        facilityContactPhone: rideToRenew.facilityContactPhone,
+        pickupDateTime: newPickupDateTime,
+        returnDateTime: rideToRenew.isRoundTrip ? new Date(new Date(newPickupDateTime).getTime() + 4 * 3600000).toISOString() : undefined,
+        isRoundTrip: Boolean(rideToRenew.isRoundTrip),
+        transportType: rideToRenew.transportType,
+        source: 'FACILITY',
+        appointmentTime: renewAppointmentTime,
+        patient: { ...rideToRenew.patient },
+        mobility: {
+          ...rideToRenew.mobility,
+          notes: renewNotes.trim()
+            ? `${renewNotes.trim()} (Renouvellement hospitalier #${rideToRenew.reference})`
+            : `Renouvellement du transport hospitalier #${rideToRenew.reference}`
+        }
+      };
+
+      const newRide = await rideService.createRide(payload);
+      await loadFacilityRides();
+
+      setToastMessage({
+        title: 'Commande renouvelée avec succès',
+        desc: `La nouvelle demande #${newRide.reference} a été créée pour le ${new Date(renewDate).toLocaleDateString('fr-FR')} à ${renewAppointmentTime}.`
+      });
+
+      setRideToRenew(null);
+    } catch (err) {
+      console.error('Erreur renouvellement:', err);
+      alert('Une erreur est survenue lors du renouvellement.');
+    } finally {
+      setIsRenewing(false);
+    }
+  };
 
   const handleCreateFacilityRide = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -604,7 +678,11 @@ export const FacilityPortalPage: React.FC = () => {
           displayedRides.map((ride) => {
             const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
             return (
-              <tr key={ride.id} className="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/10">
+              <tr
+                key={ride.id}
+                onClick={() => setSelectedRideForPmt(ride)}
+                className="hover:bg-primary/5 cursor-pointer transition-colors border-b border-outline-variant/10 group"
+              >
                 {/* 1. Heure & Service */}
                 <td className="py-space-md px-space-md whitespace-nowrap">
                   <div className="flex flex-col">
@@ -708,6 +786,7 @@ export const FacilityPortalPage: React.FC = () => {
                     </span>
                     {ride.assignedTransporter?.driverPhone && (
                       <a
+                        onClick={(e) => e.stopPropagation()}
                         className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1 text-[11px]"
                         href={`tel:${ride.assignedTransporter.driverPhone}`}
                       >
@@ -725,6 +804,7 @@ export const FacilityPortalPage: React.FC = () => {
                       {ride.facilityContactName || 'Cadre de service'}
                     </span>
                     <a
+                      onClick={(e) => e.stopPropagation()}
                       className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-1 text-[11px] font-mono mt-0.5"
                       href={`tel:${ride.facilityContactPhone || '0596720097'}`}
                     >
@@ -777,25 +857,53 @@ export const FacilityPortalPage: React.FC = () => {
                     {/* Bouton Fiche de Demande */}
                     <button
                       type="button"
-                      onClick={() => setSelectedRideForPmt(ride)}
-                      className="px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRideForPmt(ride);
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-semibold text-xs flex items-center gap-1 transition-all cursor-pointer"
                       title="Consulter la fiche de demande, la localisation et les consignes soignants"
                     >
-                      <span className="material-symbols-outlined text-sm">assignment</span>
-                      <span className="hidden sm:inline">Fiche de demande</span>
+                      <span className="material-symbols-outlined text-sm text-primary">assignment</span>
+                      <span className="hidden sm:inline">Fiche</span>
                     </button>
 
                     <button
-                      onClick={() => navigate('/suivi')}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/suivi');
+                      }}
                       className="bg-surface-container hover:bg-surface-container-high text-primary p-1.5 rounded-lg transition-all cursor-pointer"
                       title="Suivi en direct"
                     >
                       <span className="material-symbols-outlined text-base">visibility</span>
                     </button>
 
+                    {/* Renouveler si course terminée */}
+                    {ride.status === 'COMPLETED' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openRenewModal(ride);
+                        }}
+                        className="bg-primary/10 hover:bg-primary/20 text-primary px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                        title="Renouveler ce transport avec nouvelle date et service"
+                      >
+                        <span className="material-symbols-outlined text-sm">replay</span>
+                        <span className="hidden sm:inline">Renouveler</span>
+                      </button>
+                    )}
+
+                    {/* Annuler si course active */}
                     {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
                       <button
-                        onClick={() => openCancelModal(ride)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCancelModal(ride);
+                        }}
                         className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-1.5 rounded-lg transition-all cursor-pointer"
                         title="Annuler cette demande de transport"
                       >
@@ -1418,6 +1526,19 @@ export const FacilityPortalPage: React.FC = () => {
                   <span className="material-symbols-outlined text-base">cancel</span>
                   <span>Annuler ce transport</span>
                 </button>
+              ) : selectedRideForPmt.status === 'COMPLETED' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = selectedRideForPmt;
+                    setSelectedRideForPmt(null);
+                    openRenewModal(r);
+                  }}
+                  className="px-3.5 py-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-base">replay</span>
+                  <span>Renouveler ce transport</span>
+                </button>
               ) : (
                 <div></div>
               )}
@@ -1946,6 +2067,188 @@ export const FacilityPortalPage: React.FC = () => {
                 <span>Confirmer l'annulation</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL : RENOUVELER UN TRANSPORT COMPLÉTÉ (ÉTABLISSEMENT)                  */}
+      {/* ========================================================================= */}
+      {rideToRenew && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="max-w-lg w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4 my-8">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200 shadow-2xs">
+                  <span className="material-symbols-outlined text-xl">autorenew</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Renouveler la demande de transport
+                  </h3>
+                  <span className="text-[11px] text-on-surface-variant">
+                    Basé sur la course #{rideToRenew.reference} • {rideToRenew.patient.firstName} {rideToRenew.patient.lastName}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRideToRenew(null)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Synthèse trajet & patient */}
+            <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 text-xs space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-bold text-primary">
+                <span>Patient : {rideToRenew.patient.firstName} {rideToRenew.patient.lastName} ({rideToRenew.patient.nir})</span>
+                <span>{rideToRenew.transportType === 'AMBULANCE' ? 'Ambulance' : rideToRenew.transportType === 'TAXI_CONVENTIONNE' ? 'Taxi Conv.' : 'VSL Médicalisé'}</span>
+              </div>
+              <div className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                <span className="font-semibold text-on-surface">{rideToRenew.pickupAddress}</span>
+                <span>➔</span>
+                <span className="font-semibold text-on-surface">{rideToRenew.dropoffAddress} ({rideToRenew.dropoffCity})</span>
+              </div>
+              <div className="pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px] text-emerald-700 font-semibold">
+                <span className="inline-flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">verified</span>
+                  Dossier PMT &amp; Tiers-Payant conservés
+                </span>
+                <span>{rideToRenew.patient.isAld ? 'PEC 100% ALD' : 'Conventionné CPAM'}</span>
+              </div>
+            </div>
+
+            {/* Formulaire de renouvellement avec correction de date & service */}
+            <form onSubmit={(e) => { e.preventDefault(); handleConfirmRenew(); }} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. Date du transport à corriger */}
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-primary text-sm">calendar_month</span>
+                    <span>Date du transport *</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={renewDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setRenewDate(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                  />
+                  <span className="text-[10px] text-on-surface-variant mt-0.5 block">
+                    Corrigez la date de la nouvelle intervention
+                  </span>
+                </div>
+
+                {/* 2. Heure de prise en charge / RDV */}
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-primary text-sm">alarm</span>
+                    <span>Heure souhaitée / RDV *</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={renewAppointmentTime}
+                    onChange={(e) => setRenewAppointmentTime(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                  />
+                  <span className="text-[10px] text-on-surface-variant mt-0.5 block">
+                    Heure programmée de prise en charge
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Service hospitalier éventuellement à corriger */}
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-secondary text-sm">local_hospital</span>
+                  <span>Service hospitalier (éventuellement à corriger)</span>
+                </label>
+                <input
+                  type="text"
+                  value={renewDepartment}
+                  onChange={(e) => setRenewDepartment(e.target.value)}
+                  placeholder="ex: Cardiologie, Hémodialyse, Oncologie, Chirurgie Ambulatoire..."
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                />
+                <span className="text-[10px] text-on-surface-variant mt-0.5 block">
+                  Modifiez le service hospitalier si le patient a changé de département
+                </span>
+              </div>
+
+              {/* 4. Localisation précise dans le service */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
+                    Étage / Bâtiment (optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={renewFloor}
+                    onChange={(e) => setRenewFloor(e.target.value)}
+                    placeholder="ex: 3ème étage, Bât. B..."
+                    className="w-full p-2 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
+                    Chambre / Lit (optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={renewRoom}
+                    onChange={(e) => setRenewRoom(e.target.value)}
+                    placeholder="ex: Ch. 312 - Lit B..."
+                    className="w-full p-2 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* 5. Consignes particulières */}
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1">
+                  Consignes et notes pour le transporteur (optionnel) :
+                </label>
+                <textarea
+                  value={renewNotes}
+                  onChange={(e) => setRenewNotes(e.target.value)}
+                  placeholder="Nouvelles consignes de prise en charge, état du patient..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary shadow-2xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-outline-variant/20">
+                <button
+                  type="button"
+                  onClick={() => setRideToRenew(null)}
+                  className="flex-1 py-2.5 px-3 rounded-xl border border-outline-variant/40 text-xs font-bold hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRenewing}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isRenewing ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Création en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">check_circle</span>
+                      <span>Confirmer et créer la demande</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

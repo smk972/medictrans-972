@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -23,68 +23,166 @@ export const TrackingPage: React.FC = () => {
   const [cancelCustomNote, setCancelCustomNote] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
+  // États pour le renouvellement d'une course terminée
+  const [rideToRenew, setRideToRenew] = useState<Ride | null>(null);
+  const [renewDate, setRenewDate] = useState<string>('');
+  const [renewAppointmentTime, setRenewAppointmentTime] = useState<string>('09:00');
+  const [renewDepartment, setRenewDepartment] = useState<string>('');
+  const [renewIsRoundTrip, setRenewIsRoundTrip] = useState<boolean>(true);
+  const [renewNotes, setRenewNotes] = useState<string>('');
+  const [isRenewing, setIsRenewing] = useState<boolean>(false);
+
+  const loadRides = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      setRides([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const allRides = await rideService.getAllRides();
+
+      // Récupérer une référence récente si réservée en local
+      let lastBookingRef: string | null = null;
+      try {
+        const raw = localStorage.getItem('medictrans_last_booking');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          lastBookingRef = parsed.ref;
+        }
+      } catch {
+        // ignore
+      }
+
+      let relevantRides: Ride[] = [];
+
+      if (user.role === 'ADMIN') {
+        relevantRides = allRides;
+      } else if (user.role === 'FACILITY') {
+        relevantRides = allRides.filter((r) => 
+          (r.facilityName && user.facilityName && r.facilityName.toLowerCase().includes(user.facilityName.toLowerCase())) ||
+          (r.pickupAddress && user.facilityName && r.pickupAddress.toLowerCase().includes(user.facilityName.toLowerCase()))
+        );
+      } else if (user.role === 'TRANSPORTER') {
+        relevantRides = allRides.filter((r) => 
+          Boolean(r.assignedTransporter?.companyName && user.transporterName && r.assignedTransporter.companyName.toLowerCase().includes(user.transporterName.toLowerCase()))
+        );
+      } else {
+        // Rôle PATIENT (ou compte particulier) : filtrer strictement ses propres courses
+        relevantRides = allRides.filter((r) => {
+          const matchesEmail = user.email && r.patient?.email?.toLowerCase() === user.email.toLowerCase();
+          const matchesNir = user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
+          const matchesPhone = user.phone && r.patient?.phone && r.patient.phone.replace(/\s/g, '') === user.phone.replace(/\s/g, '');
+          const matchesLastName = user.lastName && r.patient?.lastName && r.patient.lastName.toLowerCase().trim() === user.lastName.toLowerCase().trim();
+          const matchesLastBooking = lastBookingRef && r.reference.toUpperCase() === lastBookingRef.toUpperCase();
+          return matchesEmail || matchesNir || matchesPhone || matchesLastName || matchesLastBooking;
+        });
+      }
+
+      setRides(relevantRides);
+    } catch (err) {
+      console.warn('Erreur chargement des courses:', err);
+      setRides([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, user]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-
-    const loadRides = async () => {
-      if (!isAuthenticated || !user) {
-        setRides([]);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const allRides = await rideService.getAllRides();
-
-        // Récupérer une référence récente si réservée en local
-        let lastBookingRef: string | null = null;
-        try {
-          const raw = localStorage.getItem('medictrans_last_booking');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            lastBookingRef = parsed.ref;
-          }
-        } catch {
-          // ignore
-        }
-
-        let relevantRides: Ride[] = [];
-
-        if (user.role === 'ADMIN') {
-          relevantRides = allRides;
-        } else if (user.role === 'FACILITY') {
-          relevantRides = allRides.filter((r) => 
-            (r.facilityName && user.facilityName && r.facilityName.toLowerCase().includes(user.facilityName.toLowerCase())) ||
-            (r.pickupAddress && user.facilityName && r.pickupAddress.toLowerCase().includes(user.facilityName.toLowerCase()))
-          );
-        } else if (user.role === 'TRANSPORTER') {
-          relevantRides = allRides.filter((r) => 
-            Boolean(r.assignedTransporter?.companyName && user.transporterName && r.assignedTransporter.companyName.toLowerCase().includes(user.transporterName.toLowerCase()))
-          );
-        } else {
-          // Rôle PATIENT (ou compte particulier) : filtrer strictement ses propres courses
-          relevantRides = allRides.filter((r) => {
-            const matchesEmail = user.email && r.patient?.email?.toLowerCase() === user.email.toLowerCase();
-            const matchesNir = user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
-            const matchesPhone = user.phone && r.patient?.phone && r.patient.phone.replace(/\s/g, '') === user.phone.replace(/\s/g, '');
-            const matchesLastName = user.lastName && r.patient?.lastName && r.patient.lastName.toLowerCase().trim() === user.lastName.toLowerCase().trim();
-            const matchesLastBooking = lastBookingRef && r.reference.toUpperCase() === lastBookingRef.toUpperCase();
-            return matchesEmail || matchesNir || matchesPhone || matchesLastName || matchesLastBooking;
-          });
-        }
-
-        setRides(relevantRides);
-      } catch (err) {
-        console.warn('Erreur chargement des courses:', err);
-        setRides([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadRides();
-  }, [isAuthenticated, user?.email, user?.role, user?.nir, user?.phone, user?.lastName, user?.facilityName, user?.transporterName, user?.id]);
+  }, [loadRides]);
+
+  // Ouvrir le modal de renouvellement pour une course terminée
+  const openRenewModal = (ride: Ride) => {
+    setRideToRenew(ride);
+    // Par défaut : date de demain
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const defDate = tomorrow.toISOString().split('T')[0];
+    setRenewDate(defDate);
+
+    // Heure de RDV médical par défaut : celle de la course précédente ou 09:00
+    setRenewAppointmentTime(
+      ride.appointmentTime ||
+      (ride.pickupDateTime ? new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '09:00')
+    );
+
+    // Service hospitalier éventuel (département, aile, consultation)
+    const existingDept = 
+      ride.facilityDepartment || 
+      (ride.facilityName?.includes(' - ') ? ride.facilityName.split(' - ')[1] : '');
+    setRenewDepartment(existingDept || '');
+    setRenewIsRoundTrip(Boolean(ride.isRoundTrip));
+    setRenewNotes('');
+  };
+
+  // Confirmer le renouvellement et recréer la nouvelle demande
+  const handleConfirmRenew = async () => {
+    if (!rideToRenew || !renewDate || !renewAppointmentTime) return;
+    setIsRenewing(true);
+    try {
+      const newPickupDateTime = new Date(`${renewDate}T${renewAppointmentTime}:00`).toISOString();
+
+      let updatedFacilityName = rideToRenew.facilityName;
+      if (renewDepartment.trim()) {
+        const baseFacility = rideToRenew.facilityName ? rideToRenew.facilityName.split(' - ')[0] : 'Établissement de Santé 972';
+        updatedFacilityName = `${baseFacility} - ${renewDepartment.trim()}`;
+      }
+
+      const payload: Omit<Ride, 'id' | 'reference' | 'createdAt' | 'status'> = {
+        pickupAddress: rideToRenew.pickupAddress,
+        pickupCity: rideToRenew.pickupCity,
+        dropoffAddress: rideToRenew.dropoffAddress,
+        dropoffCity: rideToRenew.dropoffCity,
+        facilityName: updatedFacilityName,
+        facilityDepartment: renewDepartment.trim() || rideToRenew.facilityDepartment,
+        facilityFloor: rideToRenew.facilityFloor,
+        facilityRoom: rideToRenew.facilityRoom,
+        facilityStaircase: rideToRenew.facilityStaircase,
+        facilityBed: rideToRenew.facilityBed,
+        pickupDateTime: newPickupDateTime,
+        returnDateTime: renewIsRoundTrip ? new Date(new Date(newPickupDateTime).getTime() + 4 * 3600000).toISOString() : undefined,
+        isRoundTrip: renewIsRoundTrip,
+        transportType: rideToRenew.transportType,
+        source: 'PATIENT',
+        appointmentTime: renewAppointmentTime,
+        patient: { ...rideToRenew.patient },
+        mobility: {
+          ...rideToRenew.mobility,
+          notes: renewNotes.trim()
+            ? `${renewNotes.trim()} (Renouvellement de la course #${rideToRenew.reference})`
+            : `Renouvellement de la course précédente #${rideToRenew.reference}`
+        }
+      };
+
+      const newRide = await rideService.createRide(payload);
+
+      localStorage.setItem('medictrans_last_booking', JSON.stringify({
+        ref: newRide.reference,
+        pickup: newRide.pickupAddress,
+        destination: newRide.facilityName || newRide.dropoffAddress,
+        date: renewDate,
+        time: renewAppointmentTime,
+        type: newRide.transportType
+      }));
+
+      await loadRides();
+
+      setToastMessage({
+        title: 'Transport renouvelé avec succès !',
+        desc: `Votre nouvelle demande a été créée sous la référence #${newRide.reference} pour le ${new Date(renewDate).toLocaleDateString('fr-FR')} à ${renewAppointmentTime}.`
+      });
+
+      setRideToRenew(null);
+    } catch (err) {
+      console.error('Erreur lors du renouvellement:', err);
+      alert('Une erreur est survenue lors du renouvellement du transport.');
+    } finally {
+      setIsRenewing(false);
+    }
+  };
 
   // Course prioritaire active
   const activeRide = useMemo(() => {
@@ -805,12 +903,25 @@ export const TrackingPage: React.FC = () => {
                             filteredRides.map((ride) => {
                               const badge = getStatusBadge(ride.status);
                               const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
+                              const hoursLeft = getHoursUntilPickup(ride);
+                              const isOver24h = hoursLeft >= 24;
+
                               return (
-                                <tr key={ride.id} className="hover:bg-surface-container-low/60 transition-colors">
+                                <tr 
+                                  key={ride.id} 
+                                  onClick={() => setSelectedRideModal(ride)}
+                                  className="hover:bg-primary/5 cursor-pointer transition-colors group"
+                                  title="Cliquer pour afficher toutes les informations détaillées de ce transport"
+                                >
                                   <td className="py-3.5 px-4 align-top">
-                                    <span className="font-mono text-primary font-bold block">
-                                      {ride.reference}
-                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-mono text-primary font-bold block group-hover:underline">
+                                        {ride.reference}
+                                      </span>
+                                      <span className="material-symbols-outlined text-xs text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        open_in_new
+                                      </span>
+                                    </div>
                                     <span className="text-on-surface-variant font-label-sm text-label-sm block">
                                       {new Date(ride.pickupDateTime).toLocaleDateString('fr-FR', {
                                         day: '2-digit',
@@ -863,14 +974,48 @@ export const TrackingPage: React.FC = () => {
                                       {badge.label}
                                     </span>
                                   </td>
-                                  <td className="py-3.5 px-4 align-top text-right">
-                                    <button
-                                      onClick={() => setSelectedRideModal(ride)}
-                                      className="px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-xs font-bold transition-colors inline-flex items-center gap-1"
-                                    >
-                                      <span className="material-symbols-outlined text-sm">visibility</span>
-                                      <span>Détails &amp; PMT</span>
-                                    </button>
+                                  <td className="py-3.5 px-4 align-top text-right" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedRideModal(ride)}
+                                        className="px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-label-sm text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-2xs"
+                                        title="Consulter toutes les informations détaillées de ce transport"
+                                      >
+                                        <span className="material-symbols-outlined text-sm">visibility</span>
+                                        <span>Détails</span>
+                                      </button>
+
+                                      {ride.status !== 'COMPLETED' && ride.status !== 'CANCELLED' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => openCancelModal(ride)}
+                                          className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all shadow-2xs ${
+                                            isOver24h
+                                              ? 'border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700'
+                                              : 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800'
+                                          }`}
+                                          title={isOver24h ? "Annuler cette course en ligne (> 24h avant départ)" : "Moins de 24h : contact transporteur direct requis"}
+                                        >
+                                          <span className="material-symbols-outlined text-[15px]">
+                                            {isOver24h ? 'cancel' : 'phone_in_talk'}
+                                          </span>
+                                          <span>Annuler</span>
+                                        </button>
+                                      )}
+
+                                      {ride.status === 'COMPLETED' && (
+                                        <button
+                                          type="button"
+                                          onClick={() => openRenewModal(ride)}
+                                          className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1 transition-all shadow-2xs"
+                                          title="Renouveler ce transport avec nouvelle date et service"
+                                        >
+                                          <span className="material-symbols-outlined text-sm text-emerald-600">autorenew</span>
+                                          <span>Renouveler</span>
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -1166,27 +1311,44 @@ export const TrackingPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between border-t border-outline-variant/20">
-              {selectedRideModal.status !== 'COMPLETED' && selectedRideModal.status !== 'CANCELLED' ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const r = selectedRideModal;
-                    setSelectedRideModal(null);
-                    openCancelModal(r);
-                  }}
-                  className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-base">cancel</span>
-                  <span>Annuler ce transport</span>
-                </button>
-              ) : (
-                <div></div>
-              )}
+            <div className="pt-3 flex items-center justify-between border-t border-outline-variant/20 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                {selectedRideModal.status !== 'COMPLETED' && selectedRideModal.status !== 'CANCELLED' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const r = selectedRideModal;
+                      setSelectedRideModal(null);
+                      openCancelModal(r);
+                    }}
+                    className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+                  >
+                    <span className="material-symbols-outlined text-base">cancel</span>
+                    <span>Annuler ce transport</span>
+                  </button>
+                )}
+
+                {selectedRideModal.status === 'COMPLETED' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const r = selectedRideModal;
+                      setSelectedRideModal(null);
+                      openRenewModal(r);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                    title="Renouveler ce transport avec nouvelle date et service"
+                  >
+                    <span className="material-symbols-outlined text-base">autorenew</span>
+                    <span>Renouveler cette course</span>
+                  </button>
+                )}
+              </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedRideModal(null)}
-                className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-surface-container-high text-on-surface text-xs font-bold hover:bg-surface-container-highest transition-colors"
               >
                 Fermer
               </button>
@@ -1356,6 +1518,180 @@ export const TrackingPage: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Modal Renouvellement de Course Terminée */}
+      {rideToRenew && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="max-w-lg w-full bg-surface-container-lowest rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4 my-8">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200 shadow-2xs">
+                  <span className="material-symbols-outlined text-xl">autorenew</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Renouveler ce transport médical
+                  </h3>
+                  <span className="text-[11px] text-on-surface-variant">
+                    Basé sur la course #{rideToRenew.reference} • {rideToRenew.pickupCity} ➔ {rideToRenew.dropoffCity}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRideToRenew(null)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Synthèse trajet & patient conservés */}
+            <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 text-xs space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-bold text-primary">
+                <span>Patient : {rideToRenew.patient.firstName} {rideToRenew.patient.lastName}</span>
+                <span>{getVehicleLabel(rideToRenew.transportType)}</span>
+              </div>
+              <div className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                <span className="font-semibold text-on-surface">{rideToRenew.pickupAddress}</span>
+                <span>➔</span>
+                <span className="font-semibold text-on-surface">{rideToRenew.facilityName || rideToRenew.dropoffAddress}</span>
+              </div>
+              <div className="pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px] text-emerald-700 font-semibold">
+                <span className="inline-flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">verified</span>
+                  Prescription PMT &amp; Tiers-Payant conservés
+                </span>
+                <span>{rideToRenew.patient.isAld ? 'Exonération ALD 100%' : 'Conventionné CPAM'}</span>
+              </div>
+            </div>
+
+            {/* Formulaire d'ajustement demandé par l'utilisateur */}
+            <form onSubmit={(e) => { e.preventDefault(); handleConfirmRenew(); }} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. Date du transport à corriger */}
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-primary text-sm">calendar_month</span>
+                    <span>Date du nouveau transport *</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={renewDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setRenewDate(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                  />
+                  <span className="text-[10px] text-on-surface-variant mt-0.5 block">
+                    Indiquez la date de votre prochaine séance
+                  </span>
+                </div>
+
+                {/* 2. Heure de rendez-vous médical */}
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-primary text-sm">alarm</span>
+                    <span>Heure du RDV médical *</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={renewAppointmentTime}
+                    onChange={(e) => setRenewAppointmentTime(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                  />
+                  <span className="text-[10px] text-on-surface-variant mt-0.5 block">
+                    Heure de votre convocation sur place
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Service hospitalier éventuellement à corriger */}
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-secondary text-sm">local_hospital</span>
+                  <span>Service / Étage / Chambre (éventuellement à corriger)</span>
+                </label>
+                <input
+                  type="text"
+                  value={renewDepartment}
+                  onChange={(e) => setRenewDepartment(e.target.value)}
+                  placeholder="ex: Oncologie - Bâtiment C, Consultation Cardiologie, Étage 3..."
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                />
+                <span className="text-[10px] text-on-surface-variant mt-0.5 block">
+                  Précisez le service si votre rendez-vous a changé d'aile ou d'étage.
+                </span>
+              </div>
+
+              {/* 4. Aller-retour */}
+              <label className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={renewIsRoundTrip}
+                  onChange={(e) => setRenewIsRoundTrip(e.target.checked)}
+                  className="rounded text-primary focus:ring-primary h-4 w-4"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-on-surface block">Trajet aller-retour</span>
+                  <span className="text-[10px] text-on-surface-variant">Prévoir le transport retour après la fin des soins</span>
+                </div>
+              </label>
+
+              {/* 5. Précisions complémentaires */}
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface mb-1">
+                  Informations complémentaires pour le transporteur (optionnel) :
+                </label>
+                <textarea
+                  value={renewNotes}
+                  onChange={(e) => setRenewNotes(e.target.value)}
+                  placeholder="Consignes particulières, code porte, accompagnant..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-[11px] text-primary flex items-start gap-2">
+                <span className="material-symbols-outlined text-sm shrink-0 mt-0.5">info</span>
+                <span>
+                  Le transporteur conventionné calculera l'heure de prise en charge à votre domicile selon la durée du trajet et vous la confirmera dès acceptation.
+                </span>
+              </div>
+
+              {/* Boutons actions */}
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setRideToRenew(null)}
+                  className="px-4 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs font-bold hover:bg-surface-container-high transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRenewing || !renewDate || !renewAppointmentTime}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  {isRenewing ? (
+                    <>
+                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      <span>Création en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">check_circle</span>
+                      <span>Confirmer et créer la nouvelle demande</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
