@@ -1328,7 +1328,17 @@ export const TransporterPortalPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFD] text-slate-900 font-sans antialiased">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-teal-50/70 to-sky-100/60 text-slate-900 font-sans antialiased relative selection:bg-teal-600 selection:text-white">
+      {/* Halos lumineux d'arrière-plan en dégradé */}
+      <div 
+        aria-hidden="true" 
+        className="fixed top-0 right-0 w-[600px] h-[500px] bg-gradient-to-b from-teal-200/35 via-sky-200/25 to-transparent rounded-full blur-3xl pointer-events-none z-0" 
+      />
+      <div 
+        aria-hidden="true" 
+        className="fixed bottom-0 right-1/4 w-[500px] h-[450px] bg-gradient-to-tr from-teal-100/35 via-slate-200/40 to-transparent rounded-full blur-3xl pointer-events-none z-0" 
+      />
+
       <SEOHead
         title="Console Dispatch Transporteurs Sanitaires | Clinigo"
         description="Console télématique temps réel pour les ambulanciers, VSL et taxis conventionnés Clinigo. Attribution directe et suivi GPS des interventions."
@@ -1501,9 +1511,9 @@ export const TransporterPortalPage: React.FC = () => {
       </aside>
 
       {/* Contenu Principal */}
-      <div className="md:pl-64 flex flex-col min-h-screen">
+      <div className="md:pl-64 flex flex-col min-h-screen relative z-10">
         {/* Header supérieur */}
-        <header className="sticky top-0 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 z-40 px-4 sm:px-6 h-16 flex items-center justify-between shadow-xs">
+        <header className="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 z-40 px-4 sm:px-6 h-16 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
             <span className="md:hidden">
               <BrandLogo to="/transporteurs" variant="compact" />
