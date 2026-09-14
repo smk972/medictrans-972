@@ -15,7 +15,10 @@ export const LoginPage: React.FC = () => {
     loginWithGoogle,
     loginAsDemo,
     isLoading,
-    error: authError
+    error: authError,
+    user,
+    isAuthenticated,
+    logout
   } = useAuth();
 
   const locationState = location.state as {
@@ -193,6 +196,44 @@ export const LoginPage: React.FC = () => {
 
           {/* Main Card */}
           <div className="bg-surface-container-lowest rounded-3xl shadow-[0_8px_30px_rgb(11,28,48,0.08)] border border-outline-variant/30 p-6 sm:p-8">
+            {/* Session déjà active : Option de déconnexion immédiate à tout moment */}
+            {isAuthenticated && user && (
+              <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm ring-2 ring-primary/20 shrink-0">
+                    {user.firstName[0]?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <div className="text-xs text-on-surface">
+                      Connecté en tant que <strong className="font-bold">{user.firstName} {user.lastName}</strong> ({user.facilityName || user.transporterName || user.role})
+                    </div>
+                    <div className="text-[11px] text-on-surface-variant font-mono">{user.email}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => redirectAfterAuth(user.role)}
+                    className="px-3 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all"
+                  >
+                    Mon espace
+                  </button>
+                  <button
+                    id="btn-login-page-logout"
+                    type="button"
+                    onClick={async () => {
+                      await logout();
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-error/30 text-error hover:bg-error/10 text-xs font-bold transition-all flex items-center gap-1"
+                    title="Se déconnecter de cette session"
+                  >
+                    <span className="material-symbols-outlined text-sm">logout</span>
+                    <span>Se déconnecter</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Required Login Notice */}
             {locationState?.message && (
               <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3 text-amber-900 shadow-xs animate-fadeIn">

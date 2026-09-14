@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { SEOHead } from './SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,8 +18,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   actions,
   urgentCount = 0
 }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (err) {
+      console.error('Erreur déconnexion:', err);
+    }
+  };
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
@@ -126,6 +136,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 <span className="material-symbols-outlined text-base">open_in_new</span>
                 <span>Site Public</span>
               </Link>
+
+              {/* Bouton Déconnexion Console Admin */}
+              <button
+                id="btn-logout-admin"
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-error/30 text-error hover:bg-error/10 text-xs font-bold transition-all duration-150 active:scale-95 shadow-2xs"
+                title="Se déconnecter de la console de régulation à tout moment"
+              >
+                <span className="material-symbols-outlined text-base">logout</span>
+                <span className="hidden sm:inline">Déconnexion</span>
+              </button>
             </div>
           </div>
         </div>
@@ -144,6 +166,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <NavLink to="/admin/etablissements" className={navClass}>
             Établissements
           </NavLink>
+          <button
+            id="btn-mobile-logout-admin"
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-error hover:bg-error/10 transition-colors ml-auto shrink-0"
+            title="Se déconnecter de la régulation"
+          >
+            <span className="material-symbols-outlined text-base">logout</span>
+            <span>Déconnexion</span>
+          </button>
         </div>
       </header>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { SEOHead } from '../components/SEOHead';
 import { rideService } from '../services/rideService';
@@ -130,7 +130,17 @@ export const getPatientDisplayName = (
 };
 
 export const TransporterPortalPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (err) {
+      console.error('Erreur déconnexion:', err);
+    }
+  };
 
   // State
   const [rides, setRides] = useState<Ride[]>([]);
@@ -1359,8 +1369,8 @@ export const TransporterPortalPage: React.FC = () => {
           </a>
         </div>
 
-        {/* Lien Retour Site */}
-        <div className="p-3 border-t border-outline-variant/20">
+        {/* Liens Retour Site & Déconnexion */}
+        <div className="p-3 border-t border-outline-variant/20 flex flex-col gap-1">
           <Link
             to="/"
             className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors py-1.5 px-2 rounded-lg"
@@ -1368,6 +1378,16 @@ export const TransporterPortalPage: React.FC = () => {
             <span className="material-symbols-outlined text-base">arrow_back</span>
             <span>Retour à l'accueil</span>
           </Link>
+          <button
+            id="btn-sidebar-logout"
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 text-xs font-bold text-error hover:bg-error/10 transition-colors py-1.5 px-2 rounded-lg text-left"
+            title="Se déconnecter de votre compte transporteur"
+          >
+            <span className="material-symbols-outlined text-base">logout</span>
+            <span>Se déconnecter</span>
+          </button>
         </div>
       </aside>
 
@@ -1425,6 +1445,17 @@ export const TransporterPortalPage: React.FC = () => {
                 <span className="text-[10px] text-emerald-600 font-semibold">Agréé ARS & CPAM</span>
               </div>
             </div>
+
+            <button
+              id="btn-logout-transporter"
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-error/30 text-error hover:bg-error/10 text-xs font-bold transition-all duration-150 active:scale-95 shadow-2xs"
+              title="Se déconnecter de l'espace transporteur à tout moment"
+            >
+              <span className="material-symbols-outlined text-base">logout</span>
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
           </div>
         </header>
 

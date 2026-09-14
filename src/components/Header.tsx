@@ -111,38 +111,40 @@ export const Header: React.FC = () => {
 
           {/* User Profile / Login Button */}
           {isAuthenticated && user ? (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2.5 p-1.5 sm:px-2.5 rounded-2xl hover:bg-surface-container transition-all border border-outline-variant/30 text-left"
-              >
-                {user.avatarUrl ? (
-                  <img
-                    alt={user.firstName}
-                    className="w-9 h-9 rounded-full object-cover shadow-xs ring-2 ring-primary/20"
-                    src={user.avatarUrl}
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-xs ring-2 ring-primary/20">
-                    {user.firstName[0]?.toUpperCase() || 'U'}
+            <div className="flex items-center gap-2">
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  id="btn-header-profile"
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-2.5 p-1.5 sm:px-2.5 rounded-2xl hover:bg-surface-container transition-all border border-outline-variant/30 text-left"
+                >
+                  {user.avatarUrl ? (
+                    <img
+                      alt={user.firstName}
+                      className="w-9 h-9 rounded-full object-cover shadow-xs ring-2 ring-primary/20"
+                      src={user.avatarUrl}
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shadow-xs ring-2 ring-primary/20">
+                      {user.firstName[0]?.toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div className="hidden md:flex flex-col">
+                    <span className="font-label-md text-label-md text-on-surface font-bold leading-tight">
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="font-label-xs text-[11px] text-on-surface-variant leading-tight mt-0.5 truncate max-w-[140px]">
+                      {user.facilityName || user.transporterName || roleBadge?.label}
+                    </span>
                   </div>
-                )}
-                <div className="hidden md:flex flex-col">
-                  <span className="font-label-md text-label-md text-on-surface font-bold leading-tight">
-                    {user.firstName} {user.lastName}
+                  <span className="material-symbols-outlined text-lg text-on-surface-variant hidden md:inline">
+                    {userDropdownOpen ? 'expand_less' : 'expand_more'}
                   </span>
-                  <span className="font-label-xs text-[11px] text-on-surface-variant leading-tight mt-0.5 truncate max-w-[140px]">
-                    {user.facilityName || user.transporterName || roleBadge?.label}
-                  </span>
-                </div>
-                <span className="material-symbols-outlined text-lg text-on-surface-variant hidden md:inline">
-                  {userDropdownOpen ? 'expand_less' : 'expand_more'}
-                </span>
-              </button>
+                </button>
 
-              {/* Dropdown Menu */}
-              {userDropdownOpen && (
+                {/* Dropdown Menu */}
+                {userDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-surface-container-lowest shadow-xl border border-outline-variant/30 py-2 z-50 animate-fadeIn">
                   <div className="px-4 py-2.5 border-b border-outline-variant/20">
                     <p className="text-xs font-semibold text-on-surface truncate">
@@ -224,6 +226,7 @@ export const Header: React.FC = () => {
                   <div className="border-t border-outline-variant/20 pt-1">
                     <button
                       type="button"
+                      id="btn-dropdown-logout"
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-error hover:bg-error/10 transition-colors text-left"
                     >
@@ -236,6 +239,19 @@ export const Header: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Bouton direct Déconnexion 1-clic sur grand écran */}
+            <button
+              id="btn-header-logout"
+              type="button"
+              onClick={handleLogout}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-error/30 text-error hover:bg-error/10 text-xs font-bold transition-all duration-150 active:scale-95 shadow-2xs"
+              title="Se déconnecter de votre compte à tout moment"
+            >
+              <span className="material-symbols-outlined text-base">logout</span>
+              <span>Déconnexion</span>
+            </button>
+          </div>
           ) : (
             <Link
               to="/connexion"
@@ -288,11 +304,13 @@ export const Header: React.FC = () => {
               </div>
               <button
                 type="button"
+                id="btn-mobile-drawer-logout"
                 onClick={handleLogout}
-                className="p-2 rounded-lg text-error hover:bg-error/10 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-error bg-error/10 hover:bg-error/20 transition-colors text-xs font-bold shrink-0"
                 title="Déconnexion"
               >
-                <span className="material-symbols-outlined text-xl">logout</span>
+                <span className="material-symbols-outlined text-base">logout</span>
+                <span>Déconnexion</span>
               </button>
             </div>
           ) : (
@@ -359,6 +377,20 @@ export const Header: React.FC = () => {
               <span>Tour de Contrôle & Régulation 972</span>
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
+
+            {isAuthenticated && (
+              <div className="pt-2 border-t border-outline-variant/20 mt-2">
+                <button
+                  id="btn-mobile-drawer-nav-logout"
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-error hover:bg-error/10 font-label-md font-bold transition-colors text-left"
+                >
+                  <span className="material-symbols-outlined text-base">logout</span>
+                  <span>Se déconnecter de mon compte</span>
+                </button>
+              </div>
+            )}
           </nav>
           <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between">
             <div className="flex items-center gap-2">
