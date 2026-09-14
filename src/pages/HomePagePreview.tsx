@@ -106,7 +106,7 @@ export const HomePagePreview: React.FC = () => {
             </div>
             
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4">
-              Votre transport médicalisé en Martinique,{' '}
+              Votre transport médicalisé{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-teal-600 to-emerald-600">
                 réservé en toute sérénité.
               </span>

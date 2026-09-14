@@ -100,7 +100,7 @@ export const HomePage: React.FC = () => {
               {/* Top Badges & Heading Hierarchy */}
               <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-space-xl">
                 <h1 className="font-headline-xl text-headline-xl text-primary tracking-tight mb-space-sm font-bold text-3xl md:text-4xl lg:text-5xl">
-                  Votre transport médicalisé en Martinique, réservé en toute sérénité.
+                  Votre transport médicalisé réservé en toute sérénité.
                 </h1>
                 <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl text-lg">
                   Service conçu pour les patients, proches aidants et équipes soignantes.
