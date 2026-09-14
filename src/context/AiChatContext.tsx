@@ -6,6 +6,23 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   isEmergency?: boolean;
+  formDraft?: {
+    transportType?: 'taxi' | 'vsl' | 'ambulance';
+    pickupAddress?: string;
+    destinationFacility?: string;
+    transportDate?: string;
+    transportTime?: string;
+    patientNir?: string;
+  };
+}
+
+interface FormDraftData {
+  transportType?: 'taxi' | 'vsl' | 'ambulance';
+  pickupAddress?: string;
+  destinationFacility?: string;
+  transportDate?: string;
+  transportTime?: string;
+  patientNir?: string;
 }
 
 interface AiChatContextType {
@@ -18,16 +35,20 @@ interface AiChatContextType {
   clearHistory: () => void;
   isTyping: boolean;
   error: string | null;
+  pendingDraft: FormDraftData | null;
+  applyDraftToBooking: (draft: FormDraftData) => void;
+  consumePendingDraft: () => FormDraftData | null;
 }
 
 const STORAGE_KEY = 'medictrans_ai_chat_history_972';
+const DRAFT_STORAGE_KEY = 'medictrans_ai_form_draft_972';
 
 const AiChatContext = createContext<AiChatContextType | undefined>(undefined);
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'msg-welcome',
   role: 'assistant',
-  content: `Bonjour ! Je suis l'assistant support **Médic'Trans 972**.\n\nJe suis à votre disposition pour vous aider dans vos démarches de transport sanitaire en Martinique :\n• **Modes de transport** : Ambulance, VSL ou Taxi conventionné\n• **Documents requis** : Prescription Médicale de Transport (PMT Cerfa S3138)\n• **Prise en charge** : Tiers-Payant & CPAM Martinique (100% ALD)\n• **Réservation & Suivi** : Délai d'attribution de 24h, pot commun, annulation\n\n*Comment puis-je vous renseigner aujourd'hui ?*`,
+  content: `Bonjour ! Je suis **Eva - Aide à la réservation** pour Médic'Trans 972.\n\nJe suis spécialement formée pour vous accompagner de bout en bout :\n• 🚑 **Expliquer les différents transports** : Taxi conventionné, VSL, Ambulance\n• 🧭 **Guider votre démarche** pas à pas selon votre situation\n• ✍️ **Aider à remplir votre réservation** en ligne\n• 🔍 **Vérifier vos informations** (Numéro NIR de Sécurité Sociale, cohérence des horaires avec le trafic en Martinique, conformité PMT Cerfa S3138)\n• 📋 **Expliquer les 5 étapes de réservation** et le délai d'attribution de 24h\n• ❓ **Répondre à toutes vos questions fréquentes (FAQ)**\n\n*Comment puis-je vous aider aujourd'hui ?*`,
   timestamp: new Date().toISOString()
 };
 
@@ -35,6 +56,14 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<FormDraftData | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -49,12 +78,11 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return [WELCOME_MESSAGE];
   });
 
-  // Sauvegarde dans sessionStorage
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     } catch {
-      // Ignorer quota exceed
+      // Ignorer quota
     }
   }, [messages]);
 
@@ -78,6 +106,20 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     ];
     setMessages(freshMessages);
     sessionStorage.removeItem(STORAGE_KEY);
+    setPendingDraft(null);
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+  };
+
+  const applyDraftToBooking = (draft: FormDraftData) => {
+    setPendingDraft(draft);
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  };
+
+  const consumePendingDraft = (): FormDraftData | null => {
+    const draft = pendingDraft;
+    setPendingDraft(null);
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    return draft;
   };
 
   const sendMessage = async (content: string) => {
@@ -118,8 +160,13 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         role: 'assistant',
         content: assistantReply,
         timestamp: data.timestamp || new Date().toISOString(),
-        isEmergency: data.isEmergency
+        isEmergency: data.isEmergency,
+        formDraft: data.formDraft
       };
+
+      if (data.formDraft) {
+        applyDraftToBooking(data.formDraft);
+      }
 
       setMessages(prev => [...prev, botMsg]);
     } catch (err: any) {
@@ -128,7 +175,7 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fallbackMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        content: "Désolé, une erreur technique est survenue lors de la communication. Pour toute urgence ou question urgente, vous pouvez nous joindre directement par téléphone au **05 96 72 00 97**.",
+        content: "Désolé, une erreur technique est survenue lors de la communication. Pour toute question urgente, contactez notre équipe au **05 96 72 00 97**.",
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, fallbackMsg]);
@@ -148,7 +195,10 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendMessage,
         clearHistory,
         isTyping,
-        error
+        error,
+        pendingDraft,
+        applyDraftToBooking,
+        consumePendingDraft
       }}
     >
       {children}

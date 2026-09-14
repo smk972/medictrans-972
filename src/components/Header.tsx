@@ -99,12 +99,12 @@ export const Header: React.FC = () => {
             id="btn-header-help-ai"
             onClick={() => openChat()}
             className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl bg-surface-container hover:bg-primary/10 text-primary border border-primary/20 hover:border-primary/40 font-bold text-xs transition-all shadow-2xs group shrink-0"
-            title="Besoin d'aide sur le site ? Ouvrir l'assistant IA"
+            title="Eva - Aide à la réservation"
           >
             <span className="material-symbols-outlined text-base sm:text-lg text-primary group-hover:scale-110 transition-transform">
               support_agent
             </span>
-            <span className="hidden sm:inline whitespace-nowrap">Besoin d'aide ?</span>
+            <span className="hidden sm:inline whitespace-nowrap">Eva - Aide à la réservation</span>
           </button>
 
           {/* User Profile / Login Button */}
@@ -394,7 +394,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 transition-colors"
             >
               <span className="material-symbols-outlined text-base">support_agent</span>
-              <span>Besoin d'aide ?</span>
+              <span>Eva - Aide à la réservation</span>
             </button>
             <a href="tel:0596720097" className="font-label-md font-bold text-on-surface-variant text-xs flex items-center gap-1">
               <span className="material-symbols-outlined text-xs">call</span>

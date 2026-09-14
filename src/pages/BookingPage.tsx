@@ -15,9 +15,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { NirInput } from '../components/NirInput';
 import { validateNir } from '../utils/nirValidator';
 import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
+import { useAiChat } from '../context/AiChatContext';
 
 export const BookingPage: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { openChat, consumePendingDraft } = useAiChat();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -172,6 +174,19 @@ export const BookingPage: React.FC = () => {
     if (!selectedTransporterId) return null;
     return transportersList.find((t) => t.id === selectedTransporterId) || null;
   }, [selectedTransporterId, transportersList]);
+
+  // Consommation automatique d'un brouillon pré-rempli par le copilote IA (Niveau 2)
+  useEffect(() => {
+    const draft = consumePendingDraft();
+    if (draft) {
+      if (draft.transportType) setTransportType(draft.transportType);
+      if (draft.pickupAddress) setPickupAddress(draft.pickupAddress);
+      if (draft.destinationFacility) setDestinationFacility(draft.destinationFacility);
+      if (draft.transportDate) setTransportDate(draft.transportDate);
+      if (draft.transportTime) setTransportTime(draft.transportTime);
+      if (draft.patientNir) setNir(draft.patientNir);
+    }
+  }, [consumePendingDraft]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -427,7 +442,34 @@ export const BookingPage: React.FC = () => {
           </div>
         </section>
 
-        <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl w-full">
+        <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl w-full flex flex-col gap-6">
+          {/* Bannière d'aide interactive Assistant IA Niveau 2 - Eva */}
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/80 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                <span className="material-symbols-outlined text-xl">support_agent</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-blue-950 flex items-center gap-2">
+                  <span>Eva - Aide à la réservation</span>
+                  <span className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded-full font-semibold uppercase tracking-wider">Assistante IA</span>
+                </p>
+                <p className="text-xs text-blue-800 mt-0.5">
+                  Eva est à vos côtés pour vous guider pas à pas, vérifier votre numéro de Sécurité Sociale (NIR) et estimer vos horaires selon le trafic en Martinique.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              id="btn-open-ai-booking-helper"
+              onClick={() => openChat("Aide-moi à remplir le formulaire de réservation pas à pas.")}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition-all hover:scale-[1.02] shrink-0 active:scale-[0.98] cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">support_agent</span>
+              <span>Demander conseil à Eva</span>
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
             {/* Left Column: Patient Details, Mobility & PMT */}
             <div className="lg:col-span-7 flex flex-col gap-space-xl">

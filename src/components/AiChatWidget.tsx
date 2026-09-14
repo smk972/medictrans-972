@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAiChat, ChatMessage } from '../context/AiChatContext';
 
-const QUICK_PROMPTS = [
-  "Comment réserver un transport ?",
-  "Quels documents pour une PMT ?",
-  "Différence Taxi, VSL et Ambulance ?",
-  "Prise en charge CPAM Martinique ?",
-  "Délai d'attribution 24h & Pot commun"
+const LEVEL_2_PROMPTS = [
+  { label: "🚑 Quel transport choisir ?", prompt: "Explique-moi la différence entre un Taxi conventionné, un VSL et une Ambulance, et comment choisir selon mon ordonnance." },
+  { label: "✍️ M'aider à remplir le formulaire", prompt: "Aide-moi à remplir le formulaire de réservation pas à pas." },
+  { label: "🔍 Vérifier mon NIR (Sécu)", prompt: "Peux-tu vérifier la conformité de mon numéro de sécurité sociale (NIR) et m'expliquer le calcul de la clé ?" },
+  { label: "⏱️ Vérifier mon heure de départ (Trafic)", prompt: "Comment vérifier si mon heure de départ est suffisante pour un rendez-vous au CHU avec les embouteillages en Martinique ?" },
+  { label: "📑 Checklist PMT Cerfa S3138", prompt: "Quels sont les 5 critères obligatoires sur ma Prescription Médicale de Transport pour que la CPAM accepte le remboursement ?" },
+  { label: "📋 Les 5 étapes de réservation", prompt: "Quelles sont les 5 étapes pour réserver un transport sur Médic'Trans ?" },
+  { label: "❓ FAQ & Tiers-payant", prompt: "Quelles sont les règles de prise en charge CPAM 972, tiers-payant, accompagnateur et trajets de plus de 150 km ?" }
 ];
 
 export const AiChatWidget: React.FC = () => {
@@ -18,12 +21,18 @@ export const AiChatWidget: React.FC = () => {
     messages,
     sendMessage,
     clearHistory,
-    isTyping
+    isTyping,
+    pendingDraft,
+    applyDraftToBooking
   } = useAiChat();
 
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isOnBookingPage = location.pathname === '/reserver';
 
   // Auto-scroll en bas à chaque nouveau message
   useEffect(() => {
@@ -52,11 +61,17 @@ export const AiChatWidget: React.FC = () => {
     sendMessage(prompt);
   };
 
+  const handleGoToBooking = () => {
+    closeChat();
+    if (!isOnBookingPage) {
+      navigate('/reserver');
+    }
+  };
+
   const formatMessageText = (text: string) => {
-    // Parser simple de base pour gras (**texte**) et puces (• / -)
     const lines = text.split('\n');
     return lines.map((line, idx) => {
-      // Transformation simple du markdown bold
+      // Transformation markdown bold
       const parts = line.split(/(\*\*.*?\*\*)/g);
       const renderedParts = parts.map((part, pIdx) => {
         if (part.startsWith('**') && part.endsWith('**')) {
@@ -73,6 +88,14 @@ export const AiChatWidget: React.FC = () => {
           <div key={idx} className="flex items-start gap-1.5 ml-1 my-0.5">
             <span className="text-primary font-bold">•</span>
             <span>{renderedParts}</span>
+          </div>
+        );
+      }
+
+      if (line.trim().startsWith('✅') || line.trim().startsWith('❌') || line.trim().startsWith('🔍') || line.trim().startsWith('⏱️') || line.trim().startsWith('⚠️') || line.trim().startsWith('📌')) {
+        return (
+          <div key={idx} className="my-1 font-medium">
+            {renderedParts}
           </div>
         );
       }
@@ -94,18 +117,23 @@ export const AiChatWidget: React.FC = () => {
             type="button"
             id="btn-ai-chat-floating"
             onClick={toggleChat}
-            className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-full shadow-2xl hover:shadow-primary/30 hover:scale-105 transition-all duration-200 border-2 border-surface-container-lowest/20 focus:outline-none focus:ring-4 focus:ring-primary/30"
-            aria-label="Ouvrir l'assistant IA de support client"
+            className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-primary via-primary-container to-primary text-on-primary rounded-full shadow-2xl hover:shadow-primary/30 hover:scale-105 transition-all duration-200 border-2 border-surface-container-lowest/20 focus:outline-none focus:ring-4 focus:ring-primary/30"
+            aria-label="Eva - Aide à la réservation"
           >
             <div className="relative flex items-center justify-center">
               <span className="material-symbols-outlined text-2xl">
-                smart_toy
+                support_agent
               </span>
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-primary animate-pulse" />
             </div>
-            <span className="font-bold text-sm tracking-tight whitespace-nowrap">
-              Besoin d'aide ?
-            </span>
+            <div className="flex flex-col text-left">
+              <span className="font-bold text-xs tracking-tight whitespace-nowrap leading-none">
+                Eva
+              </span>
+              <span className="text-[10px] text-white/90 font-semibold tracking-tight whitespace-nowrap leading-none mt-0.5">
+                Aide à la réservation
+              </span>
+            </div>
           </button>
         </div>
       )}
@@ -114,9 +142,9 @@ export const AiChatWidget: React.FC = () => {
       {isOpen && (
         <div
           id="ai-chat-window"
-          className="fixed inset-x-3 bottom-3 top-20 sm:top-auto sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[420px] sm:h-[620px] max-h-[85vh] z-50 flex flex-col bg-surface-container-lowest rounded-3xl shadow-[0_12px_40px_rgba(11,28,48,0.2)] border border-outline-variant/30 overflow-hidden animate-fadeIn"
+          className="fixed inset-x-3 bottom-3 top-20 sm:top-auto sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[440px] sm:h-[640px] max-h-[85vh] z-50 flex flex-col bg-surface-container-lowest rounded-3xl shadow-[0_12px_40px_rgba(11,28,48,0.2)] border border-outline-variant/30 overflow-hidden animate-fadeIn"
           role="dialog"
-          aria-label="Assistant IA de support Médic'Trans 972"
+          aria-label="Eva - Aide à la réservation"
         >
           {/* En-tête du Chat */}
           <div className="bg-gradient-to-r from-primary via-primary-container to-primary text-on-primary px-4 py-3.5 flex items-center justify-between shadow-md shrink-0">
@@ -130,15 +158,15 @@ export const AiChatWidget: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-sm leading-tight text-white">
-                    Assistant Médic'Trans
+                    Eva - Aide à la réservation
                   </h3>
-                  <span className="text-[10px] uppercase font-mono font-bold bg-white/20 px-1.5 py-0.5 rounded text-white tracking-wider">
-                    972
+                  <span className="text-[9px] uppercase font-mono font-bold bg-white/20 px-1.5 py-0.5 rounded text-white tracking-wider">
+                    NIVEAU 2
                   </span>
                 </div>
-                <p className="text-[11px] text-white/80 leading-tight mt-0.5 flex items-center gap-1">
+                <p className="text-[11px] text-white/85 leading-tight mt-0.5 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                  Support client & Transports sanitaires
+                  Assistante Médic'Trans 972
                 </p>
               </div>
             </div>
@@ -148,7 +176,7 @@ export const AiChatWidget: React.FC = () => {
                 type="button"
                 id="btn-ai-chat-clear"
                 onClick={clearHistory}
-                title="Effacer l'historique"
+                title="Effacer l'historique et réinitialiser"
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <span className="material-symbols-outlined text-lg">restart_alt</span>
@@ -164,6 +192,17 @@ export const AiChatWidget: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Bandeau contextuel : Page de réservation */}
+          {isOnBookingPage && (
+            <div className="px-3.5 py-2 bg-primary/10 border-b border-primary/20 flex items-center justify-between text-xs text-primary shrink-0 animate-fadeIn">
+              <div className="flex items-center gap-1.5 font-bold">
+                <span className="material-symbols-outlined text-base">edit_document</span>
+                <span>Mode Guidage Formulaire Actif</span>
+              </div>
+              <span className="text-[10px] text-primary/80 font-mono">/reserver</span>
+            </div>
+          )}
 
           {/* Corps de la conversation */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-surface-container-low/40">
@@ -208,7 +247,7 @@ export const AiChatWidget: React.FC = () => {
                   className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fadeIn`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-xs ${
+                    className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-xs ${
                       isUser
                         ? 'bg-primary text-on-primary rounded-br-xs'
                         : 'bg-surface-container-lowest text-on-surface border border-outline-variant/30 rounded-bl-xs'
@@ -217,11 +256,30 @@ export const AiChatWidget: React.FC = () => {
                     {!isUser && (
                       <div className="flex items-center gap-1 text-[10px] font-bold text-primary mb-1">
                         <span className="material-symbols-outlined text-xs">verified</span>
-                        <span>Médic'Trans 972</span>
+                        <span>Eva - Aide à la réservation</span>
                       </div>
                     )}
                     <div className="space-y-1">{formatMessageText(msg.content)}</div>
                   </div>
+
+                  {/* Bouton d'action formulaire si présent */}
+                  {!isUser && msg.formDraft && (
+                    <div className="mt-2 w-full max-w-[88%] p-3 rounded-2xl bg-secondary/10 border border-secondary/30 flex flex-col gap-2">
+                      <div className="text-xs font-bold text-secondary flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-base">task_alt</span>
+                        <span>Données de transport prêtes pour votre commande</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleGoToBooking}
+                        className="w-full py-2 px-3 bg-secondary text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs hover:bg-secondary/90 transition-colors"
+                      >
+                        <span>Appliquer à ma réservation</span>
+                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      </button>
+                    </div>
+                  )}
+
                   <span className="text-[10px] text-on-surface-variant/70 mt-1 px-1">
                     {new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
@@ -236,7 +294,7 @@ export const AiChatWidget: React.FC = () => {
                   autorenew
                 </span>
                 <span className="text-xs text-on-surface-variant italic font-medium">
-                  L'IA est en train d'écrire...
+                  Le copilote analyse et rédige sa réponse...
                 </span>
                 <div className="flex items-center gap-1 ml-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary/80 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -249,22 +307,20 @@ export const AiChatWidget: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggestions de questions rapides */}
-          {messages.length <= 2 && (
-            <div className="p-2.5 bg-surface-container-low border-t border-outline-variant/20 overflow-x-auto whitespace-nowrap flex gap-1.5 scrollbar-none">
-              {QUICK_PROMPTS.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleQuickPrompt(prompt)}
-                  disabled={isTyping}
-                  className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-surface-container-lowest text-primary hover:bg-primary hover:text-on-primary border border-primary/20 transition-all shrink-0 shadow-2xs"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Suggestions de questions rapides Niveau 2 */}
+          <div className="p-2.5 bg-surface-container-low border-t border-outline-variant/20 overflow-x-auto whitespace-nowrap flex gap-1.5 scrollbar-none">
+            {LEVEL_2_PROMPTS.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleQuickPrompt(item.prompt)}
+                disabled={isTyping}
+                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-surface-container-lowest text-primary hover:bg-primary hover:text-on-primary border border-primary/20 transition-all shrink-0 shadow-2xs"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
           {/* Formulaire de saisie */}
           <form
@@ -277,7 +333,7 @@ export const AiChatWidget: React.FC = () => {
                 type="text"
                 value={inputMessage}
                 onChange={e => setInputMessage(e.target.value)}
-                placeholder="Posez votre question sur un transport..."
+                placeholder="Posez une question, vérifiez un NIR ou un horaire..."
                 disabled={isTyping}
                 className="flex-1 py-2 px-3.5 bg-surface-container-low rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/40 border border-outline-variant/30 transition-all"
               />
@@ -291,9 +347,10 @@ export const AiChatWidget: React.FC = () => {
                 <span className="material-symbols-outlined text-lg">send</span>
               </button>
             </div>
-            <p className="text-[10px] text-center text-on-surface-variant/70 leading-tight">
-              Assistance transport • En cas d'urgence médicale vitale, appelez le <strong className="text-error font-bold">15</strong>
-            </p>
+            <div className="flex items-center justify-between text-[10px] text-on-surface-variant/70 leading-tight px-1">
+              <span>Eva • Aide à la réservation • Niveau 2</span>
+              <span>Urgence vitale : <strong className="text-error font-bold">15</strong></span>
+            </div>
           </form>
         </div>
       )}
