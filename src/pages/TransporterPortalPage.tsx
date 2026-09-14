@@ -9,6 +9,7 @@ import { calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '..
 import { Ride, RideStatus, TransportType } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
+import { ALL_34_COMMUNES_NAMES } from '../data/martiniqueCommunesPolygons';
 
 export interface Driver {
   id: string;
@@ -1642,29 +1643,14 @@ export const TransporterPortalPage: React.FC = () => {
                       <span className="material-symbols-outlined text-sm text-secondary">location_on</span>
                       <span>Base :</span>
                       <select
+                        id="select-base-commune"
                         value={baseCommune}
                         onChange={(e) => setBaseCommune(e.target.value)}
                         className="bg-transparent font-bold text-on-surface cursor-pointer outline-none border-b border-secondary/40 focus:border-secondary text-xs"
                       >
-                        {[
-                          'Le Lamentin',
-                          'Fort-de-France',
-                          'Schœlcher',
-                          'Ducos',
-                          'Saint-Joseph',
-                          'Le Robert',
-                          'Le François',
-                          'Rivière-Salée',
-                          'La Trinité',
-                          'Sainte-Marie',
-                          'Le Marin',
-                          'Sainte-Luce',
-                          'Le Diamant',
-                          'Les Trois-Îlets',
-                          'Saint-Pierre'
-                        ].map((c) => (
+                        {ALL_34_COMMUNES_NAMES.map((c) => (
                           <option key={c} value={c}>
-                            {c}
+                            {c} {c === 'Le Lamentin' ? '(Centre)' : ''}
                           </option>
                         ))}
                       </select>

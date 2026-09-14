@@ -5,6 +5,7 @@ import {
   MARTINIQUE_COMMUNES_POLYGONS,
   MARTINIQUE_SVG_VIEWBOX,
   MARTINIQUE_UNITS_PER_KM,
+  ALL_34_COMMUNES_NAMES,
   MartiniqueCommunePolygon,
 } from '../data/martiniqueCommunesPolygons';
 
@@ -519,13 +520,14 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   <span>Commune de base (Centre du cercle) :</span>
                 </label>
                 <select
+                  id="modal-select-base-commune"
                   value={baseCommune}
                   onChange={(e) => onBaseCommuneChange(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer"
                 >
-                  {MARTINIQUE_COMMUNES_POLYGONS.map((c) => (
-                    <option key={c.insee} value={c.name}>
-                      📍 {c.name} {c.name === 'Le Lamentin' ? '(Centre & Dépôt principal)' : ''}
+                  {ALL_34_COMMUNES_NAMES.map((communeName) => (
+                    <option key={communeName} value={communeName}>
+                      📍 {communeName} {communeName === 'Le Lamentin' ? '(Centre & Dépôt principal)' : ''}
                     </option>
                   ))}
                 </select>

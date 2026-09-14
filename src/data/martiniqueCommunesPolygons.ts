@@ -359,3 +359,12 @@ export const MARTINIQUE_COMMUNES_POLYGONS: MartiniqueCommunePolygon[] = [
 
 export const MARTINIQUE_SVG_VIEWBOX = "0 0 45333 53138";
 export const MARTINIQUE_UNITS_PER_KM = 1000;
+
+export const ALL_34_COMMUNES_NAMES: string[] = [
+  'Le Lamentin',
+  ...MARTINIQUE_COMMUNES_POLYGONS
+    .map((c) => c.name)
+    .filter((name) => name !== 'Le Lamentin')
+    .sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })),
+];
+
