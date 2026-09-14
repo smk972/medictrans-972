@@ -41,8 +41,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   return (
     <div className="min-h-screen bg-[#F4F7FB] flex flex-col font-sans">
       <SEOHead
-        title={`${title} | Console de Régulation Médic'Trans 972`}
-        description="Console d'administration et de régulation sanitaire régionale Médic'Trans 972 Martinique."
+        title={`${title} | Console de Régulation Clinigo`}
+        description="Console d'administration et de régulation sanitaire régionale Clinigo."
         noIndex={true}
       />
       {/* Top Administration Bar */}
@@ -53,23 +53,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <div className="flex items-center gap-2.5 shrink-0">
               <Link to="/admin" className="flex items-center gap-2 shrink-0 group">
                 <img
-                  alt="Logo Médic'Trans"
-                  className="h-8 w-auto object-contain group-hover:scale-105 transition-transform"
-                  src="/assets/logo-icon.svg"
+                  alt="Logo Clinigo"
+                  className="h-8 sm:h-9 w-auto object-contain group-hover:scale-105 transition-transform"
+                  src="/assets/clinigo-logo.png"
                 />
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-headline-sm text-sm sm:text-base text-primary font-extrabold tracking-tight">
-                      Médic'Trans
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-primary/10 text-primary border border-primary/20">
-                      RÉGULATION
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-on-surface-variant -mt-0.5 hidden sm:inline">
-                    Tour de Contrôle 972
-                  </span>
-                </div>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-primary/10 text-primary border border-primary/20">
+                  RÉGULATION
+                </span>
               </Link>
             </div>
 
@@ -238,7 +228,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <footer className="bg-surface-container-lowest border-t border-outline-variant/20 py-4 px-4 sm:px-6 text-center text-xs text-on-surface-variant">
         <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            Médic'Trans Martinique • Plateforme Territoriale de Régulation des Transports Sanitaires (ARS Martinique & CGSS 972)
+            Clinigo (clinigo.fr) • Plateforme de Régulation des Transports Sanitaires (ARS &amp; CGSS)
           </span>
           <span className="font-mono text-[11px] text-outline">
             v2.5.0-prod • Horodatage BPEC certifié • Accès sécurisé

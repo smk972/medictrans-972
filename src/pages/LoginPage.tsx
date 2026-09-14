@@ -202,8 +202,8 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <SEOHead
-        title="Connexion Espaces Professionnels & Patients | Médic'Trans 972"
-        description="Accédez à votre espace sécurisé Médic'Trans 972 : Patients, Hôpitaux et Établissements de santé de Martinique, ou Entreprises de transport sanitaire conventionnées CPAM."
+        title="Connexion Espaces Professionnels & Patients | Clinigo"
+        description="Accédez à votre espace sécurisé Clinigo : Patients, Hôpitaux et Établissements de santé, ou Entreprises de transport sanitaire conventionnées CPAM."
         canonicalPath="/connexion"
       />
       <Header />

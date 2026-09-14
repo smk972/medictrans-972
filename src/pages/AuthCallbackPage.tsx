@@ -92,7 +92,7 @@ export const AuthCallbackPage: React.FC = () => {
             <div className="w-14 h-14 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <h2 className="text-xl font-bold text-on-surface mb-1">Authentification en cours</h2>
             <p className="text-sm text-on-surface-variant">
-              Finalisation de votre connexion sécurisée Médic'Trans 972...
+              Finalisation de votre connexion sécurisée Clinigo...
             </p>
           </div>
         )}

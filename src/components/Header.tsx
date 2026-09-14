@@ -56,20 +56,12 @@ export const Header: React.FC = () => {
     <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(11,28,48,0.06)] border-b border-outline-variant/20">
       <div className="h-20 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 lg:gap-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
+        <Link to="/" className="flex items-center gap-2 shrink-0 group">
           <img
-            alt="Logo Médic'Trans Martinique"
-            className="h-10 w-auto object-contain group-hover:scale-105 transition-transform shrink-0"
-            src="/assets/logo-icon.svg"
+            alt="Logo Clinigo - Transport Médical & Services"
+            className="h-10 sm:h-12 w-auto object-contain group-hover:scale-105 transition-transform shrink-0"
+            src="/assets/clinigo-logo.png"
           />
-          <div className="flex flex-col justify-center">
-            <span className="text-base sm:text-lg font-black text-primary tracking-tight leading-none whitespace-nowrap">
-              Médic'Trans
-            </span>
-            <span className="text-[10px] sm:text-[11px] font-bold text-secondary tracking-wider uppercase leading-none mt-1 whitespace-nowrap">
-              Martinique 972
-            </span>
-          </div>
         </Link>
 
         {/* Desktop Nav */}

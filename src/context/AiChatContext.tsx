@@ -52,7 +52,7 @@ const AiChatContext = createContext<AiChatContextType | undefined>(undefined);
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'msg-welcome',
   role: 'assistant',
-  content: `Bonjour ! Je suis **Eva - Aide à la réservation** pour Médic'Trans 972.\n\nJe suis spécialement formée pour vous accompagner de bout en bout :\n• 🚑 **Expliquer les différents transports** : Taxi conventionné, VSL, Ambulance\n• 🧭 **Guider votre démarche** pas à pas selon votre situation\n• ✍️ **Aider à remplir votre réservation** en ligne\n• 🔍 **Vérifier vos informations** (Numéro NIR de Sécurité Sociale, cohérence des horaires avec le trafic en Martinique, conformité PMT Cerfa S3138)\n• 📋 **Expliquer les 5 étapes de réservation** et le délai d'attribution de 24h\n• ❓ **Répondre à toutes vos questions fréquentes (FAQ)**\n\n*Comment puis-je vous aider aujourd'hui ?*`,
+  content: `Bonjour ! Je suis **Eva - Aide à la réservation** pour Clinigo.\n\nJe suis spécialement formée pour vous accompagner de bout en bout :\n• 🚑 **Expliquer les différents transports** : Taxi conventionné, VSL, Ambulance\n• 🧭 **Guider votre démarche** pas à pas selon votre situation\n• ✍️ **Aider à remplir votre réservation** en direct au fil de notre échange\n• 🔍 **Vérifier vos informations** (Numéro NIR de Sécurité Sociale, cohérence des horaires avec le trafic routier, conformité PMT Cerfa S3138)\n• 📋 **Expliquer les 5 étapes de réservation** et le délai d'attribution de 24h\n• ❓ **Répondre à toutes vos questions fréquentes (FAQ)**\n\n*Comment puis-je vous aider aujourd'hui ?*`,
   timestamp: new Date().toISOString()
 };
 

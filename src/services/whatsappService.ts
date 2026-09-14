@@ -103,16 +103,16 @@ export const whatsappService = {
 
     switch (template) {
       case 'BOOKING_CONFIRMATION':
-        return `🚨 *Médic'Trans 972 — Confirmation de Réservation*\n\nBonjour *${patient}*,\nVotre demande de transport sanitaire a bien été prise en compte par la Régulation Martinique.\n\n📋 *Réf. dossier :* ${ref}\n📅 *Date :* ${date} à ${time}\n🚑 *Mode :* ${transport}\n📍 *Départ :* ${pickup}\n🏥 *Destination :* ${dest}\n\n✅ Prise en charge Tiers-Payant subrogatoire CPAM Martinique (100% ALD).\n\n📱 *Suivez l'attribution de votre véhicule en direct :*\n${trackingUrl}\n\n_Assistance Régulation 24/7 : 05 96 72 00 97_`;
+        return `🚨 *Clinigo — Confirmation de Réservation*\n\nBonjour *${patient}*,\nVotre demande de transport sanitaire a bien été prise en compte par la Régulation Clinigo.\n\n📋 *Réf. dossier :* ${ref}\n📅 *Date :* ${date} à ${time}\n🚑 *Mode :* ${transport}\n📍 *Départ :* ${pickup}\n🏥 *Destination :* ${dest}\n\n✅ Prise en charge Tiers-Payant subrogatoire CPAM (100% ALD).\n\n📱 *Suivez l'attribution de votre véhicule en direct :*\n${trackingUrl}\n\n_Assistance Régulation Clinigo 24/7 : 05 96 72 00 97_`;
 
       case 'DISPATCH_CONFIRMED':
-        return `✅ *Médic'Trans 972 — Transporteur Attribué*\n\nBonjour *${patient}*,\nUn transporteur conventionné a verrouillé votre course *${ref}*.\n\n🚑 *Société :* ${params.companyName || 'Ambulances Caraïbes Express'}\n👨‍✈️ *Chauffeur :* ${params.driverName || 'Frantz M.'} (${params.driverPhone || '06 96 88 44 22'})\n🚘 *Véhicule :* ${params.vehiclePlate || 'GK-428-MQ'}\n\nLe bon de transport Cerfa a été télétransmis numériquement.\n\n📍 *Suivi GPS du véhicule :*\n${trackingUrl}`;
+        return `✅ *Clinigo — Transporteur Attribué*\n\nBonjour *${patient}*,\nUn transporteur conventionné a verrouillé votre course *${ref}*.\n\n🚑 *Société :* ${params.companyName || 'Ambulances Caraïbes Express'}\n👨‍✈️ *Chauffeur :* ${params.driverName || 'Frantz M.'} (${params.driverPhone || '06 96 88 44 22'})\n🚘 *Véhicule :* ${params.vehiclePlate || 'GK-428-MQ'}\n\nLe bon de transport Cerfa a été télétransmis numériquement.\n\n📍 *Suivi GPS du véhicule :*\n${trackingUrl}`;
 
       case 'DRIVER_APPROACHING':
-        return `⏱️ *Médic'Trans 972 — Équipage en Approche*\n\nBonjour *${patient}*,\nVotre équipage sanitaire est en route vers votre domicile.\n\n⏳ *Arrivée estimée :* dans ~${params.etaMinutes || 15} minutes\n📍 *Adresse :* ${pickup}\n📞 *Contact direct chauffeur :* ${params.driverPhone || '06 96 88 44 22'}\n\nMerci de préparer votre Carte Vitale et votre Prescription Médicale (PMT).`;
+        return `⏱️ *Clinigo — Équipage en Approche*\n\nBonjour *${patient}*,\nVotre équipage sanitaire est en route vers votre domicile.\n\n⏳ *Arrivée estimée :* dans ~${params.etaMinutes || 15} minutes\n📍 *Adresse :* ${pickup}\n📞 *Contact direct chauffeur :* ${params.driverPhone || '06 96 88 44 22'}\n\nMerci de préparer votre Carte Vitale et votre Prescription Médicale (PMT).`;
 
       case 'RIDE_COMPLETED':
-        return `🏁 *Médic'Trans 972 — Fin de Prise en Charge*\n\nBonjour *${patient}*,\nVotre transport vers *${dest}* a été clôturé avec succès.\n\n📄 Votre bordereau de télétransmission BBD a été transmis à la CPAM Martinique pour dispense totale d'avance de frais.\n\n_Merci pour votre confiance avec le réseau sanitaire Médic'Trans 972._`;
+        return `🏁 *Clinigo — Fin de Prise en Charge*\n\nBonjour *${patient}*,\nVotre transport vers *${dest}* a été clôturé avec succès.\n\n📄 Votre bordereau de télétransmission BBD a été transmis à la CPAM pour dispense totale d'avance de frais.\n\n_Merci pour votre confiance avec le réseau Clinigo._`;
     }
   },
 

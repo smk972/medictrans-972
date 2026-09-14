@@ -428,7 +428,7 @@ export const CpamRightsPage: React.FC = () => {
                   </p>
                   <div className="mt-auto pt-space-sm bg-surface-container-low p-space-sm rounded-xl border border-outline-variant/20">
                     <span className="font-label-sm text-label-sm text-tertiary font-bold block mb-1 text-xs">
-                      Assistance Médic'Trans :
+                      Assistance Clinigo :
                     </span>
                     <p className="font-body-sm text-body-sm text-on-surface-variant text-[11px]">
                       Notre centrale numérise et télétransmet directement votre volet médical.

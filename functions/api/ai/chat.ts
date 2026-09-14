@@ -103,13 +103,13 @@ function extractAndAuditNir(text: string): string | null {
 function generateFallbackKnowledgeResponse(userPrompt: string): { text: string; formDraft?: any } {
   if (isMedicalEmergency(userPrompt)) {
     return {
-      text: `🚨 **URGENCE MÉDICALE DÉTECTÉE :**\n\nSi vous-même ou un proche présentez des symptômes graves (douleur thoracique, difficultés respiratoires, signes d'AVC, perte de connaissance ou hémorragie), **composez immédiatement le 15 (SAMU) ou le 112**.\n\n*Médic'Trans 972 est une plateforme de transport sanitaire programmé et ne prend pas en charge les urgences vitales directes.*`
+      text: `🚨 **URGENCE MÉDICALE DÉTECTÉE :**\n\nSi vous-même ou un proche présentez des symptômes graves (douleur thoracique, difficultés respiratoires, signes d'AVC, perte de connaissance ou hémorragie), **composez immédiatement le 15 (SAMU) ou le 112**.\n\n*Clinigo est une plateforme de transport sanitaire programmé et ne prend pas en charge les urgences vitales directes.*`
     };
   }
 
   if (isMedicalAdviceRequest(userPrompt)) {
     return {
-      text: `ℹ️ **Avertissement Médical :**\n\nEn tant qu'assistant support Médic'Trans 972, je suis spécialisé exclusivement dans l'organisation administrative et logistique des transports sanitaires en Martinique. Je ne suis pas habilité à formuler de diagnostic ni à conseiller de traitement.\n\nVeuillez consulter votre médecin traitant ou un professionnel de santé pour toute question médicale.`
+      text: `ℹ️ **Avertissement Médical :**\n\nEn tant qu'assistante support Clinigo, je suis spécialisée exclusivement dans l'organisation administrative et logistique des transports sanitaires en Martinique. Je ne suis pas habilitée à formuler de diagnostic ni à conseiller de traitement.\n\nVeuillez consulter votre médecin traitant ou un professionnel de santé pour toute question médicale.`
     };
   }
 
@@ -184,7 +184,7 @@ function generateFallbackKnowledgeResponse(userPrompt: string): { text: string; 
 
   if (items.length > 0) {
     const main = items[0];
-    let reply = `Bonjour ! Je suis **Eva - Aide à la réservation** pour Médic'Trans 972. Voici les informations concernant **${main.title}** :\n\n${main.content}\n\n`;
+    let reply = `Bonjour ! Je suis **Eva - Aide à la réservation** pour Clinigo. Voici les informations concernant **${main.title}** :\n\n${main.content}\n\n`;
 
     if (items.length > 1) {
       reply += `📌 *Informations complémentaires :*\n${items[1].content}\n\n`;
@@ -195,12 +195,12 @@ function generateFallbackKnowledgeResponse(userPrompt: string): { text: string; 
   }
 
   return {
-    text: `Bonjour ! Je suis **Eva - Aide à la réservation** pour Médic'Trans 972.\n\nJe suis spécialement formée pour vous accompagner de bout en bout :\n• 🚑 **Expliquer les différents transports** : Taxi conventionné, VSL, Ambulance\n• ✍️ **Vous guider pour remplir le formulaire** de réservation\n• 🔍 **Vérifier vos informations** (NIR, marge horaires/embouteillages, conformité PMT Cerfa S3138)\n• 📋 **Expliquer les 5 étapes de réservation** et le délai de 24h\n• ❓ **Répondre à toutes vos questions (FAQ)**\n\nComment puis-je vous aider ?`
+    text: `Bonjour ! Je suis **Eva - Aide à la réservation** pour Clinigo.\n\nJe suis spécialement formée pour vous accompagner de bout en bout :\n• 🚑 **Expliquer les différents transports** : Taxi conventionné, VSL, Ambulance\n• ✍️ **Vous guider pour remplir le formulaire** de réservation\n• 🔍 **Vérifier vos informations** (NIR, marge horaires/embouteillages, conformité PMT Cerfa S3138)\n• 📋 **Expliquer les 5 étapes de réservation** et le délai de 24h\n• ❓ **Répondre à toutes vos questions (FAQ)**\n\nComment puis-je vous aider ?`
   };
 }
 
 /**
- * Construit le prompt système RAG Niveau 2
+ * Construit le prompt système RAG
  */
 function buildSystemPrompt(userQuery: string): string {
   const relevantDocs = searchKnowledgeBase(userQuery);
@@ -209,7 +209,7 @@ function buildSystemPrompt(userQuery: string): string {
     .map(doc => `### ${doc.title} (${doc.category})\n${doc.content}`)
     .join('\n\n');
 
-  return `Tu es Eva, l'assistante officielle d'aide à la réservation de la plateforme Médic'Trans Martinique 972. Ton nom officiel et exclusif est "Eva - Aide à la réservation". Ne mentionne jamais "niveau 2" ni l'intitulé "Assistante Médic'Trans 972".
+  return `Tu es Eva, l'assistante officielle d'aide à la réservation de la plateforme Clinigo (clinigo.fr). Ton nom officiel et exclusif est "Eva - Aide à la réservation". Ne mentionne jamais "niveau 2" ni l'intitulé "Assistante Médic'Trans 972".
 Ton rôle est d'informer avec bienveillance et précision, de guider pas-à-pas, d'aider au remplissage et d'auditer les informations saisies par les utilisateurs (patients, aidants, établissements de santé, transporteurs).
 
 TES CAPACITÉS :
@@ -271,7 +271,7 @@ export async function onRequestPost(context: any): Promise<Response> {
 
   // 2. Interception immédiate des urgences vitales
   if (isMedicalEmergency(lastUserMessage)) {
-    const emergencyReply = `🚨 **URGENCE MÉDICALE DÉTECTÉE :**\n\nSi vous ou votre proche êtes en situation d'urgence vitale (douleur thoracique, difficultés à respirer, signes d'AVC, perte de connaissance ou blessure grave), **appelez immédiatement le 15 (SAMU) ou le 112**.\n\n*Médic'Trans 972 régule des transports sanitaires programmés et ne se substitue pas aux interventions d'urgence immédiate du SAMU.*`;
+    const emergencyReply = `🚨 **URGENCE MÉDICALE DÉTECTÉE :**\n\nSi vous ou votre proche êtes en situation d'urgence vitale (douleur thoracique, difficultés à respirer, signes d'AVC, perte de connaissance ou blessure grave), **appelez immédiatement le 15 (SAMU) ou le 112**.\n\n*Clinigo régule des transports sanitaires programmés et ne se substitue pas aux interventions d'urgence immédiate du SAMU.*`;
     return new Response(JSON.stringify({
       response: emergencyReply,
       conversationId,

@@ -1329,19 +1329,16 @@ export const TransporterPortalPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-surface text-on-surface font-sans antialiased">
       <SEOHead
-        title="Console Dispatch Transporteurs Sanitaires Martinique | Médic'Trans 972"
-        description="Console télématique temps réel pour les ambulanciers, VSL et taxis conventionnés 972. Attribution directe et suivi GPS des interventions."
+        title="Console Dispatch Transporteurs Sanitaires | Clinigo"
+        description="Console télématique temps réel pour les ambulanciers, VSL et taxis conventionnés Clinigo. Attribution directe et suivi GPS des interventions."
         canonicalPath="/transporteurs"
       />
 
       {/* Barre de navigation latérale */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest z-50 flex flex-col border-r border-outline-variant/20 shadow-xs hidden md:flex">
-        <div className="p-4 border-b border-outline-variant/20 flex items-center gap-3">
-          <img alt="Logo Médic'Trans" className="h-8 w-auto object-contain" src="/assets/logo-icon.svg" />
-          <div className="flex flex-col">
-            <span className="font-headline-sm text-sm font-extrabold text-primary leading-tight">Médic'Trans 972</span>
-            <span className="text-[10px] text-secondary font-bold uppercase tracking-wider">Console Dispatch</span>
-          </div>
+        <div className="p-4 border-b border-outline-variant/20 flex items-center justify-between">
+          <img alt="Logo Clinigo" className="h-8 w-auto object-contain" src="/assets/clinigo-logo.png" />
+          <span className="text-[10px] text-secondary font-bold uppercase tracking-wider">Dispatch</span>
         </div>
 
         {/* Info Société */}
@@ -1510,8 +1507,7 @@ export const TransporterPortalPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <span className="md:hidden">
               <Link to="/" className="flex items-center gap-2 text-primary font-bold text-sm">
-                <img alt="Logo" className="h-6 w-auto" src="/assets/logo-icon.svg" />
-                <span>Médic'Trans</span>
+                <img alt="Logo Clinigo" className="h-7 w-auto object-contain" src="/assets/clinigo-logo.png" />
               </Link>
             </span>
             <div className="hidden sm:flex items-center gap-2 text-xs">

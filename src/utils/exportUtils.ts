@@ -160,7 +160,7 @@ export function exportRidesToPdf(rides: Ride[], options: ExportOptions): void {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text("MÉDICTRANS 972 - PLATEFORME SANITAIRE DE MARTINIQUE", 14, 11);
+  doc.text("CLINIGO.FR - TRANSPORT MÉDICAL & SERVICES", 14, 11);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -318,7 +318,7 @@ export function exportRidesToPdf(rides: Ride[], options: ExportOptions): void {
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        'Document officiel généré depuis Médic\'Trans 972 - Tiers-Payant CPAM Martinique & Conformité ARS 972',
+        'Document officiel généré depuis Clinigo (clinigo.fr) - Tiers-Payant CPAM Martinique & Conformité ARS 972',
         14,
         pageHeight - 8
       );

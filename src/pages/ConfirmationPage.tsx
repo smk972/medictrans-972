@@ -46,8 +46,8 @@ export const ConfirmationPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <SEOHead
-        title={`Réservation Confirmée #${reservationRef} | Médic'Trans 972`}
-        description="Votre demande de transport médicalisé en Martinique a été confirmée et transmise à la flotte de régulation."
+        title={`Réservation Confirmée #${reservationRef} | Clinigo`}
+        description="Votre demande de transport médicalisé Clinigo a été confirmée et transmise à la flotte de régulation."
         noIndex={true}
       />
       <Header />
@@ -140,7 +140,7 @@ export const ConfirmationPage: React.FC = () => {
                     Régulation live
                   </span>
                   <span className="font-label-md text-label-md text-on-primary font-bold text-xs">
-                    Centre 15 &amp; Médic'Trans
+                    Centre 15 &amp; Clinigo
                   </span>
                 </div>
               </div>
@@ -432,7 +432,7 @@ export const ConfirmationPage: React.FC = () => {
                     </div>
                     <div className="flex flex-col">
                       <span className="font-label-sm text-label-sm text-emerald-900 font-bold uppercase text-[10px]">
-                        Canal WhatsApp Médic'Trans
+                        Canal WhatsApp Clinigo
                       </span>
                       <span className="font-headline-sm text-headline-sm text-emerald-950 font-bold text-xs">
                         Récapitulatif &amp; Suivi en direct

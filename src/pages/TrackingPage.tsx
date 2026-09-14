@@ -345,10 +345,10 @@ export const TrackingPage: React.FC = () => {
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <Header />
       <SEOHead
-        title="Suivi en Direct Transport Sanitaire Martinique | Médic'Trans 972"
-        description="Suivez en temps réel votre transport médical en Martinique : statut de l'ambulance, heure d'approche géolocalisée et contact direct du chauffeur sanitaire."
+        title="Suivi en Direct Transport Sanitaire | Clinigo"
+        description="Suivez en temps réel votre transport médical Clinigo : statut de l'ambulance, heure d'approche géolocalisée et contact direct du chauffeur sanitaire."
         canonicalPath="/suivi"
-        ogImage="/assets/medictrans_hero_discover.jpg"
+        ogImage="/assets/clinigo-logo.png"
       />
 
       <main className="w-full pt-20 bg-surface flex-1">

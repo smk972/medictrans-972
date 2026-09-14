@@ -1,5 +1,5 @@
 /**
- * Base de connaissances structurée pour l'assistant IA Médic'Trans 972 — Niveau 2
+ * Base de connaissances structurée pour l'assistant IA Clinigo (clinigo.fr)
  */
 
 export interface KnowledgeItem {
@@ -14,9 +14,9 @@ export const KNOWLEDGE_BASE: KnowledgeItem[] = [
   {
     id: 'presentation-plateforme',
     category: 'reservation',
-    title: "Présentation de la plateforme Médic'Trans Martinique",
-    keywords: ["medictrans", "qui êtes-vous", "plateforme", "service", "martinique", "fonctionnement"],
-    content: `Médic'Trans Martinique 972 est la plateforme numérique de régulation et de réservation de transports sanitaires en Martinique.
+    title: "Présentation de la plateforme Clinigo (clinigo.fr)",
+    keywords: ["clinigo", "qui êtes-vous", "plateforme", "service", "martinique", "fonctionnement", "medictrans"],
+    content: `Clinigo (clinigo.fr) est la plateforme numérique de régulation et de réservation de transports sanitaires en Martinique.
 Elle met en relation directe les patients, leurs proches, les établissements de santé (CHU de Martinique, cliniques, centres de dialyse) et les sociétés de transport sanitaire agréées par l'ARS Martinique (ambulances, véhicules sanitaires légers VSL, et taxis conventionnés CPAM).
 Le service est accessible 24h/24 et 7j/7 pour la saisie et la régulation des transports.`
   },
@@ -44,9 +44,9 @@ Le service est accessible 24h/24 et 7j/7 pour la saisie et la régulation des tr
   {
     id: 'etapes-reservation',
     category: 'guidage',
-    title: "Les 5 étapes pour commander un transport sanitaire sur Médic'Trans",
+    title: "Les 5 étapes pour commander un transport sanitaire sur Clinigo",
     keywords: ["étapes", "comment réserver", "processus", "déroulement", "étapes réservation", "guide"],
-    content: `Voici le déroulement pas-à-pas d'une commande sur Médic'Trans 972 :
+    content: `Voici le déroulement pas-à-pas d'une commande sur Clinigo (clinigo.fr) :
 • Étape 1 — Sélection du mode : Choisissez Taxi conventionné, VSL ou Ambulance en vous référant exactement à la case cochée par votre médecin sur la PMT.
 • Étape 2 — Trajet & Horaires : Indiquez l'adresse de prise en charge (domicile ou service), l'établissement de soins de destination, la date et l'heure du rendez-vous médical.
 • Étape 3 — Informations Patient & PMT : Renseignez l'identité du patient, son numéro NIR (15 chiffres de sécurité sociale) et joignez la PMT (scan/photo ou option bon papier remis au chauffeur).

@@ -82,10 +82,10 @@ export const HomePage: React.FC = () => {
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <Header />
       <SEOHead
-        title="Médic'Trans Martinique | Transport Sanitaire, VSL & Ambulance Conventionnée 972"
-        description="Plateforme de régulation et réservation de transport médicalisé en Martinique : Ambulance ASSU, VSL et Taxi Conventionné CPAM / CGSS 972. Tiers-payant 100% ALD sur les 34 communes."
+        title="Clinigo | Transport Médical & Services — Ambulance, VSL & Taxi Conventionné"
+        description="Clinigo : Plateforme de régulation et réservation de transport médicalisé en Martinique : Ambulance ASSU, VSL et Taxi Conventionné CPAM / CGSS. Tiers-payant 100% ALD sur les 34 communes."
         canonicalPath="/"
-        ogImage="/assets/medictrans_hero_discover.jpg"
+        ogImage="/assets/clinigo-logo.png"
       />
 
       <main className="w-full pt-20 bg-surface flex-1">
@@ -707,7 +707,7 @@ export const HomePage: React.FC = () => {
                       </div>
                     </div>
                     <p className="font-body-md text-body-md text-on-surface-variant italic text-sm leading-relaxed">
-                      “Médic'Trans a transformé notre gestion des transports dialyse. Nos patients ne
+                      “Clinigo a transformé notre gestion des transports dialyse. Nos patients ne
                       patientent plus des heures dans les couloirs du centre, et notre équipe consacre
                       son temps aux soins plutôt qu'aux recherches d'ambulances.”
                     </p>
@@ -736,7 +736,7 @@ export const HomePage: React.FC = () => {
                   La Voix des Usagers
                 </span>
                 <h2 className="font-headline-lg text-headline-lg text-primary mt-space-xs font-bold text-2xl md:text-3xl">
-                  Ils voyagent sereinement avec Médic'Trans
+                  Ils voyagent sereinement avec Clinigo
                 </h2>
               </div>
 

@@ -9,7 +9,7 @@ const LEVEL_2_PROMPTS = [
   { label: "🔍 Vérifier mon NIR (Sécu)", prompt: "Peux-tu vérifier la conformité de mon numéro de sécurité sociale (NIR) et m'expliquer le calcul de la clé ?" },
   { label: "⏱️ Vérifier mon heure de départ (Trafic)", prompt: "Comment vérifier si mon heure de départ est suffisante pour un rendez-vous au CHU avec les embouteillages en Martinique ?" },
   { label: "📑 Checklist PMT Cerfa S3138", prompt: "Quels sont les 5 critères obligatoires sur ma Prescription Médicale de Transport pour que la CPAM accepte le remboursement ?" },
-  { label: "📋 Les 5 étapes de réservation", prompt: "Quelles sont les 5 étapes pour réserver un transport sur Médic'Trans ?" },
+  { label: "📋 Les 5 étapes de réservation", prompt: "Quelles sont les 5 étapes pour réserver un transport sur Clinigo ?" },
   { label: "❓ FAQ & Tiers-payant", prompt: "Quelles sont les règles de prise en charge CPAM 972, tiers-payant, accompagnateur et trajets de plus de 150 km ?" }
 ];
 

@@ -24,7 +24,7 @@ export const RegisterFacilityPage: React.FC = () => {
         } else if (window.location.pathname === '/reserver') {
           navigate('/confirmation/MT-972-8821');
         } else if (window.location.pathname.startsWith('/inscription')) {
-          alert("Votre dossier a bien été soumis à la régulation Médic'Trans 972.");
+          alert("Votre dossier a bien été soumis à la régulation Clinigo.");
           navigate('/');
         }
       });
@@ -46,8 +46,8 @@ export const RegisterFacilityPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
       <SEOHead
-        title="Conventionnement Établissements de Santé & Cadres de Soins | Médic'Trans 972"
-        description="Raccordez votre clinique, hôpital ou centre de dialyse de Martinique au réseau de régulation Médic'Trans 972 pour automatiser et fiabiliser vos transports sanitaires."
+        title="Conventionnement Établissements de Santé & Cadres de Soins | Clinigo"
+        description="Raccordez votre clinique, hôpital ou centre de dialyse de Martinique au réseau de régulation Clinigo pour automatiser et fiabiliser vos transports sanitaires."
         canonicalPath="/inscription-etablissement"
       />
       <Header />
@@ -63,7 +63,7 @@ export const RegisterFacilityPage: React.FC = () => {
 <span className="font-label-sm text-label-sm text-on-primary-fixed uppercase tracking-wider">Portail Établissements de Soins &amp; Cadres de Santé</span>
 </div>
 <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight mt-space-xs">
-          Conventionnez votre Établissement de Soins sur Médic'Trans <span className="text-primary-container">972</span>
+          Conventionnez votre Établissement de Soins sur <span className="text-primary-container">Clinigo</span>
 </h1>
 <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
           Optimisez les sorties d'hospitalisation, transferts inter-sites et transports de dialyse ou chimiothérapie sans surcharge pour vos équipes soignantes en Martinique.
@@ -324,7 +324,7 @@ export const RegisterFacilityPage: React.FC = () => {
 <label className="inline-flex items-start gap-space-sm cursor-pointer">
 <input defaultChecked className="mt-1 rounded text-primary focus:ring-0" id="termsCheck" required type="checkbox" />
 <span className="font-body-sm text-body-sm text-on-surface">
-                  Je certifie être dûment habilité(e) par la direction de l'établissement à initier le conventionnement Médic'Trans 972 et confirme l'exactitude des identifiants FINESS et SIRET transmis.
+                  Je certifie être dûment habilité(e) par la direction de l'établissement à initier le conventionnement Clinigo et confirme l'exactitude des identifiants FINESS et SIRET transmis.
                 </span>
 </label>
 <div className="flex items-center gap-space-xs pl-6 text-on-surface-variant font-label-sm text-label-sm">
@@ -478,7 +478,7 @@ export const RegisterFacilityPage: React.FC = () => {
 </div>
 <div className="flex items-center gap-space-xs pt-space-xs text-on-surface-variant">
 <span className="material-symbols-outlined text-primary text-sm">support_agent</span>
-<span className="font-body-sm text-body-sm">Régulateur en chef référent : <strong>M. Alain JEAN-ELIE</strong> (CHU / Médic'Trans)</span>
+<span className="font-body-sm text-body-sm">Régulateur en chef référent : <strong>M. Alain JEAN-ELIE</strong> (CHU / Clinigo)</span>
 </div>
 </div>
 

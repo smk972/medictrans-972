@@ -26,7 +26,7 @@ export const RegisterTransporterPage: React.FC = () => {
         } else if (window.location.pathname === '/reserver') {
           navigate('/confirmation/MT-972-8821');
         } else if (window.location.pathname.startsWith('/inscription')) {
-          alert("Votre dossier a bien été soumis à la régulation Médic'Trans 972.");
+          alert("Votre dossier a bien été soumis à la régulation Clinigo.");
           navigate('/');
         }
       });
@@ -48,8 +48,8 @@ export const RegisterTransporterPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
       <SEOHead
-        title="Rejoindre le Réseau Ambulanciers & Taxis Conventionnés Martinique | Médic'Trans 972"
-        description="Ambulances, VSL et Taxis conventionnés en Martinique : inscrivez votre flotte sur Médic'Trans 972 pour recevoir des missions régulées et certifiées CPAM."
+        title="Rejoindre le Réseau Ambulanciers & Taxis Conventionnés | Clinigo"
+        description="Ambulances, VSL et Taxis conventionnés : inscrivez votre flotte sur Clinigo pour recevoir des missions régulées et certifiées CPAM."
         canonicalPath="/inscription-transporteur"
       />
       <Header />
@@ -78,7 +78,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-label-sm text-label-sm uppercase tracking-wider">Espace Professionnels du Transport Sanitaire - Martinique (972)</span>
 </div>
 <h1 className="font-headline-xl text-headline-xl text-primary tracking-tight">
-            Devenez Partenaire Médic'Trans 972 : Rejoignez le réseau conventionné
+            Devenez Partenaire Clinigo : Rejoignez le réseau conventionné
           </h1>
 <p className="font-body-lg text-body-lg text-on-surface-variant">
             Accédez aux missions régulées du CHU de Fort-de-France, du Centre Hospitalier de Trinité, des cliniques privées, des EHPAD et aux sorties d'hospitalisation programmées sur l'ensemble du territoire martiniquais.
@@ -346,7 +346,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
 <label className="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-low cursor-pointer">
 <input defaultChecked className="w-4 h-4 accent-secondary rounded" type="checkbox" />
-<span className="font-body-sm text-body-sm text-on-surface">Système de géolocalisation GPS temps réel (API Médic'Trans)</span>
+<span className="font-body-sm text-body-sm text-on-surface">Système de géolocalisation GPS temps réel (API Clinigo)</span>
 </label>
 <label className="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container-low cursor-pointer">
 <input defaultChecked className="w-4 h-4 accent-secondary rounded" type="checkbox" />
@@ -422,7 +422,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="material-symbols-outlined">admin_panel_settings</span>
 </div>
 <div className="flex flex-col">
-<h2 className="font-headline-md text-headline-md text-primary">5. Gérant &amp; Référent d'exploitation Médic'Trans Pro</h2>
+<h2 className="font-headline-md text-headline-md text-primary">5. Gérant &amp; Référent d'exploitation Clinigo Pro</h2>
 <span className="font-body-sm text-body-sm text-on-surface-variant">Identifiants d'accès au portail de dispatching en temps réel</span>
 </div>
 </div>
@@ -458,7 +458,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <label className="flex items-start gap-space-sm cursor-pointer">
 <input className="mt-1 w-5 h-5 accent-primary rounded" required type="checkbox" />
 <span className="font-body-sm text-body-sm text-on-surface">
-                Je certifie l'exactitude des informations fournies et accepte la Charte d'Éthique &amp; de Déontologie du Transport Sanitaire Médic'Trans 972, ainsi que le contrôle aléatoire de géolocalisation pour l'optimisation des prises en charge urgentes.
+                Je certifie l'exactitude des informations fournies et accepte la Charte d'Éthique &amp; de Déontologie du Transport Sanitaire Clinigo, ainsi que le contrôle aléatoire de géolocalisation pour l'optimisation des prises en charge urgentes.
               </span>
 </label>
 </div>
@@ -481,7 +481,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-md">
 <div className="flex items-center gap-space-xs">
 <span className="material-symbols-outlined text-primary text-2xl">trending_up</span>
-<h3 className="font-headline-sm text-headline-sm text-primary">Pourquoi rejoindre Médic'Trans 972 ?</h3>
+<h3 className="font-headline-sm text-headline-sm text-primary">Pourquoi rejoindre Clinigo ?</h3>
 </div>
 <p className="font-body-sm text-body-sm text-on-surface-variant">
             Une interface unique pensée pour décongestionner le trafic sanitaire en Martinique et rentabiliser vos tournées.
@@ -526,7 +526,7 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 </div>
 <p className="font-body-sm text-body-sm text-on-surface italic mt-space-xs">
-            "Depuis notre conventionnement avec Médic'Trans 972, nous avons réduit nos temps d'attente à la sortie des urgences de 40%. La traçabilité pour la CGSS nous évite des semaines de litiges de facturation."
+            "Depuis notre conventionnement avec Clinigo, nous avons réduit nos temps d'attente à la sortie des urgences de 40%. La traçabilité pour la CGSS nous évite des semaines de litiges de facturation."
           </p>
 <div className="flex items-center gap-1 text-secondary">
 <span className="material-symbols-outlined text-sm" >star</span>

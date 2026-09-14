@@ -10,13 +10,10 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col gap-space-sm">
             <div className="flex items-center gap-2 mb-space-xs">
               <img
-                src="/assets/logo-icon.svg"
-                alt="Médic'Trans"
-                className="w-7 h-7 object-contain"
+                src="/assets/clinigo-logo.png"
+                alt="Clinigo - Transport Médical & Services"
+                className="h-9 w-auto object-contain"
               />
-              <span className="font-headline-sm text-headline-sm text-primary font-bold">
-                Médic'Trans Martinique
-              </span>
             </div>
             <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
               Plateforme d'intermédiation et de régulation du transport sanitaire conventionné pour
@@ -124,8 +121,8 @@ export const Footer: React.FC = () => {
 
         <div className="pt-space-lg border-t border-outline-variant/30 flex flex-col md:flex-row items-center justify-between gap-space-md text-xs text-on-surface-variant">
           <span>
-            © {new Date().getFullYear()} Médic'Trans Martinique (972). Plateforme certifiée HDS /
-            ARS Martinique. Tous droits réservés.
+            © {new Date().getFullYear()} Clinigo (clinigo.fr) • Transport Médical &amp; Services. Plateforme certifiée HDS /
+            ARS. Tous droits réservés.
           </span>
           <div className="flex items-center gap-4">
             <a href="#mentions" className="hover:text-primary transition-colors">

@@ -432,7 +432,7 @@ export const AdminTransportersPage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-on-surface-variant mt-1">
-                    {selectedTransporter.address}, {selectedTransporter.city} ({selectedTransporter.postalCode}) • Tél : {selectedTransporter.phone} • Email : {selectedTransporter.email || 'dispatch@medictrans.mq'}
+                    {selectedTransporter.address}, {selectedTransporter.city} ({selectedTransporter.postalCode}) • Tél : {selectedTransporter.phone} • Email : {selectedTransporter.email || 'contact@clinigo.fr'}
                   </p>
                 </div>
 

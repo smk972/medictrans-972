@@ -1,5 +1,5 @@
 /**
- * Outils et validateurs algorithmiques de Niveau 2 pour l'Assistant Médic'Trans 972
+ * Outils et validateurs algorithmiques pour l'assistante Eva - Clinigo (clinigo.fr)
  * Permet l'audit des informations saisies (NIR, horaires/trafic, PMT) sans accès direct à la BDD.
  */
 
