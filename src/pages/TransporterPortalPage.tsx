@@ -8,6 +8,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '../services/pricingService';
 import { Ride, RideStatus, TransportType } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
+import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
 
 export interface Driver {
   id: string;
@@ -31,6 +32,9 @@ export interface VehicleFleet {
 
 export const FLEET_STORAGE_KEY = 'medictrans_transporter_fleet_v2';
 export const DRIVERS_STORAGE_KEY = 'medictrans_transporter_drivers_v2';
+export const RADIUS_STORAGE_KEY = 'medictrans_transporter_radius_km';
+export const OUTSIDE_RADIUS_STORAGE_KEY = 'medictrans_transporter_include_outside';
+export const BASE_COMMUNE_STORAGE_KEY = 'medictrans_transporter_base_commune';
 
 export const DEFAULT_DRIVERS: Driver[] = [
   {
@@ -182,6 +186,41 @@ export const TransporterPortalPage: React.FC = () => {
     } catch (e) {}
   }, [drivers]);
 
+  // Rayon d'action géographique & Cercle d'intervention (distance en km)
+  const [actionRadiusKm, setActionRadiusKm] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(RADIUS_STORAGE_KEY);
+      if (saved) return Number(saved);
+    } catch (e) {}
+    return 15;
+  });
+
+  const [includeOutsideRadius, setIncludeOutsideRadius] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(OUTSIDE_RADIUS_STORAGE_KEY);
+      if (saved !== null) return saved === 'true';
+    } catch (e) {}
+    return false;
+  });
+
+  const [baseCommune, setBaseCommune] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(BASE_COMMUNE_STORAGE_KEY);
+      if (saved) return saved;
+    } catch (e) {}
+    return 'Le Lamentin';
+  });
+
+  const [isRadiusModalOpen, setIsRadiusModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(RADIUS_STORAGE_KEY, String(actionRadiusKm));
+      localStorage.setItem(OUTSIDE_RADIUS_STORAGE_KEY, String(includeOutsideRadius));
+      localStorage.setItem(BASE_COMMUNE_STORAGE_KEY, baseCommune);
+    } catch (e) {}
+  }, [actionRadiusKm, includeOutsideRadius, baseCommune]);
+
   // Sous-vues et modales de gestion Flotte & Chauffeurs
   const [fleetSubView, setFleetSubView] = useState<'ALL' | 'VEHICLES' | 'DRIVERS'>('ALL');
 
@@ -272,7 +311,12 @@ export const TransporterPortalPage: React.FC = () => {
     }
   }, [loadMissions]);
 
-  // Filtrage des courses disponibles (Status PENDING et non déclinées)
+  // Toutes les courses en attente (non déclinées) pour le calcul du rayon
+  const allPendingMissions = useMemo(() => {
+    return rides.filter((r) => r.status === 'PENDING' && !declinedRefs.includes(r.reference.trim().toUpperCase()));
+  }, [rides, declinedRefs]);
+
+  // Filtrage des courses disponibles (Status PENDING et non déclinées, filtres véhicule, secteur et Rayon d'action)
   const availableMissions = useMemo(() => {
     return rides.filter((r) => {
       if (r.status !== 'PENDING') return false;
@@ -295,9 +339,29 @@ export const TransporterPortalPage: React.FC = () => {
         if (!c.includes('trinité') && !c.includes('marie') && !c.includes('pierre') && !c.includes('robert') && !c.includes('carbet')) return false;
       }
 
+      // Filtrage par Rayon d'action (Cercle géographique en km)
+      const dist = calculateMartiniqueRoadDistance(baseCommune, r.pickupCity || r.pickupAddress).distanceKm;
+      const isInside = dist <= actionRadiusKm;
+      if (!includeOutsideRadius && !isInside) {
+        // Selon leur rayon d'intervention ils ne reçoivent pas les demandes des clients hors zone si la case n'est pas cochée
+        return false;
+      }
+
       return true;
     });
-  }, [rides, vehicleFilter, sectorFilter, declinedRefs]);
+  }, [rides, vehicleFilter, sectorFilter, declinedRefs, baseCommune, actionRadiusKm, includeOutsideRadius]);
+
+  // Compteurs de courses dans et hors zone d'action
+  const pendingInRadiusCount = useMemo(() => {
+    return allPendingMissions.filter((m) => {
+      const dist = calculateMartiniqueRoadDistance(baseCommune, m.pickupCity || m.pickupAddress).distanceKm;
+      return dist <= actionRadiusKm;
+    }).length;
+  }, [allPendingMissions, baseCommune, actionRadiusKm]);
+
+  const pendingOutsideRadiusCount = useMemo(() => {
+    return allPendingMissions.length - pendingInRadiusCount;
+  }, [allPendingMissions, pendingInRadiusCount]);
 
   // Missions actives en cours de réalisation
   const activeMissions = useMemo(() => {
@@ -1559,6 +1623,134 @@ export const TransporterPortalPage: React.FC = () => {
           {/* ========================================================================= */}
           {activeTab === 'DISPONIBLES' && (
             <div className="flex flex-col gap-5">
+              {/* ========================================================================= */}
+              {/* BARRE DE PARAMÉTRAGE DU RAYON D'ACTION & ZONE GÉOGRAPHIQUE (CERCLE KM)    */}
+              {/* ========================================================================= */}
+              <div className="bg-gradient-to-r from-surface-container-lowest via-surface-container-low to-surface-container-lowest p-5 rounded-2xl border border-primary/20 shadow-sm flex flex-col gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {/* Base & Rayon actuel */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                      <span className="material-symbols-outlined text-base animate-pulse">radar</span>
+                      <span className="text-xs font-extrabold uppercase tracking-wide">Rayon d'action :</span>
+                      <span className="text-sm font-black text-primary bg-surface-container-lowest px-2 py-0.5 rounded-lg border border-primary/20 shadow-xs">
+                        {actionRadiusKm} km
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/30">
+                      <span className="material-symbols-outlined text-sm text-secondary">location_on</span>
+                      <span>Base :</span>
+                      <select
+                        value={baseCommune}
+                        onChange={(e) => setBaseCommune(e.target.value)}
+                        className="bg-transparent font-bold text-on-surface cursor-pointer outline-none border-b border-secondary/40 focus:border-secondary text-xs"
+                      >
+                        {[
+                          'Le Lamentin',
+                          'Fort-de-France',
+                          'Schœlcher',
+                          'Ducos',
+                          'Saint-Joseph',
+                          'Le Robert',
+                          'Le François',
+                          'Rivière-Salée',
+                          'La Trinité',
+                          'Sainte-Marie',
+                          'Le Marin',
+                          'Sainte-Luce',
+                          'Le Diamant',
+                          'Les Trois-Îlets',
+                          'Saint-Pierre'
+                        ].map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Raccourcis de rayon prédéfinis */}
+                    <div className="flex items-center gap-1">
+                      {[10, 15, 25, 40, 60].map((km) => (
+                        <button
+                          key={km}
+                          type="button"
+                          onClick={() => setActionRadiusKm(km)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            actionRadiusKm === km
+                              ? 'bg-primary text-white shadow-xs scale-105'
+                              : 'bg-surface-container-lowest border border-outline-variant/30 hover:border-primary/50 text-on-surface-variant hover:text-on-surface'
+                          }`}
+                        >
+                          {km === 60 ? "Toute l'île (60km)" : `${km}km`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bouton pour ouvrir la carte radar du cercle */}
+                  <button
+                    id="btn-open-radius-modal"
+                    type="button"
+                    onClick={() => setIsRadiusModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 font-bold text-xs transition-all shadow-xs shrink-0 active:scale-95 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">map</span>
+                    <span>Ajuster sur la carte interactive</span>
+                    <span className="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+                  </button>
+                </div>
+
+                {/* Séparateur subtil */}
+                <div className="h-px bg-outline-variant/20"></div>
+
+                {/* Case à cocher : Recevoir hors zone d'intervention */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <label htmlFor="checkbox-outside-radius" className="inline-flex items-center gap-3 cursor-pointer select-none group">
+                    <input
+                      id="checkbox-outside-radius"
+                      type="checkbox"
+                      checked={includeOutsideRadius}
+                      onChange={(e) => setIncludeOutsideRadius(e.target.checked)}
+                      className="w-4 h-4 rounded border-outline-variant/40 text-primary focus:ring-primary/20 accent-primary cursor-pointer transition-transform group-hover:scale-110"
+                    />
+                    <div className="text-xs">
+                      <span className="font-bold text-on-surface group-hover:text-primary transition-colors">
+                        Recevoir également les demandes en dehors de ma zone d'intervention
+                      </span>
+                      <p className="text-[11px] text-on-surface-variant">
+                        {includeOutsideRadius
+                          ? 'Les demandes hors de votre cercle de rayon sont affichées avec un badge indicatif "Hors zone".'
+                          : `Seules les demandes situées à moins de ${actionRadiusKm} km de votre base vous sont transmises.`}
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Badges récapitulatifs */}
+                  <div className="flex items-center gap-2 text-[11px] font-semibold shrink-0">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                      <span>{pendingInRadiusCount} dans le rayon</span>
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border ${
+                        includeOutsideRadius
+                          ? 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+                          : 'bg-surface-container text-on-surface-variant border-outline-variant/30'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-xs">
+                        {includeOutsideRadius ? 'visibility' : 'visibility_off'}
+                      </span>
+                      <span>
+                        {pendingOutsideRadiusCount} hors zone ({includeOutsideRadius ? 'reçues' : 'masquées'})
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Barre de filtres */}
               <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1620,9 +1812,34 @@ export const TransporterPortalPage: React.FC = () => {
                   <h2 className="text-xl sm:text-2xl font-extrabold text-on-surface tracking-tight mb-2">
                     Vous n'avez aucune mission en cours.
                   </h2>
-                  <p className="text-sm text-on-surface-variant max-w-lg mx-auto leading-relaxed mb-6">
+                  <p className="text-sm text-on-surface-variant max-w-lg mx-auto leading-relaxed mb-4">
                     Toutes les nouvelles opportunités et demandes de transport sanitaire émises par les patients et les établissements de santé (CHU Pierre Zobda-Quitman, Trinité, Le Marin) apparaîtront ici dès leur diffusion.
                   </p>
+
+                  {/* Alerte si des courses sont en attente hors du rayon sélectionné */}
+                  {pendingOutsideRadiusCount > 0 && !includeOutsideRadius && (
+                    <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 max-w-xl w-full text-left">
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-outlined text-amber-600 text-xl shrink-0">radar</span>
+                        <div>
+                          <div className="font-bold text-amber-950">
+                            {pendingOutsideRadiusCount} course(s) disponible(s) hors de votre rayon
+                          </div>
+                          <div className="text-[11px] text-amber-800">
+                            Votre rayon actuel est fixé à {actionRadiusKm} km autour de {baseCommune}.
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIncludeOutsideRadius(true)}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 transition-all shadow-xs"
+                      >
+                        Recevoir les courses hors zone
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container text-secondary text-xs font-bold border border-outline-variant/30">
                       <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
@@ -1652,6 +1869,8 @@ export const TransporterPortalPage: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {availableMissions.map((mission) => {
                     const route = calculateMartiniqueRoadDistance(mission.pickupCity, mission.dropoffCity);
+                    const distFromBase = calculateMartiniqueRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress).distanceKm;
+                    const isInsideRadius = distFromBase <= actionRadiusKm;
                     const pricing = calculateMedicalRidePricing({
                       transportType: mission.transportType,
                       originAddress: mission.pickupAddress,
@@ -1669,23 +1888,46 @@ export const TransporterPortalPage: React.FC = () => {
 
                         <div>
                           {/* Header carte */}
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
-                                EN ATTENTE IMMÉDIATE
-                              </span>
-                              <span className="px-2.5 py-1 rounded-full bg-surface-container text-on-surface text-[11px] font-bold border border-outline-variant/20">
-                                {mission.transportType === 'AMBULANCE'
-                                  ? '🚑 Ambulance'
-                                  : mission.transportType === 'TAXI_CONVENTIONNE'
-                                  ? '🚗 Taxi Conventionné'
-                                  : '🚐 VSL'}
+                          <div className="flex flex-col gap-2 mb-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+                                  EN ATTENTE IMMÉDIATE
+                                </span>
+                                <span className="px-2.5 py-1 rounded-full bg-surface-container text-on-surface text-[11px] font-bold border border-outline-variant/20">
+                                  {mission.transportType === 'AMBULANCE'
+                                    ? '🚑 Ambulance'
+                                    : mission.transportType === 'TAXI_CONVENTIONNE'
+                                    ? '🚗 Taxi Conventionné'
+                                    : '🚐 VSL'}
+                                </span>
+                              </div>
+                              <span className="font-mono text-xs font-bold text-on-surface-variant">
+                                #{mission.reference}
                               </span>
                             </div>
-                            <span className="font-mono text-xs font-bold text-on-surface-variant">
-                              #{mission.reference}
-                            </span>
+
+                            {/* Badge Rayon d'action / Périmètre */}
+                            <div className="flex items-center">
+                              {isInsideRadius ? (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-[11px] font-bold"
+                                  title={`Départ à ${distFromBase.toFixed(1)} km de votre base (${baseCommune})`}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                  <span>🟢 À {distFromBase.toFixed(1)} km de base • Dans votre rayon ({actionRadiusKm} km)</span>
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-900 text-[11px] font-bold"
+                                  title={`Départ à ${distFromBase.toFixed(1)} km de votre base (${baseCommune}), hors rayon de ${actionRadiusKm} km (+${(distFromBase - actionRadiusKm).toFixed(1)} km)`}
+                                >
+                                  <span className="material-symbols-outlined text-[13px] text-amber-700">travel_explore</span>
+                                  <span>🟠 À {distFromBase.toFixed(1)} km de base • Hors zone d'intervention (+{(distFromBase - actionRadiusKm).toFixed(1)} km)</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           {/* Patient & Prise en charge */}
@@ -4566,6 +4808,21 @@ export const TransporterPortalPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 6 : CONFIGURATION DU RAYON D'ACTION & CERCLE GÉOGRAPHIQUE           */}
+      {/* ========================================================================= */}
+      <TransporterRadiusModal
+        isOpen={isRadiusModalOpen}
+        onClose={() => setIsRadiusModalOpen(false)}
+        radiusKm={actionRadiusKm}
+        onRadiusChange={setActionRadiusKm}
+        includeOutsideRadius={includeOutsideRadius}
+        onToggleIncludeOutside={setIncludeOutsideRadius}
+        baseCommune={baseCommune}
+        onBaseCommuneChange={setBaseCommune}
+        allPendingMissions={allPendingMissions}
+      />
 
       {/* ========================================================================= */}
       {/* NOTIFICATION TOAST                                                        */}
