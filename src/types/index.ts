@@ -155,6 +155,7 @@ export interface UserProfile {
   transporterId?: string;
   transporterName?: string;
   nir?: string;
+  password?: string;
   createdAt?: string;
 }
 

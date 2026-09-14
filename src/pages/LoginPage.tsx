@@ -569,6 +569,79 @@ export const LoginPage: React.FC = () => {
                 </div>
               )}
 
+              {mode === 'LOGIN' && selectedRole === 'ADMIN' && (
+                <div className="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+                  <div>
+                    <span className="font-extrabold block text-purple-900">Identifiants Administrateur ARS 972 :</span>
+                    <span className="font-mono text-[11px]">admin@medictrans972.mq</span> • <span className="font-mono text-[11px]">Admin972!</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('admin@medictrans972.mq');
+                      setPassword('Admin972!');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-purple-700 text-white font-bold text-xs hover:bg-purple-800 transition-colors shadow-xs cursor-pointer shrink-0"
+                  >
+                    Remplir
+                  </button>
+                </div>
+              )}
+              {mode === 'LOGIN' && selectedRole === 'FACILITY' && (
+                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+                  <div>
+                    <span className="font-extrabold block text-blue-900">Identifiants Cadre Hospitalier (CHU) :</span>
+                    <span className="font-mono text-[11px]">coordination@chu-martinique.fr</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('coordination@chu-martinique.fr');
+                      setPassword('CH972-Valaire!');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-blue-700 text-white font-bold text-xs hover:bg-blue-800 transition-colors shadow-xs cursor-pointer shrink-0"
+                  >
+                    Remplir
+                  </button>
+                </div>
+              )}
+              {mode === 'LOGIN' && selectedRole === 'TRANSPORTER' && (
+                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+                  <div>
+                    <span className="font-extrabold block text-amber-900">Identifiants Dispatch Ambulances :</span>
+                    <span className="font-mono text-[11px]">dispatch@madinina-secours.mq</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('dispatch@madinina-secours.mq');
+                      setPassword('AMB972-Madinina!');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-700 text-white font-bold text-xs hover:bg-amber-800 transition-colors shadow-xs cursor-pointer shrink-0"
+                  >
+                    Remplir
+                  </button>
+                </div>
+              )}
+              {mode === 'LOGIN' && selectedRole === 'PATIENT' && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between gap-3 animate-fadeIn">
+                  <div>
+                    <span className="font-extrabold block text-emerald-900">Identifiants Patient Référent (ALD) :</span>
+                    <span className="font-mono text-[11px]">c.marieluce@orange.fr</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('c.marieluce@orange.fr');
+                      setPassword('Patient972!');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition-colors shadow-xs cursor-pointer shrink-0"
+                  >
+                    Remplir
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
                   Adresse e-mail <span className="text-error">*</span>
@@ -583,11 +656,13 @@ export const LoginPage: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={
-                      selectedRole === 'FACILITY'
-                        ? 'coordination@chu-martinique.fr'
-                        : selectedRole === 'TRANSPORTER'
-                          ? 'dispatch@ambulances-972.mq'
-                          : 'patient@exemple.mq'
+                      selectedRole === 'ADMIN'
+                        ? 'admin@medictrans972.mq'
+                        : selectedRole === 'FACILITY'
+                          ? 'coordination@chu-martinique.fr'
+                          : selectedRole === 'TRANSPORTER'
+                            ? 'dispatch@ambulances-972.mq'
+                            : 'patient@exemple.mq'
                     }
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm bg-surface-container-lowest text-on-surface outline-none transition-all"
                   />

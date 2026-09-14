@@ -49,7 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const currentUser = await AuthService.getCurrentUser();
           setUser(currentUser);
         } else if (event === 'SIGNED_OUT') {
-          setUser(null);
+          const local = AuthService.getLocalUser();
+          if (!local) {
+            setUser(null);
+          }
         } else {
           const currentUser = await AuthService.getCurrentUser();
           setUser(currentUser);
