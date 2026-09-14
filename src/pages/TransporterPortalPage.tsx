@@ -155,7 +155,7 @@ export const TransporterPortalPage: React.FC = () => {
   // États du Planning des courses & Fiche Récapitulative
   const [planningHorizon, setPlanningHorizon] = useState<'ALL' | 'TODAY' | 'TOMORROW' | 'NEXT_7_DAYS'>('ALL');
   const [selectedPlanningDate, setSelectedPlanningDate] = useState<string | null>(null);
-  const [planningStatusFilter, setPlanningStatusFilter] = useState<'ALL' | 'PENDING' | 'ACCEPTED'>('ALL');
+  const [planningStatusFilter, setPlanningStatusFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
   const [planningSearch, setPlanningSearch] = useState('');
   const [selectedMissionForRecap, setSelectedMissionForRecap] = useState<Ride | null>(null);
   const [missionToAccept, setMissionToAccept] = useState<Ride | null>(null);
@@ -414,16 +414,22 @@ export const TransporterPortalPage: React.FC = () => {
     });
   }, [archivedMissions, historySubFilter, historySearch]);
 
-  // Courses éligibles au planning (Courses en attente ou confirmées, triées par date)
+  // Courses éligibles au planning : UNIQUEMENT les courses déjà acceptées et confirmées (ou en cours)
   const plannedMissions = useMemo(() => {
     return rides
-      .filter((r) => {
-        if (r.status === 'CANCELLED' || r.status === 'COMPLETED') return false;
-        if (r.status === 'PENDING' && declinedRefs.includes(r.reference.trim().toUpperCase())) return false;
-        return true;
+      .filter((r) => r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP')
+      .sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime());
+  }, [rides]);
+
+  // Courses disponibles non affectées pouvant correspondre au transporteur (dans son rayon d'action et non déclinées)
+  const matchingAvailableMissions = useMemo(() => {
+    return allPendingMissions
+      .filter((m) => {
+        const dist = calculateMartiniqueRoadDistance(baseCommune, m.pickupCity || m.pickupAddress).distanceKm;
+        return dist <= actionRadiusKm;
       })
       .sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime());
-  }, [rides, declinedRefs]);
+  }, [allPendingMissions, baseCommune, actionRadiusKm]);
 
   // Jours uniques avec décompte pour le sélecteur de dates rapide
   const planningDaysSummary = useMemo(() => {
@@ -486,9 +492,9 @@ export const TransporterPortalPage: React.FC = () => {
         if (d < today || d > in7Days) return false;
       }
 
-      // Filtre de statut
-      if (planningStatusFilter === 'PENDING' && mission.status !== 'PENDING') return false;
-      if (planningStatusFilter === 'ACCEPTED' && mission.status === 'PENDING') return false;
+      // Filtre d'affectation chauffeur
+      if (planningStatusFilter === 'ASSIGNED' && !mission.assignedTransporter?.driverName) return false;
+      if (planningStatusFilter === 'UNASSIGNED' && !!mission.assignedTransporter?.driverName) return false;
 
       // Recherche textuelle
       if (!planningSearch.trim()) return true;
@@ -2327,11 +2333,11 @@ export const TransporterPortalPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <h2 className="text-xl font-extrabold text-on-surface">Planning & Programmation des Courses</h2>
                         <span className="px-2.5 py-0.5 rounded-full bg-primary/15 text-primary font-mono text-xs font-bold">
-                          {plannedMissions.length} planifiée{plannedMissions.length > 1 ? 's' : ''}
+                          {plannedMissions.length} acceptée{plannedMissions.length > 1 ? 's' : ''}
                         </span>
                       </div>
                       <p className="text-xs text-on-surface-variant mt-0.5 max-w-2xl leading-relaxed">
-                        Anticipez votre activité : acceptez des courses programmées plusieurs jours à l'avance, optimisez les plannings de vos chauffeurs et cliquez sur une course pour ouvrir sa fiche récapitulative.
+                        Planning officiel de votre flotte : seules les courses acceptées et confirmées sont programmées ici. Assignez vos chauffeurs et consultez les fiches de mission.
                       </p>
                     </div>
                   </div>
@@ -2339,16 +2345,30 @@ export const TransporterPortalPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-outline-variant/15 text-xs">
                     <span className="px-2.5 py-1 rounded-xl bg-surface-container text-on-surface-variant font-medium flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-sm">schedule</span>
-                      <span>Total : <strong>{plannedMissions.length} courses</strong></span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-medium flex items-center gap-1.5 border border-emerald-200/60">
-                      <span className="material-symbols-outlined text-sm text-emerald-600">event_available</span>
-                      <span>À pourvoir en avance : <strong>{plannedMissions.filter(r => r.status === 'PENDING').length}</strong></span>
+                      <span>Total planning : <strong>{plannedMissions.length} courses acceptées</strong></span>
                     </span>
                     <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 font-medium flex items-center gap-1.5 border border-blue-200/60">
                       <span className="material-symbols-outlined text-sm text-blue-600">verified</span>
-                      <span>Confirmées dans votre flotte : <strong>{plannedMissions.filter(r => r.status !== 'PENDING').length}</strong></span>
+                      <span>Chauffeurs affectés : <strong>{plannedMissions.filter(m => !!m.assignedTransporter?.driverName).length}</strong></span>
                     </span>
+                    {plannedMissions.filter(m => !m.assignedTransporter?.driverName).length > 0 && (
+                      <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 font-medium flex items-center gap-1.5 border border-amber-200/60">
+                        <span className="material-symbols-outlined text-sm text-amber-600">person_alert</span>
+                        <span>À affecter : <strong>{plannedMissions.filter(m => !m.assignedTransporter?.driverName).length}</strong></span>
+                      </span>
+                    )}
+                    {matchingAvailableMissions.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('DISPONIBLES')}
+                        className="px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold flex items-center gap-1.5 border border-emerald-300 transition-colors shadow-2xs cursor-pointer"
+                        title="Voir les courses non affectées correspondant à votre zone"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>{matchingAvailableMissions.length} disponible{matchingAvailableMissions.length > 1 ? 's' : ''} non affectée{matchingAvailableMissions.length > 1 ? 's' : ''}</span>
+                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -2357,7 +2377,7 @@ export const TransporterPortalPage: React.FC = () => {
                     type="button"
                     onClick={handleExportPlanningExcel}
                     disabled={filteredPlanningMissions.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-xs font-bold transition-all shadow-xs cursor-pointer"
                     title="Exporter le planning prévisionnel en Excel (.csv)"
                   >
                     <span className="material-symbols-outlined text-base">file_download</span>
@@ -2367,7 +2387,7 @@ export const TransporterPortalPage: React.FC = () => {
                     type="button"
                     onClick={handleExportPlanningPdf}
                     disabled={filteredPlanningMissions.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-xs font-bold transition-all shadow-xs cursor-pointer"
                     title="Exporter le planning prévisionnel officiel en PDF"
                   >
                     <span className="material-symbols-outlined text-base">picture_as_pdf</span>
@@ -2375,6 +2395,168 @@ export const TransporterPortalPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* MODULE OPPORTUNITÉS BOURSE : COURSES DISPONIBLES NON AFFECTÉES CORRESPONDANTES */}
+              {matchingAvailableMissions.length > 0 ? (
+                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-amber-500/5 to-primary/5 border border-emerald-500/30 shadow-xs flex flex-col gap-4 animate-fadeIn">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <span className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                          <span className="material-symbols-outlined text-2xl">radar</span>
+                        </span>
+                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-600"></span>
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-extrabold text-on-surface">
+                            Opportunités Bourse : {matchingAvailableMissions.length} course{matchingAvailableMissions.length > 1 ? 's' : ''} disponible{matchingAvailableMissions.length > 1 ? 's' : ''} non affectée{matchingAvailableMissions.length > 1 ? 's' : ''} pourrai{matchingAvailableMissions.length > 1 ? 'ent' : 't'} vous correspondre !
+                          </h3>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono text-xs font-bold">
+                            Rayon ≤ {actionRadiusKm} km
+                          </span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          Demandes en attente situées dans votre zone d'intervention ({baseCommune} et alentours). Vous pouvez les accepter pour les intégrer directement à votre planning :
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('DISPONIBLES')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/30 text-primary font-bold text-xs transition-colors shrink-0 shadow-2xs self-start sm:self-auto cursor-pointer"
+                    >
+                      <span>Consulter toute la bourse ({availableMissions.length})</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                  </div>
+
+                  {/* Grille des courses disponibles correspondantes */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+                    {matchingAvailableMissions.slice(0, 3).map((mission) => {
+                      const distFromBase = calculateMartiniqueRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress).distanceKm;
+                      const pickupDate = new Date(mission.pickupDateTime);
+                      const isToday = new Date().toDateString() === pickupDate.toDateString();
+                      const isTomorrow = new Date(Date.now() + 86400000).toDateString() === pickupDate.toDateString();
+                      const dayLabel = isToday
+                        ? "Aujourd'hui"
+                        : isTomorrow
+                        ? "Demain"
+                        : pickupDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                      const timeStr = pickupDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                      const hasPmt = mission.patient.hasPmt || mission.patient.pmtUploaded || mission.patient.pmtFileUrl;
+
+                      return (
+                        <div
+                          key={mission.id}
+                          className="p-4 rounded-2xl bg-surface-container-lowest border border-emerald-300/80 hover:border-emerald-500 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between gap-3 group"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-outline-variant/15">
+                              <div className="flex items-center gap-1.5 font-bold text-xs text-on-surface">
+                                <span className="px-2 py-0.5 rounded-lg bg-emerald-600 text-white font-mono text-[11px] font-extrabold">
+                                  {dayLabel} {timeStr}
+                                </span>
+                                <span className="font-mono text-[11px] text-primary">#{mission.reference}</span>
+                              </div>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                {mission.transportType === 'AMBULANCE' ? '🚑 Ambulance' : mission.transportType === 'VSL' ? '🚐 VSL' : '🚗 Taxi'}
+                              </span>
+                            </div>
+
+                            <div className="mt-2.5 space-y-1.5 text-xs">
+                              <div className="flex items-center gap-1.5 text-emerald-700 font-semibold text-[11px]">
+                                <span className="material-symbols-outlined text-sm">near_me</span>
+                                <span>Départ à {distFromBase.toFixed(1)} km de votre base ({baseCommune})</span>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-surface-container-low/60 space-y-1">
+                                <div className="flex items-center gap-1.5 text-on-surface truncate">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                  <span className="font-medium truncate">{mission.pickupCity} ({mission.pickupAddress})</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-on-surface truncate">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
+                                  <span className="font-bold truncate">
+                                    {mission.facilityName ? mission.facilityName : `${mission.dropoffAddress}, ${mission.dropoffCity}`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[11px] pt-1 text-on-surface-variant">
+                                <span>Patient : <strong>{getPatientDisplayName(mission.patient, false)}</strong></span>
+                                <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.2 rounded font-semibold">
+                                  Secret médical
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-outline-variant/15 flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-on-surface-variant font-medium">
+                              {hasPmt ? '📄 PMT Jointe' : '📄 PMT Papier'}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => openAcceptModal(mission)}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+                              title="Accepter cette course et l'intégrer immédiatement à votre planning"
+                            >
+                              <span className="material-symbols-outlined text-sm">add_task</span>
+                              <span>Accepter & planifier</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {matchingAvailableMissions.length > 3 && (
+                    <div className="flex items-center justify-between pt-1 border-t border-emerald-500/20 text-xs">
+                      <span className="text-on-surface-variant font-medium">
+                        + {matchingAvailableMissions.length - 3} autre{matchingAvailableMissions.length - 3 > 1 ? 's' : ''} course{matchingAvailableMissions.length - 3 > 1 ? 's' : ''} disponible{matchingAvailableMissions.length - 3 > 1 ? 's' : ''} dans votre rayon
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('DISPONIBLES')}
+                        className="text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Voir toutes les opportunités dans la bourse</span>
+                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : allPendingMissions.length > 0 ? (
+                <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="material-symbols-outlined text-primary text-xl">info</span>
+                    <div>
+                      <span className="font-bold text-on-surface">Aucune course non affectée dans votre rayon direct ({actionRadiusKm} km de {baseCommune})</span>
+                      <p className="text-on-surface-variant text-[11px] mt-0.5">
+                        Cependant, <strong>{allPendingMissions.length} course{allPendingMissions.length > 1 ? 's' : ''} en attente</strong> {allPendingMissions.length > 1 ? 'sont disponibles' : 'est disponible'} sur d'autres communes en Martinique.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('DISPONIBLES')}
+                    className="px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors self-start sm:self-auto shrink-0 cursor-pointer"
+                  >
+                    Voir la bourse ({allPendingMissions.length})
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-surface-container-low/50 border border-outline-variant/15 flex items-center gap-2.5 text-xs text-on-surface-variant">
+                  <span className="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                  <span>Toutes les courses sur la Martinique sont actuellement pourvues. Aucune course non affectée en attente.</span>
+                </div>
+              )}
 
               {/* Barre de navigation temporelle, Filtres & Recherche */}
               <div className="p-4 rounded-3xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-3">
@@ -2388,7 +2570,7 @@ export const TransporterPortalPage: React.FC = () => {
                         setPlanningHorizon('ALL');
                         setSelectedPlanningDate(null);
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         planningHorizon === 'ALL' && selectedPlanningDate === null
                           ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -2402,7 +2584,7 @@ export const TransporterPortalPage: React.FC = () => {
                         setPlanningHorizon('TODAY');
                         setSelectedPlanningDate(null);
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         planningHorizon === 'TODAY'
                           ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -2416,7 +2598,7 @@ export const TransporterPortalPage: React.FC = () => {
                         setPlanningHorizon('TOMORROW');
                         setSelectedPlanningDate(null);
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         planningHorizon === 'TOMORROW'
                           ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -2430,7 +2612,7 @@ export const TransporterPortalPage: React.FC = () => {
                         setPlanningHorizon('NEXT_7_DAYS');
                         setSelectedPlanningDate(null);
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         planningHorizon === 'NEXT_7_DAYS'
                           ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
@@ -2456,7 +2638,7 @@ export const TransporterPortalPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setPlanningSearch('')}
-                        className="absolute right-2.5 top-2.5 text-on-surface-variant hover:text-on-surface text-xs"
+                        className="absolute right-2.5 top-2.5 text-on-surface-variant hover:text-on-surface text-xs cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-sm">close</span>
                       </button>
@@ -2464,7 +2646,7 @@ export const TransporterPortalPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. Bandeau des journées individuelles (Défilement horizontal) & Filtre de statut */}
+                {/* 2. Bandeau des journées individuelles (Défilement horizontal) & Filtre d'affectation chauffeur */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
                     <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Par jour :</span>
@@ -2475,7 +2657,7 @@ export const TransporterPortalPage: React.FC = () => {
                           key={day.dateKey}
                           type="button"
                           onClick={() => setSelectedPlanningDate(isSelected ? null : day.dateKey)}
-                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
                             isSelected
                               ? 'bg-secondary text-white shadow-xs'
                               : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
@@ -2496,37 +2678,37 @@ export const TransporterPortalPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPlanningStatusFilter('ALL')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                         planningStatusFilter === 'ALL'
                           ? 'bg-surface-container-high text-on-surface shadow-2xs font-extrabold'
                           : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      Tous
+                      Toutes ({plannedMissions.length})
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPlanningStatusFilter('PENDING')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
-                        planningStatusFilter === 'PENDING'
-                          ? 'bg-emerald-600 text-white shadow-2xs'
-                          : 'text-emerald-800 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                      <span>À réserver en avance</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPlanningStatusFilter('ACCEPTED')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
-                        planningStatusFilter === 'ACCEPTED'
+                      onClick={() => setPlanningStatusFilter('ASSIGNED')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        planningStatusFilter === 'ASSIGNED'
                           ? 'bg-blue-600 text-white shadow-2xs'
                           : 'text-blue-800 hover:bg-blue-50'
                       }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                      <span>Confirmées</span>
+                      <span>Chauffeur affecté ({plannedMissions.filter(m => !!m.assignedTransporter?.driverName).length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('UNASSIGNED')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        planningStatusFilter === 'UNASSIGNED'
+                          ? 'bg-amber-600 text-white shadow-2xs'
+                          : 'text-amber-800 hover:bg-amber-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      <span>À affecter ({plannedMissions.filter(m => !m.assignedTransporter?.driverName).length})</span>
                     </button>
                   </div>
                 </div>
@@ -2536,11 +2718,11 @@ export const TransporterPortalPage: React.FC = () => {
               {planningGroupedByDay.length === 0 ? (
                 <div className="p-12 text-center rounded-3xl bg-surface-container-lowest border border-outline-variant/20 flex flex-col items-center justify-center gap-3 text-on-surface-variant">
                   <span className="material-symbols-outlined text-5xl opacity-40">event_busy</span>
-                  <div className="font-bold text-sm text-on-surface">Aucune course dans le planning</div>
+                  <div className="font-bold text-sm text-on-surface">Aucune course acceptée dans le planning</div>
                   <p className="text-xs max-w-sm">
                     {planningSearch
-                      ? `Aucune course programmée ne correspond à "${planningSearch}".`
-                      : 'Aucune course planifiée ne correspond aux critères de dates ou de statut choisis.'}
+                      ? `Aucune course acceptée ne correspond à "${planningSearch}".`
+                      : 'Aucune course acceptée ne correspond aux filtres de dates ou de chauffeur sélectionnés.'}
                   </p>
                   {(selectedPlanningDate || planningHorizon !== 'ALL' || planningStatusFilter !== 'ALL' || planningSearch) && (
                     <button
@@ -2551,7 +2733,7 @@ export const TransporterPortalPage: React.FC = () => {
                         setPlanningStatusFilter('ALL');
                         setPlanningSearch('');
                       }}
-                      className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all mt-2"
+                      className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all mt-2 cursor-pointer"
                     >
                       Réinitialiser tous les filtres
                     </button>
@@ -2560,8 +2742,8 @@ export const TransporterPortalPage: React.FC = () => {
               ) : (
                 <div className="flex flex-col gap-6">
                   {planningGroupedByDay.map((group) => {
-                    const pendingCount = group.rides.filter((r) => r.status === 'PENDING').length;
-                    const confirmedCount = group.rides.filter((r) => r.status !== 'PENDING').length;
+                    const assignedCount = group.rides.filter((r) => !!r.assignedTransporter?.driverName).length;
+                    const unassignedCount = group.rides.length - assignedCount;
 
                     return (
                       <div key={group.dateKey} className="flex flex-col gap-3">
@@ -2578,14 +2760,12 @@ export const TransporterPortalPage: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-2 text-[11px]">
-                            {pendingCount > 0 && (
-                              <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                {pendingCount} à réserver
-                              </span>
-                            )}
-                            {confirmedCount > 0 && (
-                              <span className="text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                                {confirmedCount} confirmée{confirmedCount > 1 ? 's' : ''}
+                            <span className="text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                              {assignedCount} avec chauffeur
+                            </span>
+                            {unassignedCount > 0 && (
+                              <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                {unassignedCount} à affecter
                               </span>
                             )}
                           </div>
@@ -2594,30 +2774,24 @@ export const TransporterPortalPage: React.FC = () => {
                         {/* Cartes des courses pour cette journée */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {group.rides.map((mission) => {
-                            const isPending = mission.status === 'PENDING';
                             const hasPmt = mission.patient.hasPmt || mission.patient.pmtUploaded || mission.patient.pmtFileUrl;
                             const timeStr = new Date(mission.pickupDateTime).toLocaleTimeString('fr-FR', {
                               hour: '2-digit',
                               minute: '2-digit'
                             });
+                            const hasDriver = !!mission.assignedTransporter?.driverName;
 
                             return (
                               <div
                                 key={mission.id}
                                 onClick={() => setSelectedMissionForRecap(mission)}
-                                className={`p-4 sm:p-5 rounded-3xl border shadow-xs flex flex-col justify-between gap-3.5 transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 group ${
-                                  isPending
-                                    ? 'bg-emerald-50/20 border-emerald-200/80 hover:border-emerald-400'
-                                    : 'bg-surface-container-lowest border-outline-variant/30 hover:border-primary/50'
-                                }`}
+                                className="p-4 sm:p-5 rounded-3xl border bg-surface-container-lowest border-outline-variant/30 hover:border-primary/50 shadow-xs flex flex-col justify-between gap-3.5 transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 group"
                               >
                                 {/* En-tête de carte : Heure, Réf, Véhicule & Statut */}
                                 <div>
                                   <div className="flex items-start justify-between gap-2 border-b border-outline-variant/15 pb-2.5">
                                     <div className="flex items-center gap-2">
-                                      <div className={`px-2.5 py-1 rounded-xl font-mono text-sm font-extrabold flex items-center gap-1 shadow-2xs ${
-                                        isPending ? 'bg-emerald-600 text-white' : 'bg-primary text-white'
-                                      }`}>
+                                      <div className="px-2.5 py-1 rounded-xl font-mono text-sm font-extrabold flex items-center gap-1 shadow-2xs bg-primary text-white">
                                         <span className="material-symbols-outlined text-sm">schedule</span>
                                         <span>{timeStr}</span>
                                       </div>
@@ -2630,37 +2804,25 @@ export const TransporterPortalPage: React.FC = () => {
                                             ? '🚑 Ambulance'
                                             : mission.transportType === 'VSL'
                                             ? '🚐 VSL'
-                                            : '🚗 TPMR'}
+                                            : '🚗 Taxi'}
                                         </span>
                                       </div>
                                     </div>
 
-                                    {isPending ? (
-                                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-300">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                        À réserver en avance
-                                      </span>
-                                    ) : (
-                                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold flex items-center gap-1 border border-blue-200">
-                                        <span className="material-symbols-outlined text-xs">verified</span>
-                                        Confirmée
-                                      </span>
-                                    )}
+                                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold flex items-center gap-1 border border-blue-200">
+                                      <span className="material-symbols-outlined text-xs">verified</span>
+                                      {mission.status === 'EN_ROUTE' ? 'En route' : mission.status === 'PICKED_UP' ? 'Prise en charge' : 'Confirmée'}
+                                    </span>
                                   </div>
 
                                   {/* Patient & Trajet */}
                                   <div className="mt-3 space-y-2 text-xs">
                                     <div className="flex items-center justify-between">
                                       <div className="font-bold text-on-surface text-sm group-hover:text-primary transition-colors flex items-center gap-1.5">
-                                        <span>{getPatientDisplayName(mission.patient, !isPending)}</span>
-                                        {isPending && (
-                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                                            Secret médical
-                                          </span>
-                                        )}
+                                        <span>{getPatientDisplayName(mission.patient, true)}</span>
                                       </div>
                                       <span className="text-[10px] text-on-surface-variant font-mono">
-                                        NIR: {!isPending && mission.patient.nir ? `${mission.patient.nir.slice(0, 7)}...` : '•••••••• (après validation)'}
+                                        NIR: {mission.patient.nir ? `${mission.patient.nir.slice(0, 7)}...` : '••••••••'}
                                       </span>
                                     </div>
 
@@ -2684,11 +2846,31 @@ export const TransporterPortalPage: React.FC = () => {
                                       )}
                                     </div>
 
-                                    {/* Équipage si confirmée */}
-                                    {mission.assignedTransporter && (
-                                      <div className="text-[11px] text-blue-900 bg-blue-50/60 p-2 rounded-xl border border-blue-100 flex items-center justify-between">
-                                        <span>Chauffeur : <strong>{mission.assignedTransporter.driverName}</strong></span>
-                                        <span className="font-mono font-bold">{mission.assignedTransporter.vehiclePlate}</span>
+                                    {/* Équipage Chauffeur */}
+                                    {hasDriver ? (
+                                      <div className="text-[11px] text-blue-900 bg-blue-50/70 p-2 rounded-xl border border-blue-100 flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5">
+                                          <span className="material-symbols-outlined text-xs text-blue-600">person</span>
+                                          <span>Chauffeur : <strong>{mission.assignedTransporter?.driverName}</strong></span>
+                                        </span>
+                                        <span className="font-mono font-bold text-xs">{mission.assignedTransporter?.vehiclePlate}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="text-[11px] text-amber-900 bg-amber-50/80 p-2 rounded-xl border border-amber-200 flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 font-bold">
+                                          <span className="material-symbols-outlined text-xs text-amber-600">person_alert</span>
+                                          <span>Chauffeur à désigner</span>
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openReassignModal(mission);
+                                          }}
+                                          className="px-2 py-0.5 rounded-lg bg-amber-600 text-white font-bold text-[10px] hover:bg-amber-700 cursor-pointer"
+                                        >
+                                          Affecter
+                                        </button>
                                       </div>
                                     )}
                                   </div>
@@ -2711,31 +2893,20 @@ export const TransporterPortalPage: React.FC = () => {
                                   </div>
 
                                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                    {isPending ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => openAcceptModal(mission)}
-                                        className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-xs"
-                                        title="Accepter cette course et lui affecter un chauffeur dès maintenant"
-                                      >
-                                        <span className="material-symbols-outlined text-sm">check</span>
-                                        <span>Accepter</span>
-                                      </button>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => openReassignModal(mission)}
-                                        className="px-2 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs transition-colors"
-                                        title="Changer le chauffeur ou véhicule affecté"
-                                      >
-                                        <span>Chauffeur</span>
-                                      </button>
-                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => openReassignModal(mission)}
+                                      className="px-2.5 py-1 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                                      title="Affecter ou modifier le chauffeur et véhicule"
+                                    >
+                                      <span className="material-symbols-outlined text-xs">person</span>
+                                      <span>Chauffeur</span>
+                                    </button>
 
                                     <button
                                       type="button"
                                       onClick={() => setSelectedMissionForRecap(mission)}
-                                      className="px-2.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-colors"
+                                      className="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
                                       title="Consulter la fiche récapitulative complète et gérer la course"
                                     >
                                       <span>Fiche</span>
