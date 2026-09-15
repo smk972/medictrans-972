@@ -111,17 +111,13 @@ export const LoginPage: React.FC = () => {
       case 'TRANSPORTER':
         return {
           icon: 'ambulance',
-          badgeText: 'Espace Transporteurs Sanitaires 972',
-          badgeClass: 'bg-amber-50 text-amber-800 border-amber-200/80',
-          title: 'Connexion Espace Transporteurs',
-          subtitle: 'Accédez à votre console de dispatch, à la bourse des courses disponibles en temps réel et au suivi télématique de vos véhicules.',
-          seoTitle: 'Connexion Espace Transporteurs Sanitaires | Clinigo',
+          badgeText: '',
+          badgeClass: '',
+          title: 'Espace Transporteurs',
+          subtitle: 'Accédez à votre dashboard et gérer vos courses et votre flotte.',
+          seoTitle: 'Espace Transporteurs | Clinigo',
           placeholderCompany: 'Ambulances Madinina Secours, VSL...',
-          features: [
-            { icon: 'verified_user', title: 'Conventionné ARS', desc: 'Agrément préfecture & CPAM' },
-            { icon: 'near_me', title: 'Dispatch Télématique', desc: 'Courses géolocalisées live' },
-            { icon: 'receipt_long', title: 'Tiers-Payant 100%', desc: 'Télétransmission Cerfa' }
-          ]
+          features: [] as Array<{ icon: string; title: string; desc: string }>
         };
       case 'ADMIN':
         return {
@@ -234,10 +230,12 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Badge de catégorie cliquée */}
-          <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider mb-3 ${categoryConfig.badgeClass}`}>
-            <span className="material-symbols-outlined text-sm">shield</span>
-            {categoryConfig.badgeText}
-          </span>
+          {categoryConfig.badgeText ? (
+            <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider mb-3 ${categoryConfig.badgeClass}`}>
+              <span className="material-symbols-outlined text-sm">shield</span>
+              {categoryConfig.badgeText}
+            </span>
+          ) : null}
 
           {/* Titre fort */}
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2.5">
@@ -551,19 +549,21 @@ export const LoginPage: React.FC = () => {
           </form>
 
           {/* Garanties et Rassurance ARS / CPAM (comme sur /suivi) */}
-          <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-            {categoryConfig.features.map((feat, idx) => (
-              <div key={idx} className="flex items-start gap-2.5">
-                <span className="material-symbols-outlined text-teal-700 text-lg mt-0.5 shrink-0">
-                  {feat.icon}
-                </span>
-                <div>
-                  <span className="text-xs font-bold text-slate-900 block">{feat.title}</span>
-                  <span className="text-[11px] text-slate-500 leading-tight block">{feat.desc}</span>
+          {categoryConfig.features && categoryConfig.features.length > 0 ? (
+            <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+              {categoryConfig.features.map((feat, idx) => (
+                <div key={idx} className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-teal-700 text-lg mt-0.5 shrink-0">
+                    {feat.icon}
+                  </span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">{feat.title}</span>
+                    <span className="text-[11px] text-slate-500 leading-tight block">{feat.desc}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : null}
 
         </div>
       </main>
