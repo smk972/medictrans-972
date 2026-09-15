@@ -166,59 +166,6 @@ export const BookingPage: React.FC = () => {
   const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [whatsappPhone, setWhatsappPhone] = useState('06 96 44 20 18');
 
-  // WhatsApp OTP Verification states
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
-  const [verificationCodeSent, setVerificationCodeSent] = useState(false);
-  const [enteredOtp, setEnteredOtp] = useState('');
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [lastSentCode, setLastSentCode] = useState<string | null>(null);
-
-  const handleSendOtp = () => {
-    const targetPhone = whatsappPhone || phone;
-    if (!targetPhone || targetPhone.replace(/\D/g, '').length < 8) {
-      alert("Veuillez d'abord renseigner un numéro de téléphone portable valide.");
-      return;
-    }
-    setIsSendingOtp(true);
-    setVerificationError(null);
-    setVerificationSuccess(null);
-    try {
-      const result = whatsappService.sendVerificationCode(
-        targetPhone,
-        `${firstName} ${lastName}`.trim() || 'Patient'
-      );
-      setLastSentCode(result.code);
-      setVerificationCodeSent(true);
-      setIsVerificationModalOpen(true);
-    } catch (e) {
-      setVerificationError("Impossible d'ouvrir WhatsApp. Vérifiez votre navigateur.");
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-
-  const handleVerifyOtp = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!enteredOtp || enteredOtp.trim().length < 4) {
-      setVerificationError("Veuillez saisir le code à 4 chiffres.");
-      return;
-    }
-    const res = whatsappService.verifyCode(enteredOtp);
-    if (res.success) {
-      setIsPhoneVerified(true);
-      setVerificationSuccess("Votre numéro a été vérifié avec succès via WhatsApp !");
-      setVerificationError(null);
-      setTimeout(() => {
-        setIsVerificationModalOpen(false);
-      }, 1200);
-    } else {
-      setVerificationError(res.error || "Code invalide. Veuillez réessayer.");
-    }
-  };
-
   // Attribution directe nominative (délai 24h) ou diffusion générale (pot commun)
   const [transportersList, setTransportersList] = useState<Transporter[]>([]);
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>('');
@@ -380,16 +327,6 @@ export const BookingPage: React.FC = () => {
       return;
     }
 
-    // Règle impérative : Le numéro de téléphone doit être certifié via WhatsApp
-    if (!isPhoneVerified) {
-      handleSendOtp();
-      const el = document.getElementById('patientPhone');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      return;
-    }
-
     setIsSubmitting(true);
 
     const finalRef = `MT-972-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -508,19 +445,34 @@ export const BookingPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs text-on-surface-variant font-semibold">
-            Vérification de la session en cours...
-          </span>
+      <div className="min-h-screen bg-[#F8FAFD] flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs text-slate-500 font-semibold">
+              Vérification de la session en cours...
+            </span>
+          </div>
         </div>
       </div>
     );
   }
 
   if (!isAuthenticated || !user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#F8FAFD] flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs text-slate-500 font-semibold">
+              Redirection vers la page de connexion...
+            </span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1000,41 +952,20 @@ export const BookingPage: React.FC = () => {
                     className="md:col-span-2"
                   />
 
-                  <div className="flex flex-col gap-1.5">
-                    <PhoneInput
-                      id="patientPhone"
-                      label="Téléphone portable"
-                      required
-                      value={phone}
-                      defaultDialCode="+596"
-                      showValidation={false}
-                      onChange={(full) => {
-                        setPhone(full);
-                        setIsPhoneVerified(false);
-                        if (!whatsappPhone || whatsappPhone === phone) {
-                          setWhatsappPhone(full);
-                        }
-                      }}
-                    />
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      {isPhoneVerified ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold shadow-2xs">
-                          <span className="material-symbols-outlined text-sm text-emerald-600">verified</span>
-                          <span>Numéro vérifié par WhatsApp</span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          disabled={isSendingOtp || !phone || phone.replace(/\D/g, '').length < 8}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-xs">chat</span>
-                          <span>{verificationCodeSent ? 'Saisir / Renvoyer code' : 'Vérifier mon numéro'}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <PhoneInput
+                    id="patientPhone"
+                    label="Téléphone portable"
+                    required
+                    value={phone}
+                    defaultDialCode="+596"
+                    showValidation={false}
+                    onChange={(full) => {
+                      setPhone(full);
+                      if (!whatsappPhone || whatsappPhone === phone) {
+                        setWhatsappPhone(full);
+                      }
+                    }}
+                  />
 
                   <div className="flex flex-col gap-1.5">
                     <label
@@ -1663,37 +1594,32 @@ export const BookingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs gap-3">
-                      <div className="flex items-center gap-2.5 text-xs">
-                        <span className="material-symbols-outlined text-xl text-emerald-600">
-                          {isPhoneVerified ? 'verified' : 'mark_chat_unread'}
-                        </span>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900">
-                            {isPhoneVerified ? 'Numéro certifié par WhatsApp' : 'Vérification obligatoire par WhatsApp'}
-                          </span>
-                          <span className="text-[11px] text-slate-500">
-                            {isPhoneVerified
-                              ? 'Votre numéro a été authentifié avec succès via le code unique.'
-                              : 'Recevez un code unique sur WhatsApp pour certifier votre demande de transport.'}
-                          </span>
-                        </div>
-                      </div>
-                      {isPhoneVerified ? (
-                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold shrink-0">
-                          Certifié ✅
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          disabled={isSendingOtp}
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
-                        >
-                          <span className="material-symbols-outlined text-sm">chat</span>
-                          <span>{verificationCodeSent ? 'Saisir le code reçu' : 'Vérifier mon numéro'}</span>
-                        </button>
-                      )}
+                    <div className="flex items-center justify-between bg-surface-container-low p-space-sm rounded-xl border border-outline-variant/20 text-xs">
+                      <span className="text-on-surface-variant text-[11px]">
+                        Tester immédiatement le lien WhatsApp direct :
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          whatsappService.openWhatsAppDirect(
+                            whatsappPhone || phone,
+                            'BOOKING_CONFIRMATION',
+                            {
+                              patientName: `${firstName} ${lastName}`,
+                              bookingRef: 'MT-972-SIMUL',
+                              pickupAddress,
+                              facilityName: destinationFacility,
+                              transportType: transportType.toUpperCase(),
+                              pickupTime: transportTime,
+                              pickupDate: transportDate,
+                            }
+                          );
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 transition-all shadow-xs"
+                      >
+                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                        <span>Tester notification WhatsApp</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1893,33 +1819,11 @@ export const BookingPage: React.FC = () => {
                     </div>
                   )}
 
-                  {!isPhoneVerified && (
-                    <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs shadow-xs">
-                      <span className="material-symbols-outlined text-emerald-700 text-[20px] shrink-0 mt-0.5">
-                        chat
-                      </span>
-                      <div className="flex flex-col flex-1">
-                        <strong className="text-emerald-900 font-bold">Certification WhatsApp requise :</strong>
-                        <span className="text-[11px] text-emerald-800 leading-tight mt-0.5">
-                          Cliquez sur « Vérifier mon numéro » pour recevoir votre code unique WhatsApp et certifier votre demande.
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          className="mt-2.5 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer w-fit"
-                        >
-                          <span className="material-symbols-outlined text-sm">chat</span>
-                          <span>{verificationCodeSent ? 'Saisir / Renvoyer le code WhatsApp' : 'Vérifier mon numéro'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   <button
-                    disabled={isSubmitting || !nirValidation.isValid || !isPhoneVerified}
+                    disabled={isSubmitting || !nirValidation.isValid}
                     className={`w-full h-14 transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
-                      !nirValidation.isValid || !isPhoneVerified
-                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                      !nirValidation.isValid
+                        ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
                         : selectedTransporter
                         ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
                         : 'bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white active:scale-[0.99] shadow-lg shadow-teal-950/20 hover:scale-[1.01]'
@@ -1935,11 +1839,6 @@ export const BookingPage: React.FC = () => {
                       <>
                         <span className="material-symbols-outlined text-[20px]">lock</span>
                         <span>NIR obligatoire pour valider la demande</span>
-                      </>
-                    ) : !isPhoneVerified ? (
-                      <>
-                        <span className="material-symbols-outlined text-[20px]">chat</span>
-                        <span>Vérification WhatsApp requise</span>
                       </>
                     ) : selectedTransporter ? (
                       <>
@@ -1978,108 +1877,6 @@ export const BookingPage: React.FC = () => {
           </form>
         </div>
       </main>
-
-      {/* Modal de Vérification WhatsApp */}
-      {isVerificationModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200/80 relative flex flex-col items-center text-center">
-            <button
-              type="button"
-              onClick={() => setIsVerificationModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
-              aria-label="Fermer"
-            >
-              <span className="material-symbols-outlined text-xl">close</span>
-            </button>
-
-            <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4 shadow-sm">
-              <span className="material-symbols-outlined text-3xl">chat</span>
-            </div>
-
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">
-              Vérification WhatsApp de votre demande
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-xs leading-relaxed">
-              Un message WhatsApp a été préparé pour le <strong className="text-slate-900 font-bold">{whatsappPhone || phone}</strong> avec votre code unique de validation.
-            </p>
-
-            <form onSubmit={handleVerifyOtp} className="w-full mt-6 flex flex-col items-center gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Entrez le code à 4 chiffres
-                </label>
-                <input
-                  type="text"
-                  maxLength={4}
-                  value={enteredOtp}
-                  onChange={(e) => {
-                    setEnteredOtp(e.target.value.replace(/\D/g, ''));
-                    setVerificationError(null);
-                  }}
-                  autoFocus
-                  placeholder="••••"
-                  className="w-48 text-center tracking-[0.5em] text-3xl font-mono font-black py-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 text-emerald-950 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all shadow-inner"
-                />
-              </div>
-
-              {verificationError && (
-                <div className="w-full p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
-                  {verificationError}
-                </div>
-              )}
-
-              {verificationSuccess && (
-                <div className="w-full p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm text-emerald-600">check_circle</span>
-                  <span>{verificationSuccess}</span>
-                </div>
-              )}
-
-              {lastSentCode && (
-                <div className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-center justify-between gap-2">
-                  <span>Code reçu sur WhatsApp : <strong className="font-mono text-emerald-700 font-bold">{lastSentCode}</strong></span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEnteredOtp(lastSentCode);
-                      setVerificationError(null);
-                    }}
-                    className="text-[11px] font-bold text-teal-700 hover:text-teal-900 underline cursor-pointer"
-                  >
-                    Remplir
-                  </button>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={enteredOtp.length < 4}
-                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-lg">verified</span>
-                <span>Valider et certifier mon numéro</span>
-              </button>
-
-              <div className="flex items-center justify-between w-full pt-2 text-xs">
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="text-slate-500 hover:text-slate-900 underline cursor-pointer"
-                >
-                  Renvoyer un code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsVerificationModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  Fermer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>

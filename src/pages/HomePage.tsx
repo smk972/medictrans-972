@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SEOHead } from '../components/SEOHead';
 import { Footer } from '../components/Footer';
+import { Header } from '../components/Header';
 import { BrandLogo } from '../components/BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../context/AiChatContext';
@@ -227,63 +228,7 @@ export const HomePage: React.FC = () => {
         description="Votre transport médicalisé conventionné réservé en toute sérénité : VSL, Taxis conventionnés et Ambulances conventionnés CPAM."
       />
 
-      {/* =========================================================================
-          DYNAMIC ISLAND FLOATING NAVIGATION
-          ========================================================================= */}
-      <div className="sticky top-3 sm:top-4 z-40 px-4 sm:px-6 lg:px-8 pt-2 pb-2 pointer-events-none">
-        <nav 
-          aria-label="Navigation principale" 
-          className="max-w-[1360px] mx-auto h-16 sm:h-[68px] rounded-full bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6 flex items-center justify-between pointer-events-auto transition-all duration-300"
-        >
-          {/* Brand Logo & Tag */}
-          <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
-
-          {/* Center Links (Desktop) */}
-          <div className="hidden md:flex items-center gap-1 lg:gap-2 text-xs font-bold text-slate-600">
-            <Link 
-              to="/suivi" 
-              className="px-3 py-1.5 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            >
-              Mes Demandes
-            </Link>
-            <Link 
-              to="/etablissements" 
-              className="px-3 py-1.5 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            >
-              Portail Établissements
-            </Link>
-            <Link 
-              to="/transporteurs" 
-              className="px-3 py-1.5 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            >
-              Espace Transporteurs
-            </Link>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-
-            {isAuthenticated ? (
-              <button
-                onClick={logout}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-md shadow-slate-950/10 active:scale-95 transition-all cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Déconnexion</span>
-              </button>
-            ) : (
-              <Link
-                to="/connexion"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-teal-800 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white text-xs font-bold shadow-md shadow-teal-950/10 active:scale-95 transition-all"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Connexion</span>
-              </Link>
-            )}
-          </div>
-
-        </nav>
-      </div>
+      <Header />
 
       <main className="flex-grow pt-8 pb-20">
         

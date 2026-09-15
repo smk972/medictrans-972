@@ -31,7 +31,7 @@ export const Header: React.FC = () => {
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap shrink-0 px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
+    `whitespace-nowrap shrink-0 px-2 lg:px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
       isActive
         ? 'bg-slate-900 text-white font-semibold shadow-xs'
         : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
@@ -60,19 +60,22 @@ export const Header: React.FC = () => {
         {/* Logo */}
         <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
 
-        {/* Desktop Nav */}
-        <nav className="hidden xl:flex items-center gap-1 sm:gap-1.5 shrink min-w-0">
+        {/* Desktop Nav (visible dès md: 768px pour éviter toute disparition sur ordinateur portable) */}
+        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1.5 shrink min-w-0">
           <NavLink to="/reserver" className={navLinkClass}>
-            Réserver un transport
+            <span className="hidden lg:inline">Réserver un transport</span>
+            <span className="lg:hidden">Réserver</span>
           </NavLink>
           <NavLink to="/suivi" className={navLinkClass}>
             Mes Demandes
           </NavLink>
           <NavLink to="/etablissements" className={navLinkClass}>
-            Portail Établissements
+            <span className="hidden lg:inline">Portail Établissements</span>
+            <span className="lg:hidden">Établissements</span>
           </NavLink>
           <NavLink to="/transporteurs" className={navLinkClass}>
-            Espace Transporteurs
+            <span className="hidden lg:inline">Espace Transporteurs</span>
+            <span className="lg:hidden">Transporteurs</span>
           </NavLink>
         </nav>
 
@@ -100,7 +103,7 @@ export const Header: React.FC = () => {
                   type="button"
                   id="btn-header-profile"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-full hover:bg-slate-100/80 transition-all border border-slate-200/80 text-left shrink min-w-0"
+                  className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-full hover:bg-slate-100/80 transition-all border border-slate-200/80 text-left shrink min-w-0 overflow-hidden"
                 >
                   {user.avatarUrl ? (
                     <img
@@ -113,7 +116,7 @@ export const Header: React.FC = () => {
                       {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                  <div className="hidden md:flex flex-col min-w-0 max-w-[100px] lg:max-w-[125px] 2xl:max-w-[160px]">
+                   <div className="hidden md:flex flex-col min-w-0 max-w-[130px] lg:max-w-[155px] 2xl:max-w-[190px]">
                     <span className="text-xs font-bold text-slate-900 leading-tight truncate" title={user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}>
                       {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                     </span>
@@ -248,7 +251,7 @@ export const Header: React.FC = () => {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+            className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
             aria-label="Menu de navigation"
           >
             <span className="material-symbols-outlined text-2xl">
@@ -260,7 +263,7 @@ export const Header: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="xl:hidden mt-2 max-w-7xl mx-auto rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 p-4 shadow-2xl animate-fadeIn">
+        <div className="md:hidden mt-2 max-w-7xl mx-auto rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 p-4 shadow-2xl animate-fadeIn">
           {isAuthenticated && user ? (
             <div className="mb-4 p-3 rounded-xl bg-slate-50 flex items-center justify-between border border-slate-200/60">
               <div className="flex items-center gap-2.5">

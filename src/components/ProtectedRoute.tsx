@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Header } from './Header';
 import { UserRole } from '../types';
 
 interface ProtectedRouteProps {
@@ -19,12 +20,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs text-on-surface-variant font-semibold">
-            Vérification des habilitations d'accès...
-          </span>
+      <div className="min-h-screen bg-[#F8FAFD] flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs text-slate-500 font-semibold">
+              Vérification des habilitations d'accès...
+            </span>
+          </div>
         </div>
       </div>
     );

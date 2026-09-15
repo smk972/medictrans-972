@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useLocation, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { UserRole } from '../types';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
-import { useAuth } from '../contexts/AuthContext';
-import { UserRole } from '../types';
 
 export const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const {
     loginWithEmail,
     registerWithEmail,
     loginWithGoogle,
-    loginAsDemo,
-    isLoading,
-    error: authError,
     user,
     isAuthenticated,
     logout
@@ -28,22 +27,32 @@ export const LoginPage: React.FC = () => {
     mode?: 'LOGIN' | 'REGISTER';
   } | null;
 
+  // Détermination automatique du profil selon le lien cliqué au préalable
+  const selectedRole: UserRole = useMemo(() => {
+    const qRole = searchParams.get('role')?.toUpperCase();
+    if (qRole === 'FACILITY' || qRole === 'TRANSPORTER' || qRole === 'ADMIN' || qRole === 'PATIENT') {
+      return qRole as UserRole;
+    }
+    if (locationState?.requiredRole) {
+      return locationState.requiredRole;
+    }
+    const fromPath = locationState?.from?.pathname || '';
+    if (fromPath.includes('etablissement')) return 'FACILITY';
+    if (fromPath.includes('transporteur')) return 'TRANSPORTER';
+    if (fromPath.includes('admin')) return 'ADMIN';
+    return 'PATIENT';
+  }, [searchParams, locationState]);
+
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>(
     locationState?.mode || 'LOGIN'
-  );
-  const [selectedRole, setSelectedRole] = useState<UserRole>(
-    locationState?.requiredRole || 'PATIENT'
   );
   const [showPassword, setShowPassword] = useState(false);
 
   React.useEffect(() => {
-    if (locationState?.requiredRole) {
-      setSelectedRole(locationState.requiredRole);
-    }
     if (locationState?.mode) {
       setMode(locationState.mode);
     }
-  }, [locationState?.requiredRole, locationState?.mode]);
+  }, [locationState?.mode]);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -81,41 +90,72 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const getHeaderInfo = () => {
+  // Contenus et métadonnées adaptés strictement à la catégorie cliquée
+  const categoryConfig = useMemo(() => {
     switch (selectedRole) {
       case 'FACILITY':
         return {
-          title: "Connexion Portail Établissements",
-          subtitle: "Accès réservé aux soignants, cadres de santé et régulation des sorties de lit (CHU, Cliniques, Dialyses 972)",
-          icon: "local_hospital",
-          iconBg: "bg-gradient-to-tr from-slate-800 to-slate-900 text-white shadow-md shadow-slate-900/20"
+          icon: 'local_hospital',
+          badgeText: 'Portail Établissements & Soignants',
+          badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+          title: 'Connexion Portail Établissements',
+          subtitle: 'Accès réservé aux soignants, cadres hospitaliers et régulation des sorties de lit (CHU de Martinique, cliniques, dialyses 972).',
+          seoTitle: 'Connexion Portail Établissements de Santé | Clinigo',
+          placeholderCompany: 'CHU Pierre Zobda-Quitman, Clinique Sainte-Marie...',
+          features: [
+            { icon: 'verified_user', title: 'Habilitation FINESS', desc: 'Régulation HDS certifiée' },
+            { icon: 'near_me', title: 'Commandes Directes', desc: 'Attribution immédiate 972' },
+            { icon: 'receipt_long', title: 'Télétransmission BBD', desc: 'Facturation CPAM automatisée' }
+          ]
         };
       case 'TRANSPORTER':
         return {
-          title: "Connexion Espace Transporteurs",
-          subtitle: "Courses disponibles et dispatch en direct pour les ambulanciers, VSL et taxis conventionnés 972",
-          icon: "ambulance",
-          iconBg: "bg-gradient-to-tr from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20"
+          icon: 'ambulance',
+          badgeText: 'Espace Transporteurs Sanitaires 972',
+          badgeClass: 'bg-amber-50 text-amber-800 border-amber-200/80',
+          title: 'Connexion Espace Transporteurs',
+          subtitle: 'Accédez à votre console de dispatch, à la bourse des courses disponibles en temps réel et au suivi télématique de vos véhicules.',
+          seoTitle: 'Connexion Espace Transporteurs Sanitaires | Clinigo',
+          placeholderCompany: 'Ambulances Madinina Secours, VSL...',
+          features: [
+            { icon: 'verified_user', title: 'Conventionné ARS', desc: 'Agrément préfecture & CPAM' },
+            { icon: 'near_me', title: 'Dispatch Télématique', desc: 'Courses géolocalisées live' },
+            { icon: 'receipt_long', title: 'Tiers-Payant 100%', desc: 'Télétransmission Cerfa' }
+          ]
         };
       case 'ADMIN':
         return {
-          title: "Tour de Contrôle & Régulation 972",
-          subtitle: "Supervision territoriale réservée aux régulateurs ARS Martinique et auditeurs BPEC",
-          icon: "tune",
-          iconBg: "bg-gradient-to-tr from-purple-700 to-indigo-800 text-white shadow-md shadow-purple-900/20"
+          icon: 'tune',
+          badgeText: 'Tour de Contrôle & Régulation 972',
+          badgeClass: 'bg-purple-50 text-purple-800 border-purple-200/80',
+          title: 'Supervision Régionale Territoriale',
+          subtitle: 'Console d\'administration et de supervision réservée aux régulateurs territoriaux ARS Martinique et auditeurs BPEC.',
+          seoTitle: 'Supervision & Régulation Sanitaire 972 | Clinigo',
+          placeholderCompany: 'ARS Martinique / Régulation',
+          features: [
+            { icon: 'verified_user', title: 'Accès Régulateur', desc: 'Agrément ARS Martinique' },
+            { icon: 'near_me', title: 'Vue Globale Île', desc: 'Supervision 34 communes' },
+            { icon: 'receipt_long', title: 'Audit & Conformité', desc: 'Conventions CPAM / BPEC' }
+          ]
         };
       case 'PATIENT':
       default:
         return {
-          title: "Espace d'Identification Patient",
-          subtitle: "Connectez-vous ou créez votre compte pour suivre vos transports sanitaires et vos prises en charge CPAM",
-          icon: "personal_injury",
-          iconBg: "bg-gradient-to-tr from-teal-800 to-sky-700 text-white shadow-md shadow-teal-900/20"
+          icon: 'lock',
+          badgeText: 'Espace Sécurisé Patient & Tiers-Payant',
+          badgeClass: 'bg-teal-50 text-teal-800 border-teal-200/70',
+          title: 'Connectez-vous pour voir vos demandes',
+          subtitle: 'Pour des raisons de secret médical et de sécurité de vos données de santé, le récapitulatif de vos transports et le suivi en direct sont accessibles après identification.',
+          seoTitle: 'Connexion Espace Sécurisé Patient | Clinigo',
+          placeholderCompany: '',
+          features: [
+            { icon: 'verified_user', title: 'Secret Médical', desc: 'Conformité RGPD & ARS' },
+            { icon: 'near_me', title: 'Suivi GPS Temps Réel', desc: 'Approche de votre véhicule' },
+            { icon: 'receipt_long', title: 'Tiers-Payant 100%', desc: 'Bons de transport CPAM' }
+          ]
         };
     }
-  };
-
-  const headerInfo = getHeaderInfo();
+  }, [selectedRole]);
 
   const handleGoogleLogin = async () => {
     setFormError(null);
@@ -138,14 +178,21 @@ export const LoginPage: React.FC = () => {
       const res = await loginWithEmail(email, password, selectedRole);
       if (res.success) {
         setSuccessMessage('Connexion réussie ! Redirection...');
-        setTimeout(() => redirectAfterAuth(selectedRole), 500);
+        setTimeout(() => redirectAfterAuth(selectedRole), 400);
       } else {
-        setFormError(res.error || 'Identifiants invalides');
+        setFormError(res.error || 'Adresse e-mail ou mot de passe incorrect.');
       }
     } else {
-      // Inscription
       if (!firstName || !lastName) {
         setFormError('Veuillez renseigner votre prénom et nom.');
+        return;
+      }
+      if (selectedRole === 'FACILITY' && !facilityName) {
+        setFormError("Veuillez renseigner le nom de l'établissement de santé.");
+        return;
+      }
+      if (selectedRole === 'TRANSPORTER' && !transporterName) {
+        setFormError("Veuillez renseigner la raison sociale de votre société de transport.");
         return;
       }
 
@@ -156,241 +203,137 @@ export const LoginPage: React.FC = () => {
         phone,
         nir: selectedRole === 'PATIENT' ? nir : undefined,
         facilityName: selectedRole === 'FACILITY' ? facilityName : undefined,
-        transporterName: selectedRole === 'TRANSPORTER' ? transporterName : undefined,
+        transporterName: selectedRole === 'TRANSPORTER' ? transporterName : undefined
       });
 
       if (res.success) {
         setSuccessMessage('Compte créé avec succès ! Redirection...');
-        setTimeout(() => redirectAfterAuth(selectedRole), 600);
+        setTimeout(() => redirectAfterAuth(selectedRole), 400);
       } else {
-        setFormError(res.error || 'Erreur lors de la création du compte');
+        setFormError(res.error || "Une erreur est survenue lors de la création du compte.");
       }
     }
   };
 
-  const handleDemoLogin = (role: UserRole) => {
-    setFormError(null);
-    setSelectedRole(role);
-    loginAsDemo(role);
-    setSuccessMessage(`Connexion démo activée (${role}) ! Redirection...`);
-    setTimeout(() => redirectAfterAuth(role), 400);
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 via-teal-50/70 to-sky-100/60 text-slate-900 relative selection:bg-teal-600 selection:text-white overflow-x-hidden">
-      {/* Ambient gradient meshes */}
-      <div 
-        aria-hidden="true" 
-        className="fixed top-0 right-0 w-[600px] h-[500px] bg-gradient-to-b from-teal-200/35 via-sky-200/25 to-transparent rounded-full blur-3xl pointer-events-none z-0" 
-      />
-      <div 
-        aria-hidden="true" 
-        className="fixed bottom-0 left-0 w-[500px] h-[450px] bg-gradient-to-tr from-teal-100/35 via-slate-200/40 to-transparent rounded-full blur-3xl pointer-events-none z-0" 
-      />
-
+    <div className="min-h-screen flex flex-col bg-[#F8FAFD] text-slate-900 relative selection:bg-teal-600 selection:text-white">
       <SEOHead
-        title="Connexion Espaces Professionnels & Patients | Clinigo"
-        description="Accédez à votre espace sécurisé Clinigo : Patients, Hôpitaux et Établissements de santé, ou Entreprises de transport sanitaire conventionnées CPAM."
+        title={categoryConfig.seoTitle}
+        description={categoryConfig.subtitle}
         canonicalPath="/connexion"
       />
       <Header />
 
-      <main className="flex-1 pt-8 sm:pt-12 pb-16 flex items-center justify-center px-4 sm:px-6 relative z-10">
-        <div className="w-full max-w-xl">
-          {/* Header Card */}
-          <div className="text-center mb-8">
-            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-md mb-4 ring-4 ring-white/60 transition-all ${headerInfo.iconBg}`}>
-              <span className="material-symbols-outlined text-3xl">{headerInfo.icon}</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {headerInfo.title}
-            </h1>
-            <p className="mt-2 text-sm sm:text-base text-slate-600 max-w-md mx-auto">
-              {headerInfo.subtitle}
-            </p>
+      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex items-center justify-center min-h-[70vh]">
+        {/* Carte Principale identique au gabarit de /suivi */}
+        <div className="w-full max-w-xl bg-white rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200/80 p-6 sm:p-10 text-center animate-fadeIn card-silky">
+          
+          {/* Icône principale cerclée */}
+          <div className="w-20 h-20 rounded-3xl bg-slate-900 text-white flex items-center justify-center mx-auto mb-5 shadow-sm ring-8 ring-slate-100">
+            <span className="material-symbols-outlined text-4xl">{categoryConfig.icon}</span>
           </div>
 
-          {/* Main Card */}
-          <div className="bg-white rounded-3xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] border border-slate-200/80 p-6 sm:p-8 card-silky">
-            {/* Session déjà active : Option de déconnexion immédiate à tout moment */}
-            {isAuthenticated && user && (
-              <div className="mb-6 p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm ring-2 ring-teal-300 shrink-0">
-                    {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-900 font-medium">
-                      Connecté en tant que <strong className="font-bold">{user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}</strong> ({user.facilityName || user.transporterName || user.role})
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-mono">{user.email}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => redirectAfterAuth(user.role)}
-                    className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
-                  >
-                    Mon espace
-                  </button>
-                  <button
-                    id="btn-login-page-logout"
-                    type="button"
-                    onClick={async () => {
-                      await logout();
-                    }}
-                    className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-                    title="Se déconnecter de cette session"
-                  >
-                    <span className="material-symbols-outlined text-sm">logout</span>
-                    <span>Déconnexion</span>
-                  </button>
-                </div>
-              </div>
-            )}
+          {/* Badge de catégorie cliquée */}
+          <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider mb-3 ${categoryConfig.badgeClass}`}>
+            <span className="material-symbols-outlined text-sm">shield</span>
+            {categoryConfig.badgeText}
+          </span>
 
-            {/* Message informatif éventuel de redirection */}
-            {locationState?.message && (
-              <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3 text-amber-900 shadow-xs animate-fadeIn">
-                <span className="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">lock</span>
+          {/* Titre fort */}
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2.5">
+            {categoryConfig.title}
+          </h1>
+
+          {/* Sous-titre explicatif adapté */}
+          <p className="text-slate-500 max-w-md mx-auto text-xs sm:text-sm leading-relaxed mb-6">
+            {categoryConfig.subtitle}
+          </p>
+
+          {/* Session déjà active : Option de continuer ou changer de compte */}
+          {isAuthenticated && user && (
+            <div className="mb-6 p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left animate-fadeIn">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm ring-2 ring-teal-300 shrink-0">
+                  {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                </div>
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                    Identification Préalable Requise
+                  <div className="text-xs text-slate-900 font-medium">
+                    Déjà connecté en tant que <strong className="font-bold">{user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}</strong>
                   </div>
-                  <div className="text-xs sm:text-sm font-medium mt-0.5">
-                    {locationState.message}
-                  </div>
+                  <div className="text-[11px] text-slate-500 font-mono">{user.email}</div>
                 </div>
               </div>
-            )}
-
-            {/* Mode Switch (Créer un compte / Se connecter) */}
-            <div className="flex rounded-2xl bg-slate-100 p-1.5 mb-6 border border-slate-200/60">
-              <button
-                id="tab-mode-register"
-                type="button"
-                onClick={() => { setMode('REGISTER'); setFormError(null); }}
-                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  mode === 'REGISTER'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900 font-medium'
-                }`}
-              >
-                <span className="material-symbols-outlined text-base">person_add</span>
-                <span>Créer un compte</span>
-              </button>
-              <button
-                id="tab-mode-login"
-                type="button"
-                onClick={() => { setMode('LOGIN'); setFormError(null); }}
-                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  mode === 'LOGIN'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900 font-medium'
-                }`}
-              >
-                <span className="material-symbols-outlined text-base">login</span>
-                <span>Se connecter</span>
-              </button>
-            </div>
-
-            {/* Role Selection */}
-            <div className="mb-6">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
-                Sélectionnez votre profil
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
                 <button
                   type="button"
-                  onClick={() => setSelectedRole('PATIENT')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center cursor-pointer ${
-                    selectedRole === 'PATIENT'
-                      ? 'border-teal-600 bg-teal-50/70 text-teal-900 shadow-sm ring-2 ring-teal-600/20'
-                      : 'border-slate-200/80 hover:border-teal-300 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
+                  onClick={() => redirectAfterAuth(user.role)}
+                  className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
                 >
-                  <span className="material-symbols-outlined text-2xl mb-1 text-teal-700">
-                    personal_injury
-                  </span>
-                  <span className="font-bold text-xs leading-tight">Patient</span>
-                  <span className="text-[10px] text-slate-500 mt-0.5 hidden sm:inline">Trajets & ALD</span>
+                  Mon espace
                 </button>
-
                 <button
                   type="button"
-                  onClick={() => setSelectedRole('FACILITY')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center cursor-pointer ${
-                    selectedRole === 'FACILITY'
-                      ? 'border-slate-800 bg-slate-100 text-slate-900 shadow-sm ring-2 ring-slate-800/20'
-                      : 'border-slate-200/80 hover:border-slate-400 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
+                  onClick={async () => { await logout(); }}
+                  className="px-3 py-1.5 rounded-full bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                  title="Se déconnecter"
                 >
-                  <span className="material-symbols-outlined text-2xl mb-1 text-slate-800">
-                    local_hospital
-                  </span>
-                  <span className="font-bold text-xs leading-tight">Établissement</span>
-                  <span className="text-[10px] text-slate-500 mt-0.5 hidden sm:inline">CHU, Cliniques</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole('TRANSPORTER')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center cursor-pointer ${
-                    selectedRole === 'TRANSPORTER'
-                      ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
-                      : 'border-slate-200/80 hover:border-amber-300 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-2xl mb-1 text-amber-600">
-                    ambulance
-                  </span>
-                  <span className="font-bold text-xs leading-tight">Transporteur</span>
-                  <span className="text-[10px] text-slate-500 mt-0.5 hidden sm:inline">Ambulances 972</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole('ADMIN')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center cursor-pointer ${
-                    selectedRole === 'ADMIN'
-                      ? 'border-purple-600 bg-purple-50 text-purple-900 shadow-sm ring-2 ring-purple-600/20'
-                      : 'border-slate-200/80 hover:border-purple-300 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-2xl mb-1 text-purple-600">
-                    tune
-                  </span>
-                  <span className="font-bold text-xs leading-tight">Régulation</span>
-                  <span className="text-[10px] text-slate-500 mt-0.5 hidden sm:inline">Admin ARS</span>
+                  <span className="material-symbols-outlined text-sm">logout</span>
+                  <span>Changer</span>
                 </button>
               </div>
             </div>
+          )}
 
-            {/* Error or Success alerts */}
-            {(formError || authError) && (
-              <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-xs sm:text-sm font-medium">
-                <span className="material-symbols-outlined text-xl shrink-0 mt-0.5 text-rose-600">error</span>
-                <div>{formError || authError}</div>
+          {/* Message éventuel de redirection */}
+          {locationState?.message && (
+            <div className="mb-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-amber-900 text-left text-xs shadow-xs animate-fadeIn">
+              <span className="material-symbols-outlined text-amber-600 text-lg shrink-0 mt-0.5">lock</span>
+              <div>
+                <strong className="block font-bold">Identification requise</strong>
+                <span>{locationState.message}</span>
               </div>
-            )}
+            </div>
+          )}
 
-            {successMessage && (
-              <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-emerald-800 text-xs sm:text-sm font-medium">
-                <span className="material-symbols-outlined text-xl shrink-0 mt-0.5 text-emerald-600">check_circle</span>
-                <div>{successMessage}</div>
-              </div>
-            )}
+          {/* Bascule Créer un compte / Se connecter */}
+          <div className="flex rounded-2xl bg-slate-100 p-1.5 mb-6 border border-slate-200/60">
+            <button
+              id="tab-mode-login"
+              type="button"
+              onClick={() => { setMode('LOGIN'); setFormError(null); }}
+              className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mode === 'LOGIN'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 font-medium'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">login</span>
+              <span>Se connecter</span>
+            </button>
+            <button
+              id="tab-mode-register"
+              type="button"
+              onClick={() => { setMode('REGISTER'); setFormError(null); }}
+              className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mode === 'REGISTER'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 font-medium'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">person_add</span>
+              <span>Créer un compte</span>
+            </button>
+          </div>
 
-            {/* Google Sign In Button */}
+          {/* Connexion Google pour les Patients */}
+          {selectedRole === 'PATIENT' && (
             <div className="mb-6">
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                disabled={isLoading}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-3 cursor-pointer"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold shadow-xs hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
               >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -410,20 +353,37 @@ export const LoginPage: React.FC = () => {
                 </svg>
                 <span>Continuer avec Google</span>
               </button>
-            </div>
 
-            <div className="relative flex py-2 items-center mb-6">
-              <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">
-                ou avec votre adresse e-mail
-              </span>
-              <div className="flex-grow border-t border-slate-200"></div>
+              <div className="relative my-6 text-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200/80"></div>
+                </div>
+                <span className="relative px-3 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  ou avec votre adresse e-mail
+                </span>
+              </div>
             </div>
+          )}
 
-            {/* Email / Password Form */}
-            <form onSubmit={handleEmailSubmit} className="flex flex-col gap-4">
-              {mode === 'REGISTER' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fadeIn">
+          {/* Formulaire de saisie */}
+          <form onSubmit={handleEmailSubmit} className="space-y-4 text-left">
+            {formError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
+                <span className="material-symbols-outlined text-base text-rose-600">error</span>
+                <span>{formError}</span>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center gap-2 animate-fadeIn">
+                <span className="material-symbols-outlined text-base text-teal-600">check_circle</span>
+                <span>{successMessage}</span>
+              </div>
+            )}
+
+            {mode === 'REGISTER' && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Prénom <span className="text-rose-600">*</span>
@@ -439,7 +399,7 @@ export const LoginPage: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Nom <span className="text-rose-600">*</span>
+                      Nom de famille <span className="text-rose-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -451,307 +411,160 @@ export const LoginPage: React.FC = () => {
                     />
                   </div>
                 </div>
-              )}
 
-              {mode === 'REGISTER' && selectedRole === 'PATIENT' && (
-                <div className="animate-fadeIn">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Numéro de Sécurité Sociale (NIR) <span className="text-slate-400 font-normal">(Optionnel)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={nir}
-                    onChange={(e) => setNir(e.target.value)}
-                    placeholder="1 84 10 97 214 021 45"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all font-mono"
-                  />
-                </div>
-              )}
-
-              {mode === 'REGISTER' && selectedRole === 'FACILITY' && (
-                <div className="animate-fadeIn">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Nom de l'établissement <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={facilityName}
-                    onChange={(e) => setFacilityName(e.target.value)}
-                    placeholder="CHU Pierre Zobda-Quitman, Clinique Ste-Marie..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                  />
-                </div>
-              )}
-
-              {mode === 'REGISTER' && selectedRole === 'TRANSPORTER' && (
-                <div className="animate-fadeIn">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Société de transport / Ambulance <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={transporterName}
-                    onChange={(e) => setTransporterName(e.target.value)}
-                    placeholder="Ambulances Madinina Secours..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Raccourcis de remplissage rapide selon le profil sélectionné */}
-              {mode === 'LOGIN' && selectedRole === 'FACILITY' && (
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 text-xs flex items-center justify-between gap-3 animate-fadeIn">
-                  <div>
-                    <span className="font-extrabold block text-slate-900">Identifiants Cadre Hospitalier (CHU) :</span>
-                    <span className="font-mono text-[11px] text-slate-600">coordination@chu-martinique.fr</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('coordination@chu-martinique.fr');
-                      setPassword('CH972-Valaire!');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
-                  >
-                    Remplir
-                  </button>
-                </div>
-              )}
-              {mode === 'LOGIN' && selectedRole === 'TRANSPORTER' && (
-                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex items-center justify-between gap-3 animate-fadeIn">
-                  <div>
-                    <span className="font-extrabold block text-amber-900">Identifiants Dispatch Ambulances :</span>
-                    <span className="font-mono text-[11px] text-amber-800">dispatch@madinina-secours.mq</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('dispatch@madinina-secours.mq');
-                      setPassword('AMB972-Madinina!');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-amber-700 text-white font-bold text-xs hover:bg-amber-800 transition-colors shadow-xs cursor-pointer shrink-0"
-                  >
-                    Remplir
-                  </button>
-                </div>
-              )}
-              {mode === 'LOGIN' && selectedRole === 'PATIENT' && (
-                <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-teal-950 text-xs flex items-center justify-between gap-3 animate-fadeIn">
-                  <div>
-                    <span className="font-extrabold block text-teal-900">Identifiants Patient Référent (ALD) :</span>
-                    <span className="font-mono text-[11px] text-teal-800">c.marieluce@orange.fr</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('c.marieluce@orange.fr');
-                      setPassword('Patient972!');
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-teal-700 text-white font-bold text-xs hover:bg-teal-800 transition-colors shadow-xs cursor-pointer shrink-0"
-                  >
-                    Remplir
-                  </button>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Adresse e-mail <span className="text-rose-600">*</span>
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
-                    mail
-                  </span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={
-                      selectedRole === 'ADMIN'
-                        ? 'admin@medictrans972.mq'
-                        : selectedRole === 'FACILITY'
-                          ? 'coordination@chu-martinique.fr'
-                          : selectedRole === 'TRANSPORTER'
-                            ? 'dispatch@ambulances-972.mq'
-                            : 'patient@exemple.mq'
-                    }
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Mot de passe <span className="text-rose-600">*</span>
-                  </label>
-                  {mode === 'LOGIN' && (
-                    <button
-                      type="button"
-                      onClick={() => alert("Un email de réinitialisation sécurisé peut être envoyé à votre adresse.")}
-                      className="text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer"
-                    >
-                      Mot de passe oublié ?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
-                    lock
-                  </span>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-xl">
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {mode === 'REGISTER' && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Téléphone de contact
+                    Numéro de portable (Martinique 0696)
                   </label>
-                  <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
-                      call
-                    </span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0696 XX XX XX"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                  />
+                </div>
+
+                {selectedRole === 'PATIENT' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Numéro de Sécurité Sociale (NIR) <span className="text-slate-400 font-normal">(Optionnel)</span>
+                    </label>
                     <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="0696 12 34 56"
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                      type="text"
+                      value={nir}
+                      onChange={(e) => setNir(e.target.value)}
+                      placeholder="1 84 10 97 214 021 45"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all font-mono"
                     />
                   </div>
-                </div>
-              )}
+                )}
 
+                {selectedRole === 'FACILITY' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nom de l'établissement de santé <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={facilityName}
+                      onChange={(e) => setFacilityName(e.target.value)}
+                      placeholder={categoryConfig.placeholderCompany}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                    />
+                  </div>
+                )}
+
+                {selectedRole === 'TRANSPORTER' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Raison sociale de votre entreprise <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={transporterName}
+                      onChange={(e) => setTransporterName(e.target.value)}
+                      placeholder={categoryConfig.placeholderCompany}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Adresse e-mail professionnelle / personnelle <span className="text-rose-600">*</span>
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
+                  mail
+                </span>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contact@exemple.mq"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Mot de passe <span className="text-rose-600">*</span>
+                </label>
+                {mode === 'LOGIN' && (
+                  <button
+                    type="button"
+                    onClick={() => alert("Pour réinitialiser votre mot de passe, contactez l'assistance Clinigo au 05 96 72 00 97 ou via le support Eva.")}
+                    className="text-xs text-teal-700 hover:text-teal-900 font-semibold cursor-pointer"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
+                  lock
+                </span>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                >
+                  <span className="material-symbols-outlined text-xl">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bouton Principal de Soumission */}
+            <div className="pt-2">
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full mt-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 text-white font-bold shadow-lg shadow-teal-950/20 hover:from-teal-700 hover:to-sky-800 transition-all active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
+                id="btn-submit-auth"
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white font-bold text-sm shadow-md shadow-teal-950/20 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                {isLoading ? (
-                  <>
-                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    <span>Vérification en cours...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-xl">
-                      {mode === 'LOGIN' ? 'login' : 'how_to_reg'}
-                    </span>
-                    <span>
-                      {mode === 'LOGIN' ? 'Accéder à mon espace' : 'Valider mon inscription'}
-                    </span>
-                  </>
-                )}
+                <span className="material-symbols-outlined text-lg">
+                  {mode === 'LOGIN' ? 'login' : 'person_add'}
+                </span>
+                <span>
+                  {mode === 'LOGIN' ? 'Accéder à mon espace sécurisé' : 'Créer mon compte'}
+                </span>
               </button>
-            </form>
-
-            {/* Quick Demo Access Bar */}
-            <div className="mt-8 pt-6 border-t border-slate-200/80">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Accès Démo 1 Clic (Test rapide)
-                </span>
-                <span className="text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full">
-                  Sans mot de passe
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('PATIENT')}
-                  className="px-3 py-2.5 rounded-2xl text-left bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 hover:border-teal-300 transition-all group flex items-center gap-2.5 cursor-pointer"
-                >
-                  <span className="w-8 h-8 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                    🩺
-                  </span>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-900 truncate">Christian M.</div>
-                    <div className="text-[10px] text-slate-500 truncate">Patient (ALD)</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('FACILITY')}
-                  className="px-3 py-2.5 rounded-2xl text-left bg-slate-50 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-400 transition-all group flex items-center gap-2.5 cursor-pointer"
-                >
-                  <span className="w-8 h-8 rounded-xl bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                    🏥
-                  </span>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-900 truncate">Cadre CHU</div>
-                    <div className="text-[10px] text-slate-500 truncate">Zobda-Quitman</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('TRANSPORTER')}
-                  className="px-3 py-2.5 rounded-2xl text-left bg-slate-50 hover:bg-amber-50 border border-slate-200/80 hover:border-amber-300 transition-all group flex items-center gap-2.5 cursor-pointer"
-                >
-                  <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                    🚑
-                  </span>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-900 truncate">Madinina Sec.</div>
-                    <div className="text-[10px] text-slate-500 truncate">Ambulancier</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('ADMIN')}
-                  className="px-3 py-2.5 rounded-2xl text-left bg-slate-50 hover:bg-purple-50 border border-slate-200/80 hover:border-purple-300 transition-all group flex items-center gap-2.5 cursor-pointer"
-                >
-                  <span className="w-8 h-8 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                    🛡️
-                  </span>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-900 truncate">Régulateur</div>
-                    <div className="text-[10px] text-slate-500 truncate">ARS Martinique</div>
-                  </div>
-                </button>
-              </div>
             </div>
+          </form>
 
-            {/* Links to Dedicated Sign up Forms */}
-            <div className="mt-6 pt-4 border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-slate-500">
-              <span>Vous êtes une structure ?</span>
-              <Link
-                to="/inscription/etablissement"
-                className="font-bold text-teal-700 hover:text-teal-900 hover:underline"
-              >
-                Inscription Établissement de Santé (FINESS)
-              </Link>
-              <span>•</span>
-              <Link
-                to="/inscription/transporteur"
-                className="font-bold text-amber-700 hover:text-amber-900 hover:underline"
-              >
-                Adhésion Société d'Ambulance (ARS 972)
-              </Link>
-            </div>
+          {/* Garanties et Rassurance ARS / CPAM (comme sur /suivi) */}
+          <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            {categoryConfig.features.map((feat, idx) => (
+              <div key={idx} className="flex items-start gap-2.5">
+                <span className="material-symbols-outlined text-teal-700 text-lg mt-0.5 shrink-0">
+                  {feat.icon}
+                </span>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">{feat.title}</span>
+                  <span className="text-[11px] text-slate-500 leading-tight block">{feat.desc}</span>
+                </div>
+              </div>
+            ))}
           </div>
+
         </div>
       </main>
 
