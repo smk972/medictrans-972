@@ -102,11 +102,7 @@ export const LoginPage: React.FC = () => {
           subtitle: 'Accès réservé aux soignants, cadres hospitaliers et régulation des sorties de lit (CHU de Martinique, cliniques, dialyses 972).',
           seoTitle: 'Connexion Portail Établissements de Santé | Clinigo',
           placeholderCompany: 'CHU Pierre Zobda-Quitman, Clinique Sainte-Marie...',
-          features: [
-            { icon: 'verified_user', title: 'Habilitation FINESS', desc: 'Régulation HDS certifiée' },
-            { icon: 'near_me', title: 'Commandes Directes', desc: 'Attribution immédiate 972' },
-            { icon: 'receipt_long', title: 'Télétransmission BBD', desc: 'Facturation CPAM automatisée' }
-          ]
+          features: [] as Array<{ icon: string; title: string; desc: string }>
         };
       case 'TRANSPORTER':
         return {
@@ -128,11 +124,7 @@ export const LoginPage: React.FC = () => {
           subtitle: 'Console d\'administration et de supervision réservée aux régulateurs territoriaux ARS Martinique et auditeurs BPEC.',
           seoTitle: 'Supervision & Régulation Sanitaire 972 | Clinigo',
           placeholderCompany: 'ARS Martinique / Régulation',
-          features: [
-            { icon: 'verified_user', title: 'Accès Régulateur', desc: 'Agrément ARS Martinique' },
-            { icon: 'near_me', title: 'Vue Globale Île', desc: 'Supervision 34 communes' },
-            { icon: 'receipt_long', title: 'Audit & Conformité', desc: 'Conventions CPAM / BPEC' }
-          ]
+          features: [] as Array<{ icon: string; title: string; desc: string }>
         };
       case 'PATIENT':
       default:
@@ -144,11 +136,7 @@ export const LoginPage: React.FC = () => {
           subtitle: 'Pour des raisons de secret médical et de sécurité de vos données de santé, le récapitulatif de vos transports et le suivi en direct sont accessibles après identification.',
           seoTitle: 'Connexion Espace Sécurisé Patient | Clinigo',
           placeholderCompany: '',
-          features: [
-            { icon: 'verified_user', title: 'Secret Médical', desc: 'Conformité RGPD & ARS' },
-            { icon: 'near_me', title: 'Suivi GPS Temps Réel', desc: 'Approche de votre véhicule' },
-            { icon: 'receipt_long', title: 'Tiers-Payant 100%', desc: 'Bons de transport CPAM' }
-          ]
+          features: [] as Array<{ icon: string; title: string; desc: string }>
         };
     }
   }, [selectedRole]);

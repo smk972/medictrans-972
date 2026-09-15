@@ -425,30 +425,6 @@ export const TrackingPage: React.FC = () => {
                 </Link>
               </div>
 
-              {/* Rassurance & Garanties ARS / CPAM */}
-              <div className="mt-10 pt-8 border-t border-outline-variant/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                <div className="flex items-start gap-2.5">
-                  <span className="material-symbols-outlined text-secondary text-lg mt-0.5">verified_user</span>
-                  <div>
-                    <span className="text-xs font-bold text-on-surface block">Secret Médical</span>
-                    <span className="text-[11px] text-on-surface-variant">Conformité RGPD &amp; ARS</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="material-symbols-outlined text-primary text-lg mt-0.5">near_me</span>
-                  <div>
-                    <span className="text-xs font-bold text-on-surface block">Suivi GPS Temps Réel</span>
-                    <span className="text-[11px] text-on-surface-variant">Approche de votre véhicule</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="material-symbols-outlined text-secondary text-lg mt-0.5">receipt_long</span>
-                  <div>
-                    <span className="text-xs font-bold text-on-surface block">Tiers-Payant 100%</span>
-                    <span className="text-[11px] text-on-surface-variant">Bons de transport CPAM</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         ) : (
