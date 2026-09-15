@@ -114,7 +114,7 @@ export const LoginPage: React.FC = () => {
           badgeText: '',
           badgeClass: '',
           title: 'Espace Transporteurs',
-          subtitle: 'Accédez à votre dashboard et gérer vos courses et votre flotte.',
+          subtitle: 'Accédez à votre dashboard et gérez vos courses et votre flotte.',
           seoTitle: 'Espace Transporteurs | Clinigo',
           placeholderCompany: 'Ambulances Madinina Secours, VSL...',
           features: [] as Array<{ icon: string; title: string; desc: string }>
@@ -284,12 +284,9 @@ export const LoginPage: React.FC = () => {
 
           {/* Message éventuel de redirection */}
           {locationState?.message && (
-            <div className="mb-6 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-amber-900 text-left text-xs shadow-xs animate-fadeIn">
-              <span className="material-symbols-outlined text-amber-600 text-lg shrink-0 mt-0.5">lock</span>
-              <div>
-                <strong className="block font-bold">Identification requise</strong>
-                <span>{locationState.message}</span>
-              </div>
+            <div className="mb-6 px-4 py-2.5 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center gap-2 text-amber-900 text-xs shadow-xs animate-fadeIn whitespace-nowrap overflow-x-auto">
+              <span className="material-symbols-outlined text-amber-600 text-base shrink-0">lock</span>
+              <span className="font-semibold">{locationState.message}</span>
             </div>
           )}
 
