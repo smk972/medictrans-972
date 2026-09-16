@@ -481,14 +481,25 @@ export class AuthService {
       transporterName: profileData.transporterName,
       transporterLicense: profileData.transporterLicense,
       subscription: isTransporter ? {
-        status: 'NONE',
+        status: 'TRIAL',
         trialDaysTotal: 30,
         trialDaysRemaining: 30,
-        isTrialUnlocked: false,
-        whatsappVerified: false,
+        isTrialUnlocked: true,
+        trialExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
         planName: 'Formule Pro Sanitaire (Illimitée)',
         monthlyPrice: 19.9,
-        whatsappPhone: profileData.phone
+        invoices: [
+          {
+            id: `inv-${Date.now()}`,
+            invoiceNumber: `FACT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            date: new Date().toISOString().slice(0, 10),
+            amount: 0,
+            description: `Offre Découverte — Période d’essai gratuit 30 jours offerte à l’inscription`,
+            status: 'TRIAL_FREE',
+            periodStart: new Date().toISOString().slice(0, 10),
+            periodEnd: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+          }
+        ]
       } : undefined,
       password: password,
       avatarUrl: '/assets/headshot.png',

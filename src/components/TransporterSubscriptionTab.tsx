@@ -31,14 +31,8 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
     };
   });
 
-  // Modal WhatsApp
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-  const [phoneInput, setPhoneInput] = useState(() => user?.phone || transporter?.phone || '0696 75 20 20');
-  const [whatsAppStep, setWhatsAppStep] = useState<'PHONE' | 'VERIFY' | 'SUCCESS'>('PHONE');
-  const [generatedCode, setGeneratedCode] = useState('');
-  const [enteredCode, setEnteredCode] = useState('');
-  const [codeError, setCodeError] = useState<string | null>(null);
-  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isActivatingTrial, setIsActivatingTrial] = useState(false);
+  const [activationSuccessMsg, setActivationSuccessMsg] = useState<string | null>(null);
 
   const isTrial = subscription.status === 'TRIAL';
   const isExpired = subscription.status === 'EXPIRED';
@@ -54,101 +48,10 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
     ? new Date(subscription.trialExpiresAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'Dans 30 jours';
 
-  const formatPhoneForWhatsApp = (raw: string): string => {
-    const digits = raw.replace(/\D/g, '');
-    if (digits.startsWith('0696') || digits.startsWith('0796')) {
-      return '596' + digits.slice(1);
-    } else if (digits.startsWith('0690') || digits.startsWith('0790')) {
-      return '590' + digits.slice(1);
-    } else if (digits.startsWith('0694')) {
-      return '594' + digits.slice(1);
-    } else if (digits.startsWith('0692') || digits.startsWith('0693') || digits.startsWith('0639')) {
-      return '262' + digits.slice(1);
-    } else if (digits.startsWith('06') || digits.startsWith('07')) {
-      return '33' + digits.slice(1);
-    } else if (digits.startsWith('33') || digits.startsWith('596') || digits.startsWith('590') || digits.startsWith('594') || digits.startsWith('262')) {
-      return digits;
-    }
-    return digits;
-  };
-
-  const handleOpenWhatsAppModal = () => {
-    setWhatsAppStep('PHONE');
-    setEnteredCode('');
-    setCodeError(null);
-    setIsWhatsAppModalOpen(true);
-  };
-
-  const handleSendWhatsAppCode = async () => {
-    if (!phoneInput.trim()) {
-      alert('Veuillez renseigner un numéro de téléphone.');
-      return;
-    }
-
-    setIsSendingCode(true);
-    setCodeError(null);
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedCode(code);
-
-    const waPhone = formatPhoneForWhatsApp(phoneInput);
-
-    try {
-      localStorage.setItem('clinigo_transporter_otp', JSON.stringify({
-        phone: waPhone,
-        code,
-        sentAt: Date.now(),
-        expiresAt: Date.now() + 10 * 60 * 1000
-      }));
-
-      const phoneNumberId = '1393408537178633';
-      const accessToken = 'EAAQNZAZAxZCXyABSd7kxlMxu8fSJmHzMA4MZCbkCQbI6ROeJuHXfYxlGmLLWEqA5lu6PffZBY9JGVEG57juFAexn28CBvJYGV0wqXChS3pjWtF3LzV6DCrDVQYUGEG9607ZAVub9PrivrdFLKPUYiCNMd072k57JPpew6U2GMYk0mIJBYPUZBhcdlvAknb55ZBZCFobD4r4fZAtpzKFodJMhugL1EuxOBHFEZByn58uuZCBIDlAr8xzSPdBl1A5jHxxodwubBEj0TSDvCcdqdeBfPnPs';
-
-      const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: waPhone,
-          type: "text",
-          text: {
-            preview_url: false,
-            body: `*Clinigo — Transport Médical*\n\nVotre code confidentiel pour débloquer vos 30 jours d'essai gratuit est : *${code}*\n\nEntrez ce code sur votre tableau de bord pour activer immédiatement votre compte.`
-          }
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('Erreur Meta WhatsApp Cloud:', data);
-        if (data?.error?.code === 131030) {
-          setCodeError(`Le numéro ${waPhone} n'est pas encore dans la liste des destinataires autorisés sur Meta for Developers.`);
-        } else if (data?.error?.code === 131047) {
-          setCodeError(`Fenêtre 24h Meta fermée : Envoyez d'abord un message "Hello" sur WhatsApp au numéro test Meta (+1 555-166-0960).`);
-        } else {
-          setCodeError(data?.error?.error_data?.details || data?.error?.message || "Erreur lors de l'envoi WhatsApp.");
-        }
-      }
-    } catch (err: any) {
-      console.warn("Erreur envoi OTP WhatsApp:", err);
-      setCodeError("Impossible de contacter les serveurs WhatsApp.");
-    } finally {
-      setIsSendingCode(false);
-      setWhatsAppStep('VERIFY');
-    }
-  };
-
-  const handleVerifyCode = () => {
-    if (enteredCode.trim().replace(/\s+/g, '') !== generatedCode) {
-      setCodeError('Code de vérification incorrect. Veuillez vérifier le message WhatsApp reçu.');
-      return;
-    }
-
-    // Déblocage de l'essai gratuit
-    const updated = AuthService.unlockTransporterFreeTrial(phoneInput.trim(), totalDays);
+  const handleActivateTrialDirectly = () => {
+    setIsActivatingTrial(true);
+    const phone = user?.phone || transporter?.phone || '0696 75 20 20';
+    const updated = AuthService.unlockTransporterFreeTrial(phone, totalDays);
     if (updated?.subscription) {
       setSubscription(updated.subscription);
       if (onSubscriptionUpdated) {
@@ -161,7 +64,6 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
         trialDaysRemaining: totalDays,
         isTrialUnlocked: true,
         whatsappVerified: true,
-        whatsappPhone: phoneInput.trim(),
         trialExpiresAt: new Date(Date.now() + totalDays * 86400000).toISOString(),
         invoices: [
           {
@@ -169,7 +71,7 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
             invoiceNumber: `FACT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
             date: new Date().toISOString().slice(0, 10),
             amount: 0,
-            description: `Offre Découverte — Période d’essai gratuit ${totalDays} jours (Vérification WhatsApp)`,
+            description: `Offre Découverte — Période d’essai gratuit ${totalDays} jours`,
             status: 'TRIAL_FREE',
             periodStart: new Date().toISOString().slice(0, 10),
             periodEnd: new Date(Date.now() + totalDays * 86400000).toISOString().slice(0, 10)
@@ -179,11 +81,9 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
       setSubscription(newSub);
       if (onSubscriptionUpdated) onSubscriptionUpdated(newSub);
     }
-
-    setWhatsAppStep('SUCCESS');
-    setTimeout(() => {
-      setIsWhatsAppModalOpen(false);
-    }, 1400);
+    setIsActivatingTrial(false);
+    setActivationSuccessMsg('Votre essai gratuit de 30 jours a bien été activé !');
+    setTimeout(() => setActivationSuccessMsg(null), 5000);
   };
 
   const handleDownloadInvoice = (inv: TransporterInvoice) => {
@@ -246,16 +146,7 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
                 </div>
               </div>
 
-              {!subscription.whatsappVerified && (
-                <button
-                  type="button"
-                  onClick={handleOpenWhatsAppModal}
-                  className="px-4 py-3 rounded-2xl bg-white text-emerald-800 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg hover:bg-slate-50 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-emerald-600 text-lg">chat</span>
-                  <span>Lier mon WhatsApp</span>
-                </button>
-              )}
+
             </div>
           </div>
         </div>
@@ -280,10 +171,10 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
 
           <button
             type="button"
-            onClick={handleOpenWhatsAppModal}
+            onClick={handleActivateTrialDirectly}
             className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs shadow-md transition-all cursor-pointer shrink-0"
           >
-            Prolonger mon essai
+            Réactiver mon essai
           </button>
         </div>
       ) : (
@@ -308,11 +199,12 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
 
           <button
             type="button"
-            onClick={handleOpenWhatsAppModal}
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0"
+            onClick={handleActivateTrialDirectly}
+            disabled={isActivatingTrial}
+            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-xl">chat</span>
-            <span>Débloquer 1 mois gratuit (WhatsApp)</span>
+            <span className="material-symbols-outlined text-xl">verified</span>
+            <span>{isActivatingTrial ? 'Activation en cours...' : 'Activer mon essai gratuit 30 jours (0 €)'}</span>
           </button>
         </div>
       )}
@@ -386,56 +278,59 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
           </div>
         </div>
 
-        {/* Coordonnées & Statut WhatsApp Card */}
+        {/* Coordonnées & Statut Card */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between gap-5">
           <div className="space-y-4">
             <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
                 <span className="material-symbols-outlined text-xl">verified_user</span>
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900">Vérification du compte</h4>
-                <span className="text-[11px] text-slate-500">Sécurité et gratuité de test</span>
+                <h4 className="text-sm font-bold text-slate-900">Éligibilité de l'entreprise</h4>
+                <span className="text-[11px] text-slate-500">Réseau Sanitaire Officiel</span>
               </div>
             </div>
 
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center py-1 border-b border-slate-100">
                 <span className="text-slate-500">Entreprise :</span>
-                <span className="font-bold text-slate-900 text-right">{user?.transporterName || transporter?.companyName || 'Ambulances Madinina Secours'}</span>
+                <span className="font-bold text-slate-900 text-right">{user?.transporterName || transporter?.companyName || 'Société de transport conventionnée'}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-slate-100">
                 <span className="text-slate-500">Agrément ARS :</span>
                 <span className="font-mono font-bold text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 text-[11px]">
-                  {transporter?.arsLicense || user?.transporterLicense || '972-AMB-2024-08'}
+                  {transporter?.arsLicense || user?.transporterLicense || 'Agrément vérifié'}
                 </span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-500">Téléphone WhatsApp :</span>
-                <span className="font-mono font-bold text-slate-800">{subscription.whatsappPhone || user?.phone || '0696 75 20 20'}</span>
+                <span className="text-slate-500">Téléphone de contact :</span>
+                <span className="font-mono font-bold text-slate-800">{user?.phone || transporter?.phone || '0696 75 20 20'}</span>
               </div>
               <div className="flex justify-between items-center py-1">
-                <span className="text-slate-500">Statut WhatsApp :</span>
+                <span className="text-slate-500">Statut de l'offre :</span>
                 <span className={`inline-flex items-center gap-1 font-bold text-[11px] px-2 py-0.5 rounded-full ${
-                  subscription.whatsappVerified ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  isTrial ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700'
                 }`}>
                   <span className="material-symbols-outlined text-xs">
-                    {subscription.whatsappVerified ? 'verified' : 'pending'}
+                    {isTrial ? 'check_circle' : 'pending'}
                   </span>
-                  {subscription.whatsappVerified ? 'Numéro vérifié' : 'Non vérifié'}
+                  {isTrial ? '30 jours d\'essai actifs' : 'Prêt à être activé'}
                 </span>
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleOpenWhatsAppModal}
-            className="w-full py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base text-emerald-600">sync</span>
-            <span>{subscription.whatsappVerified ? 'Modifier le numéro WhatsApp' : 'Vérifier mon numéro WhatsApp'}</span>
-          </button>
+          {!isTrial && (
+            <button
+              type="button"
+              onClick={handleActivateTrialDirectly}
+              disabled={isActivatingTrial}
+              className="w-full py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base">verified</span>
+              <span>{isActivatingTrial ? 'Activation...' : 'Activer l\'essai gratuit 30 jours'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -510,7 +405,7 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
               ) : (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
-                    Aucune facture émise pour le moment. Votre première facture d'essai gratuit sera générée dès la vérification WhatsApp.
+                    Aucune facture émise pour le moment. Votre première facture d'essai gratuit (0 €) sera générée lors de l'activation.
                   </td>
                 </tr>
               )}
@@ -519,165 +414,10 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL : VÉRIFICATION WHATSAPP POUR DÉBLOQUER L'ESSAI GRATUIT             */}
-      {/* ========================================================================= */}
-      {isWhatsAppModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-slate-200 shadow-2xl space-y-5 my-8 relative overflow-hidden">
-            {/* Top WhatsApp Banner Accent */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-[#25D366]" />
-
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#25D366]/15 text-[#128C7E] flex items-center justify-center font-bold">
-                  <span className="material-symbols-outlined text-2xl">chat</span>
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900">Vérification WhatsApp</h3>
-                  <span className="text-[11px] text-slate-500 font-medium">1 mois d'essai gratuit offert</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsWhatsAppModalOpen(false)}
-                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-lg">close</span>
-              </button>
-            </div>
-
-            {/* Step 1: Phone input */}
-            {whatsAppStep === 'PHONE' && (
-              <div className="space-y-4">
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Nous allons envoyer un code de vérification sécurisé à 6 chiffres par WhatsApp au numéro enregistré pour <strong>{user?.transporterName || transporter?.companyName || 'votre entreprise'}</strong>.
-                </p>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Numéro de portable enregistré :
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="tel"
-                      value={phoneInput}
-                      onChange={(e) => setPhoneInput(e.target.value)}
-                      placeholder="06 XX XX XX XX"
-                      className="w-full p-3 rounded-xl border border-slate-300 font-mono font-bold text-sm text-slate-900 outline-none focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 transition-all"
-                    />
-                  </div>
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    Numéro mobile français ou DOM (+33 / 06 / 07 / 0696)
-                  </span>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleSendWhatsAppCode}
-                    disabled={isSendingCode}
-                    className="w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/30 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {isSendingCode ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Envoi du message WhatsApp...
-                      </span>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-lg">send</span>
-                        <span>Envoyer le code par WhatsApp</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Code Verification */}
-            {whatsAppStep === 'VERIFY' && (
-              <div className="space-y-4">
-                <div className="p-3.5 rounded-2xl bg-[#DCF8C6]/50 border border-[#25D366]/40 flex items-start gap-3 text-xs text-slate-800">
-                  <span className="material-symbols-outlined text-[#128C7E] text-xl shrink-0 mt-0.5">mark_chat_read</span>
-                  <div>
-                    <strong className="text-slate-950 font-bold">Message WhatsApp envoyé !</strong><br />
-                    Un message contenant votre code confidentiel à 6 chiffres a été envoyé au <span className="font-mono font-bold text-[#075E54]">{phoneInput}</span>. Veuillez consulter votre application WhatsApp pour y lire le code et le saisir ci-dessous :
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Code de vérification reçu sur WhatsApp :
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    autoFocus
-                    value={enteredCode}
-                    onChange={(e) => {
-                      setEnteredCode(e.target.value.replace(/\D/g, ''));
-                      setCodeError(null);
-                    }}
-                    placeholder="• • • • • •"
-                    className="w-full p-3 rounded-xl border border-slate-300 font-mono font-black text-2xl text-center tracking-widest text-slate-900 outline-none focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 transition-all placeholder:text-slate-300"
-                  />
-                  {codeError && (
-                    <span className="text-[11px] font-bold text-rose-600 mt-1 block">
-                      {codeError}
-                    </span>
-                  )}
-
-                </div>
-
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSendWhatsAppCode}
-                    className="text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
-                  >
-                    Renvoyer le code WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setWhatsAppStep('PHONE')}
-                    className="text-teal-700 hover:underline font-bold cursor-pointer"
-                  >
-                    Changer de numéro
-                  </button>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleVerifyCode}
-                    disabled={enteredCode.length < 6}
-                    className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <span className="material-symbols-outlined text-lg">check_circle</span>
-                    <span>Valider et débloquer 1 mois gratuit</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Success */}
-            {whatsAppStep === 'SUCCESS' && (
-              <div className="py-6 text-center space-y-3 animate-fadeIn">
-                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
-                  <span className="material-symbols-outlined text-4xl animate-pulse">verified</span>
-                </div>
-                <h4 className="text-lg font-black text-slate-900">
-                  Essai gratuit débloqué avec succès !
-                </h4>
-                <p className="text-xs text-slate-600 max-w-xs mx-auto">
-                  Vos 30 jours de gratuité sont maintenant actifs sur votre plateforme.
-                </p>
-              </div>
-            )}
-          </div>
+      {activationSuccessMsg && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-xl flex items-center gap-2 animate-fadeIn">
+          <span className="material-symbols-outlined text-lg">check_circle</span>
+          <span>{activationSuccessMsg}</span>
         </div>
       )}
     </div>

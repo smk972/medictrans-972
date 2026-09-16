@@ -130,7 +130,7 @@ export interface TransporterSubscription {
   trialStartedAt?: string;
   trialExpiresAt?: string;
   isTrialUnlocked: boolean;
-  whatsappVerified: boolean;
+  whatsappVerified?: boolean;
   whatsappPhone?: string;
   planName: string;
   monthlyPrice: number;
