@@ -616,7 +616,13 @@ export const D3InteractiveGeoMap: React.FC<D3InteractiveGeoMapProps> = ({
             className="w-8 h-8 rounded-lg bg-sky-600/90 hover:bg-sky-500 text-white border border-sky-400/80 flex items-center justify-center text-xs shadow-lg cursor-pointer transition-colors"
             title="Me géolocaliser sur la carte (GPS)"
           >
-            <span className="material-symbols-outlined text-base">my_location</span>
+            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="22" y1="12" x2="18" y2="12" />
+              <line x1="6" y1="12" x2="2" y2="12" />
+              <line x1="12" y1="6" x2="12" y2="2" />
+              <line x1="12" y1="22" x2="12" y2="18" />
+            </svg>
           </button>
         )}
       </div>

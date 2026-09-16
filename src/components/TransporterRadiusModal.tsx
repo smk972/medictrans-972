@@ -396,38 +396,68 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
     setTimeout(() => setSearchSuccessNotice(null), 3500);
   };
 
+  const handleApply = () => {
+    if (onTerritoryChange && activeTerritory) {
+      onTerritoryChange(activeTerritory);
+    }
+    if (onBaseCommuneChange && baseCommune) {
+      onBaseCommuneChange(baseCommune);
+    }
+    if (onRadiusChange && radiusKm) {
+      onRadiusChange(radiusKm);
+    }
+    if (onToggleIncludeOutside) {
+      onToggleIncludeOutside(includeOutsideRadius);
+    }
+    try {
+      localStorage.setItem('clinigo_transporter_territory', activeTerritory);
+      localStorage.setItem(BASE_COMMUNE_STORAGE_KEY, baseCommune);
+      localStorage.setItem(RADIUS_STORAGE_KEY, String(radiusKm));
+      localStorage.setItem(OUTSIDE_RADIUS_STORAGE_KEY, String(includeOutsideRadius));
+      if (exactStreetAddress) {
+        localStorage.setItem('medictrans_transporter_street_address', exactStreetAddress);
+      }
+    } catch (e) {}
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-6xl w-full max-h-[96vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/75 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         {/* ========================================================================= */}
         {/* EN-TÊTE DU MODAL : TITRE, BADGES & SÉLECTEUR DE TERRITOIRE NATIONAL       */}
         {/* ========================================================================= */}
-        <div className="p-4 sm:p-5 border-b border-outline-variant/20 bg-surface-container-low/70 space-y-3">
-          <div className="flex items-center justify-between gap-3">
+        <div className="p-4 sm:px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/60 space-y-3 shrink-0">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
-                <span className="material-symbols-outlined text-2xl">radar</span>
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
+                  <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" />
+                  <path d="M16.24 7.76A6 6 0 1 0 8.23 16.24" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                </svg>
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-extrabold text-on-surface">
+                  <h3 className="text-base sm:text-lg font-black text-on-surface tracking-tight">
                     Rayon d'Action &amp; Cercle d'Intervention
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white shadow-2xs">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-extrabold bg-primary text-white shadow-2xs">
                     {radiusKm} km
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-surface-container text-on-surface border border-outline-variant/30">
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-surface-container text-on-surface border border-outline-variant/30">
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary">
                       {territoryConfig.code}
                     </span>
                     <span>{territoryConfig.name}</span>
-                    <span className="text-on-surface-variant font-normal">({territoryConfig.zones.length} zones)</span>
+                    <span className="text-on-surface-variant font-medium">({territoryConfig.zones.length} zones)</span>
                   </span>
                 </div>
                 <p className="text-xs text-on-surface-variant mt-0.5">
-                  La carte interactive et les villes s'adaptent automatiquement à votre zone d'exercice ({territoryConfig.name}).
+                  La carte interactive et les communes s'adaptent dynamiquement à votre secteur ({territoryConfig.name}).
                 </p>
               </div>
             </div>
@@ -435,18 +465,25 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer shrink-0"
+              className="p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer shrink-0"
               title="Fermer"
             >
-              <span className="material-symbols-outlined text-xl">close</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           </div>
 
-          {/* Onglets de sélection des 5 territoires nationaux */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mr-1 shrink-0 flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-primary">public</span>
-              Territoire :
+          {/* Onglets de sélection des territoires */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+            <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant mr-1.5 shrink-0 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span>Territoire :</span>
             </span>
             {ALL_TERRITORIES_LIST.map((t) => {
               const isActive = t.id === activeTerritory;
@@ -458,12 +495,12 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   onClick={() => handleSelectTerritory(t.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                     isActive
-                      ? 'bg-primary text-white shadow-xs border border-primary'
-                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border border-outline-variant/30'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                   }`}
                 >
                   <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-surface-container-high text-primary border border-primary/20'
+                    isActive ? 'bg-white/20 text-white' : 'bg-surface-container-high text-primary'
                   }`}>
                     {t.code}
                   </span>
@@ -535,8 +572,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                     }`}
                     title="Afficher ou masquer les noms des communes sur la carte"
                   >
-                    <span className="material-symbols-outlined text-xs align-middle mr-1">label</span>
-                    {showAllLabels ? 'Noms' : 'Masqués'}
+                    {showAllLabels ? 'Noms visibles' : 'Noms masqués'}
                   </button>
                 )}
               </div>
@@ -935,7 +971,10 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
               {hoveredCommune && (
                 <div className="absolute bottom-3 left-3 right-3 bg-slate-900/95 backdrop-blur-md p-3 rounded-xl border border-sky-500/40 text-xs text-white shadow-2xl flex items-center justify-between gap-3 animate-fadeIn pointer-events-none">
                   <div className="flex items-center gap-2.5">
-                    <span className="material-symbols-outlined text-sky-400 text-lg">location_city</span>
+                    <svg className="w-5 h-5 text-sky-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
                     <div>
                       <div className="font-extrabold text-sm text-white flex items-center gap-2">
                         <span>{hoveredCommune.name}</span>
@@ -1004,226 +1043,228 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
           </div>
 
           {/* COLONNE DROITE : CONTRÔLES DU RAYON & CHOIX DE BASE (5 COLS) */}
-          <div className="lg:col-span-5 flex flex-col justify-between gap-4">
-            <div className="space-y-4">
-              {/* Bouton de Géolocalisation GPS Automatique */}
-              <div className="space-y-2">
+          <div className="lg:col-span-5 flex flex-col gap-4">
+            {/* CARTE 1 : POINT D'ANCRAGE & COMMUNE DE BASE */}
+            <div className="bg-surface-container-low/70 p-4 rounded-2xl border border-outline-variant/20 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-on-surface uppercase tracking-wider block">
+                      Point d'ancrage & Commune de base
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bouton Géolocalisation GPS direct */}
                 <button
                   id="btn-geolocate-user"
                   type="button"
                   onClick={handleGeolocate}
                   disabled={isGeolocating}
-                  className="w-full py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-sky-600 to-primary text-white font-bold text-xs shadow-md hover:from-sky-500 hover:to-primary/90 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                  title="Détecter automatiquement ma position GPS"
                 >
-                  {isGeolocating ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                      <span>Détection de votre position GPS...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-base animate-pulse">my_location</span>
-                      <span>Me géolocaliser (GPS automatique)</span>
-                    </>
-                  )}
+                  <svg className={`w-3.5 h-3.5 text-primary ${isGeolocating ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="22" y1="12" x2="18" y2="12" />
+                    <line x1="6" y1="12" x2="2" y2="12" />
+                    <line x1="12" y1="6" x2="12" y2="2" />
+                    <line x1="12" y1="22" x2="12" y2="18" />
+                  </svg>
+                  <span>{isGeolocating ? 'GPS...' : 'Me géolocaliser'}</span>
                 </button>
-
-                {geolocationNotice && (
-                  <div
-                    className={`p-2.5 rounded-xl text-xs flex items-center gap-2 border animate-fadeIn ${
-                      geolocationNotice.type === 'success'
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      {geolocationNotice.type === 'success' ? 'check_circle' : 'error'}
-                    </span>
-                    <span className="font-semibold">{geolocationNotice.message}</span>
-                  </div>
-                )}
               </div>
 
-              {/* Recherche intelligente par adresse / rue / code postal */}
-              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-primary">search</span>
-                    <span>Rechercher votre commune ou rue :</span>
-                  </span>
-                </div>
-                <div className="relative">
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3 text-sm text-slate-400 pointer-events-none">
-                      🔍
-                    </span>
-                    <input
-                      id="input-address-search"
-                      type="text"
-                      value={addressSearchQuery}
-                      onChange={(e) => handleAddressSearch(e.target.value)}
-                      onFocus={() => {
-                        if (databaseSearchResults.length > 0) setShowSuggestionsDropdown(true);
-                      }}
-                      placeholder="Ex: 10 rue de la Paix Paris, 69002 Lyon, Baie-Mahault..."
-                      className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/50 shadow-2xs"
-                    />
-                    {isSearchingDatabase && (
-                      <span className="absolute right-3 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
-                    )}
-                  </div>
-
-                  {/* Liste de suggestions de la base nationale data.gouv.fr */}
-                  {showSuggestionsDropdown && databaseSearchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-outline-variant/10">
-                      <div className="px-3 py-1.5 bg-surface-container-low text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
-                        <span>Base Nationale ({databaseSearchResults.length} résultats)</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowSuggestionsDropdown(false)}
-                          className="text-xs text-on-surface-variant hover:text-on-surface p-0.5 cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      {databaseSearchResults.map((res) => (
-                        <button
-                          key={res.id}
-                          id={`geo-result-${res.id}`}
-                          type="button"
-                          onClick={() => handleSelectDatabaseEntity(res)}
-                          className="w-full px-3 py-2 text-left hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer group"
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
-                              {res.type === 'street' ? 'Rue' : res.code}
-                            </span>
-                            <span className="font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                              {res.name}
-                            </span>
-                            {res.departmentName && (
-                              <span className="text-[10px] text-on-surface-variant truncate">
-                                ({res.departmentName})
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] font-mono text-on-surface-variant shrink-0">
-                            {res.type === 'street' ? '📍 Adresse' : res.territoryId}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {searchSuccessNotice && (
-                  <p className="text-[11px] font-bold text-emerald-600 animate-fadeIn flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">check_circle</span>
-                    <span>{searchSuccessNotice}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Sélection du Département (zoome la carte & filtre les communes) */}
-              {activeTerritory === 'METROPOLE' ? (
-                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                      <span>🗺️</span>
-                      <span>Département (zoome sur la carte) :</span>
-                    </label>
-                    <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold bg-sky-500/10 px-2 py-0.5 rounded-md">
-                      Dép. {selectedDepartment}
-                    </span>
-                  </div>
-                  <select
-                    id="modal-select-department"
-                    value={selectedDepartment}
-                    onChange={(e) => handleDepartmentSelect(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-2xs"
-                  >
-                    {FRENCH_DEPARTMENTS_LIST.filter((d) => d.territoryId === 'METROPOLE').map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.code} - {d.name} ({d.regionName})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-on-surface-variant">
-                    💡 Astuce : vous pouvez aussi cliquer directement sur un département sur la carte pour zoomer dessus et adapter la liste des villes.
-                  </p>
-                </div>
-              ) : (
-                <div className="px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-center justify-between text-xs">
-                  <span className="text-on-surface-variant font-medium">Zone territoriale :</span>
-                  <span className="font-bold text-primary font-mono">{territoryConfig.code} - {territoryConfig.name}</span>
+              {geolocationNotice && (
+                <div
+                  className={`p-2.5 rounded-xl text-xs flex items-center gap-2 border animate-fadeIn ${
+                    geolocationNotice.type === 'success'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700'
+                      : 'bg-rose-500/10 border-rose-500/30 text-rose-700'
+                  }`}
+                >
+                  <span className="font-semibold">{geolocationNotice.message}</span>
                 </div>
               )}
 
-              {/* Choix de la Ville / Commune de Base (adaptée au département sélectionné) */}
-              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1.5">
+              {/* Recherche intelligente par adresse / rue / code postal */}
+              <div className="relative">
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-xs text-on-surface-variant pointer-events-none">
+                    <svg className="w-3.5 h-3.5 text-on-surface-variant" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </span>
+                  <input
+                    id="input-address-search"
+                    type="text"
+                    value={addressSearchQuery}
+                    onChange={(e) => handleAddressSearch(e.target.value)}
+                    onFocus={() => {
+                      if (databaseSearchResults.length > 0) setShowSuggestionsDropdown(true);
+                    }}
+                    placeholder="Rechercher une adresse, commune, code postal..."
+                    className="w-full pl-9 pr-9 py-2 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/50 shadow-xs"
+                  />
+                  {isSearchingDatabase && (
+                    <span className="absolute right-3 w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                  )}
+                </div>
+
+                {/* Suggestions dropdown */}
+                {showSuggestionsDropdown && databaseSearchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-outline-variant/10">
+                    <div className="px-3 py-1.5 bg-surface-container-low text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
+                      <span>Base Nationale ({databaseSearchResults.length} résultats)</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowSuggestionsDropdown(false)}
+                        className="text-xs text-on-surface-variant hover:text-on-surface p-0.5 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {databaseSearchResults.map((res) => (
+                      <button
+                        key={res.id}
+                        id={`geo-result-${res.id}`}
+                        type="button"
+                        onClick={() => handleSelectDatabaseEntity(res)}
+                        className="w-full px-3 py-2 text-left hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
+                            {res.type === 'street' ? 'Rue' : res.code}
+                          </span>
+                          <span className="font-bold text-on-surface group-hover:text-primary transition-colors truncate">
+                            {res.name}
+                          </span>
+                          {res.departmentName && (
+                            <span className="text-[10px] text-on-surface-variant truncate">
+                              ({res.departmentName})
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-mono text-on-surface-variant shrink-0">
+                          {res.type === 'street' ? '📍 Adresse' : res.territoryId}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {searchSuccessNotice && (
+                <p className="text-[11px] font-bold text-emerald-600 animate-fadeIn flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>{searchSuccessNotice}</span>
+                </p>
+              )}
+
+              {/* Sélection Département (si France hexagonale) */}
+              {activeTerritory === 'METROPOLE' && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
+                      Département :
+                    </label>
+                    <span className="text-[10px] text-primary font-bold bg-primary/10 px-2 py-0.2 rounded">
+                      Dép. {selectedDepartment}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <select
+                      id="modal-select-department"
+                      value={selectedDepartment}
+                      onChange={(e) => handleDepartmentSelect(e.target.value)}
+                      className="w-full p-2 pr-7 rounded-xl border border-outline-variant/30 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-xs appearance-none"
+                    >
+                      {FRENCH_DEPARTMENTS_LIST.filter((d) => d.territoryId === 'METROPOLE').map((d) => (
+                        <option key={d.code} value={d.code}>
+                          {d.code} - {d.name} ({d.regionName})
+                        </option>
+                      ))}
+                    </select>
+                    <svg className="w-3.5 h-3.5 text-on-surface-variant pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Sélection Ville de Base */}
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                    <span>📍</span>
-                    <span>Ville de base (Centre du cercle) :</span>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
+                    Commune de stationnement (Centre du cercle) :
                   </label>
                   {isLoadingDepartmentCommunes && (
                     <span className="text-[10px] text-primary flex items-center gap-1">
-                      <span className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin"></span>
+                      <span className="w-2.5 h-2.5 border border-primary border-t-transparent rounded-full animate-spin"></span>
                       <span>Chargement...</span>
                     </span>
                   )}
                 </div>
-                <select
-                  id="modal-select-base-commune"
-                  value={baseCommune}
-                  onChange={(e) => {
-                    const selectedName = e.target.value;
-                    onBaseCommuneChange(selectedName);
-                    const list = departmentCommunesList.length > 0 ? departmentCommunesList : territoryConfig.zones;
-                    const found = list.find((z) => z.name.toLowerCase() === selectedName.toLowerCase());
-                    if (found) {
-                      const coords = 'coordinates' in found ? found.coordinates : [found.lng, found.lat];
-                      setSelectedCoordinates(coords as [number, number]);
-                    }
-                  }}
-                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-2xs"
-                >
-                  {baseCommune && !(
-                    (departmentCommunesList.length > 0 ? departmentCommunesList : territoryConfig.zones).some(
-                      (c) => c.name.toLowerCase() === baseCommune.toLowerCase()
-                    )
-                  ) && (
-                    <option value={baseCommune}>
-                      📍 {baseCommune}
-                    </option>
-                  )}
-                  {departmentCommunesList.length > 0 ? (
-                    departmentCommunesList.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        📍 {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
+                <div className="relative">
+                  <select
+                    id="modal-select-base-commune"
+                    value={baseCommune}
+                    onChange={(e) => {
+                      const selectedName = e.target.value;
+                      onBaseCommuneChange(selectedName);
+                      const list = departmentCommunesList.length > 0 ? departmentCommunesList : territoryConfig.zones;
+                      const found = list.find((z) => z.name.toLowerCase() === selectedName.toLowerCase());
+                      if (found) {
+                        const coords = 'coordinates' in found ? found.coordinates : [found.lng, found.lat];
+                        setSelectedCoordinates(coords as [number, number]);
+                      }
+                    }}
+                    className="w-full p-2 pr-7 rounded-xl border border-outline-variant/30 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-xs appearance-none"
+                  >
+                    {baseCommune && !(
+                      (departmentCommunesList.length > 0 ? departmentCommunesList : territoryConfig.zones).some(
+                        (c) => c.name.toLowerCase() === baseCommune.toLowerCase()
+                      )
+                    ) && (
+                      <option value={baseCommune}>
+                        📍 {baseCommune}
                       </option>
-                    ))
-                  ) : (
-                    territoryConfig.zones.map((zone) => (
-                      <option key={zone.insee} value={zone.name}>
-                        📍 {zone.name} {zone.postalCode ? `(${zone.postalCode})` : ''}
-                      </option>
-                    ))
-                  )}
-                </select>
-                <p className="text-[10px] text-on-surface-variant">
-                  {departmentCommunesList.length > 0
-                    ? `${departmentCommunesList.length} communes répertoriées pour ce département.`
-                    : `${territoryConfig.zones.length} communes disponibles.`}
-                </p>
+                    )}
+                    {departmentCommunesList.length > 0 ? (
+                      departmentCommunesList.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          📍 {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
+                        </option>
+                      ))
+                    ) : (
+                      territoryConfig.zones.map((zone) => (
+                        <option key={zone.insee} value={zone.name}>
+                          📍 {zone.name} {zone.postalCode ? `(${zone.postalCode})` : ''}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <svg className="w-3.5 h-3.5 text-on-surface-variant pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
               </div>
 
-              {/* Précision optionnelle de la Rue / Adresse exacte */}
-              <div className="p-3 rounded-2xl bg-surface-container-low/70 border border-outline-variant/30 space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>🛣️</span>
-                    <span>Rue ou adresse précise (Optionnel) :</span>
-                  </span>
+              {/* Rue ou adresse précise (Optionnelle) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
+                    Adresse ou rue exacte (Optionnel) :
+                  </label>
                   {exactStreetAddress && (
                     <button
                       type="button"
@@ -1233,145 +1274,157 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                       Effacer
                     </button>
                   )}
-                </label>
+                </div>
                 <input
                   type="text"
                   value={exactStreetAddress}
                   onChange={(e) => setExactStreetAddress(e.target.value)}
-                  placeholder="Ex: 24 Rue Victor Hugo, Avenue des Champs-Élysées..."
-                  className="w-full px-3 py-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/40 shadow-2xs"
+                  placeholder="Ex: 24 Rue Victor Hugo, Boulevard Général de Gaulle..."
+                  className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/30 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/40 shadow-xs"
                 />
-                {exactStreetAddress && (
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">pin_drop</span>
-                    <span>Pin précis positionné sur la rue au centre du rayon d'action</span>
-                  </p>
-                )}
               </div>
+            </div>
 
-              {/* Réglage du Rayon en km (Slider + Stepper) */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <span>🎯</span>
-                    <span>Rayon d'action (Cercle) :</span>
-                  </label>
-                  <span className="text-xl font-black font-mono text-primary bg-primary/10 px-3 py-1 rounded-xl border border-primary/25">
-                    {radiusKm} km
+            {/* CARTE 2 : RAYON D'ACTION & COUVERTURE */}
+            <div className="bg-surface-container-low/70 p-4 rounded-2xl border border-outline-variant/20 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
+                      <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" />
+                      <path d="M16.24 7.76A6 6 0 1 0 8.23 16.24" />
+                      <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-black text-on-surface uppercase tracking-wider">
+                    Rayon d'action (Cercle en km)
                   </span>
                 </div>
+                <span className="text-sm font-black font-mono text-primary bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
+                  {radiusKm} km
+                </span>
+              </div>
 
-                {/* Slider interactif calibré au territoire */}
-                <input
-                  type="range"
-                  min="5"
-                  max={territoryConfig.maxRadius}
-                  step="1"
-                  value={radiusKm}
-                  onChange={(e) => onRadiusChange(Number(e.target.value))}
-                  className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
+              {/* Slider interactif */}
+              <input
+                type="range"
+                min="5"
+                max={territoryConfig.maxRadius}
+                step="1"
+                value={radiusKm}
+                onChange={(e) => onRadiusChange(Number(e.target.value))}
+                className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
 
-                {/* Boutons presets rapides calibrés au territoire */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  {territoryConfig.radiusPresets.map((p) => (
-                    <button
-                      key={p}
-                      id={`modal-preset-${p}km`}
-                      type="button"
-                      onClick={() => onRadiusChange(p)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        radiusKm === p
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-                      }`}
-                    >
-                      {p === territoryConfig.maxRadius ? "Tout le secteur" : `${p} km`}
-                    </button>
-                  ))}
-                </div>
+              {/* Presets rapides (Segmented control) */}
+              <div className="inline-flex items-center bg-surface-container p-1 rounded-xl border border-outline-variant/30 gap-1 w-full justify-between flex-wrap">
+                {territoryConfig.radiusPresets.map((p) => (
+                  <button
+                    key={p}
+                    id={`modal-preset-${p}km`}
+                    type="button"
+                    onClick={() => onRadiusChange(p)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex-1 text-center ${
+                      radiusKm === p
+                        ? 'bg-primary text-white shadow-xs scale-102'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+                    }`}
+                  >
+                    {p === territoryConfig.maxRadius ? "Tout" : `${p} km`}
+                  </button>
+                ))}
               </div>
 
               {/* Case à cocher : Recevoir hors zone d'intervention */}
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
-                <label htmlFor="modal-include-outside" className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    id="modal-include-outside"
-                    checked={includeOutsideRadius}
-                    onChange={(e) => onToggleIncludeOutside(e.target.checked)}
-                    className="mt-0.5 w-5 h-5 rounded border-amber-400 text-primary focus:ring-primary/20 accent-primary cursor-pointer shrink-0"
-                  />
-                  <div>
-                    <span className="text-xs font-extrabold text-on-surface block leading-tight">
-                      Recevoir également les demandes en dehors de ma zone d'intervention
-                    </span>
-                    <span className="text-[11px] text-on-surface-variant block mt-1 leading-relaxed">
-                      Si cette case est cochée, les opportunités situées au-delà de votre rayon de{' '}
-                      <strong>{radiusKm} km</strong> continueront à vous être proposées (signalées par un badge orange « Hors zone »).
-                    </span>
-                  </div>
-                </label>
-              </div>
-
-              {/* Synthèse de couverture sur le territoire sélectionné */}
-              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-2 text-xs">
-                <div className="flex items-center justify-between text-on-surface-variant">
-                  <span>Secteurs / Villes couvert(e)s :</span>
-                  <span className="font-bold text-on-surface">
-                    {coveredCommunes.length} / {territoryConfig.zones.length} ({territoryConfig.shortName})
+              <label htmlFor="modal-include-outside" className="flex items-start gap-2.5 p-2.5 rounded-xl bg-surface-container-lowest/80 border border-outline-variant/30 cursor-pointer select-none group">
+                <input
+                  type="checkbox"
+                  id="modal-include-outside"
+                  checked={includeOutsideRadius}
+                  onChange={(e) => onToggleIncludeOutside(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-outline-variant/40 text-primary focus:ring-primary/20 accent-primary cursor-pointer shrink-0"
+                />
+                <div className="text-xs">
+                  <span className="font-bold text-on-surface group-hover:text-primary transition-colors block">
+                    Recevoir les demandes au-delà de {radiusKm} km
+                  </span>
+                  <span className="text-[11px] text-on-surface-variant block mt-0.5">
+                    {includeOutsideRadius
+                      ? 'Courses hors zone affichées avec badge "Hors zone"'
+                      : 'Seules les courses situées dans le rayon sont proposées'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-on-surface-variant">
-                  <span>Demandes clientes dans le rayon :</span>
-                  <span className="font-bold text-emerald-600">{insideMissions.length} reçue(s)</span>
-                </div>
-                <div className="flex items-center justify-between text-on-surface-variant">
-                  <span>Demandes hors zone :</span>
-                  <span className="font-bold text-amber-700">
-                    {outsideMissions.length} {includeOutsideRadius ? 'reçue(s)' : 'masquée(s)'}
-                  </span>
-                </div>
-              </div>
+              </label>
             </div>
 
-            {/* Bouton de validation & fermeture */}
-            <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2.5">
-              <button
-                id="btn-apply-radius-modal"
-                type="button"
-                onClick={() => {
-                  if (onTerritoryChange && activeTerritory) {
-                    onTerritoryChange(activeTerritory);
-                  }
-                  if (onBaseCommuneChange && baseCommune) {
-                    onBaseCommuneChange(baseCommune);
-                  }
-                  if (onRadiusChange && radiusKm) {
-                    onRadiusChange(radiusKm);
-                  }
-                  if (onToggleIncludeOutside) {
-                    onToggleIncludeOutside(includeOutsideRadius);
-                  }
-                  try {
-                    localStorage.setItem('clinigo_transporter_territory', activeTerritory);
-                    localStorage.setItem(BASE_COMMUNE_STORAGE_KEY, baseCommune);
-                    localStorage.setItem(RADIUS_STORAGE_KEY, String(radiusKm));
-                    localStorage.setItem(OUTSIDE_RADIUS_STORAGE_KEY, String(includeOutsideRadius));
-                    if (exactStreetAddress) {
-                      localStorage.setItem('medictrans_transporter_street_address', exactStreetAddress);
-                    }
-                  } catch (e) {}
-                  onClose();
-                }}
-                className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-xs cursor-pointer"
-              >
-                Appliquer ce rayon d'action ({radiusKm} km)
-              </button>
+            {/* CARTE 3 : TÉLÉMÉTRIE EN TEMPS RÉEL (BENTO TILES) */}
+            <div className="bg-surface-container-low/70 p-3.5 rounded-2xl border border-outline-variant/20 grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+                <span className="text-[10px] font-bold uppercase text-on-surface-variant block">Couverture</span>
+                <span className="text-xs font-black text-on-surface mt-0.5 block">
+                  {coveredCommunes.length} / {territoryConfig.zones.length}
+                </span>
+                <span className="text-[10px] text-on-surface-variant">communes</span>
+              </div>
+              <div className="p-2 rounded-xl bg-surface-container-lowest border border-emerald-500/20">
+                <span className="text-[10px] font-bold uppercase text-emerald-700 block">Dans rayon</span>
+                <span className="text-xs font-black text-emerald-600 mt-0.5 block">
+                  {insideMissions.length}
+                </span>
+                <span className="text-[10px] text-emerald-700/70">reçue(s)</span>
+              </div>
+              <div className="p-2 rounded-xl bg-surface-container-lowest border border-outline-variant/20">
+                <span className="text-[10px] font-bold uppercase text-on-surface-variant block">Hors zone</span>
+                <span className="text-xs font-black text-amber-700 mt-0.5 block">
+                  {outsideMissions.length}
+                </span>
+                <span className="text-[10px] text-on-surface-variant">
+                  {includeOutsideRadius ? 'visibles' : 'masquées'}
+                </span>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* PIED DU MODAL : SYNTHÈSE & BOUTONS D'ACTION (FIXE AU BAS DU DIALOG)      */}
+        {/* ========================================================================= */}
+        <div className="p-4 sm:px-6 py-3.5 border-t border-outline-variant/20 bg-surface-container-low/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 text-xs flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-on-surface font-semibold">
+              Base : <strong className="text-primary">{baseCommune}</strong> ({territoryConfig.shortName})
+            </span>
+            <span className="text-on-surface-variant">•</span>
+            <span className="text-on-surface font-semibold">
+              Rayon actif : <strong className="text-primary font-mono">{radiusKm} km</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all cursor-pointer"
+            >
+              Annuler
+            </button>
+            <button
+              id="btn-apply-radius-modal"
+              type="button"
+              onClick={handleApply}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Appliquer ce rayon ({radiusKm} km)</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
