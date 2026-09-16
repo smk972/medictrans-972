@@ -14,6 +14,7 @@ import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
 import { TransporterSubscriptionTab } from '../components/TransporterSubscriptionTab';
 import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 import { reverseGeocode } from '../services/nationalGeoDatabase';
+import { getJuxtaposedCities } from '../services/juxtaposedSectorsService';
 
 export interface Driver {
   id: string;
@@ -152,7 +153,7 @@ export const TransporterPortalPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'HISTORIQUE' | 'ABONNEMENT'>('DISPONIBLES');
   const [historySubFilter, setHistorySubFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [historySearch, setHistorySearch] = useState('');
-  const [sectorFilter, setSectorFilter] = useState<'ALL' | 'CENTRE' | 'SUD' | 'NORD'>('ALL');
+  const [sectorFilter, setSectorFilter] = useState<string>('ALL');
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
   const [selectedMissionForDetails, setSelectedMissionForDetails] = useState<Ride | null>(null);
 
@@ -252,6 +253,16 @@ export const TransporterPortalPage: React.FC = () => {
       } catch (e) {}
     }
   }, [user]);
+
+  // Villes juxtaposées (limitrophes et voisines directes) calculées dynamiquement selon la base et le territoire
+  const juxtaposedCities = useMemo(() => {
+    return getJuxtaposedCities(baseCommune, baseTerritory, 6);
+  }, [baseCommune, baseTerritory]);
+
+  // Réinitialiser le filtre secteur sur 'ALL' quand la base ou le territoire changent
+  useEffect(() => {
+    setSectorFilter('ALL');
+  }, [baseCommune, baseTerritory]);
 
   const [isRadiusModalOpen, setIsRadiusModalOpen] = useState(false);
 
@@ -545,16 +556,19 @@ export const TransporterPortalPage: React.FC = () => {
       if (vehicleFilter === 'VSL' && r.transportType !== 'VSL') return false;
       if (vehicleFilter === 'TAXI' && r.transportType !== 'TAXI_CONVENTIONNE') return false;
 
-      // Filtre Secteur Martinique
-      if (sectorFilter === 'CENTRE') {
-        const c = (r.pickupCity + ' ' + r.dropoffCity + ' ' + r.pickupAddress + ' ' + r.dropoffAddress).toLowerCase();
-        if (!c.includes('fort-de-france') && !c.includes('lamentin') && !c.includes('schoelcher') && !c.includes('ducos') && !c.includes('cluny')) return false;
-      } else if (sectorFilter === 'SUD') {
-        const c = (r.pickupCity + ' ' + r.dropoffCity).toLowerCase();
-        if (!c.includes('marin') && !c.includes('salée') && !c.includes('luce') && !c.includes('diamant') && !c.includes('trois-îlets')) return false;
-      } else if (sectorFilter === 'NORD') {
-        const c = (r.pickupCity + ' ' + r.dropoffCity).toLowerCase();
-        if (!c.includes('trinité') && !c.includes('marie') && !c.includes('pierre') && !c.includes('robert') && !c.includes('carbet')) return false;
+      // Filtre Secteur dynamique (villes juxtaposées ou toute la zone)
+      if (sectorFilter && sectorFilter !== 'ALL') {
+        const filterNorm = sectorFilter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        const rideLocations = (
+          (r.pickupCity || '') + ' ' +
+          (r.dropoffCity || '') + ' ' +
+          (r.pickupAddress || '') + ' ' +
+          (r.dropoffAddress || '')
+        ).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        if (!rideLocations.includes(filterNorm)) {
+          return false;
+        }
       }
 
       // Filtrage par Rayon d'action (Cercle géographique en km)
@@ -2135,28 +2149,57 @@ export const TransporterPortalPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Barre de filtres */}
+              {/* Barre de filtres adaptatifs */}
               <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase mr-1">Secteur :</span>
-                  {(['ALL', 'CENTRE', 'SUD', 'NORD'] as const).map((sec) => (
+                  <span className="text-xs font-bold text-on-surface-variant uppercase mr-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm text-primary">near_me</span>
+                    <span>Secteur :</span>
+                  </span>
+
+                  {/* Bouton 1 : Toute la zone du rayon d'action */}
+                  <button
+                    type="button"
+                    onClick={() => setSectorFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      sectorFilter === 'ALL'
+                        ? 'bg-primary text-white shadow-xs scale-105'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+                    }`}
+                  >
+                    Toute la zone ({actionRadiusKm} km)
+                  </button>
+
+                  {/* Bouton 2 : Commune de base active */}
+                  <button
+                    type="button"
+                    onClick={() => setSectorFilter(baseCommune)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      sectorFilter.toLowerCase() === baseCommune.toLowerCase()
+                        ? 'bg-secondary text-white shadow-xs scale-105'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+                    }`}
+                    title={`Filtrer uniquement sur votre base : ${baseCommune}`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>📍 {baseCommune}</span>
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-black/20 text-white font-mono">Base</span>
+                  </button>
+
+                  {/* Boutons 3+ : Villes juxtaposées et limitrophes */}
+                  {juxtaposedCities.map((cityName) => (
                     <button
-                      key={sec}
+                      key={cityName}
                       type="button"
-                      onClick={() => setSectorFilter(sec)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        sectorFilter === sec
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                      onClick={() => setSectorFilter(cityName)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        sectorFilter.toLowerCase() === cityName.toLowerCase()
+                          ? 'bg-primary text-white shadow-xs scale-105'
+                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                       }`}
+                      title={`Filtrer sur la commune juxtaposée : ${cityName}`}
                     >
-                      {sec === 'ALL'
-                        ? 'Toute la Martinique'
-                        : sec === 'CENTRE'
-                        ? 'Centre (FDF / Lamentin)'
-                        : sec === 'SUD'
-                        ? 'Sud (Ducos / Marin)'
-                        : 'Nord (Trinité / Marie)'}
+                      {cityName}
                     </button>
                   ))}
                 </div>
