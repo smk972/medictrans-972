@@ -33,7 +33,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             clinigo<span className={dark ? 'text-teal-300' : 'text-teal-600'}>.fr</span>
           </span>
           {badge && (
-            <span className={`${badgeAlwaysVisible ? 'inline-block' : 'hidden sm:inline-block'} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+            <span className={`${badgeAlwaysVisible ? 'inline-block' : 'hidden xl:inline-block'} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
               dark 
                 ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' 
                 : 'bg-teal-50 text-teal-800 border border-teal-200/80'

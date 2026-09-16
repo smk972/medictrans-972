@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../context/AiChatContext';
 import { BrandLogo } from './BrandLogo';
@@ -9,6 +9,7 @@ export const Header: React.FC = () => {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const { openChat } = useAiChat();
 
@@ -28,6 +29,26 @@ export const Header: React.FC = () => {
     setMobileMenuOpen(false);
     await logout();
     navigate('/');
+  };
+
+  // Cible de navigation dynamique : un transporteur connecté va directement sur son dashboard
+  const transporterPath = isAuthenticated && user?.role === 'TRANSPORTER'
+    ? '/portal-transporteur'
+    : '/transporteurs';
+
+  const profileDashboardPath = () => {
+    if (!user) return '/connexion';
+    switch (user.role) {
+      case 'TRANSPORTER':
+        return '/portal-transporteur';
+      case 'FACILITY':
+        return '/etablissements';
+      case 'ADMIN':
+        return '/admin';
+      case 'PATIENT':
+      default:
+        return '/suivi';
+    }
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -56,37 +77,61 @@ export const Header: React.FC = () => {
 
   return (
     <header className="sticky top-3 sm:top-4 z-50 w-full px-3 sm:px-6">
-      <div className="max-w-[1360px] mx-auto h-16 sm:h-[68px] rounded-full bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-3.5 sm:px-6 flex items-center justify-between transition-all duration-300 gap-2 sm:gap-4">
+      <div className="max-w-[1360px] mx-auto h-16 sm:h-[68px] rounded-full bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-3 sm:px-5 lg:px-6 flex items-center justify-between transition-all duration-300 gap-1.5 sm:gap-3">
         {/* Logo */}
         <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
 
-        {/* Desktop Nav (visible dès md: 768px pour éviter toute disparition sur ordinateur portable) */}
-        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1.5 shrink min-w-0">
+        {/* Desktop Nav (libellés compacts sur écrans < 1280px pour empêcher toute collision avec Eva) */}
+        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 2xl:gap-1.5 shrink min-w-0">
           <NavLink to="/reserver" className={navLinkClass}>
-            <span className="hidden lg:inline">Réserver un transport</span>
-            <span className="lg:hidden">Réserver</span>
+            <span className="hidden xl:inline">Réserver un transport</span>
+            <span className="xl:hidden">Réserver</span>
           </NavLink>
           <NavLink to="/suivi" className={navLinkClass}>
             Mes Demandes
           </NavLink>
-          <NavLink to="/etablissements" className={navLinkClass}>
-            <span className="hidden lg:inline">Portail Établissements</span>
-            <span className="lg:hidden">Établissements</span>
+          <NavLink
+            to="/etablissements"
+            className={({ isActive }) =>
+              `whitespace-nowrap shrink-0 px-2 lg:px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
+                isActive || location.pathname.startsWith('/etablissement')
+                  ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+              }`
+            }
+          >
+            <span className="hidden xl:inline">Portail Établissements</span>
+            <span className="xl:hidden">Établissements</span>
           </NavLink>
-          <NavLink to="/transporteurs" className={navLinkClass}>
-            <span className="hidden lg:inline">Espace Transporteurs</span>
-            <span className="lg:hidden">Transporteurs</span>
+          <NavLink
+            to={transporterPath}
+            className={({ isActive }) =>
+              `whitespace-nowrap shrink-0 px-2 lg:px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
+                isActive || location.pathname.startsWith('/portal-transporteur') || location.pathname.startsWith('/dispatch-transporteur')
+                  ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+              }`
+            }
+          >
+            <span className="hidden xl:inline">Espace Transporteurs</span>
+            <span className="xl:hidden">Transporteurs</span>
           </NavLink>
+          {user?.role === 'ADMIN' && (
+            <NavLink to="/admin" className={navLinkClass}>
+              <span className="hidden xl:inline">Régulation 972</span>
+              <span className="xl:hidden">Admin</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* Right Info & Profile */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0">
           {/* Bouton Eva IA */}
           <button
             type="button"
             id="btn-header-help-ai"
             onClick={() => openChat()}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200/70 font-semibold text-xs transition-all group shrink-0"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200/70 font-semibold text-xs transition-all group shrink-0"
             title="Eva - Aide à la réservation"
           >
             <span className="material-symbols-outlined text-base text-teal-700 group-hover:scale-110 transition-transform">
@@ -97,26 +142,26 @@ export const Header: React.FC = () => {
 
           {/* User Profile / Login Button */}
           {isAuthenticated && user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="relative" ref={dropdownRef}>
                 <button
                   type="button"
                   id="btn-header-profile"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-full hover:bg-slate-100/80 transition-all border border-slate-200/80 text-left shrink min-w-0 overflow-hidden"
+                  className="flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2 sm:py-1.5 rounded-full hover:bg-slate-100/80 transition-all border border-slate-200/80 text-left shrink min-w-0"
                 >
                   {user.avatarUrl ? (
                     <img
                       alt={user.firstName}
-                      className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-200 shrink-0"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-slate-200 shrink-0"
                       src={user.avatarUrl}
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs ring-2 ring-slate-200 shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs ring-2 ring-slate-200 shrink-0">
                       {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                   <div className="hidden md:flex flex-col min-w-0 max-w-[130px] lg:max-w-[155px] 2xl:max-w-[190px]">
+                  <div className="hidden md:flex flex-col min-w-0 max-w-[70px] lg:max-w-[95px] xl:max-w-[140px] 2xl:max-w-[180px]">
                     <span className="text-xs font-bold text-slate-900 leading-tight truncate" title={user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}>
                       {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                     </span>
@@ -151,7 +196,7 @@ export const Header: React.FC = () => {
                         <Link
                           to="/admin"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-800 bg-purple-50/60 hover:bg-purple-100/80 transition-colors"
                         >
                           <span className="material-symbols-outlined text-base text-purple-600">
                             tune
@@ -164,12 +209,12 @@ export const Header: React.FC = () => {
                         <Link
                           to="/etablissements"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50/60 hover:bg-emerald-100/80 transition-colors"
                         >
-                          <span className="material-symbols-outlined text-base text-teal-600">
+                          <span className="material-symbols-outlined text-base text-emerald-600">
                             local_hospital
                           </span>
-                          Portail Établissements
+                          Mon Portail Établissement
                         </Link>
                       )}
 
@@ -177,12 +222,12 @@ export const Header: React.FC = () => {
                         <Link
                           to="/portal-transporteur"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-800 bg-amber-50/60 hover:bg-amber-100/80 transition-colors"
                         >
                           <span className="material-symbols-outlined text-base text-amber-600">
                             ambulance
                           </span>
-                          Espace Transporteurs
+                          Mon Dashboard Transporteur
                         </Link>
                       )}
 
@@ -226,22 +271,22 @@ export const Header: React.FC = () => {
                 )}
               </div>
 
-              {/* Bouton direct Déconnexion 1-clic */}
+              {/* Bouton direct Déconnexion 1-clic (icône compacte sous xl, texte dès xl) */}
               <button
                 id="btn-header-logout"
                 type="button"
                 onClick={handleLogout}
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-md shadow-slate-950/10 active:scale-95 transition-all cursor-pointer"
+                className="hidden sm:inline-flex items-center justify-center gap-1.5 p-2 xl:px-3.5 xl:py-1.5 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
                 title="Se déconnecter"
               >
-                <span className="material-symbols-outlined text-sm">logout</span>
-                <span>Déconnexion</span>
+                <span className="material-symbols-outlined text-base">logout</span>
+                <span className="hidden xl:inline">Déconnexion</span>
               </button>
             </div>
           ) : (
             <Link
               to="/connexion"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-teal-800 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white text-xs font-bold shadow-md shadow-teal-950/10 active:scale-95 transition-all"
+              className="inline-flex items-center gap-2 px-3.5 xl:px-4 py-2 rounded-full bg-gradient-to-r from-teal-800 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white text-xs font-bold shadow-md shadow-teal-950/10 active:scale-95 transition-all"
             >
               <span className="material-symbols-outlined text-base">login</span>
               <span>Connexion</span>
@@ -266,27 +311,32 @@ export const Header: React.FC = () => {
         <div className="md:hidden mt-2 max-w-7xl mx-auto rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 p-4 shadow-2xl animate-fadeIn">
           {isAuthenticated && user ? (
             <div className="mb-4 p-3 rounded-xl bg-slate-50 flex items-center justify-between border border-slate-200/60">
-              <div className="flex items-center gap-2.5">
+              <Link
+                to={profileDashboardPath()}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+              >
                 {user.avatarUrl ? (
                   <img
                     alt={user.firstName}
-                    className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200"
+                    className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200 shrink-0"
                     src={user.avatarUrl}
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs">
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
                     {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
                 <div>
-                  <div className="text-sm font-bold text-slate-900">
-                    {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
+                  <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>{user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}</span>
+                    <span className="material-symbols-outlined text-xs text-teal-600">arrow_forward</span>
                   </div>
                   <div className="text-xs text-slate-500">
-                    {user.email}
+                    {user.facilityName || user.transporterName || roleBadge?.label || user.email}
                   </div>
                 </div>
-              </div>
+              </Link>
               <button
                 type="button"
                 id="btn-mobile-drawer-logout"
@@ -336,16 +386,18 @@ export const Header: React.FC = () => {
             <Link
               to="/etablissements"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+              className="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors flex items-center justify-between"
             >
-              Portail Établissements
+              <span>Portail Établissements</span>
+              {user?.role === 'FACILITY' && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Mon Portail</span>}
             </Link>
             <Link
-              to="/transporteurs"
+              to={transporterPath}
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+              className="px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors flex items-center justify-between"
             >
-              Espace Transporteurs
+              <span>Espace Transporteurs</span>
+              {user?.role === 'TRANSPORTER' && <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Mon Dashboard</span>}
             </Link>
             <Link
               to="/admin"

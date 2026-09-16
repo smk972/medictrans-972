@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
 import { TransporterSimulatedConsole } from '../components/TransporterSimulatedConsole';
+import { useAuth } from '../contexts/AuthContext';
 
 export const TransporterSalesPage: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Si le transporteur est déjà connecté, il accède immédiatement à son dashboard
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'TRANSPORTER') {
+      navigate('/portal-transporteur', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
   // Onglet interactif Démo (Plateforme Bureau vs Site Mobile Chauffeur)
   const [activeDeviceView, setActiveDeviceView] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
 
