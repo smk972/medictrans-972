@@ -9,6 +9,15 @@ export const AuthCallbackPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    // 1. Détection prioritaire : si l'URL de rappel Google a atterri sur l'ancien domaine Cloudflare Pages
+    // Rebondir immédiatement vers le domaine officiel de production en conservant les tokens de hash
+    const host = window.location.hostname;
+    const isCloudflare = host.includes('pages.dev') || (host.includes('medictrans-972') && !host.includes('clinigo.fr'));
+    if (isCloudflare) {
+      window.location.replace(`https://clinigo.fr${window.location.pathname}${window.location.search}${window.location.hash}`);
+      return;
+    }
+
     const handleAuthCallback = async () => {
       const targetRole = (localStorage.getItem('medictrans_oauth_target_role') as any) || 'PATIENT';
       localStorage.removeItem('medictrans_oauth_target_role');
@@ -55,15 +64,21 @@ export const AuthCallbackPage: React.FC = () => {
 
       // Redirection immédiate et précise selon le rôle cible
       setTimeout(() => {
-        if (targetRole === 'FACILITY') {
-          navigate('/etablissements', { replace: true });
-        } else if (targetRole === 'TRANSPORTER') {
-          navigate('/portal-transporteur', { replace: true });
-        } else if (targetRole === 'ADMIN') {
-          navigate('/admin', { replace: true });
-        } else {
-          navigate('/suivi', { replace: true });
+        const dest = targetRole === 'FACILITY'
+          ? '/etablissements'
+          : targetRole === 'TRANSPORTER'
+          ? '/portal-transporteur'
+          : targetRole === 'ADMIN'
+          ? '/admin'
+          : '/suivi';
+
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocal && !window.location.hostname.includes('clinigo.fr')) {
+          window.location.href = `https://clinigo.fr${dest}`;
+          return;
         }
+
+        navigate(dest, { replace: true });
       }, 400);
     };
 

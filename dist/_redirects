@@ -1,1 +1,3 @@
-/*  /index.html  200
+# Redirection universelle de l'ancien site Cloudflare Pages vers le site officiel en production
+/auth/callback https://clinigo.fr/auth/callback 302
+/* https://clinigo.fr/:splat 301!

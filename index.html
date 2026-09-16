@@ -19,13 +19,23 @@
     <meta name="geo.region" content="FR" />
     <meta name="geo.placename" content="France" />
     
+    <!-- Redirection immédiate si navigation depuis l'ancien hébergement Cloudflare Pages -->
+    <script>
+      (function() {
+        var h = window.location.hostname;
+        if (h.indexOf('pages.dev') !== -1 || (h.indexOf('medictrans-972') !== -1 && h.indexOf('clinigo.fr') === -1)) {
+          window.location.replace('https://clinigo.fr' + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    
     <!-- Open Graph Protocol (Facebook, LinkedIn, Google Discover & Cartes d'Aperçu) -->
     <meta property="og:locale" content="fr_FR" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Clinigo" />
     <meta property="og:title" content="Clinigo.fr | Transport Médical & Services — Réseau Sanitaire & Ambulances" />
     <meta property="og:description" content="Réservez en toute sérénité votre transport médical avec Clinigo en France métropolitaine et dans les DOM. Prise en charge CPAM / CGSS 100% ALD, liaison directe avec tous les hôpitaux et cliniques." />
-    <meta property="og:url" content="https://medictrans972.pages.dev/" />
+    <meta property="og:url" content="https://clinigo.fr/" />
     <meta property="og:image" content="/assets/clinigo-logo.png" />
     <meta property="og:image:secure_url" content="/assets/clinigo-logo.png" />
     <meta property="og:image:width" content="1024" />
@@ -42,7 +52,7 @@
     <meta name="twitter:image:alt" content="Clinigo - Transport Médical & Services" />
 
     <!-- URL Canonique -->
-    <link rel="canonical" href="https://medictrans972.pages.dev/" />
+    <link rel="canonical" href="https://clinigo.fr/" />
 
     <!-- Données Structurées Schema.org (JSON-LD) : Établissement de Santé & Service de Transport Médical -->
     <script type="application/ld+json">
@@ -51,12 +61,12 @@
       "@graph": [
         {
           "@type": "EmergencyService",
-          "@id": "https://medictrans972.pages.dev/#service",
+          "@id": "https://clinigo.fr/#service",
           "name": "Clinigo - Transport Médical & Services",
           "alternateName": "Clinigo.fr",
-          "url": "https://medictrans972.pages.dev/",
-          "logo": "https://medictrans972.pages.dev/assets/clinigo-logo.png",
-          "image": "https://medictrans972.pages.dev/assets/clinigo-logo.png",
+          "url": "https://clinigo.fr/",
+          "logo": "https://clinigo.fr/assets/clinigo-logo.png",
+          "image": "https://clinigo.fr/assets/clinigo-logo.png",
           "description": "Plateforme de régulation et réservation de transport médicalisé en Martinique : Ambulance, VSL et Taxi Conventionné CPAM sur 34 communes.",
           "telephone": "+596596752020",
           "areaServed": {
@@ -89,14 +99,14 @@
         },
         {
           "@type": "WebSite",
-          "@id": "https://medictrans972.pages.dev/#website",
-          "url": "https://medictrans972.pages.dev/",
+          "@id": "https://clinigo.fr/#website",
+          "url": "https://clinigo.fr/",
           "name": "Clinigo",
           "description": "Portail du transport sanitaire et régulation ambulancière Clinigo",
           "inLanguage": "fr-FR",
           "potentialAction": {
             "@type": "SearchAction",
-            "target": "https://medictrans972.fr/reserver?q={search_term_string}",
+            "target": "https://clinigo.fr/reserver?q={search_term_string}",
             "query-input": "required name=search_term_string"
           }
         }

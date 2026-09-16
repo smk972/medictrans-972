@@ -1218,7 +1218,7 @@ export const rideService = {
         pmtPrescriberDoctor: row.pmt_prescriber_doctor,
         pmtUploaded: row.patient_has_pmt || !!row.pmt_file_url,
         pmtFileName: row.pmt_file_name || (row.patient_has_pmt ? 'Prescription_Medicale_S3138.pdf' : undefined),
-        pmtFileUrl: row.pmt_file_url || (row.patient_has_pmt ? 'https://medictrans-972.pages.dev/assets/medictrans_hero_discover.jpg' : undefined)
+        pmtFileUrl: row.pmt_file_url || (row.patient_has_pmt ? '/assets/medictrans_hero_discover.jpg' : undefined)
       },
       mobility: {
         wheelchair: row.mobility_wheelchair,

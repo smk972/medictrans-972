@@ -22,10 +22,10 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
 }) => {
   const location = useLocation();
   const currentPath = canonicalPath || location.pathname;
-  const canonicalUrl = `https://medictrans972.fr${currentPath}`;
+  const canonicalUrl = `https://clinigo.fr${currentPath}`;
   const fullImageUrl = ogImage.startsWith('http')
     ? ogImage
-    : `https://medictrans972.fr${ogImage}`;
+    : `https://clinigo.fr${ogImage}`;
 
   useEffect(() => {
     // 1. Mettre à jour le titre du document
