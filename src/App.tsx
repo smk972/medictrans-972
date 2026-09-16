@@ -53,11 +53,11 @@ export const App: React.FC = () => {
           <Route path="/suivi" element={<TrackingPage />} />
           <Route path="/droits-cpam" element={<CpamRightsPage />} />
           
-          {/* Espaces Professionnels (Accès Protégé avec mode Démo actif) */}
+          {/* Espaces Professionnels (Accès Strictement Protégé - Connexion Obligatoire) */}
           <Route 
             path="/etablissements" 
             element={
-              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']} allowDemo={true}>
+              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']} allowDemo={false}>
                 <FacilityPortalPage />
               </ProtectedRoute>
             } 
@@ -65,7 +65,7 @@ export const App: React.FC = () => {
           <Route 
             path="/etablissement" 
             element={
-              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']} allowDemo={true}>
+              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']} allowDemo={false}>
                 <FacilityPortalPage />
               </ProtectedRoute>
             } 
@@ -83,7 +83,7 @@ export const App: React.FC = () => {
           <Route 
             path="/portal-transporteur" 
             element={
-              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']} allowDemo={true}>
+              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']} allowDemo={false}>
                 <TransporterPortalPage />
               </ProtectedRoute>
             } 
@@ -91,7 +91,7 @@ export const App: React.FC = () => {
           <Route 
             path="/dispatch-transporteur" 
             element={
-              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']} allowDemo={true}>
+              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']} allowDemo={false}>
                 <TransporterPortalPage />
               </ProtectedRoute>
             } 
