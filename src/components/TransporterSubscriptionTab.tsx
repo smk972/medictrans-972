@@ -79,19 +79,19 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
     setIsWhatsAppModalOpen(true);
   };
 
-  const handleSendWhatsAppCode = () => {
+  const handleSendWhatsAppCode = async () => {
     if (!phoneInput.trim()) {
       alert('Veuillez renseigner un numéro de téléphone.');
       return;
     }
 
     setIsSendingCode(true);
+    setCodeError(null);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedCode(code);
 
     const waPhone = formatPhoneForWhatsApp(phoneInput);
 
-    // Simulation d'envoi automatique via l'API WhatsApp sans ouverture de fenêtre locale
     try {
       localStorage.setItem('clinigo_transporter_otp', JSON.stringify({
         phone: waPhone,
@@ -99,12 +99,27 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
         sentAt: Date.now(),
         expiresAt: Date.now() + 10 * 60 * 1000
       }));
-    } catch {}
 
-    setTimeout(() => {
+      // Appel de l'API backend Meta WhatsApp Cloud
+      const res = await fetch('/api/whatsapp/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phoneInput.trim(),
+          code
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success && data.errorCode === 131030) {
+        setCodeError("Numéro de test non autorisé : Veuillez ajouter ce numéro dans votre console Meta for Developers (Étape 2 : Destinataires autorisés).");
+      }
+    } catch (err) {
+      console.warn("Erreur envoi OTP WhatsApp:", err);
+    } finally {
       setIsSendingCode(false);
       setWhatsAppStep('VERIFY');
-    }, 600);
+    }
   };
 
   const handleVerifyCode = () => {
