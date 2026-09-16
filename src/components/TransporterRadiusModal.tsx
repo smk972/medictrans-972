@@ -1033,9 +1033,6 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                     <span className="material-symbols-outlined text-sm text-primary">search</span>
                     <span>Rechercher votre commune ou rue :</span>
                   </span>
-                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    ⚡ data.gouv.fr
-                  </span>
                 </div>
                 <div className="relative">
                   <div className="relative flex items-center">
