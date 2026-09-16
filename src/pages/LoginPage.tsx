@@ -113,28 +113,39 @@ export const LoginPage: React.FC = () => {
     setFinessMatches([]);
   };
 
-  const redirectAfterAuth = (role: UserRole) => {
-    const from = locationState?.from?.pathname;
-    if (from) {
-      navigate(from, { replace: true });
-      return;
-    }
-
+  const getUserDashboardPath = (role?: UserRole): string => {
     switch (role) {
       case 'ADMIN':
-        navigate('/admin', { replace: true });
-        break;
+        return '/admin';
       case 'FACILITY':
-        navigate('/etablissements', { replace: true });
-        break;
+        return '/etablissements';
       case 'TRANSPORTER':
-        navigate('/portal-transporteur', { replace: true });
-        break;
+        return '/portal-transporteur';
       case 'PATIENT':
       default:
-        navigate('/suivi', { replace: true });
-        break;
+        return '/suivi';
     }
+  };
+
+  const redirectAfterAuth = (role: UserRole) => {
+    const qRedirect = searchParams.get('redirect');
+    const stateFrom = locationState?.from?.pathname;
+    const target = qRedirect || stateFrom;
+
+    if (target && target !== '/connexion' && target !== '/login') {
+      // Vérifier si la cible n'est pas incompatible avec le rôle de l'utilisateur
+      const isForbidden = 
+        (target.includes('etablissement') && role !== 'FACILITY' && role !== 'ADMIN') ||
+        (target.includes('transporteur') && role !== 'TRANSPORTER' && role !== 'ADMIN') ||
+        (target.includes('admin') && role !== 'ADMIN');
+
+      if (!isForbidden) {
+        navigate(target, { replace: true });
+        return;
+      }
+    }
+
+    navigate(getUserDashboardPath(role), { replace: true });
   };
 
   // Contenus et métadonnées adaptés strictement à la catégorie cliquée
@@ -303,19 +314,31 @@ export const LoginPage: React.FC = () => {
                   <div className="text-[11px] text-slate-500 font-mono">{user.email}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end shrink-0">
                 <button
                   type="button"
-                  onClick={() => redirectAfterAuth(user.role)}
-                  className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
+                  id="btn-login-my-space"
+                  onClick={() => navigate(getUserDashboardPath(user.role), { replace: true })}
+                  className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
                 >
-                  Mon espace
+                  <span className="material-symbols-outlined text-sm">dashboard</span>
+                  <span>Mon espace ({user.role === 'TRANSPORTER' ? 'Transporteur' : user.role === 'FACILITY' ? 'Établissement' : user.role === 'ADMIN' ? 'Admin' : 'Patient'})</span>
+                </button>
+                <button
+                  type="button"
+                  id="btn-login-my-profile"
+                  onClick={() => navigate('/profil')}
+                  className="px-3 py-1.5 rounded-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                  title="Gérer mon profil et mes coordonnées"
+                >
+                  <span className="material-symbols-outlined text-sm text-teal-700">manage_accounts</span>
+                  <span>Mon Profil</span>
                 </button>
                 <button
                   type="button"
                   onClick={async () => { await logout(); }}
                   className="px-3 py-1.5 rounded-full bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                  title="Se déconnecter"
+                  title="Se déconnecter pour changer de compte"
                 >
                   <span className="material-symbols-outlined text-sm">logout</span>
                   <span>Changer</span>
