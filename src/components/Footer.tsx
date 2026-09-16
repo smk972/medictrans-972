@@ -80,6 +80,15 @@ export const Footer: React.FC = () => {
                   Adhésion Transporteur Sanitaire
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/offre-pro"
+                  className="hover:text-slate-950 font-bold text-teal-700 transition-colors flex items-center gap-1.5"
+                >
+                  <span>Abonnement Pro 19,90 € (0% commission)</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold uppercase">Offre</span>
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -175,7 +175,7 @@ export const Header: React.FC = () => {
 
                       {user.role === 'TRANSPORTER' && (
                         <Link
-                          to="/transporteurs"
+                          to="/portal-transporteur"
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                         >

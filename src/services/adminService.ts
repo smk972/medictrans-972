@@ -1,5 +1,6 @@
 import { ClientRecord, Facility, Transporter, UserProfile, UserRole, Ride, SystemSettings, AuditLog } from '../types';
 import { rideService } from './rideService';
+import { AuthService } from './authService';
 
 const STORAGE_KEY_CLIENTS = 'medictrans_admin_clients_972';
 const STORAGE_KEY_SETTINGS = 'medictrans_admin_settings_972';
@@ -595,8 +596,24 @@ export class AdminService {
           phone: '0596 55 20 00',
           facilityId: 'chu-zobda-quitman',
           facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+          facilityFiness: '970211145',
+          facilityAccessStatus: 'APPROVED',
+          facilityAccessApprovedAt: '2026-01-05T00:00:00.000Z',
           avatarUrl: '/assets/nurse_almont.jpg',
           createdAt: '2026-01-05T00:00:00.000Z'
+        },
+        {
+          id: 'usr-facility-pending-1',
+          email: 'direction@clinique-stpaul.mq',
+          role: 'FACILITY',
+          firstName: 'Dr. Jean-Marc',
+          lastName: 'Sainte-Rose',
+          phone: '0596 39 40 00',
+          facilityName: 'Clinique Sainte-Marie - Pôle Oncologie',
+          facilityFiness: '970200054',
+          facilityAccessStatus: 'PENDING',
+          facilityAccessRequestedAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+          createdAt: new Date(Date.now() - 3 * 3600000).toISOString()
         },
         {
           id: 'usr-transporter-madinina',
@@ -604,9 +621,35 @@ export class AdminService {
           role: 'TRANSPORTER',
           firstName: 'Patrick',
           lastName: 'Césaire',
-          phone: '0596 75 20 20',
+          phone: '0696 75 20 20',
           transporterId: 'madinina-secours',
           transporterName: 'Ambulances Madinina Secours',
+          subscription: {
+            status: 'TRIAL',
+            trialDaysTotal: 30,
+            trialDaysRemaining: 28,
+            trialStartedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+            trialExpiresAt: new Date(Date.now() + 28 * 86400000).toISOString(),
+            isTrialUnlocked: true,
+            whatsappVerified: true,
+            whatsappPhone: '0696 75 20 20',
+            planName: 'Formule Pro Sanitaire (Illimitée)',
+            monthlyPrice: 19.9,
+            currentPeriodStart: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+            currentPeriodEnd: new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10),
+            invoices: [
+              {
+                id: 'inv-1',
+                invoiceNumber: 'FACT-2026-0089',
+                date: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+                amount: 0,
+                description: 'Période d’essai gratuit 30 jours (Vérification WhatsApp activée)',
+                status: 'TRIAL_FREE',
+                periodStart: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+                periodEnd: new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10)
+              }
+            ]
+          },
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
           createdAt: '2026-01-10T00:00:00.000Z'
         },
@@ -811,6 +854,130 @@ export class AdminService {
     );
 
     return updated;
+  }
+
+  // =========================================================================
+  // GESTION DES DEMANDES D'ACCÈS ÉTABLISSEMENTS DE SANTÉ
+  // =========================================================================
+  static async getFacilityAccessRequests(): Promise<UserProfile[]> {
+    const users = await this.getAllUsers();
+    return users.filter(u => u.role === 'FACILITY');
+  }
+
+  static async approveFacilityAccess(userIdOrEmail: string, adminEmail = 'admin@medictrans972.mq'): Promise<boolean> {
+    const success = AuthService.updateFacilityAccessStatus(userIdOrEmail, 'APPROVED');
+    if (success) {
+      await this.logAdminAction(
+        'VALIDATION_ACCES_ETABLISSEMENT',
+        'FACILITY',
+        userIdOrEmail,
+        `Validation des habilitations d'accès pour l'établissement : ${userIdOrEmail}`,
+        adminEmail
+      );
+    }
+    return success;
+  }
+
+  static async rejectFacilityAccess(userIdOrEmail: string, adminEmail = 'admin@medictrans972.mq'): Promise<boolean> {
+    const success = AuthService.updateFacilityAccessStatus(userIdOrEmail, 'REJECTED');
+    if (success) {
+      await this.logAdminAction(
+        'REFUS_ACCES_ETABLISSEMENT',
+        'FACILITY',
+        userIdOrEmail,
+        `Refus ou suspension des habilitations pour l'établissement : ${userIdOrEmail}`,
+        adminEmail
+      );
+    }
+    return success;
+  }
+
+  // =========================================================================
+  // GESTION DE LA GRATUITÉ ET DES JOURS D'ESSAI DES TRANSPORTEURS
+  // =========================================================================
+  static async updateTransporterTrialDays(
+    transporterIdOrPhone: string,
+    days: number,
+    adminEmail = 'admin@medictrans972.mq'
+  ): Promise<boolean> {
+    try {
+      // 1. Mise à jour dans medictrans_transporters_972
+      const transporters = await this.getAllTransporters();
+      const targetTrans = transporters.find(t => 
+        t.id === transporterIdOrPhone || 
+        t.phone === transporterIdOrPhone || 
+        t.companyName === transporterIdOrPhone ||
+        t.email === transporterIdOrPhone
+      );
+      if (targetTrans) {
+        const currentSub = targetTrans.subscription || {
+          status: 'TRIAL',
+          trialDaysTotal: days,
+          trialDaysRemaining: days,
+          isTrialUnlocked: true,
+          whatsappVerified: true,
+          planName: 'Formule Pro Sanitaire (Illimitée)',
+          monthlyPrice: 19.9
+        };
+        targetTrans.subscription = {
+          ...currentSub,
+          status: days > 0 ? 'TRIAL' : 'EXPIRED',
+          trialDaysTotal: Math.max(currentSub.trialDaysTotal, days),
+          trialDaysRemaining: days,
+          isTrialUnlocked: days > 0,
+          trialExpiresAt: new Date(Date.now() + days * 86400000).toISOString()
+        };
+        localStorage.setItem('medictrans_transporters_972', JSON.stringify(transporters));
+      }
+
+      // 2. Mise à jour dans medictrans_admin_users_972
+      const users = await this.getAllUsers();
+      const user = users.find(u => 
+        u.id === transporterIdOrPhone || 
+        u.transporterId === transporterIdOrPhone || 
+        u.transporterName === transporterIdOrPhone ||
+        u.phone === transporterIdOrPhone ||
+        u.email === transporterIdOrPhone
+      );
+
+      if (user) {
+        const currentSub = user.subscription || {
+          status: 'TRIAL',
+          trialDaysTotal: days,
+          trialDaysRemaining: days,
+          isTrialUnlocked: true,
+          whatsappVerified: true,
+          planName: 'Formule Pro Sanitaire (Illimitée)',
+          monthlyPrice: 19.9
+        };
+        user.subscription = {
+          ...currentSub,
+          status: days > 0 ? 'TRIAL' : 'EXPIRED',
+          trialDaysTotal: Math.max(currentSub.trialDaysTotal, days),
+          trialDaysRemaining: days,
+          isTrialUnlocked: days > 0,
+          trialExpiresAt: new Date(Date.now() + days * 86400000).toISOString()
+        };
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+
+        // Mettre à jour la session courante si c'est le transporteur connecté
+        const currentLocal = AuthService.getLocalUser();
+        if (currentLocal && (currentLocal.id === user.id || currentLocal.email === user.email)) {
+          AuthService.updateTransporterSubscription(user.subscription);
+        }
+      }
+
+      await this.logAdminAction(
+        'MODIFICATION_JOURS_GRATUITE',
+        'TRANSPORTER',
+        transporterIdOrPhone,
+        `Attribution de ${days} jours d'essai gratuit pour le transporteur (${transporterIdOrPhone})`,
+        adminEmail
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   static async getAuditLogs(): Promise<AuditLog[]> {

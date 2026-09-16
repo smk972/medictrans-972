@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { AdminService } from '../services/adminService';
-import { Facility } from '../types';
+import { Facility, UserProfile } from '../types';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { MARTINIQUE_COMMUNES } from '../services/rideService';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,8 @@ export const AdminFacilitiesPage: React.FC = () => {
   const { user } = useAuth();
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [activeSection, setActiveSection] = useState<'FACILITIES' | 'REQUESTS'>('FACILITIES');
+  const [accessRequests, setAccessRequests] = useState<UserProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(true);
@@ -55,10 +57,43 @@ export const AdminFacilitiesPage: React.FC = () => {
         const refreshed = data.find(f => f.id === selectedFacility.id);
         if (refreshed) setSelectedFacility(refreshed);
       }
+
+      // Demandes d'accès des établissements
+      const reqs = await AdminService.getFacilityAccessRequests();
+      setAccessRequests(reqs);
     } catch (err) {
       console.error('Erreur chargement établissements:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleApproveRequest = async (request: UserProfile) => {
+    try {
+      await AdminService.approveFacilityAccess(request.id || request.email, user?.email);
+      setToastMessage({
+        title: 'Accès Établissement Validé',
+        desc: `L'accès à la plateforme pour ${request.facilityName || request.email} a été validé avec succès.`
+      });
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la validation de l'accès.");
+    }
+  };
+
+  const handleRejectRequest = async (request: UserProfile) => {
+    if (!confirm(`Confirmez-vous le refus ou la suspension de l'accès pour ${request.facilityName || request.email} ?`)) return;
+    try {
+      await AdminService.rejectFacilityAccess(request.id || request.email, user?.email);
+      setToastMessage({
+        title: 'Accès Établissement Restreint',
+        desc: `L'accès pour ${request.facilityName || request.email} a été refusé / suspendu.`
+      });
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'opération.");
     }
   };
 
@@ -293,8 +328,197 @@ export const AdminFacilitiesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content: Split Master-Detail */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Navigation Sub-Tabs */}
+      <div className="flex items-center gap-2 mb-6 border-b border-outline-variant/30 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveSection('FACILITIES')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSection === 'FACILITIES'
+              ? 'bg-primary text-on-primary shadow-xs'
+              : 'text-on-surface-variant hover:bg-surface-container-low'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">domain</span>
+          <span>Annuaire des Établissements ({facilities.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSection('REQUESTS')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
+            activeSection === 'REQUESTS'
+              ? 'bg-primary text-on-primary shadow-xs'
+              : 'text-on-surface-variant hover:bg-surface-container-low'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">how_to_reg</span>
+          <span>Demandes d'accès & Habilitations</span>
+          {accessRequests.filter(r => r.facilityAccessStatus === 'PENDING').length > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono animate-pulse ${
+              activeSection === 'REQUESTS' ? 'bg-amber-400 text-slate-950' : 'bg-amber-500 text-slate-950'
+            }`}>
+              {accessRequests.filter(r => r.facilityAccessStatus === 'PENDING').length} à valider
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeSection === 'REQUESTS' ? (
+        <div className="space-y-4">
+          <div className="bg-surface-container-lowest p-5 rounded-3xl border border-outline-variant/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">verified_user</span>
+                Habilitations & Validation des Établissements de Santé
+              </h3>
+              <p className="text-xs text-on-surface-variant mt-0.5">
+                Conformité ARS & RGPD : chaque établissement doit être validé par un administrateur pour débloquer la commande de transports.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs font-bold font-mono flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                {accessRequests.filter(r => r.facilityAccessStatus === 'PENDING').length} en attente
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-xs font-bold font-mono">
+                {accessRequests.filter(r => r.facilityAccessStatus === 'APPROVED').length} validés
+              </span>
+            </div>
+          </div>
+
+          {/* Cards of requests */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {accessRequests.map((req) => {
+              const status = req.facilityAccessStatus || 'PENDING';
+              const isPending = status === 'PENDING';
+              const isApproved = status === 'APPROVED';
+              const isRejected = status === 'REJECTED';
+
+              return (
+                <div
+                  key={req.id || req.email}
+                  className={`p-5 rounded-3xl border transition-all flex flex-col justify-between gap-4 ${
+                    isPending
+                      ? 'bg-white border-amber-300 shadow-md shadow-amber-500/10'
+                      : isApproved
+                      ? 'bg-surface-container-lowest border-emerald-200/80'
+                      : 'bg-surface-container-lowest border-rose-200 opacity-80'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-primary font-mono block">
+                          ÉTABLISSEMENT DE SANTÉ
+                        </span>
+                        <h4 className="text-base font-black text-on-surface mt-0.5">
+                          {req.facilityName || 'Structure de Soins'}
+                        </h4>
+                      </div>
+
+                      {/* Status Badge */}
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border shrink-0 flex items-center gap-1 ${
+                        isPending
+                          ? 'bg-amber-50 border-amber-300 text-amber-900 animate-pulse'
+                          : isApproved
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                          : 'bg-rose-50 border-rose-300 text-rose-800'
+                      }`}>
+                        <span className="material-symbols-outlined text-[14px]">
+                          {isPending ? 'hourglass_top' : isApproved ? 'check_circle' : 'cancel'}
+                        </span>
+                        {isPending ? 'En attente' : isApproved ? 'Accès Validé' : 'Accès Restreint'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-surface-container-low/50 p-3 rounded-2xl border border-outline-variant/20">
+                      <div>
+                        <span className="text-on-surface-variant text-[11px] block">Numéro FINESS</span>
+                        <span className="font-mono font-bold text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 inline-block mt-0.5">
+                          {req.facilityFiness || 'Non renseigné'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-on-surface-variant text-[11px] block">Déclarant</span>
+                        <span className="font-semibold text-on-surface truncate block mt-0.5">
+                          {req.firstName} {req.lastName}
+                        </span>
+                      </div>
+                      <div className="col-span-2 pt-1 border-t border-outline-variant/20 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-on-surface-variant">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">mail</span>
+                          {req.email}
+                        </span>
+                        {req.phone && (
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">call</span>
+                            {req.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {req.facilityAccessRequestedAt && (
+                      <div className="text-[11px] text-on-surface-variant flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">calendar_today</span>
+                        <span>Demande soumise le {new Date(req.facilityAccessRequestedAt).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-outline-variant/20">
+                    {!isApproved && (
+                      <button
+                        type="button"
+                        onClick={() => handleApproveRequest(req)}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-base">check_circle</span>
+                        <span>Valider l'accès</span>
+                      </button>
+                    )}
+
+                    {!isRejected && (
+                      <button
+                        type="button"
+                        onClick={() => handleRejectRequest(req)}
+                        className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-base">block</span>
+                        <span>Refuser</span>
+                      </button>
+                    )}
+
+                    {isApproved && (
+                      <div className="flex-1 text-[11px] text-emerald-800 font-medium flex items-center gap-1 bg-emerald-50/80 p-2 rounded-xl border border-emerald-200">
+                        <span className="material-symbols-outlined text-sm">verified</span>
+                        <span>Compte habilité : accès complet aux sorties & commandes.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {accessRequests.length === 0 && (
+              <div className="col-span-2 p-12 text-center bg-surface-container-lowest rounded-3xl border border-outline-variant/30">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">inbox</span>
+                <p className="text-xs font-semibold text-on-surface-variant">Aucune demande d'accès enregistrée pour le moment.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Main Content: Split Master-Detail */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Col: Facilities List */}
         <div className="lg:col-span-7 space-y-4">
           {/* Search & Filters */}
@@ -556,6 +780,7 @@ export const AdminFacilitiesPage: React.FC = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL : CRÉER / MODIFIER ÉTABLISSEMENT                                   */}

@@ -1,11 +1,23 @@
-import { UserProfile, UserRole } from '../types';
+import { UserProfile, UserRole, TransporterSubscription } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
 
-// Comptes de démonstration pré-configurés pour la Martinique
-export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
-  PATIENT: {
+// Comptes réalistes pré-configurés (France Métropolitaine & DOM)
+export const REALISTIC_PROFILES: Record<string, UserProfile> = {
+  // 1. PATIENTS
+  'jean.dupont@orange.fr': {
+    id: 'user-pat-01',
+    email: 'jean.dupont@orange.fr',
+    role: 'PATIENT',
+    firstName: 'Jean',
+    lastName: 'Dupont',
+    phone: '06 12 34 56 78',
+    nir: '1 85 04 75 112 345 88',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    createdAt: '2026-01-10T10:00:00Z'
+  },
+  'c.marieluce@orange.fr': {
     id: 'demo-patient-972',
     email: 'c.marieluce@orange.fr',
     role: 'PATIENT',
@@ -14,9 +26,37 @@ export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
     phone: '0696 55 44 33',
     nir: '1 54 11 97 208 771 72',
     avatarUrl: '/assets/headshot.png',
-    createdAt: new Date().toISOString()
+    createdAt: '2026-01-10T10:00:00Z'
   },
-  FACILITY: {
+  'sophie.laurent@gmail.com': {
+    id: 'user-pat-02',
+    email: 'sophie.laurent@gmail.com',
+    role: 'PATIENT',
+    firstName: 'Sophie',
+    lastName: 'Laurent',
+    phone: '06 88 99 11 22',
+    nir: '2 90 08 69 044 123 45',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    createdAt: '2026-01-12T10:00:00Z'
+  },
+
+  // 2. ÉTABLISSEMENTS DE SANTÉ
+  'coordination@aphp.fr': {
+    id: 'user-fac-01',
+    email: 'coordination@aphp.fr',
+    role: 'FACILITY',
+    firstName: 'Dr. Alexandre',
+    lastName: 'Mercier',
+    phone: '01 42 16 00 00',
+    facilityId: 'aphp-pitie-salpetriere',
+    facilityName: 'AP-HP - Hôpital Universitaire Pitié-Salpêtrière',
+    facilityFiness: '750100018',
+    facilityAccessStatus: 'APPROVED',
+    facilityAccessApprovedAt: '2026-01-01T08:00:00.000Z',
+    avatarUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80',
+    createdAt: '2026-01-01T08:00:00Z'
+  },
+  'coordination@chu-martinique.fr': {
     id: 'demo-facility-972',
     email: 'coordination@chu-martinique.fr',
     role: 'FACILITY',
@@ -25,31 +65,127 @@ export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
     phone: '0596 55 20 00',
     facilityId: 'chu-zobda-quitman',
     facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    facilityFiness: '970211145',
+    facilityAccessStatus: 'APPROVED',
+    facilityAccessApprovedAt: '2026-01-01T08:00:00.000Z',
     avatarUrl: '/assets/nurse_almont.jpg',
-    createdAt: new Date().toISOString()
+    createdAt: '2026-01-01T08:00:00Z'
   },
-  TRANSPORTER: {
+  'coordination@chu-bordeaux.fr': {
+    id: 'user-fac-02',
+    email: 'coordination@chu-bordeaux.fr',
+    role: 'FACILITY',
+    firstName: 'Hélène',
+    lastName: 'Fabre',
+    phone: '05 56 79 56 79',
+    facilityId: 'chu-bordeaux-pellegrin',
+    facilityName: 'CHU de Bordeaux - Groupe Hospitalier Pellegrin',
+    facilityFiness: '330100012',
+    facilityAccessStatus: 'APPROVED',
+    facilityAccessApprovedAt: '2026-01-01T08:00:00.000Z',
+    avatarUrl: 'https://images.unsplash.com/photo-1594824813593-90d0b001a4ee?w=150&auto=format&fit=crop&q=80',
+    createdAt: '2026-01-01T08:00:00Z'
+  },
+
+  // 3. TRANSPORTEURS SANITAIRES
+  'dispatch@ambulances-idf.fr': {
+    id: 'user-trans-01',
+    email: 'dispatch@ambulances-idf.fr',
+    role: 'TRANSPORTER',
+    firstName: 'Thomas',
+    lastName: 'Leroy',
+    phone: '06 20 30 40 50',
+    transporterId: 'ambulances-idf-secours',
+    transporterName: 'Ambulances Île-de-France Secours',
+    transporterLicense: '75-AMB-2024-12',
+    subscription: {
+      status: 'ACTIVE',
+      trialDaysTotal: 30,
+      trialDaysRemaining: 30,
+      planName: 'Formule Pro Nationale (Illimitée)',
+      monthlyPrice: 19.9,
+      isTrialUnlocked: true,
+      whatsappVerified: true,
+      whatsappPhone: '06 20 30 40 50'
+    },
+    avatarUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
+    createdAt: '2026-01-05T08:00:00Z'
+  },
+  'dispatch@madinina-secours.mq': {
     id: 'demo-transporter-972',
     email: 'dispatch@madinina-secours.mq',
     role: 'TRANSPORTER',
     firstName: 'Patrick',
     lastName: 'Césaire',
-    phone: '0596 75 20 20',
+    phone: '0696 75 20 20',
     transporterId: 'madinina-secours',
     transporterName: 'Ambulances Madinina Secours',
+    transporterLicense: '972-AMB-2024-08',
+    subscription: {
+      status: 'ACTIVE',
+      trialDaysTotal: 30,
+      trialDaysRemaining: 30,
+      planName: 'Formule Pro Sanitaire (Illimitée)',
+      monthlyPrice: 19.9,
+      isTrialUnlocked: true,
+      whatsappVerified: true,
+      whatsappPhone: '0696 75 20 20'
+    },
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    createdAt: new Date().toISOString()
+    createdAt: '2026-01-05T08:00:00Z'
   },
-  ADMIN: {
+  'contact@taxis-sante-lyon.fr': {
+    id: 'user-trans-02',
+    email: 'contact@taxis-sante-lyon.fr',
+    role: 'TRANSPORTER',
+    firstName: 'Karim',
+    lastName: 'Belkacem',
+    phone: '06 70 80 90 10',
+    transporterId: 'taxis-sante-lyon',
+    transporterName: 'Taxis Conventionnés Santé Rhône',
+    transporterLicense: '69-CPAM-2023-45',
+    subscription: {
+      status: 'NONE',
+      trialDaysTotal: 30,
+      trialDaysRemaining: 30,
+      planName: 'Formule Taxi Conventionné Pro',
+      monthlyPrice: 39,
+      isTrialUnlocked: false,
+      whatsappVerified: false,
+      whatsappPhone: '06 70 80 90 10'
+    },
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    createdAt: '2026-01-08T08:00:00Z'
+  },
+
+  // 4. ADMINISTRATEURS & RÉGULATEURS
+  'admin@clinigo.fr': {
+    id: 'user-admin-01',
+    email: 'admin@clinigo.fr',
+    role: 'ADMIN',
+    firstName: 'Pierre',
+    lastName: 'Delmas',
+    phone: '01 89 00 12 34',
+    avatarUrl: '/assets/logo-icon.svg',
+    createdAt: '2026-01-01T00:00:00Z'
+  },
+  'admin@medictrans972.mq': {
     id: 'demo-admin-972',
     email: 'admin@medictrans972.mq',
     role: 'ADMIN',
     firstName: 'Régulation',
-    lastName: 'Centrale 972',
+    lastName: 'Centrale',
     phone: '0596 72 00 97',
     avatarUrl: '/assets/logo-icon.svg',
-    createdAt: new Date().toISOString()
+    createdAt: '2026-01-01T00:00:00Z'
   }
+};
+
+export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
+  PATIENT: REALISTIC_PROFILES['jean.dupont@orange.fr'],
+  FACILITY: REALISTIC_PROFILES['coordination@aphp.fr'],
+  TRANSPORTER: REALISTIC_PROFILES['dispatch@ambulances-idf.fr'],
+  ADMIN: REALISTIC_PROFILES['admin@clinigo.fr']
 };
 
 export class AuthService {
@@ -175,7 +311,13 @@ export class AuthService {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Détection prioritaire des comptes Administrateur et Démo officiels 972
+    // 1. Détection prioritaire des comptes réalistes pré-configurés
+    if (REALISTIC_PROFILES[cleanEmail]) {
+      const demoUser = { ...REALISTIC_PROFILES[cleanEmail] };
+      this.setLocalUser(demoUser);
+      return { user: demoUser, error: null };
+    }
+
     const matchedDemoRole = (Object.keys(DEMO_PROFILES) as UserRole[]).find(
       r => DEMO_PROFILES[r].email.toLowerCase() === cleanEmail
     );
@@ -267,6 +409,9 @@ export class AuthService {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    const isFacility = profileData.role === 'FACILITY';
+    const isTransporter = profileData.role === 'TRANSPORTER';
+
     const newUser: UserProfile = {
       id: `user-${Date.now()}`,
       email: cleanEmail,
@@ -276,7 +421,21 @@ export class AuthService {
       phone: profileData.phone,
       nir: profileData.nir,
       facilityName: profileData.facilityName,
+      facilityFiness: profileData.facilityFiness,
+      facilityAccessStatus: isFacility ? 'PENDING' : undefined,
+      facilityAccessRequestedAt: isFacility ? new Date().toISOString() : undefined,
       transporterName: profileData.transporterName,
+      transporterLicense: profileData.transporterLicense,
+      subscription: isTransporter ? {
+        status: 'NONE',
+        trialDaysTotal: 30,
+        trialDaysRemaining: 30,
+        isTrialUnlocked: false,
+        whatsappVerified: false,
+        planName: 'Formule Pro Sanitaire (Illimitée)',
+        monthlyPrice: 19.9,
+        whatsappPhone: profileData.phone
+      } : undefined,
       password: password,
       avatarUrl: '/assets/headshot.png',
       createdAt: new Date().toISOString()
@@ -355,6 +514,133 @@ export class AuthService {
     localStorage.removeItem(STORAGE_KEY_AUTH_USER);
   }
 
+  /**
+   * Débloque l'essai gratuit de 1 mois pour le transporteur suite à validation WhatsApp
+   */
+  static unlockTransporterFreeTrial(phone: string, customDays: number = 30): UserProfile | null {
+    const current = this.getLocalUser();
+    if (!current) return null;
+
+    const trialStart = new Date();
+    const trialEnd = new Date(Date.now() + customDays * 86400000);
+
+    const subscription: TransporterSubscription = {
+      status: 'TRIAL',
+      trialDaysTotal: customDays,
+      trialDaysRemaining: customDays,
+      trialStartedAt: trialStart.toISOString(),
+      trialExpiresAt: trialEnd.toISOString(),
+      isTrialUnlocked: true,
+      whatsappVerified: true,
+      whatsappPhone: phone,
+      planName: 'Formule Pro Sanitaire (Illimitée)',
+      monthlyPrice: 19.9,
+      currentPeriodStart: trialStart.toISOString().slice(0, 10),
+      currentPeriodEnd: trialEnd.toISOString().slice(0, 10),
+      invoices: [
+        {
+          id: `inv-${Date.now()}`,
+          invoiceNumber: `FACT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          date: new Date().toISOString().slice(0, 10),
+          amount: 0,
+          description: `Offre Découverte — Période d’essai gratuit ${customDays} jours (Vérification WhatsApp)`,
+          status: 'TRIAL_FREE',
+          periodStart: trialStart.toISOString().slice(0, 10),
+          periodEnd: trialEnd.toISOString().slice(0, 10)
+        }
+      ]
+    };
+
+    const updatedUser: UserProfile = {
+      ...current,
+      phone: phone || current.phone,
+      subscription
+    };
+
+    this.setLocalUser(updatedUser);
+    this.updateUserInGlobalList(updatedUser);
+    return updatedUser;
+  }
+
+  /**
+   * Mise à jour de l'abonnement du transporteur
+   */
+  static updateTransporterSubscription(updates: Partial<TransporterSubscription>): UserProfile | null {
+    const current = this.getLocalUser();
+    if (!current) return null;
+
+    const currentSub = current.subscription || {
+      status: 'NONE',
+      trialDaysTotal: 30,
+      trialDaysRemaining: 30,
+      isTrialUnlocked: false,
+      whatsappVerified: false,
+      planName: 'Formule Pro Sanitaire (Illimitée)',
+      monthlyPrice: 19.9
+    };
+
+    const updatedUser: UserProfile = {
+      ...current,
+      subscription: {
+        ...currentSub,
+        ...updates
+      }
+    };
+
+    this.setLocalUser(updatedUser);
+    this.updateUserInGlobalList(updatedUser);
+    return updatedUser;
+  }
+
+  /**
+   * Validation / Refus d'accès pour un établissement de santé
+   */
+  static updateFacilityAccessStatus(userEmailOrId: string, status: 'PENDING' | 'APPROVED' | 'REJECTED'): boolean {
+    try {
+      const raw = localStorage.getItem('medictrans_admin_users_972');
+      const users: UserProfile[] = raw ? JSON.parse(raw) : [];
+      const userIdx = users.findIndex(u => 
+        u.id === userEmailOrId || 
+        u.email.toLowerCase() === userEmailOrId.toLowerCase() ||
+        u.facilityFiness === userEmailOrId
+      );
+
+      if (userIdx !== -1) {
+        users[userIdx].facilityAccessStatus = status;
+        if (status === 'APPROVED') {
+          users[userIdx].facilityAccessApprovedAt = new Date().toISOString();
+        }
+        localStorage.setItem('medictrans_admin_users_972', JSON.stringify(users));
+
+        // Mettre à jour l'utilisateur courant s'il correspond
+        const current = this.getLocalUser();
+        if (current && (current.id === users[userIdx].id || current.email.toLowerCase() === users[userIdx].email.toLowerCase())) {
+          this.setLocalUser({
+            ...current,
+            facilityAccessStatus: status,
+            facilityAccessApprovedAt: status === 'APPROVED' ? new Date().toISOString() : current.facilityAccessApprovedAt
+          });
+        }
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  private static updateUserInGlobalList(updated: UserProfile) {
+    try {
+      const raw = localStorage.getItem('medictrans_admin_users_972');
+      const users: UserProfile[] = raw ? JSON.parse(raw) : [];
+      const idx = users.findIndex(u => u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase());
+      if (idx !== -1) {
+        users[idx] = { ...users[idx], ...updated };
+      } else {
+        users.unshift(updated);
+      }
+      localStorage.setItem('medictrans_admin_users_972', JSON.stringify(users));
+    } catch {}
+  }
+
   // Helpers LocalStorage
   public static getLocalUser(): UserProfile | null {
     try {
@@ -371,7 +657,7 @@ export class AuthService {
     }
   }
 
-  private static setLocalUser(user: UserProfile): void {
+  public static setLocalUser(user: UserProfile): void {
     try {
       localStorage.setItem(STORAGE_KEY_AUTH_USER, JSON.stringify(user));
     } catch (e) {

@@ -3,8 +3,10 @@ import { AdminLayout } from '../components/AdminLayout';
 import { adminService } from '../services/adminService';
 import { Transporter } from '../types';
 import { MARTINIQUE_COMMUNES } from '../services/rideService';
+import { useAuth } from '../contexts/AuthContext';
 
 export const AdminTransportersPage: React.FC = () => {
+  const { user } = useAuth();
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [selectedTransporter, setSelectedTransporter] = useState<Transporter | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +19,8 @@ export const AdminTransportersPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  const [trialDaysInput, setTrialDaysInput] = useState(30);
 
   // Create Form State
   const [newTransporter, setNewTransporter] = useState({
@@ -226,6 +230,26 @@ export const AdminTransportersPage: React.FC = () => {
     }
   };
 
+  const handleOpenTrialModal = (transporter: Transporter) => {
+    setSelectedTransporter(transporter);
+    setTrialDaysInput(transporter.subscription?.trialDaysRemaining ?? 30);
+    setShowTrialModal(true);
+  };
+
+  const handleSaveTrialDays = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTransporter) return;
+    try {
+      await adminService.updateTransporterTrialDays(selectedTransporter.id, trialDaysInput, user?.email);
+      setShowTrialModal(false);
+      setActionFeedback(`Période de gratuité mise à jour : ${trialDaysInput} jours alloués à ${selectedTransporter.companyName}.`);
+      await loadData();
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de la mise à jour de la gratuité");
+    }
+  };
+
   // Fleet Totals
   const totalAmbulances = transporters.reduce((acc, t) => acc + (t.fleetAmbulances || 0), 0);
   const totalVsl = transporters.reduce((acc, t) => acc + (t.fleetVsl || 0), 0);
@@ -397,6 +421,9 @@ export const AdminTransportersPage: React.FC = () => {
                       <span className="font-semibold text-emerald-700">
                         {t.complianceRate || 98}% conformité
                       </span>
+                      <span className="font-mono text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300/40">
+                        {t.subscription?.trialDaysRemaining ?? 30}j gratuit
+                      </span>
                     </div>
                   </div>
                 );
@@ -428,7 +455,7 @@ export const AdminTransportersPage: React.FC = () => {
                           : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}
                     >
-                      {selectedTransporter.verified ? 'Agrément Actif ARS 972' : 'Dossier en Instruction'}
+                      {selectedTransporter.verified ? 'Agrément Actif ARS' : 'Dossier en Instruction'}
                     </span>
                   </div>
                   <p className="text-xs text-on-surface-variant mt-1">
@@ -446,6 +473,14 @@ export const AdminTransportersPage: React.FC = () => {
                     }`}
                   >
                     {selectedTransporter.verified ? 'Suspendre l\'Agrément' : 'Valider l\'Agrément ARS'}
+                  </button>
+                  <button
+                    onClick={() => handleOpenTrialModal(selectedTransporter)}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 border border-amber-400/50 text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                    title="Gérer la gratuité / jours d'essai"
+                  >
+                    <span className="material-symbols-outlined text-base text-amber-600">stars</span>
+                    <span>Gratuité ({selectedTransporter.subscription?.trialDaysRemaining ?? 30}j)</span>
                   </button>
                   <button
                     onClick={handleOpenEdit}
@@ -469,6 +504,36 @@ export const AdminTransportersPage: React.FC = () => {
                     <span className="material-symbols-outlined text-base">delete</span>
                   </button>
                 </div>
+              </div>
+
+              {/* Abonnement & Gratuité Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-600/10 border border-amber-300/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
+                    <span className="material-symbols-outlined text-xl">workspace_premium</span>
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900">
+                        Abonnement : {selectedTransporter.subscription?.status === 'TRIAL' ? 'Essai gratuit actif' : selectedTransporter.subscription?.status === 'ACTIVE' ? 'Abonnement Mensuel Pro' : 'Non abonné / Essai disponible'}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300">
+                        {selectedTransporter.subscription?.trialDaysRemaining ?? 30} jours de gratuité
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      {selectedTransporter.subscription?.whatsappVerified ? 'Numéro WhatsApp vérifié' : 'Numéro WhatsApp non encore vérifié'} • Formule Pro Sanitaire (49 € HT / mois)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenTrialModal(selectedTransporter)}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
+                >
+                  <span className="material-symbols-outlined text-base">edit_calendar</span>
+                  <span>Gérer les jours</span>
+                </button>
               </div>
 
               {/* Administrative IDs */}
@@ -1024,6 +1089,102 @@ export const AdminTransportersPage: React.FC = () => {
                 Confirmer la Suppression
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRIAL DAYS MODAL */}
+      {showTrialModal && selectedTransporter && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-md w-full p-6 border border-amber-300 shadow-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+              <div className="flex items-center gap-2">
+                <span className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-900 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-xl text-amber-600">stars</span>
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-on-surface">Gratuité & Période d'Essai</h3>
+                  <span className="text-[11px] text-on-surface-variant font-medium">
+                    {selectedTransporter.companyName}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTrialModal(false)}
+                className="p-1 rounded-full hover:bg-surface-container text-on-surface-variant cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTrialDays} className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-amber-700">info</span>
+                  <span>Gestion Administrateur des accès gratuits</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-amber-900">
+                  Définissez le nombre total de jours de gratuité accordés à cette entreprise sanitaire pour tester la plateforme. Le compte à rebours est actualisé en temps réel sur son panel.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-2">
+                  Raccourcis d'attribution rapide :
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[7, 15, 30, 60].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setTrialDaysInput(days)}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold font-mono transition-all border cursor-pointer ${
+                        trialDaysInput === days
+                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                          : 'bg-surface-container-low hover:bg-surface-container text-on-surface border-outline-variant/30'
+                      }`}
+                    >
+                      {days} jours
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1">
+                  Nombre personnalisé de jours restants :
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={trialDaysInput}
+                    onChange={(e) => setTrialDaysInput(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-mono font-bold text-sm text-on-surface outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="text-xs font-bold text-on-surface-variant shrink-0">jours</span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTrialModal(false)}
+                  className="px-4 py-2 rounded-xl border border-outline-variant/40 text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">check</span>
+                  <span>Enregistrer la gratuité</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

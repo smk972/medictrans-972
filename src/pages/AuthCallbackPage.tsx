@@ -58,7 +58,7 @@ export const AuthCallbackPage: React.FC = () => {
         if (targetRole === 'FACILITY') {
           navigate('/etablissements', { replace: true });
         } else if (targetRole === 'TRANSPORTER') {
-          navigate('/transporteurs', { replace: true });
+          navigate('/portal-transporteur', { replace: true });
         } else if (targetRole === 'ADMIN') {
           navigate('/admin', { replace: true });
         } else {

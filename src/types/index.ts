@@ -12,7 +12,7 @@ export interface PatientInfo {
   firstName: string;
   lastName: string;
   birthDate: string;
-  nir: string; // Numéro de Sécurité Sociale (13 ou 15 chiffres)
+  nir?: string; // Numéro de Sécurité Sociale (13 ou 15 chiffres) - Optionnel si non connecté
   phone: string;
   email: string;
   address: string;
@@ -112,11 +112,38 @@ export interface RidePricing {
   tariffRegime: string; // Ex: 'CPAM Martinique 972 - Barème Officiel'
 }
 
+export interface TransporterInvoice {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  amount: number;
+  description: string;
+  status: 'PAID' | 'TRIAL_FREE';
+  periodStart?: string;
+  periodEnd?: string;
+}
+
+export interface TransporterSubscription {
+  status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'NONE';
+  trialDaysTotal: number;
+  trialDaysRemaining: number;
+  trialStartedAt?: string;
+  trialExpiresAt?: string;
+  isTrialUnlocked: boolean;
+  whatsappVerified: boolean;
+  whatsappPhone?: string;
+  planName: string;
+  monthlyPrice: number;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  invoices?: TransporterInvoice[];
+}
+
 export interface Transporter {
   id: string;
   companyName: string;
   siret: string;
-  arsLicense: string; // Agrément ARS Martinique
+  arsLicense: string; // Agrément ARS
   cpamConventionNumber: string;
   phone: string;
   email: string;
@@ -132,6 +159,7 @@ export interface Transporter {
   complianceRate?: number;
   zone?: string;
   assignedMissionsCount?: number;
+  subscription?: TransporterSubscription;
 }
 
 export interface Facility {
@@ -165,8 +193,14 @@ export interface UserProfile {
   avatarUrl?: string;
   facilityId?: string;
   facilityName?: string;
+  facilityFiness?: string;
+  facilityAccessStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  facilityAccessRequestedAt?: string;
+  facilityAccessApprovedAt?: string;
   transporterId?: string;
   transporterName?: string;
+  transporterLicense?: string;
+  subscription?: TransporterSubscription;
   nir?: string;
   password?: string;
   createdAt?: string;

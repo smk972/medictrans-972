@@ -16,9 +16,9 @@ export const KNOWLEDGE_BASE: KnowledgeDoc[] = [
     id: 'presentation-plateforme',
     category: 'reservation',
     title: "Présentation de la plateforme Clinigo (clinigo.fr)",
-    keywords: ["clinigo", "qui êtes-vous", "plateforme", "service", "martinique", "fonctionnement", "medictrans"],
-    content: `Clinigo (clinigo.fr) est la plateforme numérique de régulation et de réservation de transports sanitaires en Martinique.
-Elle met en relation directe les patients, leurs proches, les établissements de santé (CHU de Martinique, cliniques, centres de dialyse) et les sociétés de transport sanitaire agréées par l'ARS Martinique (ambulances, véhicules sanitaires légers VSL, et taxis conventionnés CPAM).
+    keywords: ["clinigo", "qui êtes-vous", "plateforme", "service", "france", "dom", "martinique", "guadeloupe", "reunion", "guyane", "mayotte", "fonctionnement"],
+    content: `Clinigo (clinigo.fr) est la plateforme numérique de régulation et de réservation de transports sanitaires en France métropolitaine et dans tous les départements et territoires d'Outre-Mer (Guadeloupe, Martinique, Guyane, La Réunion, Mayotte).
+Elle met en relation directe les patients, leurs proches, les établissements de santé (CHU, hôpitaux publics, cliniques, centres de dialyse, centres de cancérologie) et les sociétés de transport sanitaire agréées par les ARS et conventionnées CPAM / CGSS (ambulances, véhicules sanitaires légers VSL, et taxis conventionnés).
 Le service est accessible 24h/24 et 7j/7 pour la saisie et la régulation des transports.`
   },
   {

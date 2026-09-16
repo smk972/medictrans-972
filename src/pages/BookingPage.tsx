@@ -103,20 +103,29 @@ export const BookingPage: React.FC = () => {
   };
 
   // Form states - Patient & Médical
-  const [lastName, setLastName] = useState(user?.lastName || 'GLISSANT');
-  const [firstName, setFirstName] = useState(user?.firstName || 'Aimé');
+  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [guestEmail, setGuestEmail] = useState('');
   const [nir, setNir] = useState(() => {
-    const raw = user?.nir || '1 54 08 97 213 456';
+    const raw = user?.nir || '';
+    if (!raw) return '';
     const val = validateNir(raw);
     if (!val.isValid && val.canAutoCalculateKey) {
       return autoFixNir(raw);
     }
     return raw;
   });
-  const nirValidation = useMemo(() => validateNir(nir), [nir]);
+  // NIR optionnel : Ne bloque jamais si non renseigné
+  const nirValidation = useMemo(() => {
+    if (!nir.trim()) {
+      return { isValid: true, errorMessage: undefined, canAutoCalculateKey: false };
+    }
+    return validateNir(nir);
+  }, [nir]);
+  const isNirInvalid = nir.trim().length > 0 && !nirValidation.isValid;
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
-  const [phone, setPhone] = useState(user?.phone || '06 96 44 20 18');
-  const [birthDate, setBirthDate] = useState('1954-08-14');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [birthDate, setBirthDate] = useState('1980-01-01');
   const [isAld, setIsAld] = useState(true);
   const [mobility, setMobility] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
   const [oxygen, setOxygen] = useState(false);
@@ -312,19 +321,21 @@ export const BookingPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Règle impérative : Le NIR doit obligatoirement répondre aux caractéristiques officielles pour valider la demande
-    let currentNir = nir;
-    if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
-      currentNir = autoFixNir(nir);
-      setNir(currentNir);
-    } else if (!nirValidation.isValid) {
-      setNirSubmitAttempted(true);
-      const el = document.getElementById('patientNir');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.focus();
+    // Si un NIR est renseigné, validation de conformité
+    let currentNir = nir.trim();
+    if (currentNir) {
+      if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
+        currentNir = autoFixNir(currentNir);
+        setNir(currentNir);
+      } else if (!nirValidation.isValid) {
+        setNirSubmitAttempted(true);
+        const el = document.getElementById('patientNir');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+        return;
       }
-      return;
     }
 
     setIsSubmitting(true);
@@ -346,9 +357,9 @@ export const BookingPage: React.FC = () => {
           firstName,
           lastName,
           birthDate,
-          nir: currentNir,
+          nir: currentNir || undefined,
           phone,
-          email: user?.email || `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
+          email: user?.email || guestEmail || `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
           address: pickupAddress,
           city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Schœlcher',
           postalCode: '97233',
@@ -479,8 +490,8 @@ export const BookingPage: React.FC = () => {
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
       <Header />
       <SEOHead
-        title="Réservation Transport Sanitaire Martinique | Ambulance, VSL & Taxi CPAM 972"
-        description="Réservez en ligne votre transport médical en Martinique : Ambulance conventionnée, VSL sanitaire léger ou Taxi conventionné CPAM. Calcul de trajet en direct et tiers-payant 100%."
+        title="Réservation Transport Sanitaire | Ambulance, VSL & Taxi CPAM (France & DOM)"
+        description="Réservez en ligne votre transport médical partout en France métropolitaine et dans les DOM : Ambulance conventionnée, VSL sanitaire léger ou Taxi conventionné CPAM. Calcul de trajet et tiers-payant 100%."
         canonicalPath="/reserver"
         ogImage="/assets/medictrans_hero_discover.jpg"
       />
@@ -551,7 +562,7 @@ export const BookingPage: React.FC = () => {
                   <span className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded-full font-semibold uppercase tracking-wider">Remplissage en direct</span>
                 </p>
                 <p className="text-xs text-blue-800 mt-0.5">
-                  Discutez avec Eva et elle remplira directement les cases de votre formulaire au fil de votre échange (départ, destination, horaires, NIR, véhicule).
+                  Discutez avec Eva et elle remplira directement les cases de votre formulaire au fil de votre échange (départ, destination, date, horaires, véhicule).
                 </p>
               </div>
             </div>
@@ -654,7 +665,7 @@ export const BookingPage: React.FC = () => {
                       required
                       icon="domain"
                       defaultFilter="etablissement"
-                      helperText="Tous les CHU, hôpitaux, centres spécialisés Martinique"
+                      helperText="Tous les CHU, hôpitaux, cliniques et centres de soins"
                       allowManualEntry={true}
                       showCategories={true}
                       showQuickCommunes={false}
@@ -807,7 +818,7 @@ export const BookingPage: React.FC = () => {
                   {isRecurring && (
                     <div className="mt-2 pt-3 border-t border-outline-variant/20 flex flex-col gap-3 animate-fadeIn">
                       <p className="text-xs text-on-surface-variant">
-                        Sélectionnez les dates des transports pour planifier l'ensemble de vos séances régulières en Martinique :
+                        Sélectionnez les dates des transports pour planifier l'ensemble de vos séances régulières :
                       </p>
 
                       {/* Raccourcis rapides de récurrence */}
@@ -945,9 +956,9 @@ export const BookingPage: React.FC = () => {
 
                   <NirInput
                     id="patientNir"
-                    label="Numéro de Sécurité Sociale (NIR)"
+                    label="Numéro de Sécurité Sociale (NIR) (Optionnel)"
                     value={nir}
-                    required={true}
+                    required={false}
                     onChange={(formattedVal) => setNir(formattedVal)}
                     className="md:col-span-2"
                   />
@@ -957,7 +968,7 @@ export const BookingPage: React.FC = () => {
                     label="Téléphone portable"
                     required
                     value={phone}
-                    defaultDialCode="+596"
+                    defaultDialCode="+33"
                     showValidation={false}
                     onChange={(full) => {
                       setPhone(full);
@@ -1001,7 +1012,7 @@ export const BookingPage: React.FC = () => {
                         </span>
                       </div>
                       <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5 text-xs">
-                        Prise en charge intégrale par la Sécurité Sociale / CGSS Martinique au titre de l'ALD 30
+                        Prise en charge intégrale par l'Assurance Maladie (CPAM / CGSS) au titre de l'ALD 30
                       </span>
                     </div>
                   </div>
@@ -1435,7 +1446,7 @@ export const BookingPage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-on-surface-variant">
                       <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                         <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                        Tous les motifs remboursables CGSS Martinique / CPAM 972
+                        Tous les motifs remboursables Assurance Maladie (CPAM / CGSS)
                       </span>
                       {motif && (
                         <span className="italic text-on-surface-variant/80 truncate max-w-sm">
@@ -1453,7 +1464,7 @@ export const BookingPage: React.FC = () => {
                       type="text"
                       value={doctor}
                       onChange={(e) => setDoctor(e.target.value)}
-                      placeholder="Ex. Dr. J-M Lafontaine - Oncologie CHU Martinique"
+                      placeholder="Ex. Dr. Martin - Oncologie CHU"
                       className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
                     />
                   </div>
@@ -1486,7 +1497,7 @@ export const BookingPage: React.FC = () => {
                 <div className="flex flex-col gap-space-sm pt-space-xs">
                   <label htmlFor="transporter-select" className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-sm text-primary">domain</span>
-                    <span>Transporteur conventionné en Martinique (Optionnel) :</span>
+                    <span>Transporteur conventionné (Optionnel) :</span>
                   </label>
 
                   <div className="relative">
@@ -1501,7 +1512,7 @@ export const BookingPage: React.FC = () => {
                       </option>
                       {transportersList.map((t) => (
                         <option key={t.id} value={t.id}>
-                          🏢 {t.companyName} ({t.city || 'Martinique'})
+                          🏢 {t.companyName} ({t.city || 'Conventionné'})
                         </option>
                       ))}
                     </select>
@@ -1530,7 +1541,7 @@ export const BookingPage: React.FC = () => {
                     <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs flex items-start gap-2.5 text-on-surface-variant">
                       <span className="material-symbols-outlined text-secondary text-base shrink-0 mt-0.5">hub</span>
                       <div className="text-[11px] leading-relaxed">
-                        <strong>Diffusion générale optimale :</strong> Votre demande sera transmise simultanément à l'ensemble des compagnies de transport sanitaire conventionnées de Martinique pour une attribution au premier disponible.
+                        <strong>Diffusion générale optimale :</strong> Votre demande sera transmise simultanément à l'ensemble des compagnies de transport sanitaire conventionnées de votre secteur pour une attribution au premier disponible.
                       </div>
                     </div>
                   )}
@@ -1745,7 +1756,7 @@ export const BookingPage: React.FC = () => {
                   <div className="flex items-center justify-between pb-1 border-b border-outline-variant/20">
                     <span className="font-bold text-on-surface flex items-center gap-1">
                       <span className="material-symbols-outlined text-[15px] text-primary">receipt_long</span>
-                      Tarif Conventionné CPAM 972
+                      Tarif Conventionné Assurance Maladie
                     </span>
                     <span className="font-extrabold text-on-surface font-mono text-sm text-primary">
                       {ridePricing.totalPrestation.toFixed(2)} €
@@ -1753,7 +1764,7 @@ export const BookingPage: React.FC = () => {
                   </div>
 
                   <div className="flex justify-between items-center text-on-surface-variant pt-1">
-                    <span>Forfait départemental Martinique</span>
+                    <span>Forfait départemental réglementaire</span>
                     <span className="font-mono">{ridePricing.baseForfait.toFixed(2)} €</span>
                   </div>
 
@@ -1805,24 +1816,24 @@ export const BookingPage: React.FC = () => {
 
                 {/* Submit Action */}
                 <div className="flex flex-col gap-space-sm pt-space-xs">
-                  {(!nirValidation.isValid || nirSubmitAttempted) && (
+                  {isNirInvalid && nirSubmitAttempted && (
                     <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs">
                       <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">
                         badge
                       </span>
                       <div className="flex flex-col">
-                        <strong className="text-amber-900 font-bold">Numéro de Sécurité Sociale (NIR) obligatoire :</strong>
+                        <strong className="text-amber-900 font-bold">Numéro de Sécurité Sociale (NIR) incomplet :</strong>
                         <span className="text-[11px] text-amber-800 leading-tight mt-0.5">
-                          {nirValidation.errorMessage || "Le NIR doit comporter 13 chiffres valides pour diffuser la demande."}
+                          {nirValidation.errorMessage || "Le NIR doit comporter 13 chiffres valides."}
                         </span>
                       </div>
                     </div>
                   )}
 
                   <button
-                    disabled={isSubmitting || !nirValidation.isValid}
+                    disabled={isSubmitting || isNirInvalid}
                     className={`w-full h-14 transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
-                      !nirValidation.isValid
+                      isNirInvalid
                         ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
                         : selectedTransporter
                         ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
@@ -1835,10 +1846,10 @@ export const BookingPage: React.FC = () => {
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                         {selectedTransporter ? 'Transmission directe en cours...' : 'Diffusion en cours...'}
                       </span>
-                    ) : !nirValidation.isValid ? (
+                    ) : isNirInvalid ? (
                       <>
                         <span className="material-symbols-outlined text-[20px]">lock</span>
-                        <span>NIR obligatoire pour valider la demande</span>
+                        <span>NIR incomplet ou non valide</span>
                       </>
                     ) : selectedTransporter ? (
                       <>

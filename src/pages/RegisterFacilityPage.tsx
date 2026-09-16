@@ -47,7 +47,7 @@ export const RegisterFacilityPage: React.FC = () => {
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
       <SEOHead
         title="Conventionnement Établissements de Santé & Cadres de Soins | Clinigo"
-        description="Raccordez votre clinique, hôpital ou centre de dialyse de Martinique au réseau de régulation Clinigo pour automatiser et fiabiliser vos transports sanitaires."
+        description="Raccordez votre clinique, hôpital ou centre de dialyse au réseau de régulation Clinigo pour automatiser et fiabiliser vos transports sanitaires en France métropolitaine et dans les DOM."
         canonicalPath="/inscription-etablissement"
       />
       <Header />
@@ -66,7 +66,7 @@ export const RegisterFacilityPage: React.FC = () => {
           Conventionnez votre Établissement de Soins sur <span className="text-primary-container">Clinigo</span>
 </h1>
 <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
-          Optimisez les sorties d'hospitalisation, transferts inter-sites et transports de dialyse ou chimiothérapie sans surcharge pour vos équipes soignantes en Martinique.
+          Optimisez les sorties d'hospitalisation, transferts inter-sites et transports de dialyse ou chimiothérapie sans surcharge pour vos équipes soignantes.
         </p>
 
 <div className="flex flex-wrap items-center gap-space-sm pt-space-xs">
@@ -76,7 +76,7 @@ export const RegisterFacilityPage: React.FC = () => {
 </div>
 <div className="flex items-center gap-space-xs bg-surface-container-high px-space-sm py-space-xs rounded-lg text-on-surface">
 <span className="material-symbols-outlined text-secondary text-sm">verified_user</span>
-<span className="font-label-md text-label-md">Agrément ARS Martinique &amp; HDS</span>
+<span className="font-label-md text-label-md">Conforme ARS &amp; HDS</span>
 </div>
 </div>
 </div>
@@ -198,39 +198,28 @@ export const RegisterFacilityPage: React.FC = () => {
     value={etabName}
     onChange={(val) => setEtabName(val)}
     showCategoryFilters={true}
-    placeholder="Rechercher ou saisir un établissement / adresse en Martinique..."
-    helperText="Aide à la saisie des établissements et adresses en Martinique"
+    placeholder="Rechercher ou saisir un établissement / adresse (France & DOM)..."
+    helperText="Aide à la saisie des établissements et adresses en France métropolitaine et DOM"
   />
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="finessGeo">N° FINESS Géographique (9 chiffres) <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="970211145" id="finessGeo" maxLength={9} placeholder="970200000" required type="text" />
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="970211145" id="finessGeo" maxLength={9} placeholder="Ex: 750100018..." required type="text" />
 </div>
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="siret">Numéro SIRET (14 chiffres) <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="26972008500018" id="siret" maxLength={14} placeholder="26972000000000" required type="text" />
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="26972008500018" id="siret" maxLength={14} placeholder="14 chiffres" required type="text" />
 </div>
 </div>
 <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
 <div className="md:col-span-2 flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="commune">Commune d'implantation en Martinique <span className="text-error">*</span></label>
-<select className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="Fort-de-France" id="commune">
-<option value="Fort-de-France">Fort-de-France (97200)</option>
-<option value="La Trinité">La Trinité (97220)</option>
-<option value="Le Marin">Le Marin (97290)</option>
-<option value="Schoelcher">Schoelcher (97233)</option>
-<option value="Le Lamentin">Le Lamentin (97232)</option>
-<option value="Saint-Pierre">Saint-Pierre (97250)</option>
-<option value="Le Robert">Le Robert (97231)</option>
-<option value="Ducos">Ducos (97224)</option>
-<option value="Sainte-Marie">Sainte-Marie (97230)</option>
-<option value="Autre">Autre commune 972</option>
-</select>
+<label className="font-label-md text-label-md text-on-surface" htmlFor="commune">Commune d'implantation <span className="text-error">*</span></label>
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="Fort-de-France" id="commune" placeholder="Ville ou commune" required type="text" />
 </div>
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="codePostal">Code Postal <span className="text-error">*</span></label>
-<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="97200" id="codePostal" required type="text" />
+<input className="h-11 px-space-md rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary shadow-sm transition-all" defaultValue="97200" id="codePostal" placeholder="Ex: 75013, 97110, 97200..." required type="text" />
 </div>
 </div>
 <div className="flex flex-col gap-space-xs">
@@ -455,7 +444,7 @@ export const RegisterFacilityPage: React.FC = () => {
 </div>
 <div className="flex flex-col">
 <span className="font-label-md text-label-md text-on-surface font-semibold">Contrôle de conformité PMT (Prescription Médicale)</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Génération et validation télétransmise conforme aux règles CGSS Martinique.</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Génération et validation télétransmise conforme aux règles Assurance Maladie (CPAM / CGSS).</span>
 </div>
 </div>
 </div>
@@ -464,21 +453,21 @@ export const RegisterFacilityPage: React.FC = () => {
 <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-md flex flex-col gap-space-sm">
 <div className="flex items-center gap-space-xs">
 <span className="material-symbols-outlined text-secondary text-xl">phone_in_talk</span>
-<span className="font-label-lg text-label-lg text-on-surface font-bold">Ligne d'Assistance Cadres &amp; Régulateurs 972</span>
+<span className="font-label-lg text-label-lg text-on-surface font-bold">Ligne d'Assistance Cadres &amp; Régulateurs</span>
 </div>
 <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Un doute sur une prise en charge complexe ou un transfert sanitaire inter-îles (Guadeloupe / Hexagone EVASAN) ? Notre permanence régulatrice est disponible :
+            Un doute sur une prise en charge complexe ou un transfert sanitaire inter-établissements (Hexagone / Outre-Mer EVASAN) ? Notre permanence régulatrice est disponible :
           </p>
 <div className="bg-primary-fixed/50 p-space-sm rounded-lg flex items-center justify-between">
 <div className="flex flex-col">
-<span className="font-label-sm text-label-sm text-on-primary-fixed-variant">Ligne rouge Cadres Hospitaliers :</span>
-<span className="font-headline-sm text-headline-sm text-primary font-bold">05 96 70 97 20</span>
+<span className="font-label-sm text-label-sm text-on-primary-fixed-variant">Ligne Cadres Hospitaliers :</span>
+<span className="font-headline-sm text-headline-sm text-primary font-bold">01 89 71 00 90</span>
 </div>
 <span className="font-label-sm text-label-sm bg-primary text-on-primary px-space-sm py-space-xs rounded font-semibold">7j/7 - 24h/24</span>
 </div>
 <div className="flex items-center gap-space-xs pt-space-xs text-on-surface-variant">
 <span className="material-symbols-outlined text-primary text-sm">support_agent</span>
-<span className="font-body-sm text-body-sm">Régulateur en chef référent : <strong>M. Alain JEAN-ELIE</strong> (CHU / Clinigo)</span>
+<span className="font-body-sm text-body-sm">Permanence de régulation nationale &amp; territoriale</span>
 </div>
 </div>
 
@@ -495,7 +484,7 @@ export const RegisterFacilityPage: React.FC = () => {
 <div className="bg-surface-container-lowest p-space-xs rounded flex items-center gap-space-xs">
 <span className="material-symbols-outlined text-primary text-lg">health_and_safety</span>
 <div className="flex flex-col">
-<span className="font-label-sm text-label-sm text-on-surface font-bold leading-tight">ARS Martinique</span>
+<span className="font-label-sm text-label-sm text-on-surface font-bold leading-tight">Conforme ARS</span>
 <span className="font-label-sm text-label-sm text-on-surface-variant leading-tight">Agrément R. 6312</span>
 </div>
 </div>

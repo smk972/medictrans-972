@@ -59,12 +59,12 @@ export const RegisterTransporterPage: React.FC = () => {
 <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-xs">
 <div className="flex items-center gap-space-xs">
 <span className="material-symbols-outlined text-secondary text-sm">verified_user</span>
-<span className="font-label-sm text-label-sm">Protocole Régional 972 : Déploiement du guichet unique inter-établissements CHU Martinique &amp; Cliniques Conventionnées</span>
+<span className="font-label-sm text-label-sm">Protocole Sanitaire National : Déploiement du guichet unique inter-établissements CHU &amp; Cliniques Conventionnées</span>
 </div>
 <div className="flex items-center gap-space-md text-on-surface-variant font-label-sm text-label-sm">
 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-secondary inline-block"></span> Serveur HDS Certifié</span>
 <span className="hidden md:inline">|</span>
-<span className="hidden md:inline">Contact Régulateur : 05 96 42 12 12</span>
+<span className="hidden md:inline">Support Régulation Partenaires</span>
 </div>
 </div>
 </div>
@@ -75,13 +75,13 @@ export const RegisterTransporterPage: React.FC = () => {
 <div className="flex flex-col gap-space-xs max-w-3xl">
 <div className="inline-flex items-center gap-space-xs bg-secondary-container/40 text-on-secondary-container px-space-sm py-space-xs rounded-full w-fit">
 <span className="material-symbols-outlined text-secondary text-base">local_hospital</span>
-<span className="font-label-sm text-label-sm uppercase tracking-wider">Espace Professionnels du Transport Sanitaire - Martinique (972)</span>
+<span className="font-label-sm text-label-sm uppercase tracking-wider">Espace Professionnels du Transport Sanitaire - France métropolitaine &amp; DOM</span>
 </div>
 <h1 className="font-headline-xl text-headline-xl text-primary tracking-tight">
             Devenez Partenaire Clinigo : Rejoignez le réseau conventionné
           </h1>
 <p className="font-body-lg text-body-lg text-on-surface-variant">
-            Accédez aux missions régulées du CHU de Fort-de-France, du Centre Hospitalier de Trinité, des cliniques privées, des EHPAD et aux sorties d'hospitalisation programmées sur l'ensemble du territoire martiniquais.
+            Accédez aux missions régulées des CHU, hôpitaux, cliniques privées, centres de dialyse, EHPAD et aux sorties d'hospitalisation programmées sur votre secteur.
           </p>
 </div>
 
@@ -157,14 +157,14 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 <div className="flex flex-col">
 <h2 className="font-headline-md text-headline-md text-primary">1. Identification de l'entreprise</h2>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Renseignements légaux enregistrés auprès du greffe et de l'ARS Martinique</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Renseignements légaux enregistrés auprès du greffe et de l'ARS / Préfecture</span>
 </div>
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
 <div className="flex flex-col gap-space-xs md:col-span-2">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="companyName">Raison Sociale / Enseigne commerciale <span className="text-error">*</span></label>
-<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="companyName" placeholder="Ex: Ambulances Madinina Secours SARL" required type="text" />
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="companyName" placeholder="Ex: Ambulances &amp; VSL Santé SARL" required type="text" />
 </div>
 
 <div className="flex flex-col gap-space-xs">
@@ -173,37 +173,18 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="finessNumber">N° FINESS ou Convention CGSS Martinique <span className="text-error">*</span></label>
-<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="finessNumber" placeholder="Ex: 970 401 234" required type="text" />
+<label className="font-label-md text-label-md text-on-surface" htmlFor="finessNumber">N° FINESS, Agrément ARS ou Convention CPAM / CGSS <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="finessNumber" placeholder="Ex: N° Agrément ou N° FINESS" required type="text" />
 </div>
 
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="apeCode">Code APE / NAF <span className="text-error">*</span></label>
-<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" defaultValue="86.90A" id="apeCode" placeholder="86.90A (Ambulances) ou 49.32Z" required type="text" />
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" defaultValue="86.90A" id="apeCode" placeholder="86.90A (Ambulances) ou 49.32Z (Taxis)" required type="text" />
 </div>
 
 <div className="flex flex-col gap-space-xs">
-<label className="font-label-md text-label-md text-on-surface" htmlFor="communeSelect">Commune d'implantation / Garage <span className="text-error">*</span></label>
-<div className="relative">
-<select className="h-11 w-full px-space-sm pr-10 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md appearance-none focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="communeSelect" required>
-<option value="">Sélectionnez la commune...</option>
-<option  value="Fort-de-France">Fort-de-France (97200)</option>
-<option value="Le Lamentin">Le Lamentin (97232)</option>
-<option value="Schoelcher">Schoelcher (97233)</option>
-<option value="Le Robert">Le Robert (97231)</option>
-<option value="Ducos">Ducos (97224)</option>
-<option value="Le François">Le François (97240)</option>
-<option value="La Trinité">La Trinité (97220)</option>
-<option value="Sainte-Marie">Sainte-Marie (97230)</option>
-<option value="Le Marin">Le Marin (97290)</option>
-<option value="Rivière-Salée">Rivière-Salée (97215)</option>
-<option value="Saint-Joseph">Saint-Joseph (97212)</option>
-<option value="Saint-Pierre">Saint-Pierre (97250)</option>
-<option value="Les Trois-Îlets">Les Trois-Îlets (97229)</option>
-<option value="Gros-Morne">Gros-Morne (97213)</option>
-</select>
-<span className="material-symbols-outlined absolute right-3 top-2.5 text-on-surface-variant pointer-events-none">expand_more</span>
-</div>
+<label className="font-label-md text-label-md text-on-surface" htmlFor="communeSelect">Ville / Commune d'implantation ou de stationnement <span className="text-error">*</span></label>
+<input className="h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="communeSelect" placeholder="Ex: Paris, Fort-de-France, Pointe-à-Pitre, Lyon..." required type="text" />
 </div>
 
 <div className="flex flex-col gap-space-xs md:col-span-2">
@@ -213,8 +194,8 @@ export const RegisterTransporterPage: React.FC = () => {
     required
     value={address}
     onChange={(val) => setAddress(val)}
-    placeholder="Ex: Voie, Zone Industrielle, Code Postal ou Commune en Martinique..."
-    helperText="Aide à la saisie de l'adresse en Martinique"
+    placeholder="Ex: Voie, Zone d'activité, Code Postal ou Commune..."
+    helperText="Aide à la saisie de l'adresse (France & DOM)"
   />
 </div>
 
@@ -224,7 +205,7 @@ export const RegisterTransporterPage: React.FC = () => {
     label="Ligne d'astreinte & régulation 24/7"
     required
     value={phoneEmergency}
-    defaultDialCode="+596"
+    defaultDialCode="+33"
     onChange={(val) => setPhoneEmergency(val)}
   />
 </div>
@@ -232,7 +213,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <div className="flex flex-col gap-space-xs">
 <label className="font-label-md text-label-md text-on-surface" htmlFor="emailPro">Courriel professionnel de dispatch <span className="text-error">*</span></label>
 <div className="relative">
-<input className="h-11 w-full pl-10 pr-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="emailPro" placeholder="regulation@ambulances-martinique.fr" required type="email" />
+<input className="h-11 w-full pl-10 pr-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all" id="emailPro" placeholder="regulation@ambulances.fr" required type="email" />
 <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant">mail</span>
 </div>
 </div>
@@ -283,7 +264,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-headline-sm text-headline-sm text-primary">Taxi Conventionné CPAM / CGSS</span>
 </div>
 <span className="font-label-sm text-label-sm text-secondary font-semibold">Autorisation de Stationnement (ADS) Locale</span>
-<p className="font-body-sm text-body-sm text-on-surface-variant">Conventionnement direct CGSS Martinique actif pour télétransmission des bons de transport prescrit.</p>
+<p className="font-body-sm text-body-sm text-on-surface-variant">Conventionnement direct CPAM ou CGSS actif pour télétransmission des bons de transport prescrit.</p>
 </div>
 </label>
 
@@ -326,13 +307,13 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="font-label-md text-label-md text-on-surface">Nombre de VSL</span>
 <div className="flex items-center justify-between mt-space-xs">
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
-<input className="w-16 text-center font-headline-md text-headline-md bg-primary font-bold focus:outline-none text-on-primary rounded" defaultValue={4} id="vslCount" min="0" type="number" />
+<input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" defaultValue={2} id="vslCount" min="0" type="number" />
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">+</button>
 </div>
 </div>
 
 <div className="flex flex-col gap-space-xs bg-surface-container-low p-space-md rounded-lg">
-<span className="font-label-md text-label-md text-on-surface">Taxis Conventionnés</span>
+<span className="font-label-md text-label-md text-on-surface">Nombre de Taxis</span>
 <div className="flex items-center justify-between mt-space-xs">
 <button className="w-8 h-8 rounded-md bg-surface-container-highest text-on-surface font-headline-sm flex items-center justify-center hover:bg-surface-dim"  type="button">-</button>
 <input className="w-16 text-center font-headline-md text-headline-md bg-transparent text-primary font-bold focus:outline-none" defaultValue={1} id="taxiCount" min="0" type="number" />
@@ -365,26 +346,17 @@ export const RegisterTransporterPage: React.FC = () => {
 </section>
 
 <section className="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-lg">
-<div className="flex items-center justify-between">
-<div className="flex items-center gap-space-sm">
-<div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary shrink-0">
-<span className="material-symbols-outlined">cloud_upload</span>
+<div className="flex items-center gap-space-sm pb-space-xs">
+<div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<span className="material-symbols-outlined">folder_shared</span>
 </div>
 <div className="flex flex-col">
-<h2 className="font-headline-md text-headline-md text-primary">4. Pièces justificatives réglementaires</h2>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Formats acceptés : PDF, JPG, PNG cryptés (Max. 15 Mo par document)</span>
+<h2 className="font-headline-md text-headline-md text-primary">4. Pièces justificatives requises</h2>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Téléversement des documents réglementaires pour validation de votre compte</span>
 </div>
-</div>
-<span className="font-label-sm text-label-sm bg-surface-container px-space-sm py-1 rounded text-primary font-bold">HDS Crypté</span>
 </div>
 
-<FileUpload
-  label="Pièces justificatives réglementaires (Agrément ARS, Kbis, Cartes Grises)"
-  helpText="Formats acceptés : PDF, JPG, PNG cryptés HDS (Max. 15 Mo par document)"
-  storageKey="transporter_reg_documents"
-/>
-
-<div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<div className="flex flex-col gap-space-sm">
 <div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
 <div className="flex items-center gap-space-xs min-w-0">
 <span className="material-symbols-outlined text-secondary text-base">check_circle</span>
@@ -395,21 +367,21 @@ export const RegisterTransporterPage: React.FC = () => {
 <div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
 <div className="flex items-center gap-space-xs min-w-0">
 <span className="material-symbols-outlined text-secondary text-base">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface truncate">Agrément Sanitaire ARS Martinique</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Agrément Sanitaire ARS / Arrêté Préfectoral</span>
 </div>
 <span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
 </div>
 <div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
 <div className="flex items-center gap-space-xs min-w-0">
 <span className="material-symbols-outlined text-secondary text-base">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface truncate">Convention CGSS 972 signée</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Convention CPAM / CGSS signée</span>
 </div>
 <span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
 </div>
 <div className="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
 <div className="flex items-center gap-space-xs min-w-0">
 <span className="material-symbols-outlined text-secondary text-base">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface truncate">Cartes grises &amp; Contrôles conformité</span>
+<span className="font-body-sm text-body-sm text-on-surface truncate">Cartes grises &amp; Contrôles de conformité</span>
 </div>
 <span className="font-label-sm text-label-sm text-on-surface-variant">Obligatoire</span>
 </div>
@@ -510,8 +482,8 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="material-symbols-outlined text-sm">route</span>
 </div>
 <div className="flex flex-col">
-<span className="font-label-md text-label-md text-on-surface font-semibold">Zéro retour à vide sur l'île</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Algorithme d'appariement Nord / Centre / Sud évitant les retours sans passager.</span>
+<span className="font-label-md text-label-md text-on-surface font-semibold">Optimisation des tournées sanitaires</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant">Algorithme d'appariement géographique évitant les trajets retours à vide.</span>
 </div>
 </div>
 </div>
@@ -522,11 +494,11 @@ export const RegisterTransporterPage: React.FC = () => {
 <img className="w-12 h-12 rounded-full object-cover border border-outline-variant/30" alt="Patrick M., Gérant d'ambulances" src="/assets/headshot.png" />
 <div className="flex flex-col">
 <span className="font-headline-sm text-headline-sm text-primary">Patrick M.</span>
-<span className="font-label-sm text-label-sm text-on-surface-variant">Gérant de 6 ambulances (Trinité &amp; Fort-de-France)</span>
+<span className="font-label-sm text-label-sm text-on-surface-variant">Gérant d'ambulances partenaire</span>
 </div>
 </div>
 <p className="font-body-sm text-body-sm text-on-surface italic mt-space-xs">
-            "Depuis notre conventionnement avec Clinigo, nous avons réduit nos temps d'attente à la sortie des urgences de 40%. La traçabilité pour la CGSS nous évite des semaines de litiges de facturation."
+            "Depuis notre conventionnement avec Clinigo, nous avons réduit nos temps d'attente à la sortie des urgences de 40%. La traçabilité pour la CPAM / CGSS nous évite des semaines de litiges de facturation."
           </p>
 <div className="flex items-center gap-1 text-secondary">
 <span className="material-symbols-outlined text-sm" >star</span>
@@ -539,26 +511,26 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 
 <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_1px_3px_rgba(11,37,69,0.05)] flex flex-col gap-space-sm">
-<span className="font-label-md text-label-md text-primary uppercase font-bold tracking-wider">Couverture Territoriale 972</span>
+<span className="font-label-md text-label-md text-primary uppercase font-bold tracking-wider">Couverture Territoriale &amp; Inter-Établissements</span>
 <div className="w-full h-44 rounded-xl overflow-hidden relative shadow-inner">
   <GoogleMapView mode="fleet" height="100%" />
 </div>
 <div className="grid grid-cols-2 gap-space-xs pt-1 text-on-surface-variant font-label-sm text-label-sm">
 <div className="flex items-center gap-1">
 <span className="material-symbols-outlined text-secondary text-sm">check</span>
-              CHU Pierre Zobda-Quitman
+              Centres Hospitaliers &amp; CHU
             </div>
 <div className="flex items-center gap-1">
 <span className="material-symbols-outlined text-secondary text-sm">check</span>
-              Hôpital Louis Domergue
+              Cliniques &amp; Centres Dialyse
             </div>
 <div className="flex items-center gap-1">
 <span className="material-symbols-outlined text-secondary text-sm">check</span>
-              Clinique Saint-Paul
+              Maisons Médicales &amp; EHPAD
             </div>
 <div className="flex items-center gap-1">
 <span className="material-symbols-outlined text-secondary text-sm">check</span>
-              Centre Emmaüs Sud
+              Transferts Hexagone / EVASAN
             </div>
 </div>
 </div>
@@ -569,7 +541,7 @@ export const RegisterTransporterPage: React.FC = () => {
 <span className="">Sécurité des Données Médicales</span>
 </div>
 <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Les données transmises lors de l'enregistrement de votre entreprise sont chiffrées selon les normes de l'Agence Régionale de Santé (ARS) de Martinique et hébergées sur des serveurs souverains HDS.
+            Les données transmises lors de l'enregistrement de votre entreprise sont chiffrées selon les normes des Agences Régionales de Santé (ARS) et de l'Assurance Maladie, hébergées sur des serveurs souverains certifiés HDS.
           </p>
 <div className="pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface">
 <span className="">Agrément R. 6312 CSP</span>
@@ -583,7 +555,7 @@ export const RegisterTransporterPage: React.FC = () => {
 </div>
 <div className="flex flex-col">
 <span className="font-label-md text-label-md font-semibold">Assistance Installation &amp; API</span>
-<span className="font-body-sm text-body-sm text-primary-fixed-dim">Nos régulateurs vous assistent de 6h à 20h : 05 96 42 12 15</span>
+<span className="font-body-sm text-body-sm text-primary-fixed-dim">Permanence technique partenaires disponible 7j/7</span>
 </div>
 </div>
 </aside>

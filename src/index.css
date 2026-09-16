@@ -187,3 +187,36 @@
   will-change: opacity, transform, filter;
 }
 
+/* ==========================================================================
+   Glowing Shimmer CTA Button Animation
+   ========================================================================== */
+@keyframes buttonShimmer {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  30%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+@keyframes ctaAuraGlow {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.98);
+    filter: blur(12px);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+    filter: blur(18px);
+  }
+}
+
+.animate-btn-shimmer {
+  animation: buttonShimmer 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-cta-aura {
+  animation: ctaAuraGlow 3.5s ease-in-out infinite;
+}
+

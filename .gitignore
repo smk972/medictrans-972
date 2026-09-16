@@ -32,3 +32,6 @@ dist-ssr/
 
 # Cloudflare Pages / Wrangler
 .wrangler/
+
+# Scratch & Temporary Testing Media
+scratch/

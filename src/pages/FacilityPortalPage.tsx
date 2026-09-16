@@ -23,6 +23,10 @@ export const FacilityPortalPage: React.FC = () => {
   const [cancelCustomNote, setCancelCustomNote] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string } | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
   // État Renouvellement
   const [rideToRenew, setRideToRenew] = useState<Ride | null>(null);
   const [renewDate, setRenewDate] = useState<string>('');
@@ -317,13 +321,28 @@ export const FacilityPortalPage: React.FC = () => {
         r.reference.toLowerCase().includes(q) ||
         r.patient.firstName.toLowerCase().includes(q) ||
         r.patient.lastName.toLowerCase().includes(q) ||
-        r.patient.nir.includes(q) ||
+        (r.patient.nir && r.patient.nir.includes(q)) ||
         r.dropoffCity.toLowerCase().includes(q) ||
         r.pickupCity.toLowerCase().includes(q) ||
         (r.facilityDepartment && r.facilityDepartment.toLowerCase().includes(q)) ||
         (r.bedDischargeNumber && r.bedDischargeNumber.toLowerCase().includes(q))
     );
   }, [activeTab, activeMissions, historyMissions, historyFilter, filterText]);
+
+  // Réinitialisation de la pagination lors du changement de filtre/onglet
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, historyFilter, filterText]);
+
+  const totalRidesCount = displayedRides.length;
+  const totalPages = Math.max(1, Math.ceil(totalRidesCount / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedRides = useMemo(() => {
+    if (pageSize >= 999) return displayedRides;
+    const startIndex = (validCurrentPage - 1) * pageSize;
+    return displayedRides.slice(startIndex, startIndex + pageSize);
+  }, [displayedRides, validCurrentPage, pageSize]);
 
   // Export Handlers
   const handleExportExcel = () => {
@@ -424,17 +443,6 @@ export const FacilityPortalPage: React.FC = () => {
                   <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">CHU Pierre Zobda-Quitman</h1>
                   <p className="text-xs sm:text-sm text-slate-500 font-medium">Service Néphrologie, Dialyse &amp; Hémodialyse Lourde • Pavillon M - Niveau 3</p>
                 </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-2xl">
-                <div className="flex items-center gap-1.5 text-teal-800">
-                  <span className="material-symbols-outlined text-[20px]">ring_volume</span>
-                  <span className="text-xs font-bold">Astreinte Cadre Régulateur :</span>
-                </div>
-                <a className="text-lg font-black text-teal-800 hover:text-teal-900 transition-colors tracking-tight font-mono" href="tel:0596720097">
-                  05 96 72 00 97
-                </a>
-                <span className="bg-teal-800 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider">LIGNE DIRECTE DÉDIÉE</span>
               </div>
             </div>
           </section>
@@ -543,36 +551,40 @@ export const FacilityPortalPage: React.FC = () => {
 
 <div className="flex flex-col gap-6" id="viewTransports">
 
-  {/* Bandeau Signature Gradient : Régulation des Départs & Sorties de Lit */}
-  <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-sky-900 text-white p-5 sm:p-6 rounded-3xl shadow-xl border border-teal-700/40 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  {/* Bandeau Vert : Commande & Gestion Rapide des Transports */}
+  <div className="bg-gradient-to-r from-teal-950 via-emerald-950 to-slate-900 text-white p-5 sm:p-6 rounded-3xl shadow-xl border border-emerald-700/40 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
     {/* Ambient mesh glow */}
-    <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
 
     <div className="flex items-center gap-4 relative z-10">
-      <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-teal-300 shadow-md shrink-0">
-        <span className="material-symbols-outlined text-[26px]">alt_route</span>
+      <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-emerald-300 shadow-md shrink-0">
+        <span className="material-symbols-outlined text-[26px]">speed</span>
       </div>
       <div className="flex flex-col">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-300 bg-teal-500/20 px-2.5 py-0.5 rounded-full border border-teal-500/30">
-            Supervision Temps Réel 972
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+            Régulation &amp; Commandes Express
           </span>
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
           </span>
         </div>
-        <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">Régulation Territoriale Martinique Centre</h3>
-        <p className="text-xs text-teal-100/80 max-w-2xl mt-0.5">Liaisons maritimes et axes routiers Trinité/Fort-de-France fluides. Temps d'approche estimés fiables.</p>
+        <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+          Gagnez du temps dans la gestion de vos rendez-vous
+        </h3>
+        <p className="text-xs text-emerald-100/85 max-w-2xl mt-0.5">
+          Commandez dès maintenant un transport sanitaire pour vos patients (sorties d'hospitalisation, consultations, dialyses) en quelques clics.
+        </p>
       </div>
     </div>
-    <div className="flex items-center gap-3 relative z-10 w-full md:w-auto">
+    <div className="flex items-center gap-3 relative z-10 w-full md:w-auto shrink-0">
       <button
         type="button"
         onClick={() => setIsOrderModalOpen(true)}
-        className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white hover:bg-teal-50 text-slate-900 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer"
+        className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white hover:bg-emerald-50 text-slate-950 font-black text-xs shadow-lg shadow-black/20 hover:shadow-xl transition-all active:scale-95 cursor-pointer"
       >
-        <span className="material-symbols-outlined text-[18px] text-teal-800">add_box</span>
+        <span className="material-symbols-outlined text-[18px] text-emerald-700">add_box</span>
         <span>Commander un transport</span>
       </button>
     </div>
@@ -722,18 +734,18 @@ export const FacilityPortalPage: React.FC = () => {
   </div>
 
   <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-outline-variant/50">
-    <table className="min-w-full w-full text-left font-body-sm text-body-sm border-collapse">
+    <table className="w-full min-w-[1340px] text-left font-body-sm text-body-sm border-collapse">
       <thead>
         <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider text-[10px] border-b border-outline-variant/20">
-          <th className="py-2.5 px-2.5 w-[100px] min-w-[95px]">Heure &amp; Service</th>
-          <th className="py-2.5 px-2.5 w-[130px] min-w-[120px]">Chambre &amp; Lit</th>
-          <th className="py-2.5 px-2.5 w-[165px] min-w-[155px]">Patient &amp; NIR</th>
-          <th className="py-2.5 px-2.5 w-[210px] min-w-[195px]">Destination &amp; Accès</th>
-          <th className="py-2.5 px-2.5 w-[110px] min-w-[105px]">Mode Prescrit</th>
-          <th className="py-2.5 px-2.5 w-[105px] min-w-[100px]">PMT Cerfa</th>
-          <th className="py-2.5 px-2.5 w-[150px] min-w-[140px]">Transporteur</th>
-          <th className="py-2.5 px-2.5 w-[135px] min-w-[125px]">Contact Référent</th>
-          <th className="py-2.5 px-2.5 text-right w-[175px] min-w-[170px] sticky right-0 bg-surface-container-low z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.04)]">Statut &amp; Actions</th>
+          <th className="py-3 px-3 min-w-[110px]">Heure &amp; Service</th>
+          <th className="py-3 px-3 min-w-[140px]">Chambre &amp; Lit</th>
+          <th className="py-3 px-3 min-w-[190px]">Patient &amp; NIR</th>
+          <th className="py-3 px-3 min-w-[260px]">Destination &amp; Accès</th>
+          <th className="py-3 px-3 min-w-[115px]">Mode Prescrit</th>
+          <th className="py-3 px-3 min-w-[110px]">PMT Cerfa</th>
+          <th className="py-3 px-3 min-w-[180px]">Transporteur</th>
+          <th className="py-3 px-3 min-w-[160px]">Contact Référent</th>
+          <th className="py-3 px-3 text-right min-w-[180px] sticky right-0 bg-surface-container-low z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.04)]">Statut &amp; Actions</th>
         </tr>
       </thead>
       <tbody className="text-on-surface text-xs">
@@ -768,24 +780,11 @@ export const FacilityPortalPage: React.FC = () => {
             </td>
           </tr>
         ) : (
-          displayedRides.map((ride) => {
+          paginatedRides.map((ride) => {
             const hasPmt = ride.patient.hasPmt || ride.patient.pmtUploaded || ride.patient.pmtFileUrl;
-            
-            // Extraction propre de l'adresse pour éviter l'étirement excessif de la colonne
-            const rawAddr = ride.dropoffAddress || '';
-            const cleanDropoffAddress = (() => {
-              if (rawAddr.includes('12 Rue Perrinon')) return '12 Rue Perrinon';
-              const batIdx = rawAddr.indexOf(', Bât.');
-              if (batIdx !== -1) return rawAddr.substring(0, batIdx);
-              const aptIdx = rawAddr.indexOf(', Apt');
-              if (aptIdx !== -1) return rawAddr.substring(0, aptIdx);
-              const flrIdx = rawAddr.indexOf(', 1er') !== -1 ? rawAddr.indexOf(', 1er') : (rawAddr.indexOf(', 2ème') !== -1 ? rawAddr.indexOf(', 2ème') : rawAddr.indexOf(', 3ème'));
-              if (flrIdx !== -1) return rawAddr.substring(0, flrIdx);
-              return rawAddr;
-            })();
-
-            const cleanCity = ride.dropoffCity?.replace('SchœlcheFort-de-France', 'Fort-de-France') || ride.dropoffCity;
-            const cleanNir = (ride.patient.nir || '').replace('21600197212345674 382 19', '1 60 01 97 212 345 67').slice(0, 22);
+            const cleanDropoffAddress = ride.dropoffAddress || 'Non renseignée';
+            const cleanCity = ride.dropoffCity || '';
+            const cleanNir = ride.patient.nir || '';
 
             return (
               <tr
@@ -794,30 +793,30 @@ export const FacilityPortalPage: React.FC = () => {
                 className="hover:bg-primary/5 cursor-pointer transition-colors border-b border-outline-variant/10 group"
               >
                 {/* 1. Heure & Service */}
-                <td className="py-2.5 px-2.5 whitespace-nowrap align-top">
+                <td className="py-3 px-3 align-top">
                   <div className="flex flex-col">
-                    <span className="font-bold text-primary text-sm font-mono leading-tight">
+                    <span className="font-bold text-teal-800 text-sm font-mono leading-tight">
                       {new Date(ride.pickupDateTime).toLocaleTimeString('fr-FR', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </span>
-                    <span className="text-[10px] text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded font-mono mt-0.5 w-fit max-w-[95px] truncate">
+                    <span className="text-[10px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded font-mono mt-1 w-fit leading-tight break-words">
                       {ride.facilityDepartment || 'Service Jour'}
                     </span>
                   </div>
                 </td>
 
                 {/* 2. Chambre & Lit, Étage, Escalier */}
-                <td className="py-2.5 px-2.5 align-top">
+                <td className="py-3 px-3 align-top">
                   <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1 font-bold text-on-surface text-xs leading-tight">
-                      <span className="material-symbols-outlined text-[13px] text-secondary">hotel</span>
+                    <div className="flex items-center gap-1 font-bold text-slate-900 text-xs leading-tight flex-wrap">
+                      <span className="material-symbols-outlined text-[13px] text-teal-700">hotel</span>
                       <span>{ride.facilityRoom || 'Ch. 214'}</span>
-                      <span className="text-primary font-extrabold">• {ride.facilityBed || 'Lit A'}</span>
+                      <span className="text-teal-800 font-extrabold">• {ride.facilityBed || 'Lit A'}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-on-surface-variant mt-0.5">
-                      <span className="material-symbols-outlined text-[12px] text-primary">layers</span>
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5 flex-wrap">
+                      <span className="material-symbols-outlined text-[12px] text-teal-600">layers</span>
                       <span>{ride.facilityFloor || '2ème étage'}</span>
                       <span>•</span>
                       <span>{ride.facilityStaircase || 'Esc. B'}</span>
@@ -826,16 +825,16 @@ export const FacilityPortalPage: React.FC = () => {
                 </td>
 
                 {/* 3. Patient & NIR */}
-                <td className="py-2.5 px-2.5 align-top">
-                  <div className="flex flex-col gap-0.5 max-w-[165px]">
-                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={`${ride.patient.firstName} ${ride.patient.lastName}`}>
+                <td className="py-3 px-3 align-top">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold text-slate-900 text-xs leading-tight break-words" title={`${ride.patient.firstName} ${ride.patient.lastName}`}>
                       {ride.patient.firstName} {ride.patient.lastName}
                     </span>
-                    <span className="text-on-surface-variant font-mono text-[10px] truncate" title={cleanNir}>
+                    <span className="text-slate-600 font-mono text-[10px] break-all select-all mt-0.5" title={cleanNir}>
                       NIR: {cleanNir}
                     </span>
                     {ride.patient.isAld && (
-                      <span className="w-fit text-[9px] font-bold px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded mt-0.5">
+                      <span className="w-fit text-[9px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded mt-0.5">
                         PEC 100% ALD
                       </span>
                     )}
@@ -843,33 +842,33 @@ export const FacilityPortalPage: React.FC = () => {
                 </td>
 
                 {/* 4. Destination & Accès */}
-                <td className="py-2.5 px-2.5 align-top">
-                  <div className="flex flex-col gap-0.5 max-w-[210px]">
-                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={cleanDropoffAddress}>
+                <td className="py-3 px-3 align-top">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold text-slate-900 text-xs leading-snug break-words" title={cleanDropoffAddress}>
                       {cleanDropoffAddress}
                     </span>
-                    <div className="flex items-center gap-1 text-[10px] text-on-surface-variant font-medium truncate">
-                      <span className="text-primary font-bold">{cleanCity}</span>
+                    <div className="flex flex-wrap items-center gap-1 text-[11px] text-slate-600 font-medium mt-0.5">
+                      <span className="text-teal-800 font-bold">{cleanCity}</span>
                       {ride.dropoffBuilding && <span>• Bât. {ride.dropoffBuilding}</span>}
                       {ride.dropoffApartment && <span>• Apt {ride.dropoffApartment}</span>}
                     </div>
-                    {/* Badge Étage & Ascenseur visible directement */}
+                    {/* Badge Étage & Ascenseur */}
                     {(ride.dropoffFloor || ride.dropoffElevator !== undefined || ride.mobility?.stairsWithoutElevator) && (
-                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-surface-container font-medium text-on-surface">
-                          {ride.dropoffFloor ? (ride.dropoffFloor.includes('Rez') ? 'RDC' : ride.dropoffFloor.replace('étage', 'ét.')) : 'RDC'}
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 font-medium text-slate-700">
+                          {ride.dropoffFloor ? (ride.dropoffFloor.includes('Rez') ? 'RDC' : ride.dropoffFloor) : 'RDC'}
                         </span>
                         {ride.dropoffElevator === false || ride.mobility?.stairsWithoutElevator ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold flex items-center gap-0.5">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold flex items-center gap-0.5">
                             <span className="material-symbols-outlined text-[10px]">stairs</span> Sans asc.
                           </span>
                         ) : ride.dropoffElevator === true ? (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-medium flex items-center gap-0.5">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium flex items-center gap-0.5">
                             <span className="material-symbols-outlined text-[10px]">elevator</span> Asc.
                           </span>
                         ) : null}
                         {ride.isRoundTrip && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 font-bold">
                             A/R
                           </span>
                         )}
@@ -879,7 +878,7 @@ export const FacilityPortalPage: React.FC = () => {
                 </td>
 
                 {/* 5. Mode Prescrit */}
-                <td className="py-2.5 px-2.5 whitespace-nowrap align-top">
+                <td className="py-3 px-3 whitespace-nowrap align-top">
                   <span className="bg-primary-container/40 text-on-primary font-semibold px-2 py-1 rounded-lg flex items-center gap-1 w-fit text-[11px]">
                     <span className="material-symbols-outlined text-[14px]">
                       {ride.transportType === 'AMBULANCE'
@@ -899,7 +898,7 @@ export const FacilityPortalPage: React.FC = () => {
                 </td>
 
                 {/* 6. Prescription PMT */}
-                <td className="py-2.5 px-2.5 whitespace-nowrap align-top">
+                <td className="py-3 px-3 whitespace-nowrap align-top">
                   {hasPmt ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                       <span className="material-symbols-outlined text-[12px] text-emerald-600">verified</span>
@@ -914,35 +913,35 @@ export const FacilityPortalPage: React.FC = () => {
                 </td>
 
                 {/* 7. Transporteur Mandaté */}
-                <td className="py-2.5 px-2.5 align-top">
-                  <div className="flex flex-col gap-0.5 max-w-[150px]">
-                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={ride.assignedTransporter?.companyName || "En cours d'affectation"}>
+                <td className="py-3 px-3 align-top">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold text-slate-900 text-xs leading-snug break-words" title={ride.assignedTransporter?.companyName || "En cours d'affectation"}>
                       {ride.assignedTransporter?.companyName || "En cours d'affectation"}
                     </span>
                     {ride.assignedTransporter?.driverPhone ? (
                       <a
                         onClick={(e) => e.stopPropagation()}
-                        className="text-primary hover:underline flex items-center gap-0.5 text-[10px] font-mono mt-0.5"
+                        className="text-teal-700 hover:underline flex items-center gap-0.5 text-[10px] font-mono mt-0.5"
                         href={`tel:${ride.assignedTransporter.driverPhone}`}
                       >
                         <span className="material-symbols-outlined text-[11px]">phone</span>
                         <span>{ride.assignedTransporter.driverPhone}</span>
                       </a>
                     ) : (
-                      <span className="text-[10px] text-on-surface-variant/70 italic">Régulation 972</span>
+                      <span className="text-[10px] text-slate-400 italic">Régulation Territoriale</span>
                     )}
                   </div>
                 </td>
 
                 {/* 8. Contact Référent */}
-                <td className="py-2.5 px-2.5 align-top">
-                  <div className="flex flex-col gap-0.5 max-w-[135px]">
-                    <span className="font-bold text-on-surface text-xs leading-tight truncate" title={ride.facilityContactName || 'Cadre de service'}>
+                <td className="py-3 px-3 align-top">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold text-slate-900 text-xs leading-snug break-words" title={ride.facilityContactName || 'Cadre de service'}>
                       {ride.facilityContactName || 'Cadre de service'}
                     </span>
                     <a
                       onClick={(e) => e.stopPropagation()}
-                      className="text-primary hover:underline flex items-center gap-0.5 text-[10px] font-mono mt-0.5"
+                      className="text-teal-700 hover:underline flex items-center gap-0.5 text-[10px] font-mono mt-0.5"
                       href={`tel:${ride.facilityContactPhone || '0596720097'}`}
                     >
                       <span className="material-symbols-outlined text-[11px]">phone_in_talk</span>
@@ -1057,16 +1056,94 @@ export const FacilityPortalPage: React.FC = () => {
     </table>
   </div>
 
-  <div className="p-space-md bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-space-sm font-label-md text-label-md text-on-surface-variant">
-<div className="flex items-center gap-space-sm">
-<span className="inline-block w-2.5 h-2.5 rounded-full bg-secondary"></span>
-<span className="">Synchronisation automatique active toutes les 15s</span>
-</div>
-<div className="flex items-center gap-space-sm">
-<span className="">Affichage : 4 sur 14 départs du jour</span>
-<button className="text-primary hover:underline font-bold">Voir les 10 autres →</button>
-</div>
-</div>
+  <div className="p-4 bg-slate-50 border-t border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+    <div className="flex items-center gap-2">
+      <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span className="font-medium text-slate-600">Synchronisation automatique active toutes les 15s</span>
+    </div>
+
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-2">
+        <span className="text-slate-500 font-medium">Lignes :</span>
+        <select
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+            setCurrentPage(1);
+          }}
+          className="px-2 py-1 rounded-lg border border-slate-300 bg-white font-bold text-slate-800 outline-none focus:border-teal-600 cursor-pointer text-xs"
+        >
+          <option value={5}>5</option>
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={999}>Toutes</option>
+        </select>
+      </div>
+
+      <span className="font-medium text-slate-700">
+        Affichage : {totalRidesCount === 0 ? 0 : (validCurrentPage - 1) * pageSize + 1} à {Math.min(validCurrentPage * pageSize, totalRidesCount)} sur {totalRidesCount} dossier{totalRidesCount > 1 ? 's' : ''}
+      </span>
+
+      {/* Boutons de pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={validCurrentPage === 1}
+            className="px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            title="Page précédente"
+          >
+            ← Précédent
+          </button>
+
+          {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - validCurrentPage) <= 1)
+            .map((p, i, arr) => {
+              const showEllipsis = i > 0 && p - arr[i - 1] > 1;
+              return (
+                <React.Fragment key={p}>
+                  {showEllipsis && <span className="px-1 text-slate-400">...</span>}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p)}
+                    className={`min-w-[28px] h-7 px-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                      validCurrentPage === p
+                        ? 'bg-teal-800 text-white shadow-xs'
+                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </React.Fragment>
+              );
+            })}
+
+          <button
+            type="button"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={validCurrentPage >= totalPages}
+            className="px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            title="Page suivante"
+          >
+            Suivant →
+          </button>
+        </div>
+      )}
+
+      {/* Si l'utilisateur a des pages suivantes, le bouton "Voir les X autres" passe à la suite */}
+      {validCurrentPage < totalPages && (
+        <button
+          type="button"
+          onClick={() => setCurrentPage((p) => p + 1)}
+          className="text-teal-800 hover:text-teal-900 hover:underline font-bold transition-colors cursor-pointer ml-1"
+        >
+          Voir les {Math.min(pageSize, totalRidesCount - validCurrentPage * pageSize)} autres →
+        </button>
+      )}
+    </div>
+  </div>
 </div>
 </div>
 

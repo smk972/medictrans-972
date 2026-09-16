@@ -7,9 +7,11 @@ import { rideService } from '../services/rideService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '../services/pricingService';
-import { Ride, RideStatus, TransportType } from '../types';
+import { Ride, RideStatus, TransportType, TransporterSubscription } from '../types';
+import { AuthService } from '../services/authService';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
+import { TransporterSubscriptionTab } from '../components/TransporterSubscriptionTab';
 import { ALL_34_COMMUNES_NAMES } from '../data/martiniqueCommunesPolygons';
 
 export interface Driver {
@@ -146,7 +148,7 @@ export const TransporterPortalPage: React.FC = () => {
   // State
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'HISTORIQUE'>('DISPONIBLES');
+  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'HISTORIQUE' | 'ABONNEMENT'>('DISPONIBLES');
   const [historySubFilter, setHistorySubFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [historySearch, setHistorySearch] = useState('');
   const [sectorFilter, setSectorFilter] = useState<'ALL' | 'CENTRE' | 'SUD' | 'NORD'>('ALL');
@@ -262,7 +264,14 @@ export const TransporterPortalPage: React.FC = () => {
   const [editDriverStatus, setEditDriverStatus] = useState<'DISPONIBLE' | 'EN_MISSION' | 'EN_REPOS'>('DISPONIBLE');
   const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
 
-  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type?: 'success' | 'info' | 'error' } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type?: 'success' | 'info' | 'error' | 'warning' } | null>(null);
+
+  const showNotification = (type: 'success' | 'warning' | 'error' | 'info', title: string, desc: string) => {
+    setToastMessage({ type, title, desc });
+    setTimeout(() => {
+      setToastMessage((prev) => (prev?.title === title ? null : prev));
+    }, 5000);
+  };
 
   // Form affectation véhicule
   const [selectedDriver, setSelectedDriver] = useState<string>(DEFAULT_FLEET[0].driver);
@@ -285,6 +294,34 @@ export const TransporterPortalPage: React.FC = () => {
   const transporterName = user?.transporterName || 'Ambulances Madinina Secours';
   const transporterPhone = user?.phone || '0596 75 20 20';
   const transporterId = user?.transporterId || 'transporter-1';
+
+  // État local réactif de l'abonnement / essai gratuit
+  const [subscriptionState, setSubscriptionState] = useState<TransporterSubscription | undefined>(() => {
+    if (user?.subscription) return user.subscription;
+    try {
+      const saved = localStorage.getItem('medictrans_demo_transporter_sub');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // ignore
+    }
+    return undefined;
+  });
+
+  useEffect(() => {
+    if (user?.subscription) {
+      setSubscriptionState(user.subscription);
+    }
+  }, [user?.subscription]);
+
+  // Vérification stricte : essai gratuit validé (non expiré) ou abonnement actif
+  const activeSubscription = subscriptionState || user?.subscription;
+  const isSubscriptionOrTrialValid = Boolean(
+    activeSubscription && (
+      activeSubscription.status === 'ACTIVE' ||
+      (activeSubscription.status === 'TRIAL' && activeSubscription.isTrialUnlocked && (activeSubscription.trialDaysRemaining ?? 0) > 0)
+    )
+  );
+
 
   // Horloge temps-réel pour le décompte des 24h00
   const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
@@ -508,7 +545,7 @@ export const TransporterPortalPage: React.FC = () => {
         r.reference.toLowerCase().includes(q) ||
         r.patient.firstName.toLowerCase().includes(q) ||
         r.patient.lastName.toLowerCase().includes(q) ||
-        r.patient.nir.includes(q) ||
+        (r.patient.nir && r.patient.nir.includes(q)) ||
         r.pickupCity.toLowerCase().includes(q) ||
         r.dropoffCity.toLowerCase().includes(q) ||
         (r.facilityName && r.facilityName.toLowerCase().includes(q)) ||
@@ -607,7 +644,7 @@ export const TransporterPortalPage: React.FC = () => {
         mission.reference.toLowerCase().includes(q) ||
         mission.patient.firstName.toLowerCase().includes(q) ||
         mission.patient.lastName.toLowerCase().includes(q) ||
-        mission.patient.nir.includes(q) ||
+        (mission.patient.nir && mission.patient.nir.includes(q)) ||
         mission.pickupCity.toLowerCase().includes(q) ||
         mission.dropoffCity.toLowerCase().includes(q) ||
         (mission.facilityName && mission.facilityName.toLowerCase().includes(q)) ||
@@ -964,11 +1001,29 @@ export const TransporterPortalPage: React.FC = () => {
 
   // ACCEPTATION DE LA MISSION : ouverture du modal avec saisie obligatoire de la prise en charge
   const handleDirectAccept = (mission: Ride) => {
+    if (!isSubscriptionOrTrialValid) {
+      setActiveTab('ABONNEMENT');
+      showNotification(
+        'warning',
+        'Validation requise',
+        'Vous devez valider votre essai gratuit de 30 jours (ou votre abonnement) pour pouvoir accepter des courses.'
+      );
+      return;
+    }
     openAcceptModal(mission);
   };
 
   // Déclencher le modal d'affectation (Chauffeur / Véhicule / Heure de prise en charge calculée)
   const openAcceptModal = (mission: Ride) => {
+    if (!isSubscriptionOrTrialValid) {
+      setActiveTab('ABONNEMENT');
+      showNotification(
+        'warning',
+        'Validation requise',
+        'Vous devez valider votre essai gratuit de 30 jours (ou votre abonnement) pour pouvoir accepter des courses.'
+      );
+      return;
+    }
     setMissionToAccept(mission);
     const match = fleet.find((v) => v.type === mission.transportType) || fleet[0];
     setSelectedDriver(match.driver);
@@ -993,6 +1048,15 @@ export const TransporterPortalPage: React.FC = () => {
   };
 
   const confirmAcceptMission = async () => {
+    if (!isSubscriptionOrTrialValid) {
+      setActiveTab('ABONNEMENT');
+      showNotification(
+        'error',
+        'Accès restreint',
+        'Validation requise : veuillez activer votre essai gratuit de 30 jours pour valider cette course.'
+      );
+      return;
+    }
     if (!missionToAccept) return;
     const missionRef = missionToAccept.reference;
 
@@ -1471,22 +1535,27 @@ export const TransporterPortalPage: React.FC = () => {
               {archivedMissions.length}
             </span>
           </button>
-        </nav>
 
-        {/* Support & Régulation 972 */}
-        <div className="p-3.5 m-3 rounded-2xl bg-white/5 backdrop-blur-md border border-teal-500/20 text-xs">
-          <div className="flex items-center gap-2 text-teal-300 font-bold mb-1">
-            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-            <span>Régulation ARS 24/7</span>
-          </div>
-          <p className="text-[11px] text-teal-100/70 mb-1.5">Ligne d'urgence SAMU / CHU :</p>
-          <a
-            href="tel:0596720097"
-            className="block font-bold text-teal-200 text-sm hover:text-white font-mono transition-colors"
+          <button
+            type="button"
+            onClick={() => setActiveTab('ABONNEMENT')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'ABONNEMENT'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold shadow-lg shadow-amber-950/40 ring-1 ring-white/30'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
+            }`}
           >
-            05 96 72 00 97
-          </a>
-        </div>
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-lg text-amber-300">workspace_premium</span>
+              <span>Mon abonnement</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono ${
+              activeTab === 'ABONNEMENT' ? 'bg-slate-950 text-amber-300' : 'bg-amber-400/20 text-amber-200 border border-amber-400/30'
+            }`}>
+              {user?.subscription?.status === 'TRIAL' ? `${user.subscription.trialDaysRemaining ?? 30}j` : 'Pro'}
+            </span>
+          </button>
+        </nav>
 
         {/* Liens Retour Site & Déconnexion */}
         <div className="p-3 border-t border-teal-800/30 flex flex-col gap-1">
@@ -1531,16 +1600,6 @@ export const TransporterPortalPage: React.FC = () => {
                 refresh
               </span>
               <span className="hidden sm:inline">Synchroniser</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCreateTestMission}
-              className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/80 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
-              title="Créer une nouvelle commande réelle dans Supabase pour tester la réception immédiate"
-            >
-              <span className="material-symbols-outlined text-base">add_circle</span>
-              <span>+ Course Test</span>
             </button>
 
             <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
@@ -1621,6 +1680,21 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             Historique ({archivedMissions.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ABONNEMENT')}
+            className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'ABONNEMENT' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">workspace_premium</span>
+            <span>Abonnement</span>
+            {user?.subscription?.status === 'TRIAL' && (
+              <span className="px-1.5 py-0.5 rounded-full bg-slate-950 text-amber-300 text-[10px] font-mono font-bold">
+                {user.subscription.trialDaysRemaining ?? 30}j
+              </span>
+            )}
           </button>
         </div>
 
@@ -1770,11 +1844,49 @@ export const TransporterPortalPage: React.FC = () => {
           {/* TAB 1 : COURSES DISPONIBLES                                               */}
           {/* ========================================================================= */}
           {activeTab === 'DISPONIBLES' && (
-            <div className="flex flex-col gap-5">
-              {/* ========================================================================= */}
-              {/* BARRE DE PARAMÉTRAGE DU RAYON D'ACTION & ZONE GÉOGRAPHIQUE (CERCLE KM)    */}
-              {/* ========================================================================= */}
-              <div className="bg-gradient-to-r from-surface-container-lowest via-surface-container-low to-surface-container-lowest p-5 rounded-2xl border border-primary/20 shadow-sm flex flex-col gap-4">
+            <div className="flex flex-col gap-5 relative">
+              {/* Alerte si essai gratuit ou abonnement non validé */}
+              {!isSubscriptionOrTrialValid && (
+                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border-2 border-amber-500/40 text-slate-900 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fadeIn">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md font-bold">
+                      <span className="material-symbols-outlined text-2xl">lock</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-base text-slate-950">
+                          Panel de dispatch verrouillé
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                          Validation requise
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed max-w-2xl">
+                        Tant que vous n'avez pas validé votre <strong>essai gratuit de 30 jours sans engagement</strong> (ou activé votre abonnement), votre panel de dispatch est grisé et vous ne pouvez pas valider de courses sanitaires.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('ABONNEMENT')}
+                    className="w-full md:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-800 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-md active:scale-95 transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base text-amber-400">workspace_premium</span>
+                    <span>Activer mes 30 jours offerts ➔</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Contenu principal du panel (grisé et non cliquable si essai/abonnement non validé) */}
+              <div className={`flex flex-col gap-5 transition-all duration-300 ${
+                !isSubscriptionOrTrialValid
+                  ? 'opacity-40 grayscale pointer-events-none select-none filter blur-[0.5px]'
+                  : ''
+              }`}>
+                {/* ========================================================================= */}
+                {/* BARRE DE PARAMÉTRAGE DU RAYON D'ACTION & ZONE GÉOGRAPHIQUE (CERCLE KM)    */}
+                {/* ========================================================================= */}
+                <div className="bg-gradient-to-r from-surface-container-lowest via-surface-container-low to-surface-container-lowest p-5 rounded-2xl border border-primary/20 shadow-sm flex flex-col gap-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   {/* Base & Rayon actuel */}
                   <div className="flex flex-wrap items-center gap-3">
@@ -2293,6 +2405,7 @@ export const TransporterPortalPage: React.FC = () => {
                   })}
                 </div>
               )}
+              </div>
             </div>
           )}
 
@@ -3739,6 +3852,35 @@ export const TransporterPortalPage: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* VUE 5 : MON ABONNEMENT & DÉCOMPTE ESSAI GRATUIT                          */}
+          {/* ========================================================================= */}
+          {activeTab === 'ABONNEMENT' && (
+            <TransporterSubscriptionTab
+              user={user ? { ...user, subscription: activeSubscription } : null}
+              onSubscriptionUpdated={(newSub) => {
+                setSubscriptionState(newSub);
+                try {
+                  localStorage.setItem('medictrans_demo_transporter_sub', JSON.stringify(newSub));
+                } catch (e) {
+                  // ignore
+                }
+                if (user) {
+                  user.subscription = newSub;
+                  AuthService.setLocalUser({ ...user, subscription: newSub });
+                }
+                showNotification(
+                  'success',
+                  'Essai gratuit débloqué !',
+                  'Votre essai de 30 jours est actif. Redirection vers votre panel de dispatch...'
+                );
+                setTimeout(() => {
+                  setActiveTab('DISPONIBLES');
+                }, 1200);
+              }}
+            />
           )}
         </main>
       </div>

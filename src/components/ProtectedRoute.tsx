@@ -4,16 +4,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { Header } from './Header';
 import { UserRole } from '../types';
 
+import { FacilityPendingScreen } from './FacilityPendingScreen';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: UserRole | UserRole[];
   redirectMessage?: string;
+  allowDemo?: boolean;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
-  redirectMessage
+  redirectMessage,
+  allowDemo = false
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
@@ -34,15 +38,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Si non connecté : redirection immédiate vers la page de connexion
+  // Si non connecté : redirection immédiate vers la page de connexion sauf si démo autorisée
   if (!isAuthenticated || !user) {
+    if (allowDemo) {
+      return <>{children}</>;
+    }
     const targetRole = Array.isArray(requiredRole) ? requiredRole[0] : requiredRole;
     const defaultMsg = targetRole === 'FACILITY'
-      ? "Veuillez vous identifier pour accéder au Portail Établissements & Sorties d'hospitalisation (CHU & Cliniques 972)."
+      ? "Veuillez vous identifier pour accéder au Portail Établissements & Sorties d'hospitalisation (CHU, Cliniques & Centres de soins)."
       : targetRole === 'TRANSPORTER'
       ? "Veuillez vous identifier pour accéder à l'Espace Transporteurs (Dispatch & Courses disponibles)"
       : targetRole === 'ADMIN'
-      ? "Veuillez vous identifier pour accéder à la Tour de Contrôle et Régulation Territoriale 972."
+      ? "Veuillez vous identifier pour accéder à la Tour de Contrôle et Régulation Territoriale."
       : "Veuillez vous identifier pour accéder à cet espace.";
 
     return (
@@ -62,6 +69,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredRole && user.role !== 'ADMIN') {
     const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     if (!roles.includes(user.role)) {
+      if (allowDemo) {
+        return <>{children}</>;
+      }
       const targetRole = Array.isArray(requiredRole) ? requiredRole[0] : requiredRole;
       const roleName = targetRole === 'FACILITY' 
         ? 'Établissement de Santé' 
@@ -80,6 +90,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           replace
         />
       );
+    }
+  }
+
+  // Si l'utilisateur est un établissement de santé, l'accès au portail requiert la validation préalable de l'administrateur
+  if (user.role === 'FACILITY') {
+    const status = user.facilityAccessStatus;
+    if (status === 'PENDING' || status === 'REJECTED') {
+      return <FacilityPendingScreen status={status} />;
     }
   }
 

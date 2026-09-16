@@ -23,6 +23,7 @@ import { AdminFacilitiesPage } from './pages/AdminFacilitiesPage';
 import { AdminTransportersPage } from './pages/AdminTransportersPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
+import { TransporterSalesPage } from './pages/TransporterSalesPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function ScrollToTop() {
@@ -52,25 +53,53 @@ export const App: React.FC = () => {
           <Route path="/suivi" element={<TrackingPage />} />
           <Route path="/droits-cpam" element={<CpamRightsPage />} />
           
-          {/* Espaces Professionnels (Accès Protégé) */}
+          {/* Espaces Professionnels (Accès Protégé avec mode Démo actif) */}
           <Route 
             path="/etablissements" 
             element={
-              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']}>
+              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']} allowDemo={true}>
                 <FacilityPortalPage />
               </ProtectedRoute>
             } 
           />
           <Route 
-            path="/transporteurs" 
+            path="/etablissement" 
             element={
-              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']}>
+              <ProtectedRoute requiredRole={['FACILITY', 'ADMIN']} allowDemo={true}>
+                <FacilityPortalPage />
+              </ProtectedRoute>
+            } 
+          />
+          {/* Espace Transporteurs (Page Publique / Présentation & Offre Pro) */}
+          <Route path="/transporteurs" element={<TransporterSalesPage />} />
+          <Route path="/transporteur" element={<TransporterSalesPage />} />
+          <Route path="/espace-transporteur" element={<TransporterSalesPage />} />
+          <Route path="/espace-transporteurs" element={<TransporterSalesPage />} />
+          <Route path="/offre-pro" element={<TransporterSalesPage />} />
+          <Route path="/abonnement-pro" element={<TransporterSalesPage />} />
+          <Route path="/tarifs-transporteurs" element={<TransporterSalesPage />} />
+
+          {/* Console Dispatch & Régulation (Accès Protégé Transporteur Connecté) */}
+          <Route 
+            path="/portal-transporteur" 
+            element={
+              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']} allowDemo={true}>
+                <TransporterPortalPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dispatch-transporteur" 
+            element={
+              <ProtectedRoute requiredRole={['TRANSPORTER', 'ADMIN']} allowDemo={true}>
                 <TransporterPortalPage />
               </ProtectedRoute>
             } 
           />
           <Route path="/inscription/transporteur" element={<RegisterTransporterPage />} />
+          <Route path="/inscription-transporteur" element={<RegisterTransporterPage />} />
           <Route path="/inscription/etablissement" element={<RegisterFacilityPage />} />
+          <Route path="/inscription-etablissement" element={<RegisterFacilityPage />} />
           
           {/* Back-Office & Régulation Régionale 972 (Protégé Admin) */}
           <Route 
