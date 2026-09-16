@@ -18,6 +18,7 @@ interface AuthContextType {
   loginAsDemo: (role: UserRole) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -159,6 +160,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(currentUser);
   };
 
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    try {
+      const updated = await AuthService.updateUserProfile(updates);
+      if (updated) {
+        setUser(updated);
+        return { success: true, user: updated };
+      }
+      return { success: false, error: 'Utilisateur introuvable' };
+    } catch (err: unknown) {
+      const msg = (err as Error).message || 'Erreur lors de la mise à jour du profil';
+      return { success: false, error: msg };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -171,7 +186,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         loginAsDemo,
         logout,
-        refreshUser
+        refreshUser,
+        updateUserProfile
       }}
     >
       {children}

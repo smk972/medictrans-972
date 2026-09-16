@@ -200,8 +200,19 @@ export interface UserProfile {
   transporterId?: string;
   transporterName?: string;
   transporterLicense?: string;
+  siret?: string;
+  cpamConventionNumber?: string;
   subscription?: TransporterSubscription;
   nir?: string;
+  birthDate?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  isAld?: boolean;
+  aldReason?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  facilityDepartment?: string;
   password?: string;
   createdAt?: string;
 }

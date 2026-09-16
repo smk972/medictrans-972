@@ -231,6 +231,19 @@ export const Header: React.FC = () => {
                         </Link>
                       )}
 
+                      {/* Espace Mon Profil & Informations */}
+                      <Link
+                        to="/profil"
+                        id="link-dropdown-profile"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-teal-800 bg-teal-50/70 hover:bg-teal-100/90 transition-colors border border-teal-200/50 mb-1"
+                      >
+                        <span className="material-symbols-outlined text-base text-teal-700">
+                          manage_accounts
+                        </span>
+                        <span>Mon Profil &amp; Coordonnées</span>
+                      </Link>
+
                       <Link
                         to="/suivi"
                         onClick={() => setUserDropdownOpen(false)}
@@ -399,6 +412,22 @@ export const Header: React.FC = () => {
               <span>Espace Transporteurs</span>
               {user?.role === 'TRANSPORTER' && <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Mon Dashboard</span>}
             </Link>
+            {/* Espace Mon Profil Mobile */}
+            {isAuthenticated && (
+              <Link
+                to="/profil"
+                id="link-mobile-drawer-profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3.5 py-2.5 rounded-xl text-sm font-bold text-teal-900 bg-teal-50/80 hover:bg-teal-100 transition-colors flex items-center justify-between border border-teal-200/60 my-1"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-lg text-teal-700">manage_accounts</span>
+                  <span>Mon Profil &amp; Coordonnées</span>
+                </div>
+                <span className="material-symbols-outlined text-sm text-teal-700">arrow_forward</span>
+              </Link>
+            )}
+
             <Link
               to="/admin"
               onClick={() => setMobileMenuOpen(false)}

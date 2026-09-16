@@ -627,6 +627,49 @@ export class AuthService {
     return false;
   }
 
+  /**
+   * Mise à jour des informations de profil utilisateur
+   */
+  static async updateUserProfile(updates: Partial<UserProfile>): Promise<UserProfile | null> {
+    const current = this.getLocalUser();
+    if (!current) return null;
+
+    const updatedUser: UserProfile = {
+      ...current,
+      ...updates,
+      fullName: updates.fullName || (
+        (updates.firstName !== undefined ? updates.firstName : (current.firstName || '')) + ' ' +
+        (updates.lastName !== undefined ? updates.lastName : (current.lastName || ''))
+      ).trim() || current.fullName
+    };
+
+    this.setLocalUser(updatedUser);
+    this.updateUserInGlobalList(updatedUser);
+
+    // Si Supabase est configuré, synchroniser
+    if (isSupabaseConfigured() && supabase && updatedUser.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: updatedUser.firstName,
+            last_name: updatedUser.lastName,
+            phone: updatedUser.phone,
+            nir: updatedUser.nir,
+            facility_name: updatedUser.facilityName,
+            transporter_name: updatedUser.transporterName,
+            avatar_url: updatedUser.avatarUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', updatedUser.id);
+      } catch (err) {
+        console.warn('Erreur synchronisation profil Supabase:', err);
+      }
+    }
+
+    return updatedUser;
+  }
+
   private static updateUserInGlobalList(updated: UserProfile) {
     try {
       const raw = localStorage.getItem('medictrans_admin_users_972');

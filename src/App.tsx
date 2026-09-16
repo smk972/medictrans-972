@@ -24,6 +24,7 @@ import { AdminTransportersPage } from './pages/AdminTransportersPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { TransporterSalesPage } from './pages/TransporterSalesPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function ScrollToTop() {
@@ -52,6 +53,24 @@ export const App: React.FC = () => {
           <Route path="/confirmation" element={<ConfirmationPage />} />
           <Route path="/suivi" element={<TrackingPage />} />
           <Route path="/droits-cpam" element={<CpamRightsPage />} />
+          
+          {/* Espace Mon Profil (Protégé) */}
+          <Route 
+            path="/profil" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/mon-profil" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Espaces Professionnels (Accès Strictement Protégé - Connexion Obligatoire) */}
           <Route 

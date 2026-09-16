@@ -1560,6 +1560,13 @@ export const TransporterPortalPage: React.FC = () => {
         {/* Liens Retour Site & Déconnexion */}
         <div className="p-3 border-t border-teal-800/30 flex flex-col gap-1">
           <Link
+            to="/profil"
+            className="flex items-center gap-2 text-xs font-bold text-teal-100 hover:text-white hover:bg-white/10 transition-colors py-1.5 px-2 rounded-xl"
+          >
+            <span className="material-symbols-outlined text-base">manage_accounts</span>
+            <span>Mon Profil Entreprise</span>
+          </Link>
+          <Link
             to="/"
             className="flex items-center gap-2 text-xs font-semibold text-teal-200/80 hover:text-white hover:bg-white/10 transition-colors py-1.5 px-2 rounded-xl"
           >
@@ -1604,7 +1611,11 @@ export const TransporterPortalPage: React.FC = () => {
 
             <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
-            <div className="flex items-center gap-2">
+            <Link
+              to="/profil"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity p-1 rounded-xl hover:bg-slate-50"
+              title="Gérer mon profil transporteur"
+            >
               <div className="w-8 h-8 rounded-full bg-amber-500/15 text-amber-700 font-bold flex items-center justify-center text-xs border border-amber-500/30">
                 {transporterName[0] || 'A'}
               </div>
@@ -1612,9 +1623,12 @@ export const TransporterPortalPage: React.FC = () => {
                 <span className="text-xs font-bold text-slate-900 truncate max-w-[140px]">
                   {transporterName}
                 </span>
-                <span className="text-[10px] text-teal-600 font-semibold">Agréé ARS & CPAM</span>
+                <span className="text-[10px] text-teal-600 font-semibold flex items-center gap-0.5">
+                  <span>Agréé ARS & CPAM</span>
+                  <span className="material-symbols-outlined text-[11px]">edit</span>
+                </span>
               </div>
-            </div>
+            </Link>
 
             <button
               id="btn-logout-transporter"
