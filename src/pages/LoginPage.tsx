@@ -156,7 +156,7 @@ export const LoginPage: React.FC = () => {
           badgeText: 'Portail Établissements & Soignants',
           badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
           title: 'Connexion Portail Établissements',
-          subtitle: 'Accès réservé aux soignants, cadres de santé et services de régulation des transports (CHU, hôpitaux, cliniques, dialyses en France métropolitaine & DOM).',
+          subtitle: 'Accès réservé aux soignants, cadres de santé et services de régulation des transports (CHU, hôpitaux, cliniques, dialyses en France hexagonale & DOM).',
           seoTitle: 'Connexion Portail Établissements de Santé | Clinigo',
           placeholderCompany: 'CHU, Centre Hospitalier, Clinique, Centre de dialyse...',
           features: [] as Array<{ icon: string; title: string; desc: string }>

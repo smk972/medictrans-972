@@ -47,7 +47,7 @@ export const RegisterFacilityPage: React.FC = () => {
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary">
       <SEOHead
         title="Conventionnement Établissements de Santé & Cadres de Soins | Clinigo"
-        description="Raccordez votre clinique, hôpital ou centre de dialyse au réseau de régulation Clinigo pour automatiser et fiabiliser vos transports sanitaires en France métropolitaine et dans les DOM."
+        description="Raccordez votre clinique, hôpital ou centre de dialyse au réseau de régulation Clinigo pour automatiser et fiabiliser vos transports sanitaires en France hexagonale et dans les DOM."
         canonicalPath="/inscription-etablissement"
       />
       <Header />
@@ -199,7 +199,7 @@ export const RegisterFacilityPage: React.FC = () => {
     onChange={(val) => setEtabName(val)}
     showCategoryFilters={true}
     placeholder="Rechercher ou saisir un établissement / adresse (France & DOM)..."
-    helperText="Aide à la saisie des établissements et adresses en France métropolitaine et DOM"
+    helperText="Aide à la saisie des établissements et adresses en France hexagonale et DOM"
   />
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">

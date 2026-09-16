@@ -227,7 +227,7 @@ async function generatePDF() {
       <div class="brand-logo">CLINIGO</div>
       <div>
         <div class="brand-title">CLINIGO • MÉDICTRANS</div>
-        <div class="brand-subtitle">Plateforme Sanitaire Numérique Nationale (France Métropolitaine & Outre-Mer)</div>
+        <div class="brand-subtitle">Plateforme Sanitaire Numérique Nationale (France hexagonale & Outre-Mer)</div>
       </div>
     </div>
     <div class="header-meta">

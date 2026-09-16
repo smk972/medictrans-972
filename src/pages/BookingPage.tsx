@@ -491,7 +491,7 @@ export const BookingPage: React.FC = () => {
       <Header />
       <SEOHead
         title="Réservation Transport Sanitaire | Ambulance, VSL & Taxi CPAM (France & DOM)"
-        description="Réservez en ligne votre transport médical partout en France métropolitaine et dans les DOM : Ambulance conventionnée, VSL sanitaire léger ou Taxi conventionné CPAM. Calcul de trajet et tiers-payant 100%."
+        description="Réservez en ligne votre transport médical partout en France hexagonale et dans les DOM : Ambulance conventionnée, VSL sanitaire léger ou Taxi conventionné CPAM. Calcul de trajet et tiers-payant 100%."
         canonicalPath="/reserver"
         ogImage="/assets/medictrans_hero_discover.jpg"
       />

@@ -1386,8 +1386,8 @@ export const TERRITORIES_CONFIG: Record<TerritoryId, TerritoryConfig> = {
   METROPOLE: {
     id: 'METROPOLE',
     code: 'FR',
-    name: 'France Métropolitaine',
-    shortName: 'Métropole',
+    name: 'France hexagonale',
+    shortName: 'Hexagone',
     viewBox: '0 0 100000 100000',
     width: 100000,
     height: 100000,

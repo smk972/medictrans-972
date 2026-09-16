@@ -238,7 +238,7 @@ export const RegisterTransporterPage: React.FC = () => {
                       value={address}
                       onChange={(val) => setAddress(val)}
                       placeholder="Ex: Voie, Zone industrielle, Code Postal ou Commune..."
-                      helperText="Aide à la saisie de l'adresse (France métropolitaine & DOM)"
+                      helperText="Aide à la saisie de l'adresse (France hexagonale & DOM)"
                     />
                   </div>
 
