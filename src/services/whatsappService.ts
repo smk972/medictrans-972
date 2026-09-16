@@ -200,7 +200,6 @@ export const whatsappService = {
       console.warn('Could not save OTP to localStorage:', e);
     }
 
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
     return { code, sentAt: Date.now(), waUrl };
   },
 

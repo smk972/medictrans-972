@@ -90,12 +90,16 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
     setGeneratedCode(code);
 
     const waPhone = formatPhoneForWhatsApp(phoneInput);
-    const waText = encodeURIComponent(
-      `*MedicTrans Santé*\n\nVotre code confidentiel de vérification pour débloquer votre essai gratuit de 30 jours est : *${code}*.\n\nCe code est strictement personnel.`
-    );
 
-    // Ouvre le lien WhatsApp officiel pour délivrer le message au numéro
-    window.open(`https://wa.me/${waPhone}?text=${waText}`, '_blank');
+    // Simulation d'envoi automatique via l'API WhatsApp sans ouverture de fenêtre locale
+    try {
+      localStorage.setItem('clinigo_transporter_otp', JSON.stringify({
+        phone: waPhone,
+        code,
+        sentAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000
+      }));
+    } catch {}
 
     setTimeout(() => {
       setIsSendingCode(false);
@@ -591,20 +595,7 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
                       {codeError}
                     </span>
                   )}
-                  {generatedCode && (
-                    <div className="mt-2.5 flex items-center justify-between px-3 py-2 rounded-xl bg-[#DCF8C6]/40 border border-[#25D366]/30 text-[11px]">
-                      <span className="text-slate-600">
-                        Code généré : <strong className="font-mono text-slate-950 font-bold">{generatedCode}</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setEnteredCode(generatedCode)}
-                        className="text-[#075E54] hover:underline font-bold cursor-pointer"
-                      >
-                        Remplir automatiquement
-                      </button>
-                    </div>
-                  )}
+
                 </div>
 
                 <div className="flex items-center justify-between text-xs pt-1">
