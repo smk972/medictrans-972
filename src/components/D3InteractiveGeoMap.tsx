@@ -18,6 +18,7 @@ export interface D3InteractiveGeoMapProps {
     street?: string;
   }) => void;
   onSelectDepartment?: (dept: { code: string; name: string; coordinates: [number, number] }) => void;
+  onGeolocate?: () => void;
   width?: number;
   height?: number;
 }
@@ -31,6 +32,7 @@ export const D3InteractiveGeoMap: React.FC<D3InteractiveGeoMapProps> = ({
   selectedDepartmentCode,
   onSelectEntity,
   onSelectDepartment,
+  onGeolocate,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -606,6 +608,17 @@ export const D3InteractiveGeoMap: React.FC<D3InteractiveGeoMapProps> = ({
             <line x1="12" y1="22" x2="12" y2="18" />
           </svg>
         </button>
+        {onGeolocate && (
+          <button
+            id="btn-map-geolocate"
+            type="button"
+            onClick={onGeolocate}
+            className="w-8 h-8 rounded-lg bg-sky-600/90 hover:bg-sky-500 text-white border border-sky-400/80 flex items-center justify-center text-xs shadow-lg cursor-pointer transition-colors"
+            title="Me géolocaliser sur la carte (GPS)"
+          >
+            <span className="material-symbols-outlined text-base">my_location</span>
+          </button>
+        )}
       </div>
 
       {/* Bouton de recadrage direct si l'utilisateur est en zoom rapproché */}

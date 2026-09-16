@@ -17,6 +17,10 @@ import {
   reverseGeocode,
 } from '../services/nationalGeoDatabase';
 
+const BASE_COMMUNE_STORAGE_KEY = 'medictrans_transporter_base_commune';
+const RADIUS_STORAGE_KEY = 'medictrans_transporter_radius_km';
+const OUTSIDE_RADIUS_STORAGE_KEY = 'medictrans_transporter_include_outside';
+
 export interface TransporterRadiusModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -395,7 +399,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-6xl w-full max-h-[96vh] flex flex-col overflow-hidden">
         {/* ========================================================================= */}
         {/* EN-TÊTE DU MODAL : TITRE, BADGES & SÉLECTEUR DE TERRITOIRE NATIONAL       */}
@@ -548,6 +552,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   exactAddress={exactStreetAddress}
                   radiusKm={radiusKm}
                   selectedDepartmentCode={activeTerritory === 'METROPOLE' ? selectedDepartment : null}
+                  onGeolocate={handleGeolocate}
                   onSelectDepartment={(dept) => {
                     handleDepartmentSelect(dept.code);
                   }}
@@ -1053,6 +1058,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                       🔍
                     </span>
                     <input
+                      id="input-address-search"
                       type="text"
                       value={addressSearchQuery}
                       onChange={(e) => handleAddressSearch(e.target.value)}
@@ -1083,6 +1089,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                       {databaseSearchResults.map((res) => (
                         <button
                           key={res.id}
+                          id={`geo-result-${res.id}`}
                           type="button"
                           onClick={() => handleSelectDatabaseEntity(res)}
                           className="w-full px-3 py-2 text-left hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer group"
@@ -1180,6 +1187,15 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   }}
                   className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-2xs"
                 >
+                  {baseCommune && !(
+                    (departmentCommunesList.length > 0 ? departmentCommunesList : territoryConfig.zones).some(
+                      (c) => c.name.toLowerCase() === baseCommune.toLowerCase()
+                    )
+                  ) && (
+                    <option value={baseCommune}>
+                      📍 {baseCommune}
+                    </option>
+                  )}
                   {departmentCommunesList.length > 0 ? (
                     departmentCommunesList.map((c) => (
                       <option key={c.id} value={c.name}>
@@ -1324,7 +1340,30 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
               <button
                 id="btn-apply-radius-modal"
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (onTerritoryChange && activeTerritory) {
+                    onTerritoryChange(activeTerritory);
+                  }
+                  if (onBaseCommuneChange && baseCommune) {
+                    onBaseCommuneChange(baseCommune);
+                  }
+                  if (onRadiusChange && radiusKm) {
+                    onRadiusChange(radiusKm);
+                  }
+                  if (onToggleIncludeOutside) {
+                    onToggleIncludeOutside(includeOutsideRadius);
+                  }
+                  try {
+                    localStorage.setItem('clinigo_transporter_territory', activeTerritory);
+                    localStorage.setItem(BASE_COMMUNE_STORAGE_KEY, baseCommune);
+                    localStorage.setItem(RADIUS_STORAGE_KEY, String(radiusKm));
+                    localStorage.setItem(OUTSIDE_RADIUS_STORAGE_KEY, String(includeOutsideRadius));
+                    if (exactStreetAddress) {
+                      localStorage.setItem('medictrans_transporter_street_address', exactStreetAddress);
+                    }
+                  } catch (e) {}
+                  onClose();
+                }}
                 className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-xs cursor-pointer"
               >
                 Appliquer ce rayon d'action ({radiusKm} km)

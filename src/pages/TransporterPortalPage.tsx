@@ -13,6 +13,7 @@ import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
 import { TransporterSubscriptionTab } from '../components/TransporterSubscriptionTab';
 import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
+import { reverseGeocode } from '../services/nationalGeoDatabase';
 
 export interface Driver {
   id: string;
@@ -298,6 +299,54 @@ export const TransporterPortalPage: React.FC = () => {
     setTimeout(() => {
       setToastMessage((prev) => (prev?.title === title ? null : prev));
     }, 5000);
+  };
+
+  // Géolocalisation directe depuis le Dashboard
+  const [isGeolocatingDashboard, setIsGeolocatingDashboard] = useState(false);
+
+  const handleDashboardGeolocate = () => {
+    if (!navigator.geolocation) {
+      showNotification('error', 'Géolocalisation', "La géolocalisation n'est pas supportée par votre navigateur.");
+      return;
+    }
+
+    setIsGeolocatingDashboard(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { longitude, latitude } = pos.coords;
+          const result = await reverseGeocode(longitude, latitude);
+          if (result) {
+            setBaseTerritory(result.territoryId);
+            const cityName = result.city || result.label;
+            setBaseCommune(cityName);
+            try {
+              localStorage.setItem('clinigo_transporter_territory', result.territoryId);
+              localStorage.setItem(BASE_COMMUNE_STORAGE_KEY, cityName);
+              if (result.street) {
+                localStorage.setItem('medictrans_transporter_street_address', result.label);
+              }
+            } catch (e) {}
+            showNotification(
+              'success',
+              'Position détectée avec succès',
+              `Nouvelle base : ${result.label} (${TERRITORIES_CONFIG[result.territoryId]?.shortName || result.territoryId})`
+            );
+          } else {
+            showNotification('info', 'Position GPS', `Coordonnées reçues : ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          }
+        } catch (err) {
+          showNotification('error', 'Erreur de géocodage', "Impossible d'identifier la commune.");
+        } finally {
+          setIsGeolocatingDashboard(false);
+        }
+      },
+      (err) => {
+        setIsGeolocatingDashboard(false);
+        showNotification('error', 'Géolocalisation refusée', err.message || 'Permission GPS non accordée.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   };
 
   // Form affectation véhicule
@@ -1972,8 +2021,15 @@ export const TransporterPortalPage: React.FC = () => {
                           id="select-base-commune"
                           value={baseCommune}
                           onChange={(e) => setBaseCommune(e.target.value)}
-                          className="bg-transparent font-bold text-on-surface cursor-pointer outline-none border-b border-secondary/40 focus:border-secondary text-xs max-w-[170px] truncate"
+                          className="bg-transparent font-bold text-on-surface cursor-pointer outline-none border-b border-secondary/40 focus:border-secondary text-xs max-w-[200px] truncate"
                         >
+                          {!TERRITORIES_CONFIG[baseTerritory]?.zones.some(
+                            (c) => c.name.toLowerCase() === baseCommune.toLowerCase()
+                          ) && (
+                            <option value={baseCommune}>
+                              📍 {baseCommune}
+                            </option>
+                          )}
                           {TERRITORIES_CONFIG[baseTerritory]?.zones.map((c) => (
                             <option key={c.insee} value={c.name}>
                               {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
@@ -1981,6 +2037,21 @@ export const TransporterPortalPage: React.FC = () => {
                           ))}
                         </select>
                       </div>
+
+                      {/* Bouton de géolocalisation directe sur le dashboard */}
+                      <button
+                        id="btn-dashboard-geolocate"
+                        type="button"
+                        onClick={handleDashboardGeolocate}
+                        disabled={isGeolocatingDashboard}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                        title="Détecter automatiquement ma position GPS et mettre à jour ma base"
+                      >
+                        <span className={`material-symbols-outlined text-sm ${isGeolocatingDashboard ? 'animate-spin' : ''}`}>
+                          {isGeolocatingDashboard ? 'progress_activity' : 'my_location'}
+                        </span>
+                        <span>{isGeolocatingDashboard ? 'Détection...' : 'Me géolocaliser'}</span>
+                      </button>
                     </div>
 
                     {/* Raccourcis de rayon prédéfinis adaptés au territoire */}
@@ -5517,7 +5588,10 @@ export const TransporterPortalPage: React.FC = () => {
       {/* ========================================================================= */}
       <TransporterRadiusModal
         isOpen={isRadiusModalOpen}
-        onClose={() => setIsRadiusModalOpen(false)}
+        onClose={() => {
+          setIsRadiusModalOpen(false);
+          showNotification('success', "Zone d'intervention mise à jour", `Base : ${baseCommune} • Rayon : ${actionRadiusKm} km`);
+        }}
         radiusKm={actionRadiusKm}
         onRadiusChange={setActionRadiusKm}
         includeOutsideRadius={includeOutsideRadius}
