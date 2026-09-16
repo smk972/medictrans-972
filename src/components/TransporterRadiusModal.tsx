@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { calculateNationalRoadDistance } from '../services/pricingService';
 import { Ride } from '../types/index';
 import {
@@ -9,7 +9,13 @@ import {
   detectTerritoryFromAddress,
 } from '../data/nationalTerritoriesData';
 import { D3InteractiveGeoMap } from './D3InteractiveGeoMap';
-import { searchNationalDatabase, GeoEntity } from '../services/nationalGeoDatabase';
+import {
+  searchNationalDatabase,
+  GeoEntity,
+  FRENCH_DEPARTMENTS_LIST,
+  fetchDepartmentCommunes,
+  reverseGeocode,
+} from '../services/nationalGeoDatabase';
 
 export interface TransporterRadiusModalProps {
   isOpen: boolean;
@@ -60,30 +66,176 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
   const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
   const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
 
-  // Synchronisation si l'adresse utilisateur ou la commune de base change à l'ouverture
+  // Département actif pour filtrage dynamique des communes & zoom automatique
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(() => {
+    const active = controlledTerritory || detectTerritoryFromAddress(baseCommune || userAddress);
+    if (active === 'GUADELOUPE') return '971';
+    if (active === 'MARTINIQUE') return '972';
+    if (active === 'GUYANE') return '973';
+    if (active === 'REUNION') return '974';
+    const match = (baseCommune || userAddress).match(/\b(0[1-9]|[1-8]\d|9[0-5]|2[abAB])\d{3}\b/);
+    if (match) return match[1];
+    return '75'; // Paris par défaut en métropole
+  });
+
+  const [departmentCommunesList, setDepartmentCommunesList] = useState<GeoEntity[]>([]);
+  const [isLoadingDepartmentCommunes, setIsLoadingDepartmentCommunes] = useState(false);
+  const [exactStreetAddress, setExactStreetAddress] = useState('');
+  const [isGeolocating, setIsGeolocating] = useState(false);
+  const [geolocationNotice, setGeolocationNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Chargement des communes d'un département donné avec cache
+  const loadDepartmentCommunes = useCallback(async (depCode: string) => {
+    setIsLoadingDepartmentCommunes(true);
+    try {
+      const list = await fetchDepartmentCommunes(depCode);
+      setDepartmentCommunesList(list);
+      return list;
+    } catch (err) {
+      console.error('Erreur chargement communes département:', err);
+      return [];
+    } finally {
+      setIsLoadingDepartmentCommunes(false);
+    }
+  }, []);
+
+  // Initialisation à l'ouverture du modal uniquement
   useEffect(() => {
     if (isOpen) {
-      const detected = detectTerritoryFromAddress(baseCommune || userAddress);
-      if (detected !== activeTerritory && !controlledTerritory) {
-        setInternalTerritory(detected);
+      const initialTerritory = controlledTerritory || detectTerritoryFromAddress(baseCommune || userAddress);
+      setInternalTerritory(initialTerritory);
+
+      let targetDep = '75';
+      if (initialTerritory === 'GUADELOUPE') targetDep = '971';
+      else if (initialTerritory === 'MARTINIQUE') targetDep = '972';
+      else if (initialTerritory === 'GUYANE') targetDep = '973';
+      else if (initialTerritory === 'REUNION') targetDep = '974';
+      else {
+        const match = (baseCommune || userAddress).match(/\b(0[1-9]|[1-8]\d|9[0-5]|2[abAB])\d{3}\b/);
+        if (match) targetDep = match[1];
       }
+
+      setSelectedDepartment(targetDep);
+      loadDepartmentCommunes(targetDep);
     }
-  }, [isOpen, baseCommune, userAddress, controlledTerritory, activeTerritory]);
+  }, [isOpen]); // Exécuté uniquement à l'ouverture du modal
 
   const handleSelectTerritory = (territoryId: TerritoryId) => {
+    setInternalTerritory(territoryId);
     if (onTerritoryChange) {
       onTerritoryChange(territoryId);
-    } else {
-      setInternalTerritory(territoryId);
     }
+
+    let defaultDep = '75';
+    if (territoryId === 'GUADELOUPE') defaultDep = '971';
+    else if (territoryId === 'MARTINIQUE') defaultDep = '972';
+    else if (territoryId === 'GUYANE') defaultDep = '973';
+    else if (territoryId === 'REUNION') defaultDep = '974';
+
+    setSelectedDepartment(defaultDep);
+    loadDepartmentCommunes(defaultDep);
+
     const targetConfig = TERRITORIES_CONFIG[territoryId];
-    // Si la commune actuelle n'existe pas dans le nouveau territoire, basculer sur la commune par défaut
     const exists = targetConfig.zones.some(
       (z) => z.name.toLowerCase() === baseCommune.toLowerCase()
     );
     if (!exists) {
       onBaseCommuneChange(targetConfig.defaultCommune);
     }
+  };
+
+  // Sélection d'un département (depuis le menu déroulant ou par clic sur la carte D3)
+  const handleDepartmentSelect = async (depCode: string) => {
+    setSelectedDepartment(depCode);
+    const depInfo = FRENCH_DEPARTMENTS_LIST.find((d) => d.code === depCode);
+    if (depInfo && depInfo.territoryId !== activeTerritory) {
+      setInternalTerritory(depInfo.territoryId);
+      if (onTerritoryChange) {
+        onTerritoryChange(depInfo.territoryId);
+      }
+    }
+    const communes = await loadDepartmentCommunes(depCode);
+    if (communes.length > 0) {
+      const exists = communes.some((c: GeoEntity) => c.name.toLowerCase() === baseCommune.toLowerCase());
+      if (!exists) {
+        onBaseCommuneChange(communes[0].name);
+        setSelectedCoordinates(communes[0].coordinates);
+      }
+    }
+    setSearchSuccessNotice(`📍 Département sélectionné : ${depInfo?.name || depCode}`);
+    setTimeout(() => setSearchSuccessNotice(null), 3000);
+  };
+
+  // Géolocalisation GPS via le navigateur et reverse-geocoding haute précision
+  const handleGeolocate = () => {
+    if (!navigator.geolocation) {
+      setGeolocationNotice({
+        type: 'error',
+        message: "La géolocalisation n'est pas supportée par votre navigateur.",
+      });
+      setTimeout(() => setGeolocationNotice(null), 4500);
+      return;
+    }
+
+    setIsGeolocating(true);
+    setGeolocationNotice(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { longitude, latitude } = pos.coords;
+          const result = await reverseGeocode(longitude, latitude);
+
+          if (result) {
+            if (result.territoryId !== activeTerritory) {
+              handleSelectTerritory(result.territoryId);
+            }
+            setSelectedDepartment(result.departmentCode);
+            await loadDepartmentCommunes(result.departmentCode);
+            onBaseCommuneChange(result.city || result.label);
+            if (result.street) {
+              setExactStreetAddress(result.label);
+            }
+            setSelectedCoordinates(result.coordinates);
+            setGeolocationNotice({
+              type: 'success',
+              message: `Position détectée : ${result.label}`,
+            });
+            setSearchSuccessNotice(`📍 Géolocalisé : ${result.label}`);
+          } else {
+            setSelectedCoordinates([longitude, latitude]);
+            setGeolocationNotice({
+              type: 'success',
+              message: `Position GPS : [${longitude.toFixed(4)}, ${latitude.toFixed(4)}]`,
+            });
+          }
+        } catch (err) {
+          console.error('Erreur géolocalisation:', err);
+          setGeolocationNotice({
+            type: 'error',
+            message: 'Impossible de convertir votre position en adresse.',
+          });
+        } finally {
+          setIsGeolocating(false);
+          setTimeout(() => setGeolocationNotice(null), 5000);
+          setTimeout(() => setSearchSuccessNotice(null), 4000);
+        }
+      },
+      (err) => {
+        setIsGeolocating(false);
+        let msg = 'Erreur lors de la géolocalisation.';
+        if (err.code === err.PERMISSION_DENIED) {
+          msg = 'Veuillez autoriser l’accès à votre position GPS.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          msg = 'Signal GPS non disponible.';
+        } else if (err.code === err.TIMEOUT) {
+          msg = 'Délai GPS dépassé.';
+        }
+        setGeolocationNotice({ type: 'error', message: msg });
+        setTimeout(() => setGeolocationNotice(null), 5000);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   // Commune de base active (centre du cercle d'action)
@@ -200,14 +352,30 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
 
   // Sélection d'une entité dans la liste des résultats de recherche
   const handleSelectDatabaseEntity = (entity: GeoEntity) => {
-    setAddressSearchQuery(`${entity.name} (${entity.code})`);
+    setAddressSearchQuery(entity.name);
     setShowSuggestionsDropdown(false);
+
     if (entity.territoryId !== activeTerritory) {
       handleSelectTerritory(entity.territoryId);
     }
-    onBaseCommuneChange(entity.name);
-    setSelectedCoordinates(entity.coordinates);
-    setSearchSuccessNotice(`📍 Base sélectionnée : ${entity.name} [${entity.code}]`);
+
+    if (entity.type === 'street' && entity.street) {
+      setExactStreetAddress(entity.name);
+    }
+
+    if (entity.type === 'department') {
+      handleDepartmentSelect(entity.code);
+    } else {
+      const depCode = entity.code.length >= 2 ? entity.code.slice(0, 2) : '';
+      if (depCode && FRENCH_DEPARTMENTS_LIST.some((d) => d.code === depCode)) {
+        setSelectedDepartment(depCode);
+        loadDepartmentCommunes(depCode);
+      }
+      onBaseCommuneChange(entity.name);
+      setSelectedCoordinates(entity.coordinates);
+    }
+
+    setSearchSuccessNotice(`📍 Sélectionné : ${entity.name}`);
     setTimeout(() => setSearchSuccessNotice(null), 3500);
   };
 
@@ -364,11 +532,25 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   territoryId={activeTerritory}
                   baseCoordinates={baseCoords}
                   baseName={baseCommune}
+                  exactAddress={exactStreetAddress}
                   radiusKm={radiusKm}
+                  selectedDepartmentCode={activeTerritory === 'METROPOLE' ? selectedDepartment : null}
+                  onSelectDepartment={(dept) => {
+                    handleDepartmentSelect(dept.code);
+                  }}
                   onSelectEntity={(entity) => {
-                    onBaseCommuneChange(entity.name);
-                    setSelectedCoordinates(entity.coordinates);
-                    setSearchSuccessNotice(`📍 Base sélectionnée : ${entity.name} [${entity.code}]`);
+                    if (entity.type === 'street') {
+                      if (entity.street) setExactStreetAddress(entity.street);
+                      onBaseCommuneChange(entity.name);
+                      setSelectedCoordinates(entity.coordinates);
+                      setSearchSuccessNotice(`📍 Adresse sélectionnée : ${entity.name}`);
+                    } else if (entity.type === 'department') {
+                      handleDepartmentSelect(entity.code);
+                    } else {
+                      onBaseCommuneChange(entity.name);
+                      setSelectedCoordinates(entity.coordinates);
+                      setSearchSuccessNotice(`📍 Base sélectionnée : ${entity.name} [${entity.code}]`);
+                    }
                     setTimeout(() => setSearchSuccessNotice(null), 3000);
                   }}
                 />
@@ -806,12 +988,50 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
           {/* COLONNE DROITE : CONTRÔLES DU RAYON & CHOIX DE BASE (5 COLS) */}
           <div className="lg:col-span-5 flex flex-col justify-between gap-4">
             <div className="space-y-4">
-              {/* Recherche intelligente par adresse / code postal */}
+              {/* Bouton de Géolocalisation GPS Automatique */}
+              <div className="space-y-2">
+                <button
+                  id="btn-geolocate-user"
+                  type="button"
+                  onClick={handleGeolocate}
+                  disabled={isGeolocating}
+                  className="w-full py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-sky-600 to-primary text-white font-bold text-xs shadow-md hover:from-sky-500 hover:to-primary/90 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-60"
+                >
+                  {isGeolocating ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Détection de votre position GPS...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base animate-pulse">my_location</span>
+                      <span>Me géolocaliser (GPS automatique)</span>
+                    </>
+                  )}
+                </button>
+
+                {geolocationNotice && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs flex items-center gap-2 border animate-fadeIn ${
+                      geolocationNotice.type === 'success'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      {geolocationNotice.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="font-semibold">{geolocationNotice.message}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Recherche intelligente par adresse / rue / code postal */}
               <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-sm text-primary">search</span>
-                    <span>Rechercher votre commune ou adresse :</span>
+                    <span>Rechercher votre commune ou rue :</span>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                     ⚡ data.gouv.fr
@@ -829,7 +1049,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                       onFocus={() => {
                         if (databaseSearchResults.length > 0) setShowSuggestionsDropdown(true);
                       }}
-                      placeholder="Ex: 97122 Baie-Mahault, 69002 Lyon, Cayenne, Fort-de-France..."
+                      placeholder="Ex: 10 rue de la Paix Paris, 69002 Lyon, Baie-Mahault..."
                       className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/50 shadow-2xs"
                     />
                     {isSearchingDatabase && (
@@ -859,7 +1079,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                         >
                           <div className="flex items-center gap-2 truncate">
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
-                              {res.code}
+                              {res.type === 'street' ? 'Rue' : res.code}
                             </span>
                             <span className="font-bold text-on-surface group-hover:text-primary transition-colors truncate">
                               {res.name}
@@ -871,7 +1091,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                             )}
                           </div>
                           <span className="text-[10px] font-mono text-on-surface-variant shrink-0">
-                            {res.territoryId}
+                            {res.type === 'street' ? '📍 Adresse' : res.territoryId}
                           </span>
                         </button>
                       ))}
@@ -886,27 +1106,121 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                 )}
               </div>
 
-              {/* Choix de la Commune de Base */}
+              {/* Sélection du Département (zoome la carte & filtre les communes) */}
+              {activeTerritory === 'METROPOLE' ? (
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                      <span>🗺️</span>
+                      <span>Département (zoome sur la carte) :</span>
+                    </label>
+                    <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold bg-sky-500/10 px-2 py-0.5 rounded-md">
+                      Dép. {selectedDepartment}
+                    </span>
+                  </div>
+                  <select
+                    id="modal-select-department"
+                    value={selectedDepartment}
+                    onChange={(e) => handleDepartmentSelect(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-2xs"
+                  >
+                    {FRENCH_DEPARTMENTS_LIST.filter((d) => d.territoryId === 'METROPOLE').map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.code} - {d.name} ({d.regionName})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-on-surface-variant">
+                    💡 Astuce : vous pouvez aussi cliquer directement sur un département sur la carte pour zoomer dessus et adapter la liste des villes.
+                  </p>
+                </div>
+              ) : (
+                <div className="px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-center justify-between text-xs">
+                  <span className="text-on-surface-variant font-medium">Zone territoriale :</span>
+                  <span className="font-bold text-primary font-mono">{territoryConfig.code} - {territoryConfig.name}</span>
+                </div>
+              )}
+
+              {/* Choix de la Ville / Commune de Base (adaptée au département sélectionné) */}
               <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                  <span>📍</span>
-                  <span>Ville de base (Centre du cercle) :</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                    <span>📍</span>
+                    <span>Ville de base (Centre du cercle) :</span>
+                  </label>
+                  {isLoadingDepartmentCommunes && (
+                    <span className="text-[10px] text-primary flex items-center gap-1">
+                      <span className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin"></span>
+                      <span>Chargement...</span>
+                    </span>
+                  )}
+                </div>
                 <select
                   id="modal-select-base-commune"
                   value={baseCommune}
-                  onChange={(e) => onBaseCommuneChange(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer"
+                  onChange={(e) => {
+                    const selectedName = e.target.value;
+                    onBaseCommuneChange(selectedName);
+                    const list = departmentCommunesList.length > 0 ? departmentCommunesList : territoryConfig.zones;
+                    const found = list.find((z) => z.name.toLowerCase() === selectedName.toLowerCase());
+                    if (found) {
+                      const coords = 'coordinates' in found ? found.coordinates : [found.lng, found.lat];
+                      setSelectedCoordinates(coords as [number, number]);
+                    }
+                  }}
+                  className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer shadow-2xs"
                 >
-                  {territoryConfig.zones.map((zone) => (
-                    <option key={zone.insee} value={zone.name}>
-                      📍 {zone.name} {zone.postalCode ? `(${zone.postalCode})` : ''}
-                    </option>
-                  ))}
+                  {departmentCommunesList.length > 0 ? (
+                    departmentCommunesList.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        📍 {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
+                      </option>
+                    ))
+                  ) : (
+                    territoryConfig.zones.map((zone) => (
+                      <option key={zone.insee} value={zone.name}>
+                        📍 {zone.name} {zone.postalCode ? `(${zone.postalCode})` : ''}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <p className="text-[10px] text-on-surface-variant">
-                  Astuce : vous pouvez aussi cliquer directement sur n'importe quelle ville de la carte pour la définir comme base.
+                  {departmentCommunesList.length > 0
+                    ? `${departmentCommunesList.length} communes répertoriées pour ce département.`
+                    : `${territoryConfig.zones.length} communes disponibles.`}
                 </p>
+              </div>
+
+              {/* Précision optionnelle de la Rue / Adresse exacte */}
+              <div className="p-3 rounded-2xl bg-surface-container-low/70 border border-outline-variant/30 space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span>🛣️</span>
+                    <span>Rue ou adresse précise (Optionnel) :</span>
+                  </span>
+                  {exactStreetAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setExactStreetAddress('')}
+                      className="text-[10px] text-rose-500 hover:underline cursor-pointer"
+                    >
+                      Effacer
+                    </button>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={exactStreetAddress}
+                  onChange={(e) => setExactStreetAddress(e.target.value)}
+                  placeholder="Ex: 24 Rue Victor Hugo, Avenue des Champs-Élysées..."
+                  className="w-full px-3 py-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/40 shadow-2xs"
+                />
+                {exactStreetAddress && (
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">pin_drop</span>
+                    <span>Pin précis positionné sur la rue au centre du rayon d'action</span>
+                  </p>
+                )}
               </div>
 
               {/* Réglage du Rayon en km (Slider + Stepper) */}
