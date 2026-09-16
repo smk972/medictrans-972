@@ -81,11 +81,11 @@ export const Header: React.FC = () => {
         {/* Logo */}
         <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
 
-        {/* Desktop Nav (libellés compacts sur écrans < 1280px pour empêcher toute collision avec Eva) */}
-        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 2xl:gap-1.5 shrink min-w-0">
+        {/* Desktop Nav (libellés concis et élégants; version longue uniquement dès 2xl: 1536px) */}
+        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 2xl:gap-2 shrink min-w-0">
           <NavLink to="/reserver" className={navLinkClass}>
-            <span className="hidden xl:inline">Réserver un transport</span>
-            <span className="xl:hidden">Réserver</span>
+            <span className="hidden 2xl:inline">Réserver un transport</span>
+            <span className="2xl:hidden">Réserver</span>
           </NavLink>
           <NavLink to="/suivi" className={navLinkClass}>
             Mes Demandes
@@ -100,8 +100,8 @@ export const Header: React.FC = () => {
               }`
             }
           >
-            <span className="hidden xl:inline">Portail Établissements</span>
-            <span className="xl:hidden">Établissements</span>
+            <span className="hidden 2xl:inline">Portail Établissements</span>
+            <span className="2xl:hidden">Établissements</span>
           </NavLink>
           <NavLink
             to={transporterPath}
@@ -113,13 +113,13 @@ export const Header: React.FC = () => {
               }`
             }
           >
-            <span className="hidden xl:inline">Espace Transporteurs</span>
-            <span className="xl:hidden">Transporteurs</span>
+            <span className="hidden 2xl:inline">Espace Transporteurs</span>
+            <span className="2xl:hidden">Transporteurs</span>
           </NavLink>
           {user?.role === 'ADMIN' && (
             <NavLink to="/admin" className={navLinkClass}>
-              <span className="hidden xl:inline">Régulation 972</span>
-              <span className="xl:hidden">Admin</span>
+              <span className="hidden 2xl:inline">Régulation 972</span>
+              <span className="2xl:hidden">Admin</span>
             </NavLink>
           )}
         </nav>
@@ -161,7 +161,7 @@ export const Header: React.FC = () => {
                       {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
-                  <div className="hidden md:flex flex-col min-w-0 max-w-[70px] lg:max-w-[95px] xl:max-w-[140px] 2xl:max-w-[180px]">
+                  <div className="hidden md:flex flex-col min-w-0 max-w-[70px] lg:max-w-[85px] xl:max-w-[105px] 2xl:max-w-[150px]">
                     <span className="text-xs font-bold text-slate-900 leading-tight truncate" title={user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}>
                       {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email?.split('@')[0] || 'Utilisateur')}
                     </span>
@@ -284,16 +284,16 @@ export const Header: React.FC = () => {
                 )}
               </div>
 
-              {/* Bouton direct Déconnexion 1-clic (icône compacte sous xl, texte dès xl) */}
+              {/* Bouton direct Déconnexion 1-clic (icône compacte sous 2xl, texte dès 2xl) */}
               <button
                 id="btn-header-logout"
                 type="button"
                 onClick={handleLogout}
-                className="hidden sm:inline-flex items-center justify-center gap-1.5 p-2 xl:px-3.5 xl:py-1.5 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
+                className="hidden sm:inline-flex items-center justify-center gap-1.5 p-2 2xl:px-3.5 2xl:py-1.5 rounded-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-rose-800 hover:to-rose-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
                 title="Se déconnecter"
               >
                 <span className="material-symbols-outlined text-base">logout</span>
-                <span className="hidden xl:inline">Déconnexion</span>
+                <span className="hidden 2xl:inline">Déconnexion</span>
               </button>
             </div>
           ) : (
