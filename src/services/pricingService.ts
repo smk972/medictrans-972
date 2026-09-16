@@ -1,4 +1,5 @@
 import { TransportType, MobilityNeeds, RidePricing } from '../types/index';
+import { detectTerritoryFromAddress, TERRITORIES_CONFIG, TerritoryId } from '../data/nationalTerritoriesData';
 
 /**
  * Coordonnées GPS des 34 communes de la Martinique (972)
@@ -188,12 +189,13 @@ function normalizeText(text: string): string {
 }
 
 /**
- * Résolution des coordonnées GPS pour un texte d'adresse ou de commune de Martinique
+ * Résolution des coordonnées GPS pour un texte d'adresse, de commune ou d'établissement de santé
+ * Supporte la France Métropolitaine, la Martinique (972), la Guadeloupe (971), la Guyane (973) et La Réunion (974).
  */
-export function resolveCoordinates(input: string): { lat: number; lng: number; label: string } {
+export function resolveCoordinates(input: string, targetTerritory?: TerritoryId): { lat: number; lng: number; label: string } {
   const norm = normalizeText(input);
 
-  // 1. Recherche parmi les établissements de santé
+  // 1. Recherche parmi les établissements de santé de Martinique
   for (const [key, facility] of Object.entries(HEALTHCARE_FACILITY_COORDINATES)) {
     const fNorm = normalizeText(facility.name);
     if (norm.includes(key) || norm.includes(fNorm) || fNorm.includes(norm)) {
@@ -227,7 +229,29 @@ export function resolveCoordinates(input: string): { lat: number; lng: number; l
     return { lat: f.lat, lng: f.lng, label: f.name };
   }
 
-  // 2. Recherche parmi les communes de Martinique
+  // 2. Recherche spécifique dans le territoire demandé ou détecté
+  const territory = targetTerritory || detectTerritoryFromAddress(input);
+  const cfg = TERRITORIES_CONFIG[territory];
+  if (cfg) {
+    for (const z of cfg.zones) {
+      const zNorm = normalizeText(z.name);
+      if (norm.includes(zNorm) || zNorm.includes(norm) || (z.postalCode && norm.includes(z.postalCode))) {
+        return { lat: z.lat, lng: z.lng, label: z.name };
+      }
+    }
+  }
+
+  // 3. Recherche élargie dans tous les territoires configurés
+  for (const c of Object.values(TERRITORIES_CONFIG)) {
+    for (const z of c.zones) {
+      const zNorm = normalizeText(z.name);
+      if (norm.includes(zNorm) || zNorm.includes(norm)) {
+        return { lat: z.lat, lng: z.lng, label: z.name };
+      }
+    }
+  }
+
+  // 4. Recherche parmi les communes de Martinique (compatibilité historique)
   for (const [communeKey, coords] of Object.entries(MARTINIQUE_COMMUNE_COORDINATES)) {
     const cNorm = normalizeText(communeKey);
     if (norm.includes(cNorm) || cNorm.includes(norm)) {
@@ -235,68 +259,76 @@ export function resolveCoordinates(input: string): { lat: number; lng: number; l
     }
   }
 
-  // 3. Fallback géolocalisation Martinique Centre (CHU / Lamentin)
+  // 5. Fallback par défaut selon le territoire
+  if (territory === 'GUADELOUPE') return { lat: 16.2411, lng: -61.5331, label: 'Pointe-à-Pitre' };
+  if (territory === 'REUNION') return { lat: -20.8789, lng: 55.4481, label: 'Saint-Denis' };
+  if (territory === 'GUYANE') return { lat: 4.9372, lng: -52.3260, label: 'Cayenne' };
+  if (territory === 'METROPOLE') return { lat: 48.8566, lng: 2.3522, label: 'Paris' };
   return { lat: 14.6161, lng: -61.0588, label: 'Fort-de-France' };
 }
 
 /**
- * Calculateur de distance et de durée routière réelles en Martinique
+ * Calculateur de distance et de durée routières réelles à l'échelle nationale
+ * (France Métropolitaine, Martinique, Guadeloupe, Guyane, La Réunion).
  */
-export function calculateMartiniqueRoadDistance(
+export function calculateNationalRoadDistance(
   originStr: string,
-  destinationStr: string
+  destinationStr: string,
+  targetTerritory?: TerritoryId
 ): { distanceKm: number; durationMinutes: number; originCoords: { lat: number; lng: number }; destCoords: { lat: number; lng: number } } {
-  const orig = resolveCoordinates(originStr);
-  const dest = resolveCoordinates(destinationStr);
+  const territory = targetTerritory || detectTerritoryFromAddress(originStr) || detectTerritoryFromAddress(destinationStr);
+  const orig = resolveCoordinates(originStr, territory);
+  const dest = resolveCoordinates(destinationStr, territory);
 
   const origNorm = normalizeText(originStr);
   const destNorm = normalizeText(destinationStr);
 
-  // Vérifier si une entrée directe existe dans la matrice pré-calibrée
-  for (const [origKey, destMap] of Object.entries(MARTINIQUE_ROAD_MATRIX)) {
-    if (origNorm.includes(origKey)) {
-      for (const [destKey, val] of Object.entries(destMap)) {
-        if (destNorm.includes(destKey)) {
-          return {
-            distanceKm: val.km,
-            durationMinutes: val.min,
-            originCoords: { lat: orig.lat, lng: orig.lng },
-            destCoords: { lat: dest.lat, lng: dest.lng },
-          };
+  // Pour la Martinique, vérifier la matrice pré-calibrée
+  if (territory === 'MARTINIQUE') {
+    for (const [origKey, destMap] of Object.entries(MARTINIQUE_ROAD_MATRIX)) {
+      if (origNorm.includes(origKey)) {
+        for (const [destKey, val] of Object.entries(destMap)) {
+          if (destNorm.includes(destKey)) {
+            return {
+              distanceKm: val.km,
+              durationMinutes: val.min,
+              originCoords: { lat: orig.lat, lng: orig.lng },
+              destCoords: { lat: dest.lat, lng: dest.lng },
+            };
+          }
         }
       }
-    }
-    // Trajet retour
-    if (destNorm.includes(origKey)) {
-      for (const [destKey, val] of Object.entries(destMap)) {
-        if (origNorm.includes(destKey)) {
-          return {
-            distanceKm: val.km,
-            durationMinutes: Math.round(val.min * 1.05),
-            originCoords: { lat: orig.lat, lng: orig.lng },
-            destCoords: { lat: dest.lat, lng: dest.lng },
-          };
+      // Trajet retour
+      if (destNorm.includes(origKey)) {
+        for (const [destKey, val] of Object.entries(destMap)) {
+          if (origNorm.includes(destKey)) {
+            return {
+              distanceKm: val.km,
+              durationMinutes: Math.round(val.min * 1.05),
+              originCoords: { lat: orig.lat, lng: orig.lng },
+              destCoords: { lat: dest.lat, lng: dest.lng },
+            };
+          }
         }
       }
     }
   }
 
-  // Calcul Haversine avec facteur de topographie et sinuosité des routes de Martinique
+  // Calcul Haversine avec facteur de topographie et sinuosité selon le territoire
   const rawDist = haversineDistance(orig.lat, orig.lng, dest.lat, dest.lng);
 
-  // Relief martiniquais : les routes serpentent de 25% à 45% de plus que la vol d'oiseau
-  let windingFactor = 1.35;
-  let avgSpeedKmh = 42; // Vitesse moyenne constatée en Martinique (embouteillages CACEM, mornes, ronds-points)
+  let windingFactor = 1.30;
+  let avgSpeedKmh = 45;
 
-  // Si trajet dans le Nord (Mornes, Trace, Pitons)
-  if (orig.lat > 14.70 || dest.lat > 14.70) {
-    windingFactor = 1.45;
-    avgSpeedKmh = 35;
-  }
-  // Si trajet Sud sur RN5 (voie rapide 70-90 km/h)
-  else if (orig.lat < 14.55 && dest.lat < 14.55) {
-    windingFactor = 1.25;
-    avgSpeedKmh = 55;
+  if (territory === 'MARTINIQUE' || territory === 'GUADELOUPE' || territory === 'REUNION') {
+    windingFactor = 1.35;
+    avgSpeedKmh = 42;
+  } else if (territory === 'GUYANE') {
+    windingFactor = 1.18; // Longs axes rectilignes le long du littoral RN1 / RN2
+    avgSpeedKmh = 70;
+  } else if (territory === 'METROPOLE') {
+    windingFactor = 1.22; // Réseau autoroutier et voies rapides denses
+    avgSpeedKmh = 75;
   }
 
   const distanceKm = Math.max(2.5, Math.round(rawDist * windingFactor * 10) / 10);
@@ -308,6 +340,16 @@ export function calculateMartiniqueRoadDistance(
     originCoords: { lat: orig.lat, lng: orig.lng },
     destCoords: { lat: dest.lat, lng: dest.lng },
   };
+}
+
+/**
+ * Calculateur de distance routière historique Martinique (maintenu pour rétro-compatibilité 100%)
+ */
+export function calculateMartiniqueRoadDistance(
+  originStr: string,
+  destinationStr: string
+): { distanceKm: number; durationMinutes: number; originCoords: { lat: number; lng: number }; destCoords: { lat: number; lng: number } } {
+  return calculateNationalRoadDistance(originStr, destinationStr, 'MARTINIQUE');
 }
 
 /**

@@ -6,13 +6,13 @@ import { BrandLogo } from '../components/BrandLogo';
 import { rideService } from '../services/rideService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '../services/pricingService';
+import { calculateNationalRoadDistance, calculateMartiniqueRoadDistance, calculateMedicalRidePricing } from '../services/pricingService';
 import { Ride, RideStatus, TransportType, TransporterSubscription } from '../types';
 import { AuthService } from '../services/authService';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
 import { TransporterSubscriptionTab } from '../components/TransporterSubscriptionTab';
-import { ALL_34_COMMUNES_NAMES } from '../data/martiniqueCommunesPolygons';
+import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 
 export interface Driver {
   id: string;
@@ -218,6 +218,14 @@ export const TransporterPortalPage: React.FC = () => {
     return false;
   });
 
+  const [baseTerritory, setBaseTerritory] = useState<TerritoryId>(() => {
+    try {
+      const saved = localStorage.getItem('clinigo_transporter_territory') as TerritoryId;
+      if (saved && TERRITORIES_CONFIG[saved]) return saved;
+    } catch (e) {}
+    return 'MARTINIQUE';
+  });
+
   const [baseCommune, setBaseCommune] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(BASE_COMMUNE_STORAGE_KEY);
@@ -226,6 +234,24 @@ export const TransporterPortalPage: React.FC = () => {
     return 'Le Lamentin';
   });
 
+  // Auto-détection du territoire et de la commune de base selon l'adresse ou le code postal du profil transporteur
+  useEffect(() => {
+    const userAddr = user?.postalCode || user?.city || user?.address;
+    if (userAddr) {
+      const detected = detectTerritoryFromAddress(userAddr);
+      try {
+        const savedTerritory = localStorage.getItem('clinigo_transporter_territory');
+        if (!savedTerritory) {
+          setBaseTerritory(detected);
+          const savedCommune = localStorage.getItem(BASE_COMMUNE_STORAGE_KEY);
+          if (!savedCommune) {
+            setBaseCommune(TERRITORIES_CONFIG[detected].defaultCommune);
+          }
+        }
+      } catch (e) {}
+    }
+  }, [user]);
+
   const [isRadiusModalOpen, setIsRadiusModalOpen] = useState(false);
 
   useEffect(() => {
@@ -233,8 +259,9 @@ export const TransporterPortalPage: React.FC = () => {
       localStorage.setItem(RADIUS_STORAGE_KEY, String(actionRadiusKm));
       localStorage.setItem(OUTSIDE_RADIUS_STORAGE_KEY, String(includeOutsideRadius));
       localStorage.setItem(BASE_COMMUNE_STORAGE_KEY, baseCommune);
+      localStorage.setItem('clinigo_transporter_territory', baseTerritory);
     } catch (e) {}
-  }, [actionRadiusKm, includeOutsideRadius, baseCommune]);
+  }, [actionRadiusKm, includeOutsideRadius, baseCommune, baseTerritory]);
 
   // Sous-vues et modales de gestion Flotte & Chauffeurs
   const [fleetSubView, setFleetSubView] = useState<'ALL' | 'VEHICLES' | 'DRIVERS'>('ALL');
@@ -482,7 +509,7 @@ export const TransporterPortalPage: React.FC = () => {
       }
 
       // Filtrage par Rayon d'action (Cercle géographique en km)
-      const dist = calculateMartiniqueRoadDistance(baseCommune, r.pickupCity || r.pickupAddress).distanceKm;
+      const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
       const isInside = dist <= actionRadiusKm;
       if (!includeOutsideRadius && !isInside) {
         // Selon leur rayon d'intervention ils ne reçoivent pas les demandes des clients hors zone si la case n'est pas cochée
@@ -497,15 +524,15 @@ export const TransporterPortalPage: React.FC = () => {
       if (aDirect !== bDirect) return bDirect - aDirect;
       return new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime();
     });
-  }, [rides, vehicleFilter, sectorFilter, declinedRefs, baseCommune, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
+  }, [rides, vehicleFilter, sectorFilter, declinedRefs, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
 
   // Compteurs de courses dans et hors zone d'action
   const pendingInRadiusCount = useMemo(() => {
     return allPendingMissions.filter((m) => {
-      const dist = calculateMartiniqueRoadDistance(baseCommune, m.pickupCity || m.pickupAddress).distanceKm;
+      const dist = calculateNationalRoadDistance(baseCommune, m.pickupCity || m.pickupAddress, baseTerritory).distanceKm;
       return dist <= actionRadiusKm;
     }).length;
-  }, [allPendingMissions, baseCommune, actionRadiusKm]);
+  }, [allPendingMissions, baseCommune, baseTerritory, actionRadiusKm]);
 
   const pendingOutsideRadiusCount = useMemo(() => {
     return allPendingMissions.length - pendingInRadiusCount;
@@ -566,11 +593,11 @@ export const TransporterPortalPage: React.FC = () => {
   const matchingAvailableMissions = useMemo(() => {
     return allPendingMissions
       .filter((m) => {
-        const dist = calculateMartiniqueRoadDistance(baseCommune, m.pickupCity || m.pickupAddress).distanceKm;
+        const dist = calculateNationalRoadDistance(baseCommune, m.pickupCity || m.pickupAddress, baseTerritory).distanceKm;
         return dist <= actionRadiusKm;
       })
       .sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime());
-  }, [allPendingMissions, baseCommune, actionRadiusKm]);
+  }, [allPendingMissions, baseCommune, baseTerritory, actionRadiusKm]);
 
   // Jours uniques avec décompte pour le sélecteur de dates rapide
   const planningDaysSummary = useMemo(() => {
@@ -1912,37 +1939,62 @@ export const TransporterPortalPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/30">
-                      <span className="material-symbols-outlined text-sm text-secondary">location_on</span>
-                      <span>Base :</span>
-                      <select
-                        id="select-base-commune"
-                        value={baseCommune}
-                        onChange={(e) => setBaseCommune(e.target.value)}
-                        className="bg-transparent font-bold text-on-surface cursor-pointer outline-none border-b border-secondary/40 focus:border-secondary text-xs"
-                      >
-                        {ALL_34_COMMUNES_NAMES.map((c) => (
-                          <option key={c} value={c}>
-                            {c} {c === 'Le Lamentin' ? '(Centre)' : ''}
-                          </option>
-                        ))}
-                      </select>
+                    {/* Territoire & Base commune dynamique */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-2.5 py-1.5 rounded-xl border border-outline-variant/30">
+                        <span className="text-sm">{TERRITORIES_CONFIG[baseTerritory]?.flag || '🌴'}</span>
+                        <select
+                          id="select-base-territory"
+                          value={baseTerritory}
+                          onChange={(e) => {
+                            const newTerritory = e.target.value as TerritoryId;
+                            setBaseTerritory(newTerritory);
+                            const cfg = TERRITORIES_CONFIG[newTerritory];
+                            if (cfg) setBaseCommune(cfg.defaultCommune);
+                          }}
+                          className="bg-transparent font-bold text-on-surface cursor-pointer outline-none text-xs"
+                          title="Sélectionner le territoire d'exercice"
+                        >
+                          {Object.values(TERRITORIES_CONFIG).map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.flag} {t.shortName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/30">
+                        <span className="material-symbols-outlined text-sm text-secondary">location_on</span>
+                        <span>Base :</span>
+                        <select
+                          id="select-base-commune"
+                          value={baseCommune}
+                          onChange={(e) => setBaseCommune(e.target.value)}
+                          className="bg-transparent font-bold text-on-surface cursor-pointer outline-none border-b border-secondary/40 focus:border-secondary text-xs max-w-[170px] truncate"
+                        >
+                          {TERRITORIES_CONFIG[baseTerritory]?.zones.map((c) => (
+                            <option key={c.insee} value={c.name}>
+                              {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    {/* Raccourcis de rayon prédéfinis */}
-                    <div className="flex items-center gap-1">
-                      {[10, 15, 25, 40, 60].map((km) => (
+                    {/* Raccourcis de rayon prédéfinis adaptés au territoire */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {TERRITORIES_CONFIG[baseTerritory]?.radiusPresets.slice(0, 5).map((km) => (
                         <button
                           key={km}
                           type="button"
                           onClick={() => setActionRadiusKm(km)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             actionRadiusKm === km
                               ? 'bg-primary text-white shadow-xs scale-105'
                               : 'bg-surface-container-lowest border border-outline-variant/30 hover:border-primary/50 text-on-surface-variant hover:text-on-surface'
                           }`}
                         >
-                          {km === 60 ? "Toute l'île (60km)" : `${km}km`}
+                          {km === TERRITORIES_CONFIG[baseTerritory]?.maxRadius ? 'Tout le secteur' : `${km}km`}
                         </button>
                       ))}
                     </div>
@@ -2130,7 +2182,7 @@ export const TransporterPortalPage: React.FC = () => {
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container text-secondary text-xs font-bold border border-outline-variant/30">
                       <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-                      <span>Écoute active du réseau de régulation Martinique 972</span>
+                      <span>Écoute active du réseau de régulation {TERRITORIES_CONFIG[baseTerritory]?.name || 'France'}</span>
                     </div>
                     {declinedRefs.length > 0 && (
                       <button
@@ -2155,8 +2207,8 @@ export const TransporterPortalPage: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {availableMissions.map((mission) => {
-                    const route = calculateMartiniqueRoadDistance(mission.pickupCity, mission.dropoffCity);
-                    const distFromBase = calculateMartiniqueRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress).distanceKm;
+                    const route = calculateNationalRoadDistance(mission.pickupCity, mission.dropoffCity, baseTerritory);
+                    const distFromBase = calculateNationalRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress, baseTerritory).distanceKm;
                     const isInsideRadius = distFromBase <= actionRadiusKm;
                     const pricing = calculateMedicalRidePricing({
                       transportType: mission.transportType,
@@ -2783,7 +2835,7 @@ export const TransporterPortalPage: React.FC = () => {
                   {/* Grille des courses disponibles correspondantes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
                     {matchingAvailableMissions.slice(0, 3).map((mission) => {
-                      const distFromBase = calculateMartiniqueRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress).distanceKm;
+                      const distFromBase = calculateNationalRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress, baseTerritory).distanceKm;
                       const pickupDate = new Date(mission.pickupDateTime);
                       const isToday = new Date().toDateString() === pickupDate.toDateString();
                       const isTomorrow = new Date(Date.now() + 86400000).toDateString() === pickupDate.toDateString();
@@ -5471,6 +5523,9 @@ export const TransporterPortalPage: React.FC = () => {
         baseCommune={baseCommune}
         onBaseCommuneChange={setBaseCommune}
         allPendingMissions={allPendingMissions}
+        userAddress={user?.postalCode || user?.address || user?.city || ''}
+        activeTerritory={baseTerritory}
+        onTerritoryChange={setBaseTerritory}
       />
 
       {/* ========================================================================= */}

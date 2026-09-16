@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { calculateMartiniqueRoadDistance } from '../services/pricingService';
+import React, { useMemo, useState, useEffect } from 'react';
+import { calculateNationalRoadDistance } from '../services/pricingService';
 import { Ride } from '../types/index';
 import {
-  MARTINIQUE_COMMUNES_POLYGONS,
-  MARTINIQUE_SVG_VIEWBOX,
-  MARTINIQUE_UNITS_PER_KM,
-  ALL_34_COMMUNES_NAMES,
-  MartiniqueCommunePolygon,
-} from '../data/martiniqueCommunesPolygons';
+  TerritoryId,
+  TerritoryZonePolygon,
+  TERRITORIES_CONFIG,
+  ALL_TERRITORIES_LIST,
+  detectTerritoryFromAddress,
+} from '../data/nationalTerritoriesData';
 
 export interface TransporterRadiusModalProps {
   isOpen: boolean;
@@ -19,9 +19,10 @@ export interface TransporterRadiusModalProps {
   baseCommune: string;
   onBaseCommuneChange: (commune: string) => void;
   allPendingMissions: Ride[];
+  userAddress?: string;
+  activeTerritory?: TerritoryId;
+  onTerritoryChange?: (territory: TerritoryId) => void;
 }
-
-const RADIUS_PRESETS = [5, 10, 15, 20, 30, 45, 60];
 
 export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
   isOpen,
@@ -33,122 +34,221 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
   baseCommune,
   onBaseCommuneChange,
   allPendingMissions,
+  userAddress = '',
+  activeTerritory: controlledTerritory,
+  onTerritoryChange,
 }) => {
-  const [hoveredCommune, setHoveredCommune] = useState<MartiniqueCommunePolygon | null>(null);
+  // Territoire actif (auto-détecté ou sélectionné)
+  const [internalTerritory, setInternalTerritory] = useState<TerritoryId>(() => {
+    return controlledTerritory || detectTerritoryFromAddress(baseCommune || userAddress);
+  });
+
+  const activeTerritory = controlledTerritory || internalTerritory;
+  const territoryConfig = TERRITORIES_CONFIG[activeTerritory] || TERRITORIES_CONFIG.MARTINIQUE;
+
+  const [hoveredCommune, setHoveredCommune] = useState<TerritoryZonePolygon | null>(null);
   const [showAllLabels, setShowAllLabels] = useState(true);
+  const [addressSearchQuery, setAddressSearchQuery] = useState('');
+  const [searchSuccessNotice, setSearchSuccessNotice] = useState<string | null>(null);
+
+  // Synchronisation si l'adresse utilisateur ou la commune de base change à l'ouverture
+  useEffect(() => {
+    if (isOpen) {
+      const detected = detectTerritoryFromAddress(baseCommune || userAddress);
+      if (detected !== activeTerritory && !controlledTerritory) {
+        setInternalTerritory(detected);
+      }
+    }
+  }, [isOpen, baseCommune, userAddress, controlledTerritory, activeTerritory]);
+
+  const handleSelectTerritory = (territoryId: TerritoryId) => {
+    if (onTerritoryChange) {
+      onTerritoryChange(territoryId);
+    } else {
+      setInternalTerritory(territoryId);
+    }
+    const targetConfig = TERRITORIES_CONFIG[territoryId];
+    // Si la commune actuelle n'existe pas dans le nouveau territoire, basculer sur la commune par défaut
+    const exists = targetConfig.zones.some(
+      (z) => z.name.toLowerCase() === baseCommune.toLowerCase()
+    );
+    if (!exists) {
+      onBaseCommuneChange(targetConfig.defaultCommune);
+    }
+  };
 
   // Commune de base active (centre du cercle d'action)
   const basePolygon = useMemo(() => {
     const norm = (s: string) => s.toLowerCase().replace(/[-'\s]/g, '');
-    const found = MARTINIQUE_COMMUNES_POLYGONS.find((c) => norm(c.name) === norm(baseCommune));
+    const found = territoryConfig.zones.find((c) => norm(c.name) === norm(baseCommune));
     if (found) return found;
-    const partial = MARTINIQUE_COMMUNES_POLYGONS.find(
+
+    const partial = territoryConfig.zones.find(
       (c) => norm(c.name).includes(norm(baseCommune)) || norm(baseCommune).includes(norm(c.name))
     );
-    return partial || MARTINIQUE_COMMUNES_POLYGONS.find((c) => c.name === 'Le Lamentin')!;
-  }, [baseCommune]);
+    return partial || territoryConfig.zones.find((c) => c.name === territoryConfig.defaultCommune) || territoryConfig.zones[0];
+  }, [territoryConfig, baseCommune]);
 
   // Centre du cercle d'action en coordonnées SVG
   const centerX = basePolygon.centroidX;
   const centerY = basePolygon.centroidY;
 
-  // Rayon du cercle en unités SVG (~1000 unités par km)
-  const circleRadiusSvg = radiusKm * MARTINIQUE_UNITS_PER_KM;
+  // Rayon du cercle en unités SVG selon l'échelle métrique du territoire
+  const circleRadiusSvg = radiusKm * territoryConfig.unitsPerKm;
 
   // Analyse des communes : distance routière et géométrique par rapport à la base
   const communesAnalysis = useMemo(() => {
-    return MARTINIQUE_COMMUNES_POLYGONS.map((c) => {
+    return territoryConfig.zones.map((c) => {
       const isBase = c.insee === basePolygon.insee;
-      const roadDist = calculateMartiniqueRoadDistance(basePolygon.name, c.name).distanceKm;
+      const roadDist = calculateNationalRoadDistance(basePolygon.name, c.name, activeTerritory).distanceKm;
       const geoDistUnits = Math.hypot(c.centroidX - centerX, c.centroidY - centerY);
       const isInside = roadDist <= radiusKm || geoDistUnits <= circleRadiusSvg;
       return {
         ...c,
         isBase,
         roadDist,
-        geoDistKm: geoDistUnits / MARTINIQUE_UNITS_PER_KM,
+        geoDistKm: geoDistUnits / territoryConfig.unitsPerKm,
         isInside,
       };
     });
-  }, [basePolygon, centerX, centerY, circleRadiusSvg, radiusKm]);
+  }, [territoryConfig, basePolygon, centerX, centerY, circleRadiusSvg, radiusKm, activeTerritory]);
 
   // Communes couvertes
   const coveredCommunes = useMemo(() => {
     return communesAnalysis.filter((c) => c.isInside);
   }, [communesAnalysis]);
 
-  // Analyse des missions clientes reçues géoréférencées
+  // Analyse des missions clientes reçues géoréférencées dans ce territoire
   const missionsWithPosition = useMemo(() => {
     const norm = (s: string) => s.toLowerCase().replace(/[-'\s]/g, '');
-    return allPendingMissions.map((m) => {
-      const city = m.pickupCity || m.pickupAddress || '';
-      const matched = MARTINIQUE_COMMUNES_POLYGONS.find((c) => norm(c.name) === norm(city)) ||
-        MARTINIQUE_COMMUNES_POLYGONS.find((c) => city.toLowerCase().includes(c.name.toLowerCase())) ||
-        basePolygon;
+    return allPendingMissions
+      .map((m) => {
+        const city = m.pickupCity || m.pickupAddress || '';
+        const matched =
+          territoryConfig.zones.find((c) => norm(c.name) === norm(city)) ||
+          territoryConfig.zones.find((c) => city.toLowerCase().includes(c.name.toLowerCase()));
 
-      const dist = calculateMartiniqueRoadDistance(basePolygon.name, city).distanceKm;
-      const isInside = dist <= radiusKm;
+        if (!matched) return null;
 
-      return {
-        ...m,
-        matchedCommune: matched,
-        svgX: matched.centroidX,
-        svgY: matched.centroidY,
-        distanceFromBase: dist,
-        isInside,
-      };
-    });
-  }, [allPendingMissions, basePolygon, radiusKm]);
+        const dist = calculateNationalRoadDistance(basePolygon.name, city, activeTerritory).distanceKm;
+        const isInside = dist <= radiusKm;
+
+        return {
+          ...m,
+          matchedCommune: matched,
+          svgX: matched.centroidX,
+          svgY: matched.centroidY,
+          distanceFromBase: dist,
+          isInside,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [allPendingMissions, territoryConfig, basePolygon, radiusKm, activeTerritory]);
 
   const insideMissions = missionsWithPosition.filter((m) => m.isInside);
   const outsideMissions = missionsWithPosition.filter((m) => !m.isInside);
 
+  // Recherche directe d'adresse / code postal avec auto-adaptation de la carte
+  const handleAddressSearch = (query: string) => {
+    setAddressSearchQuery(query);
+    if (!query || query.trim().length < 2) return;
+
+    const detectedTerritory = detectTerritoryFromAddress(query);
+    if (detectedTerritory !== activeTerritory) {
+      handleSelectTerritory(detectedTerritory);
+    }
+
+    const cfg = TERRITORIES_CONFIG[detectedTerritory];
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-'\s]/g, '');
+    const qNorm = norm(query);
+
+    const matchedZone = cfg.zones.find((z) => norm(z.name).includes(qNorm) || (z.postalCode && qNorm.includes(z.postalCode)));
+
+    if (matchedZone) {
+      onBaseCommuneChange(matchedZone.name);
+      setSearchSuccessNotice(`📍 Base adaptée : ${matchedZone.name} (${cfg.name})`);
+      setTimeout(() => setSearchSuccessNotice(null), 3000);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
-      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-5xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-6xl w-full max-h-[96vh] flex flex-col overflow-hidden">
         {/* ========================================================================= */}
-        {/* EN-TÊTE DU MODAL                                                          */}
+        {/* EN-TÊTE DU MODAL : TITRE, BADGES & SÉLECTEUR DE TERRITOIRE NATIONAL       */}
         {/* ========================================================================= */}
-        <div className="p-4 sm:p-5 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
-              <span className="material-symbols-outlined text-2xl">radar</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-extrabold text-on-surface">
-                  Rayon d'Action &amp; Cercle d'Intervention
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white shadow-2xs">
-                  {radiusKm} km
-                </span>
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-container text-on-surface-variant border border-outline-variant/30">
-                  34 Communes de Martinique
-                </span>
+        <div className="p-4 sm:p-5 border-b border-outline-variant/20 bg-surface-container-low/70 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
+                <span className="material-symbols-outlined text-2xl">radar</span>
               </div>
-              <p className="text-xs text-on-surface-variant mt-0.5">
-                Réglez à l'aide du cercle la distance maximale pour recevoir les demandes clients en Martinique.
-              </p>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-extrabold text-on-surface">
+                    Rayon d'Action &amp; Cercle d'Intervention
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white shadow-2xs">
+                    {radiusKm} km
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-surface-container text-on-surface border border-outline-variant/30">
+                    <span>{territoryConfig.flag}</span>
+                    <span>{territoryConfig.name}</span>
+                    <span className="text-on-surface-variant font-normal">({territoryConfig.zones.length} zones)</span>
+                  </span>
+                </div>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  La carte interactive et les villes s'adaptent automatiquement à votre zone d'exercice ({territoryConfig.name}).
+                </p>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer shrink-0"
+              title="Fermer"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
-            title="Fermer"
-          >
-            <span className="material-symbols-outlined text-xl">close</span>
-          </button>
+          {/* Onglets de sélection des 5 territoires nationaux */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant mr-1 shrink-0 flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-primary">public</span>
+              Territoire :
+            </span>
+            {ALL_TERRITORIES_LIST.map((t) => {
+              const isActive = t.id === activeTerritory;
+              return (
+                <button
+                  key={t.id}
+                  id={`tab-territory-${t.id.toLowerCase()}`}
+                  type="button"
+                  onClick={() => handleSelectTerritory(t.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-primary text-white shadow-xs scale-102 border border-primary'
+                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border border-outline-variant/30'
+                  }`}
+                >
+                  <span className="text-sm">{t.flag}</span>
+                  <span>{t.shortName}</span>
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ========================================================================= */}
         {/* CORPS : CARTE SVG OFFICIELLE DES COMMUNES + PANNEAU DE CONTRÔLE           */}
         {/* ========================================================================= */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* COLONNE GAUCHE : CARTE DES COMMUNES MARTINIQUE (7 COLS) */}
+          {/* COLONNE GAUCHE : CARTE RADAR VECTORIELLE (7 COLS) */}
           <div className="lg:col-span-7 flex flex-col bg-slate-950 rounded-2xl p-3 relative overflow-hidden border border-slate-800 shadow-2xl min-h-[480px]">
             {/* Barre d'outils supérieure de la carte */}
             <div className="flex items-center justify-between gap-2 z-10 mb-2 px-1 text-[11px]">
@@ -159,7 +259,9 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                 </div>
                 <div className="bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-slate-700/80 text-emerald-300 font-medium flex items-center gap-1.5 shadow-xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  <span>{coveredCommunes.length} communes couvertes</span>
+                  <span>
+                    {coveredCommunes.length} / {territoryConfig.zones.length} couvert(e)s
+                  </span>
                 </div>
               </div>
 
@@ -180,21 +282,26 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
               </div>
             </div>
 
-            {/* Visualiseur SVG interactif des 34 communes */}
+            {/* Visualiseur SVG interactif des communes */}
             <div className="relative flex-1 flex items-center justify-center">
               <svg
-                viewBox={MARTINIQUE_SVG_VIEWBOX}
+                viewBox={territoryConfig.viewBox}
                 className="w-full h-full max-h-[560px] select-none"
                 style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.5))' }}
               >
                 <defs>
                   {/* Grille cartographique / radar */}
-                  <pattern id="marineGrid" width="4000" height="4000" patternUnits="userSpaceOnUse">
+                  <pattern
+                    id={`marineGrid-${activeTerritory}`}
+                    width={territoryConfig.width / 12}
+                    height={territoryConfig.height / 12}
+                    patternUnits="userSpaceOnUse"
+                  >
                     <path
-                      d="M 4000 0 L 0 0 0 4000"
+                      d={`M ${territoryConfig.width / 12} 0 L 0 0 0 ${territoryConfig.height / 12}`}
                       fill="none"
                       stroke="#1e293b"
-                      strokeWidth="60"
+                      strokeWidth={territoryConfig.width / 800}
                       strokeOpacity="0.4"
                     />
                   </pattern>
@@ -222,47 +329,92 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
 
                   {/* Ombre portée pour lisibilité maximale des libellés */}
                   <filter id="labelShadow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="80" stdDeviation="100" floodColor="#000000" floodOpacity="0.95" />
+                    <feDropShadow
+                      dx="0"
+                      dy={territoryConfig.width / 600}
+                      stdDeviation={territoryConfig.width / 500}
+                      floodColor="#000000"
+                      floodOpacity="0.95"
+                    />
                   </filter>
                 </defs>
 
-                {/* 1. Fond Océan Atlantique & Mer des Caraïbes */}
-                <rect width="45333" height="53138" fill="url(#oceanBgGradient)" rx="1200" />
-                <rect width="45333" height="53138" fill="url(#marineGrid)" />
+                {/* 1. Fond cartographique océanique */}
+                <rect
+                  width={territoryConfig.width}
+                  height={territoryConfig.height}
+                  fill="url(#oceanBgGradient)"
+                  rx={territoryConfig.width / 40}
+                />
+                <rect
+                  width={territoryConfig.width}
+                  height={territoryConfig.height}
+                  fill={`url(#marineGrid-${activeTerritory})`}
+                />
 
                 {/* Rose des vents décorative / Orientation Nord */}
-                <g transform="translate(4000, 48000)" opacity="0.4">
-                  <circle r="2200" fill="none" stroke="#334155" strokeWidth="80" />
-                  <path d="M 0 -2100 L 400 0 L 0 400 L -400 0 Z" fill="#38bdf8" />
-                  <path d="M 0 2100 L 400 0 L 0 -400 L -400 0 Z" fill="#64748b" />
-                  <text x="0" y="-2400" fill="#38bdf8" fontSize="1400" fontWeight="bold" textAnchor="middle">
+                <g transform={`translate(${territoryConfig.width * 0.1}, ${territoryConfig.compassY})`} opacity="0.45">
+                  <circle r={territoryConfig.width / 22} fill="none" stroke="#334155" strokeWidth={territoryConfig.width / 550} />
+                  <path
+                    d={`M 0 -${territoryConfig.width / 24} L ${territoryConfig.width / 110} 0 L 0 ${territoryConfig.width / 110} L -${territoryConfig.width / 110} 0 Z`}
+                    fill="#38bdf8"
+                  />
+                  <path
+                    d={`M 0 ${territoryConfig.width / 24} L ${territoryConfig.width / 110} 0 L 0 -${territoryConfig.width / 110} L -${territoryConfig.width / 110} 0 Z`}
+                    fill="#64748b"
+                  />
+                  <text
+                    x="0"
+                    y={-territoryConfig.width / 20}
+                    fill="#38bdf8"
+                    fontSize={territoryConfig.width / 32}
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
                     N
                   </text>
-                  <text x="0" y="3400" fill="#64748b" fontSize="1000" fontWeight="bold" textAnchor="middle">
-                    Martinique (972)
+                  <text
+                    x="0"
+                    y={territoryConfig.width / 16}
+                    fill="#94a3b8"
+                    fontSize={territoryConfig.width / 45}
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    {territoryConfig.name}
+                  </text>
+                  <text
+                    x="0"
+                    y={territoryConfig.width / 12}
+                    fill="#64748b"
+                    fontSize={territoryConfig.width / 60}
+                    textAnchor="middle"
+                  >
+                    {territoryConfig.seaLabel}
                   </text>
                 </g>
 
-                {/* 2. Les 34 polygones des communes de Martinique */}
+                {/* 2. Polygones des communes / zones */}
                 <g id="communes-group">
                   {communesAnalysis.map((c) => {
                     const isHovered = hoveredCommune?.insee === c.insee;
+                    const strokeWidthBase = territoryConfig.width / 380;
                     let fill = '#1e293b';
                     let stroke = '#334155';
-                    let strokeWidth = 120;
+                    let strokeWidth = strokeWidthBase;
 
                     if (c.isBase) {
                       fill = '#0284c7';
                       stroke = '#38bdf8';
-                      strokeWidth = 280;
+                      strokeWidth = strokeWidthBase * 2.3;
                     } else if (c.isInside) {
                       fill = isHovered ? '#0284c7' : 'url(#coveredCommuneGradient)';
                       stroke = '#38bdf8';
-                      strokeWidth = isHovered ? 260 : 160;
+                      strokeWidth = isHovered ? strokeWidthBase * 2 : strokeWidthBase * 1.3;
                     } else if (isHovered) {
                       fill = '#334155';
                       stroke = '#94a3b8';
-                      strokeWidth = 200;
+                      strokeWidth = strokeWidthBase * 1.6;
                     }
 
                     return (
@@ -284,9 +436,12 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   })}
                 </g>
 
-                {/* 3. Anneaux concentriques guides de distance (10km, 25km, 45km) */}
-                {[10, 25, 45].map((dist) => {
-                  const r = dist * MARTINIQUE_UNITS_PER_KM;
+                {/* 3. Anneaux concentriques guides de distance */}
+                {territoryConfig.distanceRings.map((dist) => {
+                  const r = dist * territoryConfig.unitsPerKm;
+                  const labelW = territoryConfig.width / 18;
+                  const labelH = territoryConfig.height / 55;
+                  const fontSz = territoryConfig.width / 70;
                   return (
                     <g key={dist} pointerEvents="none">
                       <circle
@@ -295,26 +450,26 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                         r={r}
                         fill="none"
                         stroke="#475569"
-                        strokeWidth="100"
-                        strokeDasharray="400 400"
+                        strokeWidth={territoryConfig.width / 500}
+                        strokeDasharray={`${territoryConfig.width / 120} ${territoryConfig.width / 120}`}
                         strokeOpacity="0.45"
                       />
                       <rect
-                        x={centerX + r - 1200}
-                        y={centerY - 550}
-                        width="2400"
-                        height="900"
-                        rx="300"
+                        x={centerX + r - labelW / 2}
+                        y={centerY - labelH / 2}
+                        width={labelW}
+                        height={labelH}
+                        rx={labelH / 3}
                         fill="#0f172a"
                         fillOpacity="0.85"
                         stroke="#334155"
-                        strokeWidth="50"
+                        strokeWidth={territoryConfig.width / 1000}
                       />
                       <text
                         x={centerX + r}
-                        y={centerY + 60}
+                        y={centerY + fontSz * 0.35}
                         fill="#94a3b8"
-                        fontSize="650"
+                        fontSize={fontSz}
                         fontWeight="bold"
                         textAnchor="middle"
                       >
@@ -324,7 +479,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   );
                 })}
 
-                {/* 4. LE CERCLE DE RAYON D'ACTION (ÉLÉMENT DEMANDÉ PAR L'UTILISATEUR) */}
+                {/* 4. LE CERCLE DE RAYON D'ACTION INTERACTIF */}
                 <g pointerEvents="none">
                   {/* Surface circulaire translucide */}
                   <circle
@@ -333,19 +488,19 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                     r={circleRadiusSvg}
                     fill="url(#radiusCircleGradient)"
                     stroke="#0284c7"
-                    strokeWidth="380"
-                    strokeDasharray="900 450"
+                    strokeWidth={territoryConfig.width / 120}
+                    strokeDasharray={`${territoryConfig.width / 50} ${territoryConfig.width / 100}`}
                     className="transition-all duration-300"
                   />
 
-                  {/* Ondulation pulsante sur le pourtour */}
+                  {/* Ondulation pulsante */}
                   <circle
                     cx={centerX}
                     cy={centerY}
                     r={circleRadiusSvg}
                     fill="none"
                     stroke="#38bdf8"
-                    strokeWidth="200"
+                    strokeWidth={territoryConfig.width / 250}
                     opacity="0.5"
                     className="animate-ping"
                     style={{
@@ -356,40 +511,60 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
 
                   {/* Poignée indicatrice sur la circonférence droite */}
                   <g transform={`translate(${centerX + circleRadiusSvg}, ${centerY})`}>
-                    <circle r="650" fill="#0284c7" stroke="#ffffff" strokeWidth="180" />
-                    <rect x="800" y="-600" width="3800" height="1200" rx="400" fill="#0284c7" stroke="#38bdf8" strokeWidth="80" />
-                    <text x="2700" y="240" fill="#ffffff" fontSize="720" fontWeight="bold" textAnchor="middle">
+                    <circle
+                      r={territoryConfig.width / 70}
+                      fill="#0284c7"
+                      stroke="#ffffff"
+                      strokeWidth={territoryConfig.width / 260}
+                    />
+                    <rect
+                      x={territoryConfig.width / 55}
+                      y={-territoryConfig.height / 90}
+                      width={territoryConfig.width / 12}
+                      height={territoryConfig.height / 45}
+                      rx={territoryConfig.height / 120}
+                      fill="#0284c7"
+                      stroke="#38bdf8"
+                      strokeWidth={territoryConfig.width / 600}
+                    />
+                    <text
+                      x={territoryConfig.width / 55 + territoryConfig.width / 24}
+                      y={territoryConfig.height / 200}
+                      fill="#ffffff"
+                      fontSize={territoryConfig.width / 60}
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
                       {radiusKm} km
                     </text>
                   </g>
                 </g>
 
-                {/* 5. Noms des communes pour une lisibilité parfaite (Demande utilisateur) */}
+                {/* 5. Noms des communes pour une lisibilité parfaite */}
                 {showAllLabels && (
                   <g id="communes-labels" pointerEvents="none">
                     {communesAnalysis.map((c) => {
                       const isBase = c.isBase;
                       const isInside = c.isInside;
 
-                      // Styles de texte calibrés
-                      const fontSize = isBase ? 1200 : c.isMajor ? 1000 : 800;
+                      const baseFont = territoryConfig.width / 45;
+                      const fontSize = isBase ? baseFont * 1.15 : c.isMajor ? baseFont : baseFont * 0.8;
                       const fontWeight = isBase || c.isMajor ? '900' : '700';
                       const textColor = isBase ? '#38bdf8' : isInside ? '#ffffff' : '#94a3b8';
 
                       return (
                         <g key={`lbl-${c.insee}`} transform={`translate(${c.labelX}, ${c.labelY})`}>
-                          {/* Fond semi-opaque pour les communes majeures pour détacher le texte */}
                           {(isBase || c.isMajor) && (
                             <rect
-                              x={-(c.name.length * (fontSize * 0.32) + 300)}
+                              x={-(c.name.length * (fontSize * 0.32) + fontSize * 0.25)}
                               y={-(fontSize * 0.65)}
-                              width={c.name.length * (fontSize * 0.64) + 600}
-                              height={fontSize + 300}
-                              rx="350"
+                              width={c.name.length * (fontSize * 0.64) + fontSize * 0.5}
+                              height={fontSize + fontSize * 0.25}
+                              rx={fontSize * 0.3}
                               fill="#090d16"
                               fillOpacity="0.75"
                               stroke={isBase ? '#38bdf8' : '#334155'}
-                              strokeWidth={isBase ? '90' : '40'}
+                              strokeWidth={isBase ? territoryConfig.width / 500 : territoryConfig.width / 1100}
                             />
                           )}
                           <text
@@ -410,27 +585,35 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   </g>
                 )}
 
-                {/* 6. Épingles des courses clientes réelles en attente */}
+                {/* 6. Missions clientes géoréférencées dans ce territoire */}
                 <g id="client-missions-pins" pointerEvents="none">
                   {missionsWithPosition.map((m) => {
                     const isInside = m.isInside;
                     const color = isInside ? '#10b981' : '#f59e0b';
+                    const pinR = territoryConfig.width / 70;
                     return (
                       <g key={m.id} transform={`translate(${m.svgX}, ${m.svgY})`}>
-                        <circle r="750" fill={color} fillOpacity="0.4" className="animate-ping" />
-                        <circle r="450" fill={color} stroke="#ffffff" strokeWidth="120" />
+                        <circle r={pinR * 1.4} fill={color} fillOpacity="0.4" className="animate-ping" />
+                        <circle r={pinR} fill={color} stroke="#ffffff" strokeWidth={territoryConfig.width / 400} />
                         <rect
-                          x="550"
-                          y="-450"
-                          width="3200"
-                          height="900"
-                          rx="300"
+                          x={pinR * 1.2}
+                          y={-pinR}
+                          width={territoryConfig.width / 15}
+                          height={pinR * 2}
+                          rx={pinR * 0.6}
                           fill="#0f172a"
                           fillOpacity="0.9"
                           stroke={color}
-                          strokeWidth="70"
+                          strokeWidth={territoryConfig.width / 700}
                         />
-                        <text x="2150" y="160" fill="#ffffff" fontSize="550" fontWeight="bold" textAnchor="middle">
+                        <text
+                          x={pinR * 1.2 + territoryConfig.width / 30}
+                          y={pinR * 0.35}
+                          fill="#ffffff"
+                          fontSize={territoryConfig.width / 80}
+                          fontWeight="bold"
+                          textAnchor="middle"
+                        >
                           #{m.reference}
                         </text>
                       </g>
@@ -440,13 +623,23 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
 
                 {/* 7. Marqueur balise du dépôt de base */}
                 <g transform={`translate(${centerX}, ${centerY})`} pointerEvents="none">
-                  <circle r="1100" fill="#38bdf8" fillOpacity="0.3" className="animate-ping" />
-                  <circle r="600" fill="#0284c7" stroke="#ffffff" strokeWidth="160" />
-                  <circle r="250" fill="#ffffff" />
+                  <circle
+                    r={territoryConfig.width / 40}
+                    fill="#38bdf8"
+                    fillOpacity="0.3"
+                    className="animate-ping"
+                  />
+                  <circle
+                    r={territoryConfig.width / 75}
+                    fill="#0284c7"
+                    stroke="#ffffff"
+                    strokeWidth={territoryConfig.width / 280}
+                  />
+                  <circle r={territoryConfig.width / 180} fill="#ffffff" />
                 </g>
               </svg>
 
-              {/* Info-bulle flottante interactive au survol d'une commune */}
+              {/* Info-bulle flottante au survol */}
               {hoveredCommune && (
                 <div className="absolute bottom-3 left-3 right-3 bg-slate-900/95 backdrop-blur-md p-3 rounded-xl border border-sky-500/40 text-xs text-white shadow-2xl flex items-center justify-between gap-3 animate-fadeIn pointer-events-none">
                   <div className="flex items-center gap-2.5">
@@ -454,6 +647,11 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                     <div>
                       <div className="font-extrabold text-sm text-white flex items-center gap-2">
                         <span>{hoveredCommune.name}</span>
+                        {hoveredCommune.postalCode && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-300">
+                            {hoveredCommune.postalCode}
+                          </span>
+                        )}
                         {hoveredCommune.insee === basePolygon.insee && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] bg-sky-500/20 text-sky-300 border border-sky-400/40">
                             Base actuelle
@@ -463,14 +661,14 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                       <div className="text-[11px] text-slate-300 mt-0.5">
                         Distance routière depuis {basePolygon.name} :{' '}
                         <strong>
-                          {calculateMartiniqueRoadDistance(basePolygon.name, hoveredCommune.name).distanceKm.toFixed(1)} km
+                          {calculateNationalRoadDistance(basePolygon.name, hoveredCommune.name, activeTerritory).distanceKm.toFixed(1)} km
                         </strong>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {calculateMartiniqueRoadDistance(basePolygon.name, hoveredCommune.name).distanceKm <= radiusKm ? (
+                    {calculateNationalRoadDistance(basePolygon.name, hoveredCommune.name, activeTerritory).distanceKm <= radiusKm ? (
                       <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                         Dans votre rayon
@@ -495,29 +693,61 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-sm bg-sky-600/50 border border-sky-400"></span>
-                  <span>Commune dans le rayon ({coveredCommunes.length})</span>
+                  <span>Dans le rayon ({coveredCommunes.length})</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 border border-slate-700"></span>
-                  <span>Hors zone ({34 - coveredCommunes.length})</span>
+                  <span>Hors zone ({territoryConfig.zones.length - coveredCommunes.length})</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                   <span>Demande cliente</span>
                 </span>
               </div>
-              <span className="text-slate-500 text-[9px]">Cadastre IGN 34 Communes • 972</span>
+              <span className="text-slate-500 text-[9px]">
+                {territoryConfig.name} • {territoryConfig.zones.length} Zones
+              </span>
             </div>
           </div>
 
           {/* COLONNE DROITE : CONTRÔLES DU RAYON & CHOIX DE BASE (5 COLS) */}
           <div className="lg:col-span-5 flex flex-col justify-between gap-4">
             <div className="space-y-4">
+              {/* Recherche intelligente par adresse / code postal */}
+              <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                    <span>📍</span>
+                    <span>Rechercher votre adresse / ville :</span>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    ⚡ Auto-adaptation
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-sm text-slate-400 pointer-events-none">
+                    🔍
+                  </span>
+                  <input
+                    type="text"
+                    value={addressSearchQuery}
+                    onChange={(e) => handleAddressSearch(e.target.value)}
+                    placeholder="Ex: 97122 Baie-Mahault, 75001 Paris, Cayenne..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/50 shadow-2xs"
+                  />
+                </div>
+                {searchSuccessNotice && (
+                  <p className="text-[11px] font-bold text-emerald-600 animate-fadeIn">
+                    {searchSuccessNotice}
+                  </p>
+                )}
+              </div>
+
               {/* Choix de la Commune de Base */}
               <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-                  <span>Commune de base (Centre du cercle) :</span>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>Ville de base (Centre du cercle) :</span>
                 </label>
                 <select
                   id="modal-select-base-commune"
@@ -525,22 +755,22 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   onChange={(e) => onBaseCommuneChange(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-bold text-xs text-on-surface outline-none focus:border-primary cursor-pointer"
                 >
-                  {ALL_34_COMMUNES_NAMES.map((communeName) => (
-                    <option key={communeName} value={communeName}>
-                      📍 {communeName} {communeName === 'Le Lamentin' ? '(Centre & Dépôt principal)' : ''}
+                  {territoryConfig.zones.map((zone) => (
+                    <option key={zone.insee} value={zone.name}>
+                      📍 {zone.name} {zone.postalCode ? `(${zone.postalCode})` : ''}
                     </option>
                   ))}
                 </select>
                 <p className="text-[10px] text-on-surface-variant">
-                  Astuce : vous pouvez aussi cliquer directement sur n'importe quelle commune de la carte pour la définir comme base.
+                  Astuce : vous pouvez aussi cliquer directement sur n'importe quelle ville de la carte pour la définir comme base.
                 </p>
               </div>
 
               {/* Réglage du Rayon en km (Slider + Stepper) */}
               <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base">radio_button_checked</span>
+                  <label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <span>🎯</span>
                     <span>Rayon d'action (Cercle) :</span>
                   </label>
                   <span className="text-xl font-black font-mono text-primary bg-primary/10 px-3 py-1 rounded-xl border border-primary/25">
@@ -548,20 +778,20 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   </span>
                 </div>
 
-                {/* Slider interactif */}
+                {/* Slider interactif calibré au territoire */}
                 <input
                   type="range"
                   min="5"
-                  max="60"
+                  max={territoryConfig.maxRadius}
                   step="1"
                   value={radiusKm}
                   onChange={(e) => onRadiusChange(Number(e.target.value))}
                   className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer accent-primary"
                 />
 
-                {/* Boutons presets rapides */}
+                {/* Boutons presets rapides calibrés au territoire */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  {RADIUS_PRESETS.map((p) => (
+                  {territoryConfig.radiusPresets.map((p) => (
                     <button
                       key={p}
                       id={`modal-preset-${p}km`}
@@ -573,7 +803,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                           : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
                       }`}
                     >
-                      {p === 60 ? "Toute l'île" : `${p} km`}
+                      {p === territoryConfig.maxRadius ? "Tout le secteur" : `${p} km`}
                     </button>
                   ))}
                 </div>
@@ -601,12 +831,12 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                 </label>
               </div>
 
-              {/* Synthèse de couverture sur les 34 communes de l'île */}
+              {/* Synthèse de couverture sur le territoire sélectionné */}
               <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-on-surface-variant">
-                  <span>Communes couvertes :</span>
+                  <span>Secteurs / Villes couvert(e)s :</span>
                   <span className="font-bold text-on-surface">
-                    {coveredCommunes.length} / 34 communes de Martinique
+                    {coveredCommunes.length} / {territoryConfig.zones.length} ({territoryConfig.shortName})
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-on-surface-variant">
@@ -614,7 +844,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   <span className="font-bold text-emerald-600">{insideMissions.length} reçue(s)</span>
                 </div>
                 <div className="flex items-center justify-between text-on-surface-variant">
-                  <span>Demandes hors zone d'intervention :</span>
+                  <span>Demandes hors zone :</span>
                   <span className="font-bold text-amber-700">
                     {outsideMissions.length} {includeOutsideRadius ? 'reçue(s)' : 'masquée(s)'}
                   </span>
