@@ -89,7 +89,7 @@ export const RegisterTransporterPage: React.FC = () => {
             </div>
 
             {/* Badges Avantages Rapides */}
-            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm shrink-0">
+            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm shrink-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-200">
               <div className="text-center px-3">
                 <span className="text-2xl font-black text-teal-800 font-mono block">0 %</span>
                 <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Commission</span>
@@ -109,7 +109,7 @@ export const RegisterTransporterPage: React.FC = () => {
 
           {/* Étapes d'enregistrement (3 étapes claires et fluides) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6">
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-teal-950 shadow-xs">
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-teal-950 shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-300">
               <div className="w-8 h-8 rounded-xl bg-teal-700 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
                 1
               </div>
@@ -119,7 +119,7 @@ export const RegisterTransporterPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 text-slate-600 shadow-xs">
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 text-slate-600 shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-200">
               <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 font-black text-xs flex items-center justify-center shrink-0">
                 2
               </div>
@@ -129,7 +129,7 @@ export const RegisterTransporterPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 text-slate-600 shadow-xs">
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 text-slate-600 shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-200">
               <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 font-black text-xs flex items-center justify-center shrink-0">
                 3
               </div>
@@ -151,7 +151,7 @@ export const RegisterTransporterPage: React.FC = () => {
               {/* ----------------------------------------------------------------- */}
               {/* SECTION 1 : IDENTIFICATION DE L'ENTREPRISE                        */}
               {/* ----------------------------------------------------------------- */}
-              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm space-y-6">
+              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-6">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center border border-teal-200 shrink-0">
                     <span className="material-symbols-outlined text-xl">domain</span>
@@ -276,7 +276,7 @@ export const RegisterTransporterPage: React.FC = () => {
               {/* ----------------------------------------------------------------- */}
               {/* SECTION 2 : CATÉGORIES & AGRÉMENTS D'EXPLOITATION                 */}
               {/* ----------------------------------------------------------------- */}
-              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm space-y-6">
+              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-6">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-800 flex items-center justify-center border border-sky-200 shrink-0">
                     <span className="material-symbols-outlined text-xl">badge</span>
@@ -341,7 +341,7 @@ export const RegisterTransporterPage: React.FC = () => {
               {/* ----------------------------------------------------------------- */}
               {/* SECTION 3 : FLOTTE & ÉQUIPEMENTS EMBARQUÉS                         */}
               {/* ----------------------------------------------------------------- */}
-              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm space-y-6">
+              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-6">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center border border-amber-200 shrink-0">
                     <span className="material-symbols-outlined text-xl">commute</span>
@@ -443,7 +443,7 @@ export const RegisterTransporterPage: React.FC = () => {
               {/* ----------------------------------------------------------------- */}
               {/* SECTION 4 : GÉRANT & CRÉATION DES IDENTIFIANTS DISPATCH           */}
               {/* ----------------------------------------------------------------- */}
-              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm space-y-6">
+              <div className="p-6 sm:p-8 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-6">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-200 shrink-0">
                     <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
@@ -576,7 +576,7 @@ export const RegisterTransporterPage: React.FC = () => {
             {/* Sidebar Droite : Pourquoi nous rejoindre, Carte et Garanties */}
             <aside className="lg:col-span-4 space-y-6">
               {/* Card 1 : Pourquoi Clinigo ? */}
-              <div className="p-6 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm space-y-4">
+              <div className="p-6 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-4">
                 <div className="flex items-center gap-2 text-slate-900 font-black text-base">
                   <span className="material-symbols-outlined text-teal-700 text-xl">trending_up</span>
                   <span>Pourquoi rejoindre Clinigo Pro ?</span>
@@ -622,7 +622,7 @@ export const RegisterTransporterPage: React.FC = () => {
               </div>
 
               {/* Card 2 : Carte dynamique des établissements connectés */}
-              <div className="p-6 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm space-y-3">
+              <div className="p-6 rounded-[2rem] bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-3">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-500 block">
                   Couverture Territoriale &amp; CHU
                 </span>
@@ -650,7 +650,7 @@ export const RegisterTransporterPage: React.FC = () => {
               </div>
 
               {/* Card 3 : Sécurité des données */}
-              <div className="p-5 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-2">
+              <div className="p-5 rounded-2xl bg-teal-50/70 border border-teal-200/80 hover:bg-teal-50 hover:border-teal-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 space-y-2">
                 <div className="flex items-center gap-2 text-teal-950 font-bold text-xs">
                   <span className="material-symbols-outlined text-teal-700 text-lg">shield</span>
                   <span>Sécurité des Données Médicales</span>
@@ -661,7 +661,7 @@ export const RegisterTransporterPage: React.FC = () => {
               </div>
 
               {/* Card 4 : Témoignage terrain */}
-              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-300/80 hover:-translate-y-1 transition-all duration-300 space-y-3">
                 <div className="flex items-center gap-3">
                   <img className="w-10 h-10 rounded-full object-cover border border-slate-200" alt="Patrick M." src="/assets/headshot.png" />
                   <div>
