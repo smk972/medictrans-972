@@ -69,6 +69,59 @@ export const ProfilePage: React.FC = () => {
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
 
+  // État Upload de Logo & Restriction de poids (Max 2 Mo)
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoSuccess, setLogoSuccess] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 Mo strict
+
+  const handleLogoUpload = (file: File) => {
+    setLogoError(null);
+    setLogoSuccess(null);
+
+    // 1. Validation du type MIME
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      setLogoError("Format non supporté. Veuillez sélectionner une image au format PNG, JPG, WEBP ou SVG.");
+      return;
+    }
+
+    // 2. Restriction stricte en terme de poids (Max 2 Mo)
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      const sizeMo = (file.size / (1024 * 1024)).toFixed(2);
+      setLogoError(`Le fichier dépasse le poids maximum autorisé de 2 Mo (${sizeMo} Mo détectés). Veuillez compresser votre logo ou choisir une image plus légère.`);
+      return;
+    }
+
+    // 3. Lecture et conversion en base64 pour affichage et persistance immédiate
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setAvatarUrl(result);
+      const sizeKo = Math.round(file.size / 1024);
+      setLogoSuccess(`Logo "${file.name}" importé avec succès (${sizeKo} Ko). Pensez à cliquer sur "Enregistrer les modifications".`);
+    };
+    reader.onerror = () => {
+      setLogoError("Erreur lors de la lecture du fichier image.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleLogoUpload(e.target.files[0]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleLogoUpload(e.dataTransfer.files[0]);
+    }
+  };
+
   // État de sauvegarde & messages
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -371,46 +424,177 @@ export const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Sélecteur Rapide d'Avatar */}
+          {/* Bloc d'Upload de Logo d'Entreprise / Photo de Profil */}
           <div className="mt-6 pt-5 border-t border-slate-100">
-            <label className="block text-xs font-bold text-slate-700 mb-2">
-              Changer ma photo de profil :
-            </label>
-            <div className="flex flex-wrap items-center gap-2.5">
-              {AVATAR_PRESETS.map((preset, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setAvatarUrl(preset.url)}
-                  className={`relative p-0.5 rounded-xl border-2 transition-all ${
-                    avatarUrl === preset.url
-                      ? 'border-teal-600 ring-2 ring-teal-200 scale-105'
-                      : 'border-slate-200 hover:border-slate-400 opacity-80 hover:opacity-100'
-                  }`}
-                  title={preset.label}
-                >
-                  <img
-                    src={preset.url}
-                    alt={preset.label}
-                    className="w-10 h-10 rounded-lg object-cover"
-                  />
-                  {avatarUrl === preset.url && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-teal-600 text-white rounded-full p-0.5 shadow">
-                      <span className="material-symbols-outlined text-[10px] block">check</span>
-                    </span>
-                  )}
-                </button>
-              ))}
-              <div className="flex items-center gap-2 ml-2">
-                <input
-                  type="url"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="Ou collez l'URL d'une image..."
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs w-56 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+              onChange={handleFileChange}
+              className="hidden"
+              id="company-logo-upload"
+            />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div>
+                <label htmlFor="company-logo-upload" className="block text-xs sm:text-sm font-bold text-slate-800">
+                  {user.role === 'TRANSPORTER'
+                    ? "Logo officiel de votre entreprise de transport sanitaire :"
+                    : user.role === 'FACILITY'
+                    ? "Logo officiel de l'établissement de santé / clinique :"
+                    : "Photo de profil ou logo personnel :"}
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  {user.role === 'TRANSPORTER' || user.role === 'FACILITY'
+                    ? "Ce logo officiel apparaît sur vos bons de transport, devis conventionnés et interfaces partenaires."
+                    : "Votre avatar est visible par les régulateurs et les chauffeurs lors de vos trajets."}
+                </p>
+              </div>
+
+              {/* Badge de restriction de poids */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-semibold shrink-0">
+                <span className="material-symbols-outlined text-xs text-amber-600">fitness_center</span>
+                <span>Poids max. autorisé : <strong>2 Mo</strong></span>
               </div>
             </div>
+
+            {/* Notifications de validation (Erreur poids / Succès) */}
+            {logoError && (
+              <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-2 text-xs text-rose-800 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-rose-600 shrink-0">warning</span>
+                  <span className="font-medium">{logoError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLogoError(null)}
+                  className="text-rose-700 hover:text-rose-900 font-bold text-[11px] underline shrink-0"
+                >
+                  OK
+                </button>
+              </div>
+            )}
+
+            {logoSuccess && (
+              <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-2 text-xs text-emerald-800 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-emerald-600 shrink-0">check_circle</span>
+                  <span className="font-medium">{logoSuccess}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLogoSuccess(null)}
+                  className="text-emerald-700 hover:text-emerald-900 font-bold text-[11px] underline shrink-0"
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+
+            {/* Zone interactive Drag & Drop */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+              }}
+              onDrop={handleDrop}
+              className={`p-4 sm:p-5 rounded-2xl border-2 border-dashed transition-all flex flex-col sm:flex-row items-center justify-between gap-4 ${
+                isDragging
+                  ? 'border-teal-500 bg-teal-50/70 ring-4 ring-teal-100 scale-[1.01]'
+                  : 'border-slate-200 hover:border-slate-300 bg-slate-50/60'
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-teal-600 shrink-0">
+                  <span className="material-symbols-outlined text-2xl">
+                    {isDragging ? 'cloud_upload' : 'image'}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-slate-800">
+                    Glissez-déposez le logo de l'entreprise ici
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Formats acceptés : <span className="font-mono text-slate-600">PNG, JPG, WEBP, SVG</span> • Taille max : <span className="font-semibold text-rose-600">2 Mo</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">upload_file</span>
+                  <span>Parcourir les fichiers</span>
+                </button>
+
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvatarUrl('');
+                      setLogoSuccess("Logo retiré. Cliquez sur Enregistrer pour valider.");
+                    }}
+                    className="inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-semibold transition-colors"
+                    title="Supprimer le logo actuel"
+                  >
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                    <span className="hidden sm:inline">Retirer</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Suggestions & URL alternative */}
+            <details className="mt-3 text-xs text-slate-500">
+              <summary className="cursor-pointer font-semibold hover:text-slate-700 select-none py-1">
+                Ou choisir parmi les avatars suggérés / coller une URL web
+              </summary>
+              <div className="pt-3 pb-1 flex flex-wrap items-center gap-2.5">
+                {AVATAR_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setAvatarUrl(preset.url);
+                      setLogoSuccess(`Avatar "${preset.label}" sélectionné.`);
+                    }}
+                    className={`relative p-0.5 rounded-xl border-2 transition-all ${
+                      avatarUrl === preset.url
+                        ? 'border-teal-600 ring-2 ring-teal-200 scale-105'
+                        : 'border-slate-200 hover:border-slate-400 opacity-80 hover:opacity-100'
+                    }`}
+                    title={preset.label}
+                  >
+                    <img
+                      src={preset.url}
+                      alt={preset.label}
+                      className="w-9 h-9 rounded-lg object-cover"
+                    />
+                    {avatarUrl === preset.url && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-teal-600 text-white rounded-full p-0.5 shadow">
+                        <span className="material-symbols-outlined text-[10px] block">check</span>
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <div className="flex items-center gap-2 ml-2">
+                  <input
+                    type="url"
+                    value={avatarUrl.startsWith('data:') ? '' : avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="Ou collez l'URL directe d'une image..."
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs w-60 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </details>
           </div>
         </div>
 
