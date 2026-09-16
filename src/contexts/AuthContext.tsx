@@ -15,6 +15,7 @@ interface AuthContextType {
     profileData: Partial<UserProfile> & { role: UserRole }
   ) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (role?: UserRole) => Promise<{ success: boolean; redirected?: boolean; error?: string }>;
+  loginWithGoogleIdToken: (idToken: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
   loginAsDemo: (role: UserRole) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -137,6 +138,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogleIdToken = async (idToken: string, role: UserRole = 'PATIENT') => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const res = await AuthService.signInWithGoogleIdToken(idToken, role);
+      if (res.error) {
+        setError(res.error);
+        setIsLoading(false);
+        return { success: false, error: res.error };
+      }
+      setUser(res.user);
+      setIsLoading(false);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = (err as Error).message || 'Erreur Google Identity';
+      setError(msg);
+      setIsLoading(false);
+      return { success: false, error: msg };
+    }
+  };
+
   const loginAsDemo = (role: UserRole) => {
     setError(null);
     const demoUser = AuthService.loginAsDemo(role);
@@ -184,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithEmail,
         registerWithEmail,
         loginWithGoogle,
+        loginWithGoogleIdToken,
         loginAsDemo,
         logout,
         refreshUser,

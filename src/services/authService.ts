@@ -250,6 +250,60 @@ export class AuthService {
   }
 
   /**
+   * Connexion via Google ID Token direct (Google Identity Services - Sans redirection vers Supabase)
+   * Affiche directement le dialogue natif Google sur clinigo.fr
+   */
+  static async signInWithGoogleIdToken(idToken: string, role: UserRole = 'PATIENT'): Promise<{ user: UserProfile | null; error: string | null }> {
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+
+        if (error) {
+          console.error('Erreur Supabase signInWithIdToken:', error);
+          return { user: null, error: error.message };
+        }
+
+        if (data.session?.user) {
+          try {
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.session.user.id)
+              .single();
+
+            if (!existingProfile) {
+              const fullName = data.session.user.user_metadata?.full_name || data.session.user.user_metadata?.name || '';
+              const parts = fullName.split(' ');
+              await supabase.from('profiles').insert({
+                id: data.session.user.id,
+                first_name: parts[0] || 'Utilisateur',
+                last_name: parts.slice(1).join(' ') || '',
+                role: role,
+                avatar_url: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture || null,
+                nir: role === 'PATIENT' ? '1 72 05 97 201 112' : null,
+              });
+            }
+          } catch (pErr) {
+            console.warn('Note profil:', pErr);
+          }
+
+          const profile = await this.getCurrentUser();
+          return { user: profile, error: null };
+        }
+
+        return { user: null, error: 'Session non reçue' };
+      } catch (err: unknown) {
+        return { user: null, error: (err as Error).message || 'Erreur authentification Google' };
+      }
+    }
+
+    return { user: this.getLocalUser(), error: null };
+  }
+
+  /**
    * Connexion via Google OAuth officiel Supabase
    */
   static async signInWithGoogle(role: UserRole = 'PATIENT'): Promise<{ error: string | null; redirected?: boolean }> {
