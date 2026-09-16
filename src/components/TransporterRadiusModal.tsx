@@ -8,6 +8,8 @@ import {
   ALL_TERRITORIES_LIST,
   detectTerritoryFromAddress,
 } from '../data/nationalTerritoriesData';
+import { D3InteractiveGeoMap } from './D3InteractiveGeoMap';
+import { searchNationalDatabase, GeoEntity } from '../services/nationalGeoDatabase';
 
 export interface TransporterRadiusModalProps {
   isOpen: boolean;
@@ -50,6 +52,13 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
   const [showAllLabels, setShowAllLabels] = useState(true);
   const [addressSearchQuery, setAddressSearchQuery] = useState('');
   const [searchSuccessNotice, setSearchSuccessNotice] = useState<string | null>(null);
+
+  // Moteur cartographique actif (D3 Géographique par défaut ou Radar vectoriel)
+  const [mapEngine, setMapEngine] = useState<'D3_GEO' | 'RADAR_VECTOR'>('D3_GEO');
+  const [databaseSearchResults, setDatabaseSearchResults] = useState<GeoEntity[]>([]);
+  const [isSearchingDatabase, setIsSearchingDatabase] = useState(false);
+  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
+  const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
 
   // Synchronisation si l'adresse utilisateur ou la commune de base change à l'ouverture
   useEffect(() => {
@@ -148,27 +157,58 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
   const insideMissions = missionsWithPosition.filter((m) => m.isInside);
   const outsideMissions = missionsWithPosition.filter((m) => !m.isInside);
 
-  // Recherche directe d'adresse / code postal avec auto-adaptation de la carte
-  const handleAddressSearch = (query: string) => {
-    setAddressSearchQuery(query);
-    if (!query || query.trim().length < 2) return;
+  // Coordonnées GPS géographiques de base [longitude, latitude]
+  const baseCoords = useMemo<[number, number]>(() => {
+    if (selectedCoordinates) return selectedCoordinates;
+    if (basePolygon && basePolygon.lng && basePolygon.lat) {
+      return [basePolygon.lng, basePolygon.lat];
+    }
+    if (activeTerritory === 'GUADELOUPE') return [-61.533, 16.241];
+    if (activeTerritory === 'MARTINIQUE') return [-61.002, 14.615];
+    if (activeTerritory === 'GUYANE') return [-52.333, 4.937];
+    if (activeTerritory === 'REUNION') return [55.450, -20.882];
+    return [2.3488, 48.8534]; // Paris
+  }, [selectedCoordinates, basePolygon, activeTerritory]);
 
+  // Recherche indépendante via la base de données (locale + geo.api.gouv.fr)
+  const handleAddressSearch = async (query: string) => {
+    setAddressSearchQuery(query);
+    if (!query || query.trim().length < 2) {
+      setDatabaseSearchResults([]);
+      setShowSuggestionsDropdown(false);
+      return;
+    }
+
+    // Auto-détection préliminaire du territoire par code postal
     const detectedTerritory = detectTerritoryFromAddress(query);
-    if (detectedTerritory !== activeTerritory) {
+    if (detectedTerritory !== activeTerritory && query.trim().length >= 3) {
       handleSelectTerritory(detectedTerritory);
     }
 
-    const cfg = TERRITORIES_CONFIG[detectedTerritory];
-    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-'\s]/g, '');
-    const qNorm = norm(query);
+    setIsSearchingDatabase(true);
+    setShowSuggestionsDropdown(true);
 
-    const matchedZone = cfg.zones.find((z) => norm(z.name).includes(qNorm) || (z.postalCode && qNorm.includes(z.postalCode)));
-
-    if (matchedZone) {
-      onBaseCommuneChange(matchedZone.name);
-      setSearchSuccessNotice(`📍 Base adaptée : ${matchedZone.name} (${cfg.name})`);
-      setTimeout(() => setSearchSuccessNotice(null), 3000);
+    try {
+      const results = await searchNationalDatabase(query);
+      setDatabaseSearchResults(results);
+    } catch (err) {
+      console.error('Erreur recherche nationale:', err);
+    } finally {
+      setIsSearchingDatabase(false);
     }
+  };
+
+  // Sélection d'une entité dans la liste des résultats de recherche
+  const handleSelectDatabaseEntity = (entity: GeoEntity) => {
+    setAddressSearchQuery(`${entity.name} (${entity.code})`);
+    setShowSuggestionsDropdown(false);
+    if (entity.territoryId !== activeTerritory) {
+      handleSelectTerritory(entity.territoryId);
+    }
+    onBaseCommuneChange(entity.name);
+    setSelectedCoordinates(entity.coordinates);
+    setSearchSuccessNotice(`📍 Base sélectionnée : ${entity.name} [${entity.code}]`);
+    setTimeout(() => setSearchSuccessNotice(null), 3500);
   };
 
   if (!isOpen) return null;
@@ -272,24 +312,70 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setShowAllLabels(!showAllLabels)}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                    showAllLabels
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-400/40'
-                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
-                  }`}
-                  title="Afficher ou masquer les noms des communes sur la carte"
-                >
-                  <span className="material-symbols-outlined text-xs align-middle mr-1">label</span>
-                  {showAllLabels ? 'Noms visibles' : 'Noms masqués'}
-                </button>
+                <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-700/80">
+                  <button
+                    type="button"
+                    onClick={() => setMapEngine('D3_GEO')}
+                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                      mapEngine === 'D3_GEO'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Carte interactive D3 avec zoom, pan et contours administratifs réels"
+                  >
+                    D3 Carto Gouv
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMapEngine('RADAR_VECTOR')}
+                    className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                      mapEngine === 'RADAR_VECTOR'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Vue radar vectorielle synthétique"
+                  >
+                    Radar Synthétique
+                  </button>
+                </div>
+
+                {mapEngine === 'RADAR_VECTOR' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllLabels(!showAllLabels)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      showAllLabels
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-400/40'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                    }`}
+                    title="Afficher ou masquer les noms des communes sur la carte"
+                  >
+                    <span className="material-symbols-outlined text-xs align-middle mr-1">label</span>
+                    {showAllLabels ? 'Noms' : 'Masqués'}
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Visualiseur SVG interactif des communes */}
-            <div className="relative flex-1 flex items-center justify-center">
+            {/* Moteur 1 : Carte vectorielle D3 officielle simplifiée (Zoom, Pan, Noms adaptatifs) */}
+            {mapEngine === 'D3_GEO' ? (
+              <div className="relative flex-1 w-full min-h-[480px]">
+                <D3InteractiveGeoMap
+                  territoryId={activeTerritory}
+                  baseCoordinates={baseCoords}
+                  baseName={baseCommune}
+                  radiusKm={radiusKm}
+                  onSelectEntity={(entity) => {
+                    onBaseCommuneChange(entity.name);
+                    setSelectedCoordinates(entity.coordinates);
+                    setSearchSuccessNotice(`📍 Base sélectionnée : ${entity.name} [${entity.code}]`);
+                    setTimeout(() => setSearchSuccessNotice(null), 3000);
+                  }}
+                />
+              </div>
+            ) : (
+              /* Moteur 2 : Visualiseur SVG interactif classique */
+              <div className="relative flex-1 flex items-center justify-center">
               <svg
                 viewBox={territoryConfig.viewBox}
                 className="w-full h-full max-h-[560px] select-none"
@@ -689,6 +775,7 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                 </div>
               )}
             </div>
+          )}
 
             {/* Légende en bas de carte */}
             <div className="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-300 px-1">
@@ -723,28 +810,78 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
               <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                    <span>📍</span>
-                    <span>Rechercher votre adresse / ville :</span>
+                    <span className="material-symbols-outlined text-sm text-primary">search</span>
+                    <span>Rechercher votre commune ou adresse :</span>
                   </span>
                   <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    ⚡ Auto-adaptation
+                    ⚡ data.gouv.fr
                   </span>
                 </div>
-                <div className="relative flex items-center">
-                  <span className="absolute left-3 text-sm text-slate-400 pointer-events-none">
-                    🔍
-                  </span>
-                  <input
-                    type="text"
-                    value={addressSearchQuery}
-                    onChange={(e) => handleAddressSearch(e.target.value)}
-                    placeholder="Ex: 97122 Baie-Mahault, 75001 Paris, Cayenne..."
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/50 shadow-2xs"
-                  />
+                <div className="relative">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-sm text-slate-400 pointer-events-none">
+                      🔍
+                    </span>
+                    <input
+                      type="text"
+                      value={addressSearchQuery}
+                      onChange={(e) => handleAddressSearch(e.target.value)}
+                      onFocus={() => {
+                        if (databaseSearchResults.length > 0) setShowSuggestionsDropdown(true);
+                      }}
+                      placeholder="Ex: 97122 Baie-Mahault, 69002 Lyon, Cayenne, Fort-de-France..."
+                      className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary placeholder:text-on-surface-variant/50 shadow-2xs"
+                    />
+                    {isSearchingDatabase && (
+                      <span className="absolute right-3 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                    )}
+                  </div>
+
+                  {/* Liste de suggestions de la base nationale data.gouv.fr */}
+                  {showSuggestionsDropdown && databaseSearchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-outline-variant/10">
+                      <div className="px-3 py-1.5 bg-surface-container-low text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
+                        <span>Base Nationale ({databaseSearchResults.length} résultats)</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowSuggestionsDropdown(false)}
+                          className="text-xs text-on-surface-variant hover:text-on-surface p-0.5 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {databaseSearchResults.map((res) => (
+                        <button
+                          key={res.id}
+                          type="button"
+                          onClick={() => handleSelectDatabaseEntity(res)}
+                          className="w-full px-3 py-2 text-left hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
+                              {res.code}
+                            </span>
+                            <span className="font-bold text-on-surface group-hover:text-primary transition-colors truncate">
+                              {res.name}
+                            </span>
+                            {res.departmentName && (
+                              <span className="text-[10px] text-on-surface-variant truncate">
+                                ({res.departmentName})
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-on-surface-variant shrink-0">
+                            {res.territoryId}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {searchSuccessNotice && (
-                  <p className="text-[11px] font-bold text-emerald-600 animate-fadeIn">
-                    {searchSuccessNotice}
+                  <p className="text-[11px] font-bold text-emerald-600 animate-fadeIn flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">check_circle</span>
+                    <span>{searchSuccessNotice}</span>
                   </p>
                 )}
               </div>
