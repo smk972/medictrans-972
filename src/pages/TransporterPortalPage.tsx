@@ -14,7 +14,6 @@ import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
 import { TransporterSubscriptionTab } from '../components/TransporterSubscriptionTab';
 import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 import { reverseGeocode } from '../services/nationalGeoDatabase';
-import { getJuxtaposedCities } from '../services/juxtaposedSectorsService';
 
 export interface Driver {
   id: string;
@@ -153,7 +152,6 @@ export const TransporterPortalPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'HISTORIQUE' | 'ABONNEMENT'>('DISPONIBLES');
   const [historySubFilter, setHistorySubFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [historySearch, setHistorySearch] = useState('');
-  const [sectorFilter, setSectorFilter] = useState<string>('ALL');
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
   const [selectedMissionForDetails, setSelectedMissionForDetails] = useState<Ride | null>(null);
 
@@ -253,16 +251,6 @@ export const TransporterPortalPage: React.FC = () => {
       } catch (e) {}
     }
   }, [user]);
-
-  // Villes juxtaposées (limitrophes et voisines directes) calculées dynamiquement selon la base et le territoire
-  const juxtaposedCities = useMemo(() => {
-    return getJuxtaposedCities(baseCommune, baseTerritory, 6);
-  }, [baseCommune, baseTerritory]);
-
-  // Réinitialiser le filtre secteur sur 'ALL' quand la base ou le territoire changent
-  useEffect(() => {
-    setSectorFilter('ALL');
-  }, [baseCommune, baseTerritory]);
 
   const [isRadiusModalOpen, setIsRadiusModalOpen] = useState(false);
 
@@ -556,21 +544,6 @@ export const TransporterPortalPage: React.FC = () => {
       if (vehicleFilter === 'VSL' && r.transportType !== 'VSL') return false;
       if (vehicleFilter === 'TAXI' && r.transportType !== 'TAXI_CONVENTIONNE') return false;
 
-      // Filtre Secteur dynamique (villes juxtaposées ou toute la zone)
-      if (sectorFilter && sectorFilter !== 'ALL') {
-        const filterNorm = sectorFilter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        const rideLocations = (
-          (r.pickupCity || '') + ' ' +
-          (r.dropoffCity || '') + ' ' +
-          (r.pickupAddress || '') + ' ' +
-          (r.dropoffAddress || '')
-        ).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-        if (!rideLocations.includes(filterNorm)) {
-          return false;
-        }
-      }
-
       // Filtrage par Rayon d'action (Cercle géographique en km)
       const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
       const isInside = dist <= actionRadiusKm;
@@ -587,7 +560,7 @@ export const TransporterPortalPage: React.FC = () => {
       if (aDirect !== bDirect) return bDirect - aDirect;
       return new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime();
     });
-  }, [rides, vehicleFilter, sectorFilter, declinedRefs, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
+  }, [rides, vehicleFilter, declinedRefs, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
 
   // Compteurs de courses dans et hors zone d'action
   const pendingInRadiusCount = useMemo(() => {
@@ -600,6 +573,23 @@ export const TransporterPortalPage: React.FC = () => {
   const pendingOutsideRadiusCount = useMemo(() => {
     return allPendingMissions.length - pendingInRadiusCount;
   }, [allPendingMissions, pendingInRadiusCount]);
+
+  // Compteur de demandes par type de véhicule (dans le rayon d'action actif)
+  const vehicleCounts = useMemo(() => {
+    const counts = { ALL: 0, AMBULANCE: 0, VSL: 0, TAXI: 0 };
+    allPendingMissions.forEach((r) => {
+      const isDirectMe = isDirectTargetedToMe(r);
+      const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
+      const isInside = dist <= actionRadiusKm;
+      if (!includeOutsideRadius && !isInside && !isDirectMe) return;
+
+      counts.ALL++;
+      if (r.transportType === 'AMBULANCE') counts.AMBULANCE++;
+      else if (r.transportType === 'VSL') counts.VSL++;
+      else if (r.transportType === 'TAXI_CONVENTIONNE') counts.TAXI++;
+    });
+    return counts;
+  }, [allPendingMissions, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToMe]);
 
   // Compteur des demandes directes prioritaires nominatives pour ce transporteur (délai 24h)
   const pendingDirectRequestsCount = useMemo(() => {
@@ -2149,78 +2139,60 @@ export const TransporterPortalPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Barre de filtres adaptatifs */}
+              {/* Bloc de sélection du type de véhicule sanitaire */}
               <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase mr-1 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm text-primary">near_me</span>
-                    <span>Secteur :</span>
-                  </span>
-
-                  {/* Bouton 1 : Toute la zone du rayon d'action */}
-                  <button
-                    type="button"
-                    onClick={() => setSectorFilter('ALL')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      sectorFilter === 'ALL'
-                        ? 'bg-primary text-white shadow-xs scale-105'
-                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                    }`}
-                  >
-                    Toute la zone ({actionRadiusKm} km)
-                  </button>
-
-                  {/* Bouton 2 : Commune de base active */}
-                  <button
-                    type="button"
-                    onClick={() => setSectorFilter(baseCommune)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      sectorFilter.toLowerCase() === baseCommune.toLowerCase()
-                        ? 'bg-secondary text-white shadow-xs scale-105'
-                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                    }`}
-                    title={`Filtrer uniquement sur votre base : ${baseCommune}`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>📍 {baseCommune}</span>
-                    <span className="text-[10px] px-1 py-0.2 rounded bg-black/20 text-white font-mono">Base</span>
-                  </button>
-
-                  {/* Boutons 3+ : Villes juxtaposées et limitrophes */}
-                  {juxtaposedCities.map((cityName) => (
-                    <button
-                      key={cityName}
-                      type="button"
-                      onClick={() => setSectorFilter(cityName)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        sectorFilter.toLowerCase() === cityName.toLowerCase()
-                          ? 'bg-primary text-white shadow-xs scale-105'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                      }`}
-                      title={`Filtrer sur la commune juxtaposée : ${cityName}`}
-                    >
-                      {cityName}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                      <circle cx="7" cy="17" r="2" />
+                      <path d="M9 17h6" />
+                      <circle cx="17" cy="17" r="2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-on-surface uppercase tracking-wider block">
+                      Type de véhicule sanitaire
+                    </span>
+                    <span className="text-xs text-on-surface-variant">
+                      Filtrez les demandes par agrément (Ambulance, VSL, Taxi conventionné)
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-on-surface-variant uppercase mr-1">Véhicule :</span>
-                  {(['ALL', 'AMBULANCE', 'VSL', 'TAXI'] as const).map((veh) => (
-                    <button
-                      key={veh}
-                      type="button"
-                      onClick={() => setVehicleFilter(veh)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
-                        vehicleFilter === veh
-                          ? 'bg-secondary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      <span>{veh === 'AMBULANCE' ? '🚑' : veh === 'VSL' ? '🚐' : veh === 'TAXI' ? '🚗' : '✨'}</span>
-                      <span>{veh === 'ALL' ? 'Tous' : veh === 'AMBULANCE' ? 'Ambulance' : veh === 'VSL' ? 'VSL' : 'Taxi'}</span>
-                    </button>
-                  ))}
+                  {[
+                    { key: 'ALL', label: 'Tous les véhicules', icon: '✨', count: vehicleCounts.ALL },
+                    { key: 'AMBULANCE', label: 'Ambulance', icon: '🚑', count: vehicleCounts.AMBULANCE },
+                    { key: 'VSL', label: 'VSL', icon: '🚐', count: vehicleCounts.VSL },
+                    { key: 'TAXI', label: 'Taxi conventionné', icon: '🚗', count: vehicleCounts.TAXI },
+                  ].map((veh) => {
+                    const isActive = vehicleFilter === veh.key;
+                    return (
+                      <button
+                        key={veh.key}
+                        type="button"
+                        onClick={() => setVehicleFilter(veh.key as any)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-primary text-white shadow-sm ring-2 ring-primary/20 scale-[1.02]'
+                            : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+                        }`}
+                      >
+                        <span className="text-sm">{veh.icon}</span>
+                        <span>{veh.label}</span>
+                        <span
+                          className={`text-[11px] px-1.5 py-0.5 rounded-md font-mono ${
+                            isActive
+                              ? 'bg-white/20 text-white'
+                              : 'bg-surface-container-high text-on-surface-variant'
+                          }`}
+                        >
+                          {veh.count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
