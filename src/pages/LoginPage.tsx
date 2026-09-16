@@ -200,7 +200,8 @@ export const LoginPage: React.FC = () => {
     }
   }, [selectedRole]);
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const [isGsiRendered, setIsGsiRendered] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '47297543903-pau55fe7aqroc2c2hcgr8luipaul158j.apps.googleusercontent.com';
 
   // Initialisation Google Identity Services (GIS)
   useEffect(() => {
@@ -239,6 +240,7 @@ export const LoginPage: React.FC = () => {
               width: 340,
               locale: 'fr',
             });
+            setIsGsiRendered(true);
           }
         } catch (err) {
           console.warn('GSI init warning:', err);
@@ -455,12 +457,13 @@ export const LoginPage: React.FC = () => {
           {selectedRole === 'PATIENT' && (
             <div className="mb-6">
               {/* Bouton officiel Google Identity Services avec mention native clinigo.fr */}
-              {googleClientId && (
-                <div id="google-gsi-render" className="w-full flex justify-center mb-2.5 min-h-[44px]"></div>
-              )}
+              <div
+                id="google-gsi-render"
+                className={`w-full flex justify-center ${isGsiRendered ? 'min-h-[44px]' : 'hidden'}`}
+              ></div>
 
-              {/* Bouton stylé Clinigo (actif si GIS non chargé ou en complément) */}
-              {(!googleClientId || true) && (
+              {/* Bouton stylé Clinigo si GIS n'est pas encore rendu */}
+              {!isGsiRendered && (
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
