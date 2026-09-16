@@ -100,22 +100,41 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
         expiresAt: Date.now() + 10 * 60 * 1000
       }));
 
-      // Appel de l'API backend Meta WhatsApp Cloud
-      const res = await fetch('/api/whatsapp/send-otp', {
+      const phoneNumberId = '1393408537178633';
+      const accessToken = 'EAAQNZAZAxZCXyABSd7kxlMxu8fSJmHzMA4MZCbkCQbI6ROeJuHXfYxlGmLLWEqA5lu6PffZBY9JGVEG57juFAexn28CBvJYGV0wqXChS3pjWtF3LzV6DCrDVQYUGEG9607ZAVub9PrivrdFLKPUYiCNMd072k57JPpew6U2GMYk0mIJBYPUZBhcdlvAknb55ZBZCFobD4r4fZAtpzKFodJMhugL1EuxOBHFEZByn58uuZCBIDlAr8xzSPdBl1A5jHxxodwubBEj0TSDvCcdqdeBfPnPs';
+
+      const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          phone: phoneInput.trim(),
-          code
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: waPhone,
+          type: "text",
+          text: {
+            preview_url: false,
+            body: `*Clinigo — Transport Médical*\n\nVotre code confidentiel pour débloquer vos 30 jours d'essai gratuit est : *${code}*\n\nEntrez ce code sur votre tableau de bord pour activer immédiatement votre compte.`
+          }
         })
       });
 
-      const data = await res.json();
-      if (!data.success && data.errorCode === 131030) {
-        setCodeError("Numéro de test non autorisé : Veuillez ajouter ce numéro dans votre console Meta for Developers (Étape 2 : Destinataires autorisés).");
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('Erreur Meta WhatsApp Cloud:', data);
+        if (data?.error?.code === 131030) {
+          setCodeError(`Le numéro ${waPhone} n'est pas encore dans la liste des destinataires autorisés sur Meta for Developers.`);
+        } else if (data?.error?.code === 131047) {
+          setCodeError(`Fenêtre 24h Meta fermée : Envoyez d'abord un message "Hello" sur WhatsApp au numéro test Meta (+1 555-166-0960).`);
+        } else {
+          setCodeError(data?.error?.error_data?.details || data?.error?.message || "Erreur lors de l'envoi WhatsApp.");
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("Erreur envoi OTP WhatsApp:", err);
+      setCodeError("Impossible de contacter les serveurs WhatsApp.");
     } finally {
       setIsSendingCode(false);
       setWhatsAppStep('VERIFY');
