@@ -274,7 +274,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
             aria-expanded={isDropdownOpen}
             title="Changer l'indicatif téléphonique (+33, +596, +590, +594, +262)"
           >
-            <span className="text-base leading-none">{selectedCountry.flag}</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-surface-container text-on-surface border border-outline-variant/30 leading-none">
+              {selectedCountry.id.toUpperCase()}
+            </span>
             <span className="font-semibold text-on-surface">{selectedCountry.code}</span>
             <span className="material-symbols-outlined text-on-surface-variant text-[16px] -ml-0.5">
               arrow_drop_down
@@ -300,7 +302,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                       onClick={() => handleCountrySelect(c)}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-lg leading-none">{c.flag}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-surface-container text-on-surface border border-outline-variant/30 leading-none shrink-0">
+                          {c.id.toUpperCase()}
+                        </span>
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold leading-tight">{c.country}</span>
                           <span className="text-[10px] text-on-surface-variant leading-tight">{c.region}</span>

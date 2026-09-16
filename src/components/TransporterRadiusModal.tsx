@@ -193,8 +193,10 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white shadow-2xs">
                     {radiusKm} km
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-surface-container text-on-surface border border-outline-variant/30">
-                    <span>{territoryConfig.flag}</span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-surface-container text-on-surface border border-outline-variant/30">
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                      {territoryConfig.code}
+                    </span>
                     <span>{territoryConfig.name}</span>
                     <span className="text-on-surface-variant font-normal">({territoryConfig.zones.length} zones)</span>
                   </span>
@@ -231,11 +233,15 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
                   onClick={() => handleSelectTerritory(t.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                     isActive
-                      ? 'bg-primary text-white shadow-xs scale-102 border border-primary'
+                      ? 'bg-primary text-white shadow-xs border border-primary'
                       : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border border-outline-variant/30'
                   }`}
                 >
-                  <span className="text-sm">{t.flag}</span>
+                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-surface-container-high text-primary border border-primary/20'
+                  }`}>
+                    {t.code}
+                  </span>
                   <span>{t.shortName}</span>
                   {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
                 </button>

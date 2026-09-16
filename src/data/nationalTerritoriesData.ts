@@ -31,7 +31,6 @@ export interface TerritoryConfig {
   code: string;
   name: string;
   shortName: string;
-  flag: string;
   viewBox: string;
   width: number;
   height: number;
@@ -1312,7 +1311,6 @@ export const TERRITORIES_CONFIG: Record<TerritoryId, TerritoryConfig> = {
     code: '972',
     name: 'Martinique (972)',
     shortName: 'Martinique',
-    flag: '🌴',
     viewBox: MARTINIQUE_SVG_VIEWBOX,
     width: 45333,
     height: 53138,
@@ -1336,7 +1334,6 @@ export const TERRITORIES_CONFIG: Record<TerritoryId, TerritoryConfig> = {
     code: '971',
     name: 'Guadeloupe (971)',
     shortName: 'Guadeloupe',
-    flag: '🌺',
     viewBox: '0 0 70000 65000',
     width: 70000,
     height: 65000,
@@ -1355,7 +1352,6 @@ export const TERRITORIES_CONFIG: Record<TerritoryId, TerritoryConfig> = {
     code: '974',
     name: 'La Réunion (974)',
     shortName: 'La Réunion',
-    flag: '🌋',
     viewBox: '0 0 65000 55000',
     width: 65000,
     height: 55000,
@@ -1374,7 +1370,6 @@ export const TERRITORIES_CONFIG: Record<TerritoryId, TerritoryConfig> = {
     code: '973',
     name: 'Guyane (973)',
     shortName: 'Guyane',
-    flag: '🌿',
     viewBox: '0 0 80000 70000',
     width: 80000,
     height: 70000,
@@ -1393,7 +1388,6 @@ export const TERRITORIES_CONFIG: Record<TerritoryId, TerritoryConfig> = {
     code: 'FR',
     name: 'France Métropolitaine',
     shortName: 'Métropole',
-    flag: '🇫🇷',
     viewBox: '0 0 100000 100000',
     width: 100000,
     height: 100000,

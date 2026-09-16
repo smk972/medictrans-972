@@ -1942,7 +1942,9 @@ export const TransporterPortalPage: React.FC = () => {
                     {/* Territoire & Base commune dynamique */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 text-xs text-on-surface-variant bg-surface-container px-2.5 py-1.5 rounded-xl border border-outline-variant/30">
-                        <span className="text-sm">{TERRITORIES_CONFIG[baseTerritory]?.flag || '🌴'}</span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                          {TERRITORIES_CONFIG[baseTerritory]?.code || '972'}
+                        </span>
                         <select
                           id="select-base-territory"
                           value={baseTerritory}
@@ -1957,7 +1959,7 @@ export const TransporterPortalPage: React.FC = () => {
                         >
                           {Object.values(TERRITORIES_CONFIG).map((t) => (
                             <option key={t.id} value={t.id}>
-                              {t.flag} {t.shortName}
+                              [{t.code}] {t.shortName}
                             </option>
                           ))}
                         </select>
