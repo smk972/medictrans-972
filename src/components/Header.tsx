@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useAiChat } from '../context/AiChatContext';
 import { BrandLogo } from './BrandLogo';
 
 export const Header: React.FC = () => {
@@ -11,7 +10,6 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
-  const { openChat } = useAiChat();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -126,19 +124,6 @@ export const Header: React.FC = () => {
 
         {/* Right Info & Profile */}
         <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0">
-          {/* Bouton Eva IA */}
-          <button
-            type="button"
-            id="btn-header-help-ai"
-            onClick={() => openChat()}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200/70 font-semibold text-xs transition-all group shrink-0"
-            title="Eva - Aide à la réservation"
-          >
-            <span className="material-symbols-outlined text-base text-teal-700 group-hover:scale-110 transition-transform">
-              support_agent
-            </span>
-            <span className="whitespace-nowrap">Eva</span>
-          </button>
 
           {/* User Profile / Login Button */}
           {isAuthenticated && user ? (
@@ -452,21 +437,9 @@ export const Header: React.FC = () => {
             )}
           </nav>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              id="btn-mobile-help-ai"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openChat();
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-800 font-semibold text-xs hover:bg-teal-100 transition-colors"
-            >
-              <span className="material-symbols-outlined text-base">support_agent</span>
-              <span>Eva - Aide à la réservation</span>
-            </button>
-            <a href="tel:0596720097" className="text-xs font-bold text-slate-600 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs">call</span>
-              05 96 72 00 97
+            <a href="tel:0596720097" className="text-xs font-bold text-slate-600 flex items-center gap-1.5 py-1">
+              <span className="material-symbols-outlined text-xs text-teal-600">call</span>
+              <span>Assistance : 05 96 72 00 97</span>
             </a>
           </div>
         </div>
