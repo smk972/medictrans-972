@@ -457,13 +457,9 @@ export const LoginPage: React.FC = () => {
           {selectedRole === 'PATIENT' && (
             <div className="mb-6">
               {/* Bouton officiel Google Identity Services avec mention native clinigo.fr */}
-              <div
-                id="google-gsi-render"
-                className={`w-full flex justify-center ${isGsiRendered ? 'min-h-[44px]' : 'hidden'}`}
-              ></div>
-
-              {/* Bouton stylé Clinigo si GIS n'est pas encore rendu */}
-              {!isGsiRendered && (
+              {googleClientId ? (
+                <div id="google-gsi-render" className="w-full flex justify-center min-h-[44px] items-center"></div>
+              ) : (
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
