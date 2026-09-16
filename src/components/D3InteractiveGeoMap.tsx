@@ -187,16 +187,16 @@ export const D3InteractiveGeoMap: React.FC<D3InteractiveGeoMapProps> = ({
           .attr('fill', (d: any) => {
             if (d._isSelectedDep) return '#0369a1'; // Département en cours de sélection
             if (d._isBase) return '#0284c7'; // Bleu ciel pour la base
-            if (d._isInside) return '#064e3b'; // Vert émeraude sombre (zone couverte)
-            return '#0f172a'; // Gris ardoise sombre (hors zone)
+            if (d._isInside) return '#047857'; // Vert émeraude (zone couverte)
+            return '#1e293b'; // Gris ardoise soutenu (hors zone)
           })
           .attr('stroke', (d: any) => {
             if (d._isSelectedDep) return '#38bdf8';
             if (d._isBase) return '#38bdf8';
-            if (d._isInside) return '#10b981';
-            return '#334155';
+            if (d._isInside) return '#34d399';
+            return '#475569'; // Frontières bien découpées
           })
-          .attr('stroke-width', (d: any) => (d._isSelectedDep ? 2.5 : d._isBase ? 1.5 : 0.75))
+          .attr('stroke-width', (d: any) => (d._isSelectedDep ? 2.5 : d._isBase ? 1.8 : 0.85))
           .attr('cursor', 'pointer')
           .on('mouseenter', function (event: MouseEvent, d: any) {
             d3.select(this)
@@ -564,7 +564,7 @@ export const D3InteractiveGeoMap: React.FC<D3InteractiveGeoMapProps> = ({
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[480px] bg-slate-950 rounded-2xl overflow-hidden select-none">
       {/* Canevas SVG D3 */}
-      <svg ref={svgRef} className="w-full h-full block" />
+      <svg id="d3-interactive-geomap-svg" ref={svgRef} className="d3-interactive-geomap w-full h-full block" />
 
       {/* Indicateur de chargement progressif */}
       {loadingStatus === 'loading' && (

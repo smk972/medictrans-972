@@ -14,6 +14,7 @@ import {
   REUNION_COMMUNES_POLYGONS,
 } from '../data/nationalTerritoriesData';
 import { MARTINIQUE_COMMUNES_POLYGONS } from '../data/martiniqueCommunesPolygons';
+import { geoArea } from 'd3-geo';
 
 export interface GeoEntity {
   id: string;
@@ -242,6 +243,27 @@ export async function loadTerritoryGeoJson(
   }
 
   const data = await response.json();
+
+  // Normalisation préventive du sens d'enroulement (winding order) pour D3 Mercator
+  if (data && data.features) {
+    data.features.forEach((f: any) => {
+      if (!f.geometry) return;
+      if (f.geometry.type === 'Polygon') {
+        if (geoArea(f) > 2 * Math.PI) {
+          f.geometry.coordinates = f.geometry.coordinates.map((ring: any) => ring.slice().reverse());
+        }
+      } else if (f.geometry.type === 'MultiPolygon') {
+        f.geometry.coordinates = f.geometry.coordinates.map((poly: any) => {
+          const polyGeo = { type: 'Polygon', coordinates: poly };
+          if (geoArea(polyGeo as any) > 2 * Math.PI) {
+            return poly.map((ring: any) => ring.slice().reverse());
+          }
+          return poly;
+        });
+      }
+    });
+  }
+
   geoJsonCache.set(territoryId, data);
   if (onProgress) onProgress('loaded');
   return data;

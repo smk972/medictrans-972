@@ -51,7 +51,14 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
     return controlledTerritory || detectTerritoryFromAddress(baseCommune || userAddress);
   });
 
-  const activeTerritory = controlledTerritory || internalTerritory;
+  // Synchronise si le parent change explicitement le territoire
+  useEffect(() => {
+    if (controlledTerritory) {
+      setInternalTerritory(controlledTerritory);
+    }
+  }, [controlledTerritory]);
+
+  const activeTerritory = internalTerritory;
   const territoryConfig = TERRITORIES_CONFIG[activeTerritory] || TERRITORIES_CONFIG.MARTINIQUE;
 
   const [hoveredCommune, setHoveredCommune] = useState<TerritoryZonePolygon | null>(null);
@@ -120,8 +127,11 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
     }
   }, [isOpen]); // Exécuté uniquement à l'ouverture du modal
 
-  const handleSelectTerritory = (territoryId: TerritoryId) => {
+  const handleSelectTerritory = async (territoryId: TerritoryId) => {
     setInternalTerritory(territoryId);
+    setSelectedCoordinates(null);
+    setExactStreetAddress('');
+    setDepartmentCommunesList([]);
     if (onTerritoryChange) {
       onTerritoryChange(territoryId);
     }
@@ -133,14 +143,17 @@ export const TransporterRadiusModal: React.FC<TransporterRadiusModalProps> = ({
     else if (territoryId === 'REUNION') defaultDep = '974';
 
     setSelectedDepartment(defaultDep);
-    loadDepartmentCommunes(defaultDep);
-
     const targetConfig = TERRITORIES_CONFIG[territoryId];
-    const exists = targetConfig.zones.some(
-      (z) => z.name.toLowerCase() === baseCommune.toLowerCase()
-    );
-    if (!exists) {
-      onBaseCommuneChange(targetConfig.defaultCommune);
+    onBaseCommuneChange(targetConfig.defaultCommune);
+
+    const communes = await loadDepartmentCommunes(defaultDep);
+    if (communes.length > 0) {
+      const matchDefault = communes.find((c: GeoEntity) => c.name.toLowerCase() === targetConfig.defaultCommune.toLowerCase());
+      if (matchDefault) {
+        setSelectedCoordinates(matchDefault.coordinates);
+      } else {
+        setSelectedCoordinates(communes[0].coordinates);
+      }
     }
   };
 
