@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Page d'Accueil Principale -->
+  <url>
+    <loc>https://clinigo.fr/</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://clinigo.fr/assets/clinigo-logo.png</image:loc>
+      <image:title>Clinigo - Transport Médical &amp; Services Martinique 972</image:title>
+      <image:caption>Plateforme de réservation et régulation de transports sanitaires en Martinique</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Barème & Droits CPAM Martinique (Optimisé Google Discover & Santé Publique) -->
+  <url>
+    <loc>https://clinigo.fr/droits-cpam</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://clinigo.fr/assets/step1_prescription.jpg</image:loc>
+      <image:title>Prise en charge CPAM 100% ALD et Prescription Médicale de Transport en Martinique</image:title>
+    </image:image>
+  </url>
+
+  <!-- Demande de Transport Médicalisé -->
+  <url>
+    <loc>https://clinigo.fr/reserver</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Portail Établissements & Sorties d'Hospitalisation -->
+  <url>
+    <loc>https://clinigo.fr/etablissements</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://clinigo.fr/assets/step2_dispatch.jpg</image:loc>
+      <image:title>Réseau des Hôpitaux et Cliniques de Martinique - CHU Zobda, Trinité, Marin</image:title>
+    </image:image>
+  </url>
+
+  <!-- Espace Professionnels Transporteurs Sanitaires Agréés -->
+  <url>
+    <loc>https://clinigo.fr/transporteurs</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://clinigo.fr/assets/step3_care.jpg</image:loc>
+      <image:title>Flotte Sanitaire Agréée ARS Martinique - Ambulances et VSL</image:title>
+    </image:image>
+  </url>
+
+  <!-- Suivi en Direct des Missions -->
+  <url>
+    <loc>https://clinigo.fr/suivi</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Inscription Partenaire Transporteur Agréé -->
+  <url>
+    <loc>https://clinigo.fr/inscription-transporteur</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Inscription Établissement de Santé -->
+  <url>
+    <loc>https://clinigo.fr/inscription-etablissement</loc>
+    <lastmod>2026-09-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>
+
