@@ -14,7 +14,6 @@ export const TrackingPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL');
-  const [showBanner, setShowBanner] = useState(true);
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRideModal, setSelectedRideModal] = useState<Ride | null>(null);
@@ -352,33 +351,7 @@ export const TrackingPage: React.FC = () => {
       />
 
       <main className="w-full pt-4 sm:pt-6 bg-[#F8FAFD] flex-1">
-        {/* Network status ticker banner */}
-        {showBanner && (
-          <div className="w-full bg-slate-50 px-4 sm:px-6 py-2.5 border-b border-slate-200/80 shadow-2xs">
-            <div className="max-w-[1280px] w-full mx-auto flex flex-wrap items-center justify-between gap-space-sm text-xs md:text-sm">
-              <div className="flex items-center gap-space-sm">
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
-                </span>
-                <span className="text-xs sm:text-sm text-slate-700 font-medium">
-                  Réseau Martinique Sud &amp; Centre actif : 42 ambulances et taxis conventionnés en liaison continue avec le SAMU 972.
-                </span>
-              </div>
-              <div className="flex items-center gap-space-md">
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-200/70 text-slate-700 uppercase tracking-wider text-[10px] font-bold">
-                  Synchronisé CPAM
-                </span>
-                <button
-                  onClick={() => setShowBanner(false)}
-                  className="text-slate-400 hover:text-slate-700 flex items-center p-1 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm">close</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {!isAuthenticated || !user ? (
           /* ÉCRAN SÉCURISÉ : AUCUNE DONNÉE DE TRANSPORT AFFICHÉE SANS CONNEXION */

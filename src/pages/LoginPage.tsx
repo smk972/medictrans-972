@@ -199,6 +199,13 @@ export const LoginPage: React.FC = () => {
   }, [selectedRole]);
 
 
+  // Redirection immédiate si déjà connecté
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      redirectAfterAuth(user.role);
+    }
+  }, [isAuthenticated, user]);
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -207,8 +214,8 @@ export const LoginPage: React.FC = () => {
     if (mode === 'LOGIN') {
       const res = await loginWithEmail(email, password, selectedRole);
       if (res.success) {
-        setSuccessMessage('Connexion réussie ! Redirection...');
-        setTimeout(() => redirectAfterAuth(selectedRole), 400);
+        // Redirection instantanée sans délai artificiel
+        redirectAfterAuth(selectedRole);
       } else {
         setFormError(res.error || 'Adresse e-mail ou mot de passe incorrect.');
       }
@@ -244,13 +251,37 @@ export const LoginPage: React.FC = () => {
       });
 
       if (res.success) {
-        setSuccessMessage('Compte créé avec succès ! Redirection...');
-        setTimeout(() => redirectAfterAuth(selectedRole), 400);
+        // Redirection instantanée
+        redirectAfterAuth(selectedRole);
       } else {
         setFormError(res.error || "Une erreur est survenue lors de la création du compte.");
       }
     }
   };
+
+  // Si déjà connecté, afficher uniquement un écran de transition propre pendant la redirection
+  if (isAuthenticated && user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F8FAFD] text-slate-900 relative selection:bg-teal-600 selection:text-white">
+        <SEOHead
+          title="Connexion établie | Clinigo"
+          description="Redirection en cours..."
+          canonicalPath="/connexion"
+        />
+        <Header />
+        <main className="flex-1 flex items-center justify-center min-h-[60vh] px-4">
+          <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white border border-slate-200/80 shadow-sm text-center max-w-sm w-full animate-fadeIn">
+            <div className="w-10 h-10 border-3 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Connexion établie</p>
+              <p className="text-xs text-slate-500 mt-1">Redirection automatique vers votre espace...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFD] text-slate-900 relative selection:bg-teal-600 selection:text-white">
@@ -287,54 +318,6 @@ export const LoginPage: React.FC = () => {
           <p className="text-slate-500 max-w-md mx-auto text-xs sm:text-sm leading-relaxed mb-6">
             {categoryConfig.subtitle}
           </p>
-
-          {/* Session déjà active : Option de continuer ou changer de compte */}
-          {isAuthenticated && user && (
-            <div className="mb-6 p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left animate-fadeIn">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm ring-2 ring-teal-300 shrink-0">
-                  {user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <div>
-                  <div className="text-xs text-slate-900 font-medium">
-                    Déjà connecté en tant que <strong className="font-bold">{user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)}</strong>
-                  </div>
-                  <div className="text-[11px] text-slate-500 font-mono">{user.email}</div>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end shrink-0">
-                <button
-                  type="button"
-                  id="btn-login-my-space"
-                  onClick={() => navigate(getUserDashboardPath(user.role), { replace: true })}
-                  className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-sm">dashboard</span>
-                  <span>Mon espace ({user.role === 'TRANSPORTER' ? 'Transporteur' : user.role === 'FACILITY' ? 'Établissement' : user.role === 'ADMIN' ? 'Admin' : 'Patient'})</span>
-                </button>
-                <button
-                  type="button"
-                  id="btn-login-my-profile"
-                  onClick={() => navigate('/profil')}
-                  className="px-3 py-1.5 rounded-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                  title="Gérer mon profil et mes coordonnées"
-                >
-                  <span className="material-symbols-outlined text-sm text-teal-700">manage_accounts</span>
-                  <span>Mon Profil</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => { await logout(); }}
-                  className="px-3 py-1.5 rounded-full bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                  title="Se déconnecter pour changer de compte"
-                >
-                  <span className="material-symbols-outlined text-sm">logout</span>
-                  <span>Changer</span>
-                </button>
-              </div>
-            </div>
-          )}
-
 
           {/* Bascule Créer un compte / Se connecter */}
           <div className="flex rounded-2xl bg-slate-100 p-1.5 mb-6 border border-slate-200/60">
