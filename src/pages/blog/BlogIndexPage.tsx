@@ -38,6 +38,9 @@ export const BlogIndexPage: React.FC = () => {
   };
 
   const filteredArticles = articles.filter(post => {
+    // Règle stricte : seuls les articles publiés sont affichés sur le blog public
+    if (post.status !== 'published') return false;
+
     const matchesCategory =
       selectedCategorySlug === 'all' || 
       post.category?.slug === selectedCategorySlug ||

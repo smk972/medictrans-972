@@ -18,7 +18,7 @@ export const AdminSeoOverviewPage: React.FC = () => {
     setLoading(true);
     try {
       const [allArticles, allIdeas] = await Promise.all([
-        blogService.getPosts(),
+        blogService.getPosts({ status: 'all' }),
         blogService.getIdeas(),
       ]);
       setArticles(allArticles);

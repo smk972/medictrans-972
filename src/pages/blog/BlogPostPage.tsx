@@ -46,7 +46,7 @@ export const BlogPostPage: React.FC = () => {
           status: 'published',
           categoryId: article.category_id || undefined,
         });
-        setRelatedPosts(allPosts.filter(p => p.id !== article.id).slice(0, 3));
+        setRelatedPosts(allPosts.filter(p => p.id !== article.id && p.status === 'published').slice(0, 3));
       } else {
         setPost(null);
       }
@@ -184,21 +184,21 @@ export const BlogPostPage: React.FC = () => {
         ogImage={post.featured_image || '/assets/medictrans_hero_discover.jpg'}
         ogType="article"
         schemaJson={schemaJson}
-        noIndex={false}
+        noIndex={post.status !== 'published'}
       />
 
       {/* Alerte Admin si article non publié */}
       {post.status !== 'published' && (
-        <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md flex items-center justify-between gap-3 text-xs font-bold">
+        <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-3 shadow-md flex items-center justify-between gap-3 text-xs font-bold border-b border-amber-600">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-base">visibility</span>
+            <span className="material-symbols-outlined text-lg">warning</span>
             <span>
-              MODE PRÉVISUALISATION ADMIN • Statut : <span className="uppercase font-extrabold">{post.status}</span>
+              MODE BROUILLON (ADMIN) • Cet article est en brouillon dans le panel : il est <u>strictement invisible</u> pour les internautes et exclu de Google.
             </span>
           </div>
           <Link
             to={`/admin/seo/articles/${post.id}/edit`}
-            className="px-3 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-colors"
+            className="px-3 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-colors shrink-0"
           >
             Modifier / Publier
           </Link>

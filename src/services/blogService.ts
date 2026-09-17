@@ -750,7 +750,7 @@ export class BlogService {
       const res = await fetch(`/api/blog/posts?status=${includeUnpublished ? 'all' : 'published'}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           const formatted = json.data.map((p: any) => ({
             ...p,
             featured_image: p.featured_image || p.featuredImage,
@@ -758,9 +758,11 @@ export class BlogService {
             category_id: p.category_id || p.categoryId,
             categoryId: p.categoryId || p.category_id,
           }));
-          try {
-            localStorage.setItem(STORAGE_KEY_POSTS, JSON.stringify(formatted));
-          } catch (e) {}
+          if (includeUnpublished && formatted.length > 0) {
+            try {
+              localStorage.setItem(STORAGE_KEY_POSTS, JSON.stringify(formatted));
+            } catch (e) {}
+          }
           return formatted;
         }
       }
@@ -804,10 +806,16 @@ export class BlogService {
     // 1. API Serveur prioritaire (IONOS & Local)
     try {
       const res = await fetch(`/api/blog/posts?slug=${encodeURIComponent(cleanSlug)}${allowDraft ? '&allowDraft=true' : ''}`);
+      if (res.status === 404) {
+        return null;
+      }
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
           const p = json.data;
+          if (!allowDraft && p.status !== 'published') {
+            return null;
+          }
           return {
             ...p,
             featured_image: p.featured_image || p.featuredImage,
@@ -859,6 +867,9 @@ export class BlogService {
     // 1. API Serveur prioritaire (IONOS & Local)
     try {
       const res = await fetch(`/api/blog/posts/${encodeURIComponent(id)}`);
+      if (res.status === 404) {
+        return null;
+      }
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -1066,8 +1077,12 @@ export class BlogService {
     const now = new Date().toISOString();
     post.status = status;
     post.updatedAt = now;
-    if (status === 'published' && !post.publishedAt) {
-      post.publishedAt = now;
+    if (status === 'published') {
+      if (!post.publishedAt) post.publishedAt = now;
+      if (!post.published_at) post.published_at = now;
+    } else {
+      post.publishedAt = null;
+      post.published_at = null;
     }
 
     return this.savePost(post);
@@ -1582,10 +1597,11 @@ export class BlogService {
   // --- Convenience aliases for Admin & Public pages ---
 
   static async getPosts(options?: { status?: string; categoryId?: string; tagId?: string }): Promise<BlogPost[]> {
-    const all = await this.getAllPosts(true);
+    const reqStatus = options?.status ?? 'published';
+    const all = await this.getAllPosts(reqStatus === 'all' || reqStatus === 'draft');
     let filtered = all;
-    if (options?.status && options.status !== 'all') {
-      filtered = filtered.filter((p) => p.status === options.status);
+    if (reqStatus !== 'all') {
+      filtered = filtered.filter((p) => p.status === reqStatus);
     }
     if (options?.categoryId) {
       filtered = filtered.filter((p) => p.categoryId === options.categoryId || p.category_id === options.categoryId);

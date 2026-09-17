@@ -20,7 +20,7 @@ export const AdminSeoArticlesPage: React.FC = () => {
   const loadArticles = async () => {
     setLoading(true);
     try {
-      const data = await blogService.getPosts();
+      const data = await blogService.getPosts({ status: 'all' });
       setArticles(data);
     } catch (err) {
       console.error('Erreur chargement articles:', err);
@@ -34,7 +34,7 @@ export const AdminSeoArticlesPage: React.FC = () => {
     try {
       await blogService.updatePost(post.id, {
         status: newStatus,
-        published_at: newStatus === 'published' ? (post.published_at || new Date().toISOString()) : post.published_at,
+        published_at: newStatus === 'published' ? (post.published_at || new Date().toISOString()) : null,
       });
       setMessage({
         type: 'success',

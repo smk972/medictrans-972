@@ -750,7 +750,7 @@ function handleBlogApi(req, res, parsedUrl) {
             ...postData,
             id,
             slug: (postData.slug || 'article').toLowerCase().trim(),
-            status: postData.status || 'published',
+            status: postData.status || (existingIdx >= 0 ? posts[existingIdx].status : 'draft'),
             featured_image: postData.featured_image || postData.featuredImage || '/assets/step2_dispatch.jpg',
             featuredImage: postData.featuredImage || postData.featured_image || '/assets/step2_dispatch.jpg',
             category_id: catId,

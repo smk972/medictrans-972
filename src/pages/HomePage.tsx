@@ -65,7 +65,7 @@ export const HomePage: React.FC = () => {
   const [latestArticles, setLatestArticles] = useState<any[]>([]);
   useEffect(() => {
     blogService.getPosts({ status: 'published' }).then(posts => {
-      setLatestArticles(posts.slice(0, 3));
+      setLatestArticles(posts.filter(p => p.status === 'published').slice(0, 3));
     }).catch(() => {});
   }, []);
 
