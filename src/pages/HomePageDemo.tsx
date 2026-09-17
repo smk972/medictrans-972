@@ -274,9 +274,6 @@ export const HomePageDemo: React.FC = () => {
                 <span className="text-lg font-black tracking-tight text-slate-900 leading-none">
                   clinigo<span className="text-teal-600">.fr</span>
                 </span>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200/80 uppercase tracking-wider">
-                  Pro v2
-                </span>
               </div>
               <span className="text-[10px] font-semibold text-slate-600 tracking-wide">Réseau Médical Conventionné</span>
             </div>

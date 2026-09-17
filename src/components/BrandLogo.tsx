@@ -18,7 +18,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   className = '',
   subtitle = 'Réseau Médical Conventionné',
   subtitleClassName = '',
-  badge = 'Pro v2',
+  badge,
   badgeAlwaysVisible = false,
   dark = false,
 }) => {
