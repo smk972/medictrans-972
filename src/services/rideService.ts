@@ -1,5 +1,6 @@
 import { Ride, RideStatus, TransportType, Transporter, Facility, AssignedTransporter, TransporterVehicle, TransporterDriver } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { EmailService } from './emailService';
 
 const STORAGE_KEY_RIDES = 'medictrans_rides_972';
 const STORAGE_KEY_TRANSPORTERS = 'medictrans_transporters_972';
@@ -1994,6 +1995,40 @@ export const rideService = {
     }
 
     localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(rides));
+
+    // Si la course est acceptée par un transporteur, avertir immédiatement le client/patient par email
+    if (status === 'ACCEPTED' && assigned) {
+      const targetRide = rides[index];
+      const patientEmail = targetRide.patient?.email;
+      const patientName = `${targetRide.patient?.firstName || ''} ${targetRide.patient?.lastName || ''}`.trim() || 'Patient';
+      const pickupDate = targetRide.pickupDateTime ? new Date(targetRide.pickupDateTime).toLocaleDateString('fr-FR') : 'Aujourd’hui';
+      const pickupTime = timingUpdates?.transporterPickupTime || targetRide.transporterPickupTime || targetRide.appointmentTime || '08:30';
+
+      if (patientEmail && patientEmail.includes('@')) {
+        EmailService.sendRideAcceptedEmail({
+          email: patientEmail,
+          patientName,
+          reference: targetRide.reference,
+          transporterName: assigned.companyName || 'Ambulances Agréées Clinigo',
+          driverName: assigned.driverName,
+          driverPhone: assigned.driverPhone,
+          vehiclePlate: assigned.vehiclePlate,
+          pickupAddress: targetRide.pickupAddress,
+          dropoffAddress: targetRide.facilityName || targetRide.dropoffAddress,
+          pickupDate,
+          pickupTime,
+        }).catch(err => console.warn('[rideService] Notification email acceptation échouée:', err));
+      }
+
+      try {
+        window.dispatchEvent(new CustomEvent('clinigo_ride_status_updated', {
+          detail: { reference: targetRide.reference, status: 'ACCEPTED', ride: targetRide }
+        }));
+      } catch {
+        // ignore in SSR / environments without window
+      }
+    }
+
     return rides[index];
   },
 

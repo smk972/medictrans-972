@@ -424,7 +424,7 @@ export const TransporterSimulatedConsole: React.FC = () => {
                 </div>
               </div>
 
-              {/* Carte 2 : Course VSL standard (ÉlianAimé B.) */}
+              {/* Carte 2 : Course VSL standard (Éliane B.) */}
               {consoleState.selectedVehicleFilter !== 'AMBULANCE' && (
                 <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div className="space-y-0.5">
@@ -439,7 +439,7 @@ export const TransporterSimulatedConsole: React.FC = () => {
                       Clinique Sainte-Marie (Schoelcher) ➔ Fort-de-France (Cluny)
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Patiente : ÉlianAimé B. • Chimiothérapie ambulatoire • 5.2 km
+                      Patiente : Éliane B. • Chimiothérapie ambulatoire • 5.2 km
                     </div>
                   </div>
                   <div className="flex items-center gap-3 justify-between sm:justify-end">

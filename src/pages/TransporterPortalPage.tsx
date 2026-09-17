@@ -1176,8 +1176,8 @@ export const TransporterPortalPage: React.FC = () => {
     );
 
     setToastMessage({
-      title: 'Course acceptée & Prise en charge validée !',
-      desc: `Mission #${missionRef} validée. Prise en charge à ${transporterPickupTimeInput} (Arrivée estimée : ${calculatedArrival}).`,
+      title: 'Course acceptée & Patient averti !',
+      desc: `Mission #${missionRef} validée. Notification e-mail envoyée au client. Prise en charge à ${transporterPickupTimeInput} (Arrivée : ${calculatedArrival}).`,
       type: 'success'
     });
 

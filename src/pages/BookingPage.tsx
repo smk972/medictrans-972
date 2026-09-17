@@ -627,10 +627,10 @@ export const BookingPage: React.FC = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-bold leading-tight">
-                  ⚡ Rempli en direct par Eva !
+                  ⚡ Mise à jour automatique appliquée
                 </span>
                 <span className="text-[11px] text-emerald-100 leading-tight mt-0.5">
-                  Champs synchronisés : {liveUpdatedFields}
+                  Champs renseignés : {liveUpdatedFields}
                 </span>
               </div>
             </aside>
@@ -1017,6 +1017,25 @@ export const BookingPage: React.FC = () => {
                       required
                       value={birthDate}
                       onChange={(e) => setBirthDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
+                    <label
+                      htmlFor="patientEmailInput"
+                      className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center justify-between"
+                    >
+                      <span>Adresse e-mail (pour confirmation &amp; suivi en direct)</span>
+                      <span className="text-primary text-[11px] font-medium">{user?.email ? 'Compte connecté' : 'Notification en temps réel'}</span>
+                    </label>
+                    <input
+                      id="patientEmailInput"
+                      className="w-full h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
+                      placeholder="nom.prenom@email.com"
+                      type="email"
+                      value={user?.email || guestEmail}
+                      disabled={!!user?.email}
+                      onChange={(e) => setGuestEmail(e.target.value)}
                     />
                   </div>
                 </div>

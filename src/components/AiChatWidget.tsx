@@ -119,7 +119,7 @@ export const AiChatWidget: React.FC = () => {
             id="btn-ai-chat-floating"
             onClick={toggleChat}
             className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-primary via-primary-container to-primary text-on-primary rounded-full shadow-2xl hover:shadow-primary/30 hover:scale-105 transition-all duration-200 border-2 border-surface-container-lowest/20 focus:outline-none focus:ring-4 focus:ring-primary/30"
-            aria-label="Eva - Aide à la réservation"
+            aria-label="Support Clinigo - Aide au transport"
           >
             <div className="relative flex items-center justify-center">
               <span className="material-symbols-outlined text-2xl">
@@ -129,10 +129,10 @@ export const AiChatWidget: React.FC = () => {
             </div>
             <div className="flex flex-col text-left">
               <span className="font-bold text-xs tracking-tight whitespace-nowrap leading-none">
-                Eva
+                Support
               </span>
               <span className="text-[10px] text-white/90 font-semibold tracking-tight whitespace-nowrap leading-none mt-0.5">
-                Aide à la réservation
+                Aide au transport
               </span>
             </div>
           </button>
@@ -159,7 +159,7 @@ export const AiChatWidget: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-sm leading-tight text-white">
-                    Eva - Aide à la réservation
+                    Support &amp; Aide au transport
                   </h3>
                 </div>
                 <p className="text-[11px] text-white/85 leading-tight mt-0.5 flex items-center gap-1">
@@ -346,7 +346,7 @@ export const AiChatWidget: React.FC = () => {
               </button>
             </div>
             <div className="flex items-center justify-between text-[10px] text-on-surface-variant/70 leading-tight px-1">
-              <span>Eva • Aide à la réservation</span>
+              <span>Support Clinigo • Aide au transport</span>
               <span>Urgence vitale : <strong className="text-error font-bold">15</strong></span>
             </div>
           </form>

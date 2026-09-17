@@ -799,25 +799,25 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Card 5 : Assistance & IA Éva (Col-span 4) */}
+              {/* Card 5 : Assistance & Régulation 24h/24 (Col-span 4) */}
               <div className="md:col-span-4 p-2 rounded-[2.2rem] bg-slate-100/80 border border-slate-200/70 shadow-sm scroll-reveal delay-300">
                 <div className="rounded-[calc(2.2rem-0.5rem)] bg-white p-6 sm:p-8 h-full flex flex-col justify-between">
                   <div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/60 flex items-center justify-center text-purple-700 mb-5">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200/60 flex items-center justify-center text-teal-700 mb-5">
                       <PhoneCall className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Régulation 24h/24</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Régulation & Permanence 24h/24</h3>
                     <p className="text-slate-600 text-xs sm:text-sm leading-relaxed mb-4">
-                      Une équipe de régulateurs sanitaires réactive assistée par notre IA Éva pour ajuster les horaires de retour en direct.
+                      Une permanence de régulateurs sanitaires réactive pour coordonner vos trajets et ajuster vos horaires de retour en lien avec les hôpitaux.
                     </p>
                   </div>
-                  <button
-                    onClick={() => openChat('Je souhaite des informations sur mes droits de transport')}
-                    className="w-full py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200/70 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  <a
+                    href="tel:0596720097"
+                    className="w-full py-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold border border-teal-200/70 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Poser une question à Éva</span>
-                  </button>
+                    <PhoneCall className="w-3.5 h-3.5" />
+                    <span>Permanence : 05 96 72 00 97</span>
+                  </a>
                 </div>
               </div>
 
@@ -1221,13 +1221,13 @@ export const HomePage: React.FC = () => {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
 
-                <button
-                  onClick={() => openChat('Je souhaite planifier un transport médicalisé')}
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-sm sm:text-base backdrop-blur-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                <Link
+                  to="/reserver"
+                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-sm sm:text-base backdrop-blur-md transition-colors flex items-center justify-center gap-2"
                 >
-                  <Sparkles className="w-4 h-4 text-teal-400" />
-                  <span>Échanger avec Éva (IA)</span>
-                </button>
+                  <Calendar className="w-4 h-4 text-teal-400" />
+                  <span>Réserver un transport</span>
+                </Link>
               </div>
 
             </div>

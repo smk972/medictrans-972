@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { SEOHead } from '../components/SEOHead';
-import { whatsappService } from '../services/whatsappService';
 import { rideService } from '../services/rideService';
 import { useAuth } from '../contexts/AuthContext';
 import { Ride } from '../types';
@@ -31,27 +30,38 @@ export const TrackingPage: React.FC = () => {
   const [renewNotes, setRenewNotes] = useState<string>('');
   const [isRenewing, setIsRenewing] = useState<boolean>(false);
 
-  const loadRides = useCallback(async () => {
-    if (!isAuthenticated || !user) {
-      setRides([]);
-      setIsLoading(false);
-      return;
-    }
+  const [searchParams] = useSearchParams();
+  const urlRef = searchParams.get('ref');
 
+  const loadRides = useCallback(async () => {
     setIsLoading(true);
     try {
       const allRides = await rideService.getAllRides();
 
-      // Récupérer une référence récente si réservée en local
-      let lastBookingRef: string | null = null;
-      try {
-        const raw = localStorage.getItem('medictrans_last_booking');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          lastBookingRef = parsed.ref;
+      // Récupérer une référence récente si réservée en local ou passée en paramètre URL
+      let lastBookingRef: string | null = urlRef ? urlRef.trim() : null;
+      if (!lastBookingRef) {
+        try {
+          const raw = localStorage.getItem('medictrans_last_booking');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            lastBookingRef = parsed.ref;
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
+      }
+
+      if (!isAuthenticated || !user) {
+        if (lastBookingRef) {
+          const cleanRef = lastBookingRef.trim().toUpperCase();
+          const single = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
+          setRides(single);
+        } else {
+          setRides([]);
+        }
+        setIsLoading(false);
+        return;
       }
 
       let relevantRides: Ride[] = [];
@@ -68,7 +78,7 @@ export const TrackingPage: React.FC = () => {
           Boolean(r.assignedTransporter?.companyName && user.transporterName && r.assignedTransporter.companyName.toLowerCase().includes(user.transporterName.toLowerCase()))
         );
       } else {
-        // Rôle PATIENT (ou compte particulier) : filtrer strictement ses propres courses
+        // Rôle PATIENT (ou compte particulier) : filtrer ses propres courses
         relevantRides = allRides.filter((r) => {
           const matchesEmail = user.email && r.patient?.email?.toLowerCase() === user.email.toLowerCase();
           const matchesNir = user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
@@ -86,12 +96,28 @@ export const TrackingPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, urlRef]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     loadRides();
+
+    // Polling actif pour actualiser le statut dès que le transporteur accepte
+    const interval = setInterval(() => {
+      loadRides();
+    }, 4000);
+
+    const onStatusUpdate = () => {
+      loadRides();
+    };
+    window.addEventListener('clinigo_ride_status_updated', onStatusUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('clinigo_ride_status_updated', onStatusUpdate);
+    };
   }, [loadRides]);
+
 
   // Ouvrir le modal de renouvellement pour une course terminée
   const openRenewModal = (ride: Ride) => {
@@ -185,6 +211,10 @@ export const TrackingPage: React.FC = () => {
 
   // Course prioritaire active
   const activeRide = useMemo(() => {
+    if (urlRef) {
+      const match = rides.find((r) => r.reference.toUpperCase() === urlRef.trim().toUpperCase());
+      if (match) return match;
+    }
     return (
       rides.find(
         (r) =>
@@ -194,7 +224,7 @@ export const TrackingPage: React.FC = () => {
           r.status === 'PICKED_UP'
       ) || (rides.length > 0 ? rides[0] : null)
     );
-  }, [rides]);
+  }, [rides, urlRef]);
 
   // Filtrage de l'historique
   const filteredRides = useMemo(() => {
@@ -706,26 +736,6 @@ export const TrackingPage: React.FC = () => {
                                   Appeler ({activeRide.assignedTransporter.driverPhone})
                                 </span>
                               </a>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  whatsappService.openWhatsAppDirect(
-                                    activeRide.assignedTransporter!.driverPhone,
-                                    'DRIVER_APPROACHING',
-                                    {
-                                      patientName: `${activeRide.patient.firstName} ${activeRide.patient.lastName}`,
-                                      driverName: activeRide.assignedTransporter!.driverName,
-                                      vehiclePlate: activeRide.assignedTransporter!.vehiclePlate,
-                                      etaMinutes: String(activeRide.assignedTransporter!.etaMinutes || 15),
-                                      trackingUrl: window.location.href,
-                                    }
-                                  );
-                                }}
-                                className="w-full h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all truncate"
-                              >
-                                <span className="material-symbols-outlined text-base shrink-0">chat</span>
-                                <span className="truncate">WhatsApp Chauffeur</span>
-                              </button>
                             </div>
                           </div>
                         </div>

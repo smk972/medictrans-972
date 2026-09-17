@@ -4,13 +4,17 @@ import confetti from 'canvas-confetti';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
-import { whatsappService } from '../services/whatsappService';
+import { useAuth } from '../contexts/AuthContext';
+import { rideService } from '../services/rideService';
+import { Ride } from '../types';
 
 export const ConfirmationPage: React.FC = () => {
   const { ref } = useParams<{ ref: string }>();
   const reservationRef = ref || 'MT-972-8821';
+  const { user } = useAuth();
 
   const [bookingData, setBookingData] = useState<any>(null);
+  const [matchedRide, setMatchedRide] = useState<Ride | null>(null);
   const [storedDoc, setStoredDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
 
@@ -30,6 +34,19 @@ export const ConfirmationPage: React.FC = () => {
       // ignore
     }
 
+    // Charger les informations précises de la course si disponible
+    async function fetchRideInfo() {
+      try {
+        const found = await rideService.getRideByReference(reservationRef);
+        if (found) {
+          setMatchedRide(found);
+        }
+      } catch (err) {
+        console.warn('Erreur récupération course:', err);
+      }
+    }
+    fetchRideInfo();
+
     // Launch celebratory confetti
     try {
       confetti({
@@ -41,7 +58,74 @@ export const ConfirmationPage: React.FC = () => {
     } catch {
       // ignore
     }
-  }, []);
+  }, [reservationRef]);
+
+  // Données dynamiques du bénéficiaire
+  const displayPatientName =
+    (matchedRide?.patient ? `${matchedRide.patient.firstName} ${matchedRide.patient.lastName}`.trim() : null) ||
+    bookingData?.patientName ||
+    (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null) ||
+    'Dossier Bénéficiaire Pris en Charge';
+
+  const displayPhone =
+    matchedRide?.patient?.phone ||
+    bookingData?.phone ||
+    user?.phone ||
+    'Non renseigné';
+
+  const displayEmail =
+    matchedRide?.patient?.email ||
+    bookingData?.email ||
+    user?.email ||
+    '';
+
+  const displayNir =
+    matchedRide?.patient?.nir ||
+    bookingData?.nir ||
+    user?.nir ||
+    'Prise en charge ALD 100%';
+
+  const displayPickup =
+    matchedRide?.pickupAddress ||
+    bookingData?.pickupAddress ||
+    user?.address ||
+    'Adresse de prise en charge';
+
+  const displayDestination =
+    matchedRide?.facilityName ||
+    matchedRide?.dropoffAddress ||
+    bookingData?.destinationFacility ||
+    'Établissement Hospitalier';
+
+  const displayDate =
+    matchedRide?.pickupDateTime
+      ? new Date(matchedRide.pickupDateTime).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : (bookingData?.transportDate || 'Aujourd’hui');
+
+  const displayTime =
+    matchedRide?.appointmentTime ||
+    (matchedRide?.pickupDateTime ? new Date(matchedRide.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null) ||
+    bookingData?.appointmentTime ||
+    bookingData?.transportTime ||
+    '09:00';
+
+  const displayTransportType =
+    matchedRide?.transportType ||
+    bookingData?.transportType ||
+    'vsl';
+
+  // Détection du département CPAM / CGSS
+  const fullAddress = `${displayPickup} ${displayDestination}`;
+  const postalMatch = fullAddress.match(/\b(97\d|2[AB]|\d{2})\d{3}\b/)?.[1];
+  const userDept = user?.postalCode?.startsWith('97') ? user.postalCode.slice(0, 3) : user?.postalCode?.slice(0, 2);
+  const detectedDept = postalMatch || userDept || '972';
+  const displayRegime =
+    detectedDept === '972' ? 'Régime Général - CGSS Martinique' :
+    detectedDept === '971' ? 'Régime Général - CGSS Guadeloupe' :
+    detectedDept === '973' ? 'Régime Général - CGSS Guyane' :
+    detectedDept === '974' ? 'Régime Général - CGSS Réunion' :
+    detectedDept === '976' ? 'Régime Général - CSS Mayotte' :
+    `Assurance Maladie - CPAM (${detectedDept})`;
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-sans antialiased selection:bg-primary-fixed selection:text-primary flex flex-col">
@@ -99,48 +183,41 @@ export const ConfirmationPage: React.FC = () => {
                       Étape 03
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      Confirmation active
+                      Régulation &amp; Confirmation
                     </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Confirmation Banner */}
-            <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden card-silky">
-              <div className="flex items-start gap-space-md relative z-10">
-                <div className="p-space-sm bg-white/15 rounded-2xl backdrop-blur-md">
-                  <span className="material-symbols-outlined text-[40px] text-secondary-fixed">
-                    verified
+            {/* Top Banner Success */}
+            <section className="relative overflow-hidden bg-primary text-on-primary rounded-3xl p-space-lg md:p-space-xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+              <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="bg-secondary text-on-secondary px-3 py-1 rounded-full font-label-sm text-label-sm font-bold uppercase tracking-wider text-xs">
+                    Réservation Confirmée
+                  </span>
+                  <span className="font-mono font-bold text-on-primary/90 text-sm">
+                    #{reservationRef}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                  <div className="flex flex-wrap items-center gap-space-xs">
-                    <span className="font-label-sm text-label-sm bg-secondary px-2.5 py-0.5 rounded-full text-on-secondary font-bold tracking-wider uppercase text-[11px]">
-                      Dossier Validé
-                    </span>
-                    <span className="font-label-sm text-label-sm text-surface-container-high tracking-wider text-xs">
-                      Plateforme ARS 972
-                    </span>
-                  </div>
-                  <h1 className="font-headline-lg text-headline-lg text-on-primary mt-1 font-bold text-2xl md:text-3xl">
-                    Demande n° {reservationRef} enregistrée avec succès !
-                  </h1>
-                  <p className="font-body-sm text-body-sm text-surface-variant max-w-2xl mt-0.5 text-xs md:text-sm">
-                    Le dossier médical et les garanties de couverture subrogatoire CPAM ont été
-                    télétransmis au serveur de dispatch territorial.
-                  </p>
-                </div>
+                <h1 className="font-headline-lg text-headline-lg font-black tracking-tight text-xl sm:text-2xl md:text-3xl text-white">
+                  Votre demande de transport est validée
+                </h1>
+                <p className="font-body-md text-body-md text-on-primary-container max-w-xl text-xs sm:text-sm text-white/90">
+                  La demande a été transmise aux transporteurs sanitaires conventionnés du secteur.
+                  Vous recevrez une alerte dès qu'un chauffeur valide votre prise en charge.
+                </p>
               </div>
 
               <div className="bg-surface-container-lowest/15 backdrop-blur-md rounded-xl p-space-sm flex items-center gap-space-sm self-stretch md:self-auto relative z-10 shadow-sm border border-white/20">
                 <div className="w-3 h-3 rounded-full bg-secondary-fixed animate-ping"></div>
                 <div className="flex flex-col">
                   <span className="font-label-sm text-label-sm text-surface-container-high uppercase text-[10px]">
-                    Régulation live
+                    Régulation active
                   </span>
                   <span className="font-label-md text-label-md text-on-primary font-bold text-xs">
-                    Centre 15 &amp; Clinigo
+                    Dispatch Sanitaire Clinigo
                   </span>
                 </div>
               </div>
@@ -157,7 +234,7 @@ export const ConfirmationPage: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold text-[10px]">
-                    {bookingData?.isDirectRequest ? 'Demande Directe Nominative (Priorité 24h)' : 'Réseau Opérationnel Martinique'}
+                    {bookingData?.isDirectRequest ? 'Demande Directe Nominative (Priorité 24h)' : 'Réseau Sanitaire Opérationnel'}
                   </span>
                   <p className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
                     {bookingData?.isDirectRequest ? (
@@ -166,14 +243,14 @@ export const ConfirmationPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        Demande diffusée à <span className="text-primary font-bold">18 transporteurs sanitaires agréés</span>
+                        Demande diffusée aux <span className="text-primary font-bold">transporteurs sanitaires conventionnés</span>
                       </>
                     )}
                   </p>
                   <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
                     {bookingData?.isDirectRequest
                       ? 'Délai d\'acceptation de 24h00 • Rebasculement automatique au pot commun garanti en cas d\'indisponibilité'
-                      : 'Zone prioritaire : Secteur Fort-de-France / Le Lamentin / Schoelcher'}
+                      : 'Attribution automatique par proximité et disponibilité de flotte'}
                   </span>
                 </div>
               </div>
@@ -183,7 +260,7 @@ export const ConfirmationPage: React.FC = () => {
                   sync
                 </span>
                 <span className="font-label-sm text-label-sm text-on-surface font-bold text-xs">
-                  {bookingData?.isDirectRequest ? 'En attente acceptation (24h)' : 'Attribution en cours (1/18)'}
+                  {bookingData?.isDirectRequest ? 'En attente acceptation (24h)' : 'Attribution en cours'}
                 </span>
               </div>
             </div>
@@ -214,10 +291,10 @@ export const ConfirmationPage: React.FC = () => {
                         Identité Patient
                       </span>
                       <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                        {bookingData?.patientName || 'Aimé GLISSANT'}
+                        {displayPatientName}
                       </span>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        {bookingData?.phone ? `Tél : +596 ${bookingData.phone}` : '70 ans (Né le 12/04/1954)'}
+                        {displayPhone ? `Tél : ${displayPhone}` : (displayEmail || 'Dossier certifié')}
                       </span>
                     </div>
 
@@ -226,10 +303,10 @@ export const ConfirmationPage: React.FC = () => {
                         N° Sécurité Sociale (NIR)
                       </span>
                       <span className="font-label-lg text-label-lg font-bold text-on-surface tracking-wide text-xs font-mono">
-                        {bookingData?.nir || '1 54 08 97 213 456'}
+                        {displayNir}
                       </span>
                       <span className="font-body-sm text-body-sm text-secondary font-bold text-xs">
-                        Régime Général - CGSS 972
+                        {displayRegime}
                       </span>
                     </div>
 
@@ -242,13 +319,11 @@ export const ConfirmationPage: React.FC = () => {
                           directions_car
                         </span>
                         <span className="font-headline-sm text-headline-sm text-primary font-bold text-sm capitalize">
-                          {bookingData?.transportType
-                            ? bookingData.transportType === 'taxi'
-                              ? 'Taxi Conventionné'
-                              : bookingData.transportType === 'ambulance'
-                              ? 'Ambulance A/C'
-                              : 'VSL Sanitaire Léger'
-                            : 'VSL Conventionné'}
+                          {displayTransportType === 'taxi'
+                            ? 'Taxi Conventionné'
+                            : displayTransportType === 'ambulance'
+                            ? 'Ambulance A/C'
+                            : 'VSL Sanitaire Léger'}
                         </span>
                       </div>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
@@ -267,8 +342,8 @@ export const ConfirmationPage: React.FC = () => {
                         Détails de l'itinéraire sanitaire
                       </h2>
                     </div>
-                    <span className="font-label-md text-label-md text-primary font-bold bg-surface-container-high px-3 py-1 rounded-lg text-xs">
-                      {bookingData?.transportDate || 'Mardi 24 Octobre 2024'}
+                    <span className="font-label-md text-label-md text-primary font-bold bg-surface-container-high px-3 py-1 rounded-lg text-xs capitalize">
+                      {displayDate}
                     </span>
                   </div>
 
@@ -282,7 +357,7 @@ export const ConfirmationPage: React.FC = () => {
                           Rendez-vous médical sur place
                         </span>
                         <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                          {bookingData?.appointmentTime || bookingData?.transportTime || '09h00'}
+                          {displayTime}
                         </span>
                       </div>
                     </div>
@@ -331,15 +406,12 @@ export const ConfirmationPage: React.FC = () => {
                             Lieu de départ (Prise en charge)
                           </span>
                           <span className="font-label-lg text-label-lg font-bold text-on-surface text-sm">
-                            {bookingData?.pickupAddress || 'Résidence Les Alizés, Bat C'}
-                          </span>
-                          <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                            Martinique 972
+                            {displayPickup}
                           </span>
                         </div>
                       </div>
                       <span className="text-xs text-on-surface-variant bg-surface-container-lowest px-2 py-1 rounded w-fit border border-outline-variant/30">
-                        Rez-de-chaussée / Sans obstacle
+                        Prise en charge au domicile
                       </span>
                     </div>
 
@@ -353,10 +425,7 @@ export const ConfirmationPage: React.FC = () => {
                             Établissement d'accueil
                           </span>
                           <span className="font-label-lg text-label-lg font-bold text-on-surface text-sm">
-                            {bookingData?.destinationFacility || 'CHU Pierre Zobda-Quitman'}
-                          </span>
-                          <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                            Entrée VSL &amp; Ambulances
+                            {displayDestination}
                           </span>
                         </div>
                       </div>
@@ -424,49 +493,6 @@ export const ConfirmationPage: React.FC = () => {
 
               {/* Right Col: Actions & Contact */}
               <aside className="lg:col-span-4 flex flex-col gap-space-md">
-                {/* WhatsApp Automation Direct Trigger Card */}
-                <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-space-md shadow-xs flex flex-col gap-space-sm">
-                  <div className="flex items-center gap-space-xs">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[18px]">chat</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-sm text-label-sm text-emerald-900 font-bold uppercase text-[10px]">
-                        Canal WhatsApp Clinigo
-                      </span>
-                      <span className="font-headline-sm text-headline-sm text-emerald-950 font-bold text-xs">
-                        Récapitulatif &amp; Suivi en direct
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-emerald-800 leading-relaxed">
-                    Recevez immédiatement le récapitulatif de votre course et les alertes d'approche du véhicule sur WhatsApp.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const phoneToUse = bookingData?.whatsappPhone || bookingData?.phone || '06 96 44 20 18';
-                      whatsappService.openWhatsAppDirect(
-                        phoneToUse,
-                        'BOOKING_CONFIRMATION',
-                        {
-                          patientName: bookingData?.patientName || 'Aimé GLISSANT',
-                          bookingRef: reservationRef,
-                          pickupAddress: bookingData?.pickupAddress || 'Résidence Les Alizés, Schoelcher',
-                          facilityName: bookingData?.destinationFacility || 'CHU Pierre Zobda-Quitman',
-                          transportType: (bookingData?.transportType || 'vsl').toUpperCase(),
-                          pickupTime: bookingData?.transportTime || '08:30',
-                          pickupDate: bookingData?.transportDate || '2026-10-24',
-                        }
-                      );
-                    }}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-xl font-bold flex items-center justify-center gap-2 text-xs transition-all shadow-xs"
-                  >
-                    <span className="material-symbols-outlined text-sm">open_in_new</span>
-                    <span>Ouvrir ma confirmation sur WhatsApp</span>
-                  </button>
-                </div>
-
                 {/* Live Tracking Card */}
                 <div className="bg-surface-container-lowest rounded-2xl p-space-md md:p-space-lg shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
                   <div className="flex items-center gap-space-sm">
@@ -480,21 +506,21 @@ export const ConfirmationPage: React.FC = () => {
                         Régulation Active
                       </span>
                       <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-sm">
-                        Notification SMS &amp; WhatsApp
+                        Notification SMS &amp; E-mail
                       </span>
                     </div>
                   </div>
 
                   <p className="font-body-sm text-body-sm text-on-surface-variant text-xs leading-relaxed">
-                    Un lien contenant la géolocalisation en temps réel de votre véhicule sera envoyé au{' '}
+                    Un lien contenant les coordonnées du véhicule et le suivi en direct sera transmis par SMS et e-mail à{' '}
                     <strong className="text-on-surface">
-                      {bookingData?.whatsappPhone || bookingData?.phone || '06 96 44 20 18'}
+                      {displayPhone}
                     </strong>{' '}
-                    20 minutes avant le départ.
+                    dès que le transporteur valide la course.
                   </p>
 
                   <Link
-                    to="/suivi"
+                    to={`/suivi?ref=${reservationRef}`}
                     className="w-full py-3.5 bg-primary hover:bg-primary-container text-on-primary rounded-xl font-label-md text-label-md font-bold flex items-center justify-center gap-2 shadow-sm transition-all text-sm"
                   >
                     <span className="material-symbols-outlined text-lg">alt_route</span>
@@ -515,14 +541,14 @@ export const ConfirmationPage: React.FC = () => {
                 <div className="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-space-sm border border-outline-variant/30">
                   <div className="flex items-center justify-between">
                     <span className="font-label-md text-label-md text-on-surface font-bold text-xs">
-                      Tiers Payant CPAM Martinique
+                      Tiers Payant Assurance Maladie
                     </span>
                     <span className="text-secondary font-bold text-xs">Pris en charge à 100%</span>
                   </div>
                   <div className="text-xs text-on-surface-variant flex flex-col gap-1 border-t border-outline-variant/20 pt-2">
                     <div className="flex justify-between">
                       <span>Régime de sécurité sociale :</span>
-                      <span className="font-semibold text-on-surface">CGSS 972</span>
+                      <span className="font-semibold text-on-surface">{displayRegime}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Reste à payer :</span>

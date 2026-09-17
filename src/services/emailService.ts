@@ -13,6 +13,21 @@ export interface SendWelcomeEmailParams {
   loginUrl?: string;
 }
 
+export interface SendRideAcceptedEmailParams {
+  email: string;
+  patientName?: string;
+  reference: string;
+  transporterName: string;
+  driverName?: string;
+  driverPhone?: string;
+  vehiclePlate?: string;
+  pickupAddress?: string;
+  dropoffAddress?: string;
+  pickupDate?: string;
+  pickupTime?: string;
+  trackingUrl?: string;
+}
+
 export interface SendEmailResult {
   success: boolean;
   resendId?: string;
@@ -95,4 +110,67 @@ export class EmailService {
       error: 'Impossible d’expédier l’email via les services configurés.',
     };
   }
+
+  /**
+   * Notifies the patient by transactional email when their ride is accepted by a transporter
+   */
+  static async sendRideAcceptedEmail(params: SendRideAcceptedEmailParams): Promise<SendEmailResult> {
+    const {
+      email,
+      patientName,
+      reference,
+      transporterName,
+      driverName,
+      driverPhone,
+      vehiclePlate,
+      pickupAddress,
+      dropoffAddress,
+      pickupDate,
+      pickupTime,
+      trackingUrl
+    } = params;
+
+    if (!email || !email.includes('@')) {
+      console.warn('[EmailService] Impossible d’envoyer la notification acceptation : email manquant', email);
+      return { success: false, error: 'Email invalide' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      console.log(`[EmailService] Envoi notification course acceptée (#${reference}) à ${cleanEmail}...`);
+      const response = await fetch('/api/email/ride-accepted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          patientName,
+          reference,
+          transporterName,
+          driverName,
+          driverPhone,
+          vehiclePlate,
+          pickupAddress,
+          dropoffAddress,
+          pickupDate,
+          pickupTime,
+          trackingUrl: trackingUrl || `${window.location.origin}/suivi?ref=${reference}`,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('[EmailService] Notification acceptation expédiée avec succès ! ID:', result.resendId);
+        return { success: true, resendId: result.resendId };
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.warn('[EmailService] Échec API /api/email/ride-accepted:', errData);
+        return { success: false, error: errData.error || 'Échec envoi notification' };
+      }
+    } catch (err: any) {
+      console.error('[EmailService] Erreur réseau lors de la notification acceptation:', err);
+      return { success: false, error: err.message };
+    }
+  }
 }
+
