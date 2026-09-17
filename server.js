@@ -757,6 +757,238 @@ Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavar
 const DATA_DIR = path.join(__dirname, 'data');
 const POSTS_FILE = path.join(DATA_DIR, 'blog_posts.json');
 const CATEGORIES_FILE = path.join(DATA_DIR, 'blog_categories.json');
+const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+function getStoredClients() {
+  try {
+    if (fs.existsSync(CLIENTS_FILE)) {
+      return JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[Clients Server] Erreur lecture clients.json:', e);
+  }
+  return [];
+}
+
+function saveStoredClients(clients) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('[Clients Server] Erreur écriture clients.json:', e);
+    return false;
+  }
+}
+
+function getStoredUsers() {
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[Users Server] Erreur lecture users.json:', e);
+  }
+  return [];
+}
+
+function saveStoredUsers(users) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('[Users Server] Erreur écriture users.json:', e);
+    return false;
+  }
+}
+
+function handleClientsApi(req, res, parsedUrl) {
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+  const method = req.method;
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // GET /api/clients
+  if (pathname === '/api/clients' && method === 'GET') {
+    const clients = getStoredClients();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, data: clients, total: clients.length }));
+    return;
+  }
+
+  // POST /api/clients (création ou mise à jour)
+  if (pathname === '/api/clients' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const clientData = JSON.parse(body);
+        let clients = getStoredClients();
+        const id = clientData.id || `client-${Date.now()}`;
+        const idx = clients.findIndex(c => c.id === id || (clientData.email && c.email.toLowerCase() === clientData.email.toLowerCase()));
+        
+        const fullClient = {
+          ...(idx >= 0 ? clients[idx] : {}),
+          ...clientData,
+          id,
+          updatedAt: new Date().toISOString()
+        };
+
+        if (idx >= 0) {
+          clients[idx] = fullClient;
+        } else {
+          clients.unshift(fullClient);
+        }
+
+        saveStoredClients(clients);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, data: fullClient }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // DELETE /api/clients/:id
+  if (pathname.startsWith('/api/clients/') && method === 'DELETE') {
+    const id = pathname.replace('/api/clients/', '').trim();
+    let clients = getStoredClients();
+    const prevCount = clients.length;
+    clients = clients.filter(c => c.id !== id);
+    saveStoredClients(clients);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, deleted: prevCount !== clients.length }));
+    return;
+  }
+
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: false, error: 'Route client non reconnue' }));
+}
+
+function handleUsersApi(req, res, parsedUrl) {
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+  const method = req.method;
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // GET /api/users
+  if (pathname === '/api/users' && method === 'GET') {
+    const users = getStoredUsers();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, data: users, total: users.length }));
+    return;
+  }
+
+  // POST /api/users (création ou mise à jour)
+  if (pathname === '/api/users' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const userData = JSON.parse(body);
+        let users = getStoredUsers();
+        const id = userData.id || `user-${Date.now()}`;
+        const cleanEmail = (userData.email || '').toLowerCase().trim();
+        const idx = users.findIndex(u => u.id === id || (cleanEmail && u.email.toLowerCase() === cleanEmail));
+
+        const fullUser = {
+          ...(idx >= 0 ? users[idx] : {}),
+          ...userData,
+          id: idx >= 0 ? users[idx].id : id,
+          updatedAt: new Date().toISOString()
+        };
+
+        if (idx >= 0) {
+          users[idx] = fullUser;
+        } else {
+          users.unshift(fullUser);
+        }
+
+        saveStoredUsers(users);
+
+        // Si l'utilisateur a le rôle PATIENT, synchroniser également dans clients.json
+        if (fullUser.role === 'PATIENT' || !fullUser.role) {
+          try {
+            let clients = getStoredClients();
+            const cIdx = clients.findIndex(c => c.email.toLowerCase() === cleanEmail);
+            if (cIdx === -1) {
+              const dept = fullUser.phone?.startsWith('0696') || fullUser.phone?.startsWith('0596') ? '97200' :
+                           fullUser.phone?.startsWith('0690') || fullUser.phone?.startsWith('0590') ? '97100' :
+                           fullUser.phone?.startsWith('0694') || fullUser.phone?.startsWith('0594') ? '97300' :
+                           fullUser.phone?.startsWith('0692') || fullUser.phone?.startsWith('0262') ? '97400' : '75000';
+              const cityName = dept === '97200' ? 'Fort-de-France' :
+                                dept === '97100' ? 'Pointe-à-Pitre' :
+                                dept === '97300' ? 'Cayenne' :
+                                dept === '97400' ? 'Saint-Denis' : 'Paris';
+
+              clients.unshift({
+                id: `client-${fullUser.id}`,
+                firstName: fullUser.firstName || 'Patient',
+                lastName: fullUser.lastName || '',
+                birthDate: '1980-01-01',
+                nir: fullUser.nir || '1 80 01 75 000 000 00',
+                phone: fullUser.phone || '06 00 00 00 00',
+                email: fullUser.email,
+                address: 'Adresse déclarée à l’inscription',
+                city: cityName,
+                postalCode: dept,
+                isAld: false,
+                hasPmt: true,
+                mobility: {
+                  wheelchair: false,
+                  stretcher: false,
+                  oxygen: false,
+                  stairsWithoutElevator: false,
+                  needsEscort: false
+                },
+                status: 'ACTIVE',
+                createdAt: fullUser.createdAt || new Date().toISOString(),
+                notes: 'Inscription en ligne sur Clinigo.fr'
+              });
+              saveStoredClients(clients);
+            }
+          } catch (syncErr) {
+            console.error('[Users API] Sync to clients error:', syncErr);
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, data: fullUser }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: false, error: 'Route user non reconnue' }));
+}
 
 function getStoredPosts() {
   try {
@@ -1127,6 +1359,18 @@ const server = http.createServer((req, res) => {
   // 5. Endpoint API Email Welcome
   if (pathname === '/api/email/welcome' && req.method === 'POST') {
     handleWelcomeEmail(req, res);
+    return;
+  }
+
+  // 6. Endpoints API Clients & Patients
+  if (pathname.startsWith('/api/clients')) {
+    handleClientsApi(req, res, parsedUrl);
+    return;
+  }
+
+  // 7. Endpoints API Utilisateurs & Comptes
+  if (pathname.startsWith('/api/users')) {
+    handleUsersApi(req, res, parsedUrl);
     return;
   }
 

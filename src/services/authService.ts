@@ -507,7 +507,7 @@ export class AuthService {
       createdAt: new Date().toISOString()
     };
 
-    // Sauvegarder dans la liste globale des utilisateurs
+    // Sauvegarder dans la liste globale des utilisateurs (Local Storage)
     try {
       const raw = localStorage.getItem('medictrans_admin_users_972');
       const users: UserProfile[] = raw ? JSON.parse(raw) : [];
@@ -519,6 +519,60 @@ export class AuthService {
       }
       localStorage.setItem('medictrans_admin_users_972', JSON.stringify(users));
     } catch {}
+
+    // Sauvegarder sur l'API serveur centralisée (Plesk VPS / Node.js)
+    try {
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      }).catch(err => console.warn('[AuthService] Synchro /api/users non-bloquante:', err));
+    } catch {}
+
+    // Si rôle PATIENT, sauvegarder également la fiche client sur l'API
+    if (newUser.role === 'PATIENT' || !newUser.role) {
+      try {
+        const dept = newUser.phone?.startsWith('0696') || newUser.phone?.startsWith('0596') ? '97200' :
+                     newUser.phone?.startsWith('0690') || newUser.phone?.startsWith('0590') ? '97100' :
+                     newUser.phone?.startsWith('0694') || newUser.phone?.startsWith('0594') ? '97300' :
+                     newUser.phone?.startsWith('0692') || newUser.phone?.startsWith('0262') ? '97400' : '75000';
+        const cityName = dept === '97200' ? 'Fort-de-France' :
+                          dept === '97100' ? 'Pointe-à-Pitre' :
+                          dept === '97300' ? 'Cayenne' :
+                          dept === '97400' ? 'Saint-Denis' : 'Paris';
+
+        const clientData = {
+          id: `client-${newUser.id}`,
+          firstName: newUser.firstName || 'Patient',
+          lastName: newUser.lastName || '',
+          birthDate: '1980-01-01',
+          nir: newUser.nir || '1 80 01 75 000 000 00',
+          phone: newUser.phone || '06 00 00 00 00',
+          email: newUser.email,
+          address: 'Adresse déclarée à l’inscription',
+          city: cityName,
+          postalCode: dept,
+          isAld: false,
+          hasPmt: true,
+          mobility: {
+            wheelchair: false,
+            stretcher: false,
+            oxygen: false,
+            stairsWithoutElevator: false,
+            needsEscort: false
+          },
+          status: 'ACTIVE',
+          createdAt: newUser.createdAt,
+          notes: 'Inscription en ligne sur Clinigo.fr'
+        };
+
+        fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clientData)
+        }).catch(err => console.warn('[AuthService] Synchro /api/clients non-bloquante:', err));
+      } catch {}
+    }
 
     if (isSupabaseConfigured() && supabase) {
       try {

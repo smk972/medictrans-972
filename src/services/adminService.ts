@@ -333,14 +333,34 @@ export class AdminService {
       try { clients = JSON.parse(raw); } catch { clients = []; }
     }
 
-    // 1. Fusionner les fiches de référence initiales Nationales & DOM
+    // 1. Récupérer les clients persistés sur le serveur (/api/clients)
+    try {
+      const res = await fetch('/api/clients');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          for (const serverClient of json.data) {
+            const idx = clients.findIndex(c => c.id === serverClient.id || (serverClient.email && c.email.toLowerCase() === serverClient.email.toLowerCase()));
+            if (idx >= 0) {
+              clients[idx] = { ...clients[idx], ...serverClient };
+            } else {
+              clients.unshift(serverClient);
+            }
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.warn('[AdminService] Récupération API clients non-bloquante:', apiErr);
+    }
+
+    // 2. Fusionner les fiches de référence initiales Nationales & DOM
     for (const initClient of INITIAL_CLIENTS) {
       if (!clients.some(c => c.email.toLowerCase() === initClient.email.toLowerCase() || c.id === initClient.id)) {
         clients.push(initClient);
       }
     }
 
-    // 2. Synchroniser automatiquement avec tous les utilisateurs inscrits ayant le rôle PATIENT
+    // 3. Synchroniser automatiquement avec tous les utilisateurs inscrits ayant le rôle PATIENT
     try {
       const allUsers = await this.getAllUsers();
       const patientUsers = allUsers.filter(u => u.role === 'PATIENT');
@@ -357,7 +377,7 @@ export class AdminService {
                             dept === '97300' ? 'Cayenne' :
                             dept === '97400' ? 'Saint-Denis' : 'Paris';
 
-          clients.unshift({
+          const newPatientClient: ClientRecord = {
             id: `client-${p.id}`,
             firstName: p.firstName || 'Patient',
             lastName: p.lastName || '',
@@ -380,7 +400,18 @@ export class AdminService {
             status: 'ACTIVE',
             createdAt: p.createdAt || new Date().toISOString(),
             notes: 'Inscription en ligne sur Clinigo.fr'
-          });
+          };
+
+          clients.unshift(newPatientClient);
+
+          // Persister sur l'API serveur
+          try {
+            fetch('/api/clients', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(newPatientClient)
+            }).catch(() => {});
+          } catch {}
         }
       }
     } catch (err) {
@@ -407,6 +438,15 @@ export class AdminService {
 
     const updated = [newClient, ...clients];
     localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(updated));
+
+    // Persister sur l'API serveur
+    try {
+      fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newClient)
+      }).catch(() => {});
+    } catch {}
 
     // Créer également le compte utilisateur correspondant si nécessaire
     await this.syncClientToUserAccount(newClient);
@@ -436,6 +476,15 @@ export class AdminService {
     clients[index] = updatedClient;
     localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clients));
 
+    // Persister sur l'API serveur
+    try {
+      fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedClient)
+      }).catch(() => {});
+    } catch {}
+
     await this.syncClientToUserAccount(updatedClient);
 
     await this.logAdminAction(
@@ -454,6 +503,11 @@ export class AdminService {
     const target = clients.find(c => c.id === id);
     const filtered = clients.filter(c => c.id !== id);
     localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(filtered));
+
+    // Supprimer sur l'API serveur
+    try {
+      fetch(`/api/clients/${id}`, { method: 'DELETE' }).catch(() => {});
+    } catch {}
 
     await this.logAdminAction(
       'SUPPRESSION_CLIENT',
@@ -775,6 +829,26 @@ export class AdminService {
       try { users = JSON.parse(raw); } catch { users = []; }
     }
 
+    // 0. Récupérer les utilisateurs persistés sur le serveur (/api/users)
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          for (const serverUser of json.data) {
+            const idx = users.findIndex(u => u.id === serverUser.id || (serverUser.email && u.email.toLowerCase() === serverUser.email.toLowerCase()));
+            if (idx >= 0) {
+              users[idx] = { ...users[idx], ...serverUser };
+            } else {
+              users.unshift(serverUser);
+            }
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.warn('[AdminService] Récupération API users non-bloquante:', apiErr);
+    }
+
     // 1. Fusionner avec tous les comptes réalistes nationaux & DOM
     const realisticList = Object.values(REALISTIC_PROFILES);
     for (const rUser of realisticList) {
@@ -836,6 +910,15 @@ export class AdminService {
     users.unshift(newUser);
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
 
+    // Persister sur l'API serveur
+    try {
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      }).catch(() => {});
+    } catch {}
+
     await this.logAdminAction(
       'CREATION_UTILISATEUR',
       'USER',
@@ -855,6 +938,15 @@ export class AdminService {
     const updatedUser = { ...users[index], ...updates };
     users[index] = updatedUser;
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+
+    // Persister sur l'API serveur
+    try {
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser)
+      }).catch(() => {});
+    } catch {}
 
     await this.logAdminAction(
       'MODIFICATION_UTILISATEUR',

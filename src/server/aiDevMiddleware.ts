@@ -941,4 +941,209 @@ export function handleBlogMiddleware(req: any, res: any) {
   res.end(JSON.stringify({ success: false, error: 'Route blog non reconnue' }));
 }
 
+export function handleClientsMiddleware(req: any, res: any) {
+  const fs = require('fs');
+  const path = require('path');
+  const DATA_DIR = path.join(process.cwd(), 'data');
+  const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
+
+  const getStored = () => {
+    try {
+      if (fs.existsSync(CLIENTS_FILE)) return JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8'));
+    } catch {}
+    return [];
+  };
+
+  const saveStored = (data: any) => {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(CLIENTS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch {}
+  };
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
+
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+
+  if (pathname === '/api/clients' && req.method === 'GET') {
+    const clients = getStored();
+    res.statusCode = 200;
+    res.end(JSON.stringify({ success: true, data: clients, total: clients.length }));
+    return;
+  }
+
+  if (pathname === '/api/clients' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const clientData = JSON.parse(body);
+        let clients = getStored();
+        const id = clientData.id || `client-${Date.now()}`;
+        const idx = clients.findIndex((c: any) => c.id === id || (clientData.email && c.email.toLowerCase() === clientData.email.toLowerCase()));
+        const fullClient = {
+          ...(idx >= 0 ? clients[idx] : {}),
+          ...clientData,
+          id,
+          updatedAt: new Date().toISOString()
+        };
+        if (idx >= 0) clients[idx] = fullClient;
+        else clients.unshift(fullClient);
+        saveStored(clients);
+        res.statusCode = 200;
+        res.end(JSON.stringify({ success: true, data: fullClient }));
+      } catch (e: any) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  if (pathname.startsWith('/api/clients/') && req.method === 'DELETE') {
+    const id = pathname.replace('/api/clients/', '').trim();
+    let clients = getStored();
+    const prev = clients.length;
+    clients = clients.filter((c: any) => c.id !== id);
+    saveStored(clients);
+    res.statusCode = 200;
+    res.end(JSON.stringify({ success: true, deleted: prev !== clients.length }));
+    return;
+  }
+
+  res.statusCode = 404;
+  res.end(JSON.stringify({ success: false, error: 'Route client introuvable' }));
+}
+
+export function handleUsersMiddleware(req: any, res: any) {
+  const fs = require('fs');
+  const path = require('path');
+  const DATA_DIR = path.join(process.cwd(), 'data');
+  const USERS_FILE = path.join(DATA_DIR, 'users.json');
+  const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
+
+  const getStoredUsers = () => {
+    try {
+      if (fs.existsSync(USERS_FILE)) return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    } catch {}
+    return [];
+  };
+
+  const saveStoredUsers = (data: any) => {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch {}
+  };
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
+
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+
+  if (pathname === '/api/users' && req.method === 'GET') {
+    const users = getStoredUsers();
+    res.statusCode = 200;
+    res.end(JSON.stringify({ success: true, data: users, total: users.length }));
+    return;
+  }
+
+  if (pathname === '/api/users' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk: any) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const userData = JSON.parse(body);
+        let users = getStoredUsers();
+        const id = userData.id || `user-${Date.now()}`;
+        const cleanEmail = (userData.email || '').toLowerCase().trim();
+        const idx = users.findIndex((u: any) => u.id === id || (cleanEmail && u.email.toLowerCase() === cleanEmail));
+        const fullUser = {
+          ...(idx >= 0 ? users[idx] : {}),
+          ...userData,
+          id: idx >= 0 ? users[idx].id : id,
+          updatedAt: new Date().toISOString()
+        };
+        if (idx >= 0) users[idx] = fullUser;
+        else users.unshift(fullUser);
+        saveStoredUsers(users);
+
+        // Si PATIENT, synchroniser également dans clients.json
+        if (fullUser.role === 'PATIENT' || !fullUser.role) {
+          try {
+            let clients: any[] = [];
+            if (fs.existsSync(CLIENTS_FILE)) clients = JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8'));
+            const cIdx = clients.findIndex((c: any) => c.email.toLowerCase() === cleanEmail);
+            if (cIdx === -1) {
+              const dept = fullUser.phone?.startsWith('0696') || fullUser.phone?.startsWith('0596') ? '97200' :
+                           fullUser.phone?.startsWith('0690') || fullUser.phone?.startsWith('0590') ? '97100' :
+                           fullUser.phone?.startsWith('0694') || fullUser.phone?.startsWith('0594') ? '97300' :
+                           fullUser.phone?.startsWith('0692') || fullUser.phone?.startsWith('0262') ? '97400' : '75000';
+              const cityName = dept === '97200' ? 'Fort-de-France' :
+                                dept === '97100' ? 'Pointe-à-Pitre' :
+                                dept === '97300' ? 'Cayenne' :
+                                dept === '97400' ? 'Saint-Denis' : 'Paris';
+
+              clients.unshift({
+                id: `client-${fullUser.id}`,
+                firstName: fullUser.firstName || 'Patient',
+                lastName: fullUser.lastName || '',
+                birthDate: '1980-01-01',
+                nir: fullUser.nir || '1 80 01 75 000 000 00',
+                phone: fullUser.phone || '06 00 00 00 00',
+                email: fullUser.email,
+                address: 'Adresse déclarée à l’inscription',
+                city: cityName,
+                postalCode: dept,
+                isAld: false,
+                hasPmt: true,
+                mobility: {
+                  wheelchair: false,
+                  stretcher: false,
+                  oxygen: false,
+                  stairsWithoutElevator: false,
+                  needsEscort: false
+                },
+                status: 'ACTIVE',
+                createdAt: fullUser.createdAt || new Date().toISOString(),
+                notes: 'Inscription en ligne sur Clinigo.fr'
+              });
+              fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2), 'utf8');
+            }
+          } catch {}
+        }
+
+        res.statusCode = 200;
+        res.end(JSON.stringify({ success: true, data: fullUser }));
+      } catch (e: any) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  res.statusCode = 404;
+  res.end(JSON.stringify({ success: false, error: 'Route user introuvable' }));
+}
+
 
