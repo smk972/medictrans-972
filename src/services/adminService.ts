@@ -45,7 +45,22 @@ export class AdminService {
     const raw = localStorage.getItem(STORAGE_KEY_CLIENTS);
     let clients: ClientRecord[] = [];
     if (raw) {
-      try { clients = JSON.parse(raw); } catch { clients = []; }
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          clients = parsed.filter(c => 
+            !c.id.includes('demo') && 
+            !c.id.startsWith('client-ride-ride-') && 
+            !c.id.startsWith('client-user-test-') &&
+            !c.id.match(/^client-[0-9]+$/) &&
+            !c.email?.toLowerCase().includes('orange.re') &&
+            !c.email?.toLowerCase().includes('dom.re') &&
+            !c.email?.toLowerCase().includes('guyane-sante') &&
+            !c.email?.toLowerCase().includes('b.giraud') &&
+            !c.email?.toLowerCase().includes('sophie.lefebvre')
+          );
+        }
+      } catch { clients = []; }
     }
 
     // 1. Récupérer les clients persistés sur le serveur (/api/clients)
@@ -56,6 +71,8 @@ export class AdminService {
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           for (const serverClient of json.data) {
             if (deletedIds.includes(serverClient.id)) continue;
+            if (serverClient.id.includes('demo') || serverClient.id.startsWith('client-ride-ride-') || serverClient.id.startsWith('client-user-test-') || serverClient.id.match(/^client-[0-9]+$/)) continue;
+            if (serverClient.email && (serverClient.email.includes('b.giraud') || serverClient.email.includes('sophie.lefebvre') || serverClient.email.includes('orange.re') || serverClient.email.includes('dom.re') || serverClient.email.includes('guyane-sante'))) continue;
             const idx = clients.findIndex(c => c.id === serverClient.id || (serverClient.email && c.email.toLowerCase() === serverClient.email.toLowerCase()));
             if (idx >= 0) {
               clients[idx] = { ...clients[idx], ...serverClient };
@@ -148,9 +165,11 @@ export class AdminService {
         const pLast = (p.lastName || '').trim().toLowerCase();
         const pPhone = (p.phone || '').replace(/\s/g, '');
 
-        // Ignorer les courses de test / dummy "Aimé GLISSANT" ou sans identité
+        // Ignorer les courses de test / dummy "Aimé GLISSANT" ou sans identité ou références de test
         if (pFirst === 'aimé' && pLast === 'glissant') continue;
         if (!pFirst && !pLast && !pEmail && !pPhone) continue;
+        if (r.reference.toUpperCase().startsWith('VERIF-') || r.reference.toUpperCase().startsWith('TEST-')) continue;
+        if (pEmail && (pEmail.includes('b.giraud') || pEmail.includes('sophie.lefebvre') || pEmail.includes('orange.re') || pEmail.includes('dom.re') || pEmail.includes('guyane-sante'))) continue;
 
         const rideClientId = `client-ride-${r.id || r.reference}`;
         if (deletedIds.includes(rideClientId)) continue;
@@ -160,9 +179,9 @@ export class AdminService {
         let detectedPostal = p.postalCode;
         if (!detectedPostal) {
           const m = ((r.pickupAddress || '') + ' ' + (p.address || '')).match(/\b(97[1-8]|2[ABab]|0[1-9]|[1-8]\d|9[0-5])\d{3}\b/);
-          detectedPostal = m ? m[0] : (pPhone.startsWith('0696') || pPhone.startsWith('0596') || pPhone.startsWith('+330696') ? '97200' : '75000');
+          detectedPostal = m ? m[0] : (pPhone.startsWith('0696') || pPhone.startsWith('0596') || pPhone.startsWith('+330696') ? '97200' : '97200');
         }
-        const cityName = p.city || r.pickupCity || (detectedPostal.startsWith('972') ? 'Fort-de-France' : 'Paris');
+        const cityName = p.city || r.pickupCity || (detectedPostal.startsWith('972') ? 'Fort-de-France' : 'Fort-de-France');
 
         // Recherche d'un client existant par email, NIR, nom+prénom ou téléphone
         const existingIdx = clients.findIndex(c => {
@@ -178,17 +197,17 @@ export class AdminService {
             id: rideClientId,
             firstName: p.firstName || 'Client',
             lastName: p.lastName || '',
-            birthDate: p.birthDate || '1975-01-01',
-            nir: p.nir || '1 75 00 00 000 000 00',
-            phone: p.phone || '06 00 00 00 00',
-            email: p.email || `${pFirst || 'client'}.${pLast || 'nouveau'}@clinigo.fr`,
-            address: p.address || r.pickupAddress || 'Adresse déclarée',
+            birthDate: p.birthDate || '',
+            nir: p.nir || '',
+            phone: p.phone || '',
+            email: p.email || '',
+            address: p.address || r.pickupAddress || '',
             city: cityName,
             postalCode: detectedPostal,
-            isAld: p.isAld ?? true,
+            isAld: p.isAld ?? false,
             aldReason: p.aldReason || (p.isAld ? 'Prise en charge ALD 100%' : undefined),
-            hasPmt: p.hasPmt ?? true,
-            pmtPrescriberDoctor: p.pmtPrescriberDoctor || 'Médecin prescripteur',
+            hasPmt: p.hasPmt ?? false,
+            pmtPrescriberDoctor: p.pmtPrescriberDoctor || '',
             pmtFileUrl: p.pmtFileUrl,
             pmtFileName: p.pmtFileName,
             mobility: r.mobility || {
@@ -660,7 +679,21 @@ export class AdminService {
     const raw = localStorage.getItem(STORAGE_KEY_USERS);
     let users: UserProfile[] = [];
     if (raw) {
-      try { users = JSON.parse(raw); } catch { users = []; }
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          users = parsed.filter(u => 
+            !u.id.startsWith('user-client-') && 
+            !u.id.startsWith('user-test-') &&
+            !u.email.includes('outremer.mq') &&
+            !u.email.includes('wanadoo.fr') &&
+            !u.email.includes('eliane.bernard') &&
+            !u.email.includes('c.marieluce') &&
+            !u.email.includes('maryse.brival') &&
+            !u.email.includes('gerard.theodore')
+          );
+        }
+      } catch { users = []; }
     }
 
     // 0. Récupérer les utilisateurs persistés sur le serveur (/api/users)
@@ -670,6 +703,8 @@ export class AdminService {
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           for (const serverUser of json.data) {
+            if (serverUser.id.startsWith('user-client-') || serverUser.id.startsWith('user-test-')) continue;
+            if (serverUser.email && (serverUser.email.includes('outremer.mq') || serverUser.email.includes('wanadoo.fr') || serverUser.email.includes('eliane.bernard') || serverUser.email.includes('c.marieluce') || serverUser.email.includes('maryse.brival') || serverUser.email.includes('gerard.theodore'))) continue;
             const idx = users.findIndex(u => u.id === serverUser.id || (serverUser.email && u.email.toLowerCase() === serverUser.email.toLowerCase()));
             if (idx >= 0) {
               users[idx] = { ...users[idx], ...serverUser };
