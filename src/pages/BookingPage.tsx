@@ -208,12 +208,12 @@ export const BookingPage: React.FC = () => {
   const [hasCompanion, setHasCompanion] = useState(true);
   const [hasPmt, setHasPmt] = useState<'already' | 'later'>('already');
   const [uploadedPmtDoc, setUploadedPmtDoc] = useState<UploadedFile | null>(null);
-  const [motif, setMotif] = useState(CPAM_TRANSPORT_MOTIFS[1].options[0].value);
-  const [doctor, setDoctor] = useState('Dr. J-M Lafontaine - Oncologie CHU');
+  const [motif, setMotif] = useState('');
+  const [doctor, setDoctor] = useState('');
   const handleMotifChange = (newMotif: string) => {
     setMotif(newMotif);
-    const found = CPAM_TRANSPORT_MOTIFS.flatMap((c) => c.options).find((o) => o.value === newMotif);
-    if (found?.isAldOrExonere) {
+    const lower = newMotif.toLowerCase();
+    if (lower.includes('ald') || lower.includes('dialyse') || lower.includes('chimio') || lower.includes('cancer') || lower.includes('exonér')) {
       setIsAld(true);
     }
   };
@@ -679,7 +679,7 @@ export const BookingPage: React.FC = () => {
               ))}
               <button
                 type="button"
-                onClick={() => scrollToBlock('block-summary')}
+                onClick={() => scrollToBlock('block-transporter')}
                 className="ml-auto px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-on-primary font-bold text-xs whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer shrink-0"
               >
                 <span className="material-symbols-outlined text-sm">check_circle</span>
@@ -1592,36 +1592,23 @@ export const BookingPage: React.FC = () => {
                         Motif de la prise en charge Sécurité Sociale
                       </label>
                       <span className="text-[10px] font-bold text-secondary flex items-center gap-0.5">
-                        <span className="material-symbols-outlined text-xs">verified</span>
-                        Nomenclature Cerfa S3138
+                        <span className="material-symbols-outlined text-xs">edit_note</span>
+                        Champ libre (Cerfa S3138)
                       </span>
                     </div>
-                    <select
+                    <input
+                      type="text"
                       id="booking-motif"
                       value={motif}
                       onChange={(e) => handleMotifChange(e.target.value)}
-                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary shadow-xs transition-all"
-                    >
-                      {CPAM_TRANSPORT_MOTIFS.map((group) => (
-                        <optgroup key={group.category} label={`${group.category} ${group.badge ? `(${group.badge})` : ''}`}>
-                          {group.options.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
+                      placeholder="Ex. Séance d'hémodialyse, chimiothérapie, consultation spécialisée, entrée/sortie d'hospitalisation, ALD..."
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary shadow-xs transition-all placeholder:text-slate-400 text-xs"
+                    />
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-on-surface-variant">
                       <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                         <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                        Tous les motifs remboursables Assurance Maladie (CPAM / CGSS)
+                        Précisez le motif médical mentionné sur votre bon de transport ou convocation
                       </span>
-                      {motif && (
-                        <span className="italic text-on-surface-variant/80 truncate max-w-sm">
-                          {CPAM_TRANSPORT_MOTIFS.flatMap((c) => c.options).find((o) => o.value === motif)?.description}
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -1633,8 +1620,8 @@ export const BookingPage: React.FC = () => {
                       type="text"
                       value={doctor}
                       onChange={(e) => setDoctor(e.target.value)}
-                      placeholder="Ex. Dr. Martin - Oncologie CHU"
-                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs"
+                      placeholder="Ex. Dr. Martin - Service Néphrologie CHU"
+                      className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary transition-all shadow-xs text-xs placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -1700,7 +1687,6 @@ export const BookingPage: React.FC = () => {
                       value={selectedTransporterId}
                       onChange={(e) => {
                         setSelectedTransporterId(e.target.value);
-                        setTimeout(() => scrollToBlock('block-summary'), 350);
                       }}
                       className="w-full pl-3 pr-10 py-3 rounded-xl border border-outline-variant/50 bg-surface-container-low text-on-surface text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer"
                     >
@@ -1743,19 +1729,28 @@ export const BookingPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Bouton de validation vers le récapitulatif */}
-                  <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
+                  {/* Bouton de finalisation de la réservation */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-outline-variant/15 mt-2">
                     <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
                       <span className="material-symbols-outlined text-sm text-secondary">local_shipping</span>
-                      {selectedTransporter ? selectedTransporter.companyName : 'Diffusion réseau'}
+                      {selectedTransporter ? selectedTransporter.companyName : 'Diffusion au réseau local conventionné'}
                     </span>
                     <button
-                      type="button"
-                      onClick={() => scrollToBlock('block-summary')}
-                      className="px-4 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary/90 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                      type="submit"
+                      disabled={isSubmitting || isNirInvalid}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 text-white hover:from-teal-700 hover:to-sky-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                     >
-                      <span>Finaliser la réservation</span>
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      {isSubmitting ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          <span>Transmission en cours...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{selectedTransporter ? `Confirmer & Envoyer à ${selectedTransporter.companyName}` : 'Finaliser la réservation'}</span>
+                          <span className="material-symbols-outlined text-base">check_circle</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
