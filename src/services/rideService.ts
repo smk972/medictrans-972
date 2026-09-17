@@ -203,7 +203,18 @@ export const rideService = {
           .order('created_at', { ascending: false });
         if (!error && data) {
           const fetchedRides = data
-            .filter((row: any) => !row.reference?.toUpperCase().startsWith('VERIF-') && !row.reference?.toUpperCase().startsWith('TEST-'))
+            .filter((row: any) => {
+              const ref = (row.reference || '').toUpperCase();
+              if (ref.startsWith('VERIF-') || ref.startsWith('TEST-')) return false;
+              const pFirst = (row.patient_first_name || '').toLowerCase().trim();
+              const pLast = (row.patient_last_name || '').toLowerCase().trim();
+              if (pFirst === 'aimé' && pLast === 'glissant') return false;
+              if (pFirst.includes('élianaimé') || pLast.includes('bernarcesaire')) return false;
+              if (pLast.includes('bernarddubois')) return false;
+              if (pLast.includes('testclient') || pFirst.includes('test empty')) return false;
+              if (pFirst === 'dimitry' && pLast === 'p25') return false;
+              return true;
+            })
             .map(this.mapSupabaseToRide);
           return this.processDirectRequestsLifecycle(fetchedRides);
         }
@@ -220,7 +231,18 @@ export const rideService = {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return this.processDirectRequestsLifecycle(parsed);
+          const cleaned = parsed.filter((r: Ride) => {
+            const ref = (r.reference || '').toUpperCase();
+            if (ref.startsWith('VERIF-') || ref.startsWith('TEST-')) return false;
+            const pFirst = (r.patient?.firstName || '').toLowerCase().trim();
+            const pLast = (r.patient?.lastName || '').toLowerCase().trim();
+            if (pFirst === 'aimé' && pLast === 'glissant') return false;
+            if (pFirst.includes('élianaimé') || pLast.includes('bernarcesaire')) return false;
+            if (pLast.includes('bernarddubois')) return false;
+            if (pFirst === 'dimitry' && pLast === 'p25') return false;
+            return true;
+          });
+          return this.processDirectRequestsLifecycle(cleaned);
         }
       } catch {}
     }

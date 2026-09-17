@@ -12,7 +12,13 @@
 -- ==============================================================================
 
 -- 0. Nettoyage absolu des courses de test ou de vérification pré-production
-DELETE FROM public.rides WHERE reference LIKE 'VERIF-%' OR reference LIKE 'TEST-%';
+DELETE FROM public.rides 
+WHERE reference LIKE 'VERIF-%' 
+   OR reference LIKE 'TEST-%'
+   OR patient_last_name ILIKE '%glissant%'
+   OR patient_first_name ILIKE '%élianaimé%'
+   OR patient_last_name ILIKE '%bernarddubois%'
+   OR patient_last_name ILIKE '%p25%';
 
 -- 1. Table RIDES : assouplissement NIR & enrichissement des colonnes
 ALTER TABLE public.rides ALTER COLUMN patient_nir DROP NOT NULL;

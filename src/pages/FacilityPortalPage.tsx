@@ -41,44 +41,44 @@ export const FacilityPortalPage: React.FC = () => {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   // Champs du formulaire "Commander un transport" - 1. Patient & Droits CPAM
-  const [orderPatientLastName, setOrderPatientLastName] = useState('BERNARD');
-  const [orderPatientFirstName, setOrderPatientFirstName] = useState('Éliane');
-  const [orderPatientBirthDate, setOrderPatientBirthDate] = useState('1956-07-22');
-  const [orderPatientNir, setOrderPatientNir] = useState('2 56 07 97 214 382 19');
-  const [orderPatientPhone, setOrderPatientPhone] = useState('0696 34 56 78');
-  const [orderIsAld, setOrderIsAld] = useState(true);
+  const [orderPatientLastName, setOrderPatientLastName] = useState('');
+  const [orderPatientFirstName, setOrderPatientFirstName] = useState('');
+  const [orderPatientBirthDate, setOrderPatientBirthDate] = useState('');
+  const [orderPatientNir, setOrderPatientNir] = useState('');
+  const [orderPatientPhone, setOrderPatientPhone] = useState('');
+  const [orderIsAld, setOrderIsAld] = useState(false);
   const orderNirValidation = useMemo(() => validateNir(orderPatientNir), [orderPatientNir]);
 
   // 2. Localisation précise au sein de l'établissement (Départ)
   const [orderFacilityName, setOrderFacilityName] = useState('CHU de Martinique - Hôpital Pierre Zobda-Quitman');
-  const [orderFacilityDepartment, setOrderFacilityDepartment] = useState('Cardiologie');
-  const [orderFacilityFloor, setOrderFacilityFloor] = useState('2ème étage');
-  const [orderFacilityStaircase, setOrderFacilityStaircase] = useState('Escalier B');
-  const [orderFacilityRoom, setOrderFacilityRoom] = useState('Chambre 214');
-  const [orderFacilityBed, setOrderFacilityBed] = useState('Lit A');
+  const [orderFacilityDepartment, setOrderFacilityDepartment] = useState('');
+  const [orderFacilityFloor, setOrderFacilityFloor] = useState('');
+  const [orderFacilityStaircase, setOrderFacilityStaircase] = useState('');
+  const [orderFacilityRoom, setOrderFacilityRoom] = useState('');
+  const [orderFacilityBed, setOrderFacilityBed] = useState('');
 
   // Contact référent soignant
-  const [orderContactPhone, setOrderContactPhone] = useState('05 96 55 21 34');
-  const [orderContactName, setOrderContactName] = useState('Cadre de santé - Service Jour');
+  const [orderContactPhone, setOrderContactPhone] = useState('');
+  const [orderContactName, setOrderContactName] = useState('');
 
   // 3. Destination & Précisions d'accès (Arrivée / Domicile - comme réservation classique)
-  const [orderDropoffAddress, setOrderDropoffAddress] = useState('Résidence Les Balisiers');
-  const [orderDropoffCity, setOrderDropoffCity] = useState('Schœlcher');
-  const [orderDropoffBuilding, setOrderDropoffBuilding] = useState('Bâtiment B');
-  const [orderDropoffApartment, setOrderDropoffApartment] = useState('Apt 24');
-  const [orderDropoffFloor, setOrderDropoffFloor] = useState('2ème étage');
+  const [orderDropoffAddress, setOrderDropoffAddress] = useState('');
+  const [orderDropoffCity, setOrderDropoffCity] = useState('');
+  const [orderDropoffBuilding, setOrderDropoffBuilding] = useState('');
+  const [orderDropoffApartment, setOrderDropoffApartment] = useState('');
+  const [orderDropoffFloor, setOrderDropoffFloor] = useState('');
   const [orderDropoffFloorDetail, setOrderDropoffFloorDetail] = useState('');
-  const [orderDropoffElevator, setOrderDropoffElevator] = useState(true);
-  const [orderDropoffDoorCode, setOrderDropoffDoorCode] = useState('Interphone 24 • Code A4589');
+  const [orderDropoffElevator, setOrderDropoffElevator] = useState(false);
+  const [orderDropoffDoorCode, setOrderDropoffDoorCode] = useState('');
 
   // 4. Mobilité & Condition Physique (exactement comme la réservation classique)
   const [orderMobilityMode, setOrderMobilityMode] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
   const [orderOxygen, setOrderOxygen] = useState(false);
   const [orderNeedsEscort, setOrderNeedsEscort] = useState(false);
-  const [orderAdditionalNotes, setOrderAdditionalNotes] = useState('Sortie post-angioplastie. Patient à récupérer en chambre avec son dossier soignant et ses bagages. Repos assis conseillé.');
+  const [orderAdditionalNotes, setOrderAdditionalNotes] = useState('');
 
   // 5. Prescription Médicale de Transport (PMT Cerfa S3138)
-  const [orderDoctor, setOrderDoctor] = useState('Dr. Alix Célestine - Cardiologue CHU');
+  const [orderDoctor, setOrderDoctor] = useState('');
   const [orderPmtDocument, setOrderPmtDocument] = useState<UploadedFile | null>(null);
   const [orderPmtTransmissionMode, setOrderPmtTransmissionMode] = useState<'UPLOAD' | 'PAPIER'>('UPLOAD');
   const [orderPmtMotif, setOrderPmtMotif] = useState<string>("Sortie d'hospitalisation / Retour à domicile");
@@ -497,18 +497,20 @@ export const FacilityPortalPage: React.FC = () => {
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all card-silky-subtle flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wider text-slate-700 font-bold">Délai d'Affectation</span>
-                  <span className="material-symbols-outlined text-teal-700 text-[22px]">timer</span>
+                  <span className="text-[11px] uppercase tracking-wider text-slate-700 font-bold">Taux de Prise en Charge</span>
+                  <span className="material-symbols-outlined text-teal-700 text-[22px]">verified</span>
                 </div>
-                <div className="flex items-baseline gap-1 mt-3">
-                  <span className="text-3xl font-black text-slate-900">4<span className="text-lg font-normal text-slate-500">m</span> 12<span className="text-lg font-normal text-slate-500">s</span></span>
-<span className="font-label-md text-label-md text-secondary font-bold">-18% vs moyenne</span>
-</div>
-<div className="w-full bg-surface-container-high h-1.5 rounded-full mt-space-sm overflow-hidden">
-<div className="bg-secondary h-full w-[82%] rounded-full"></div>
-</div>
-<span className="font-label-sm text-label-sm text-on-surface-variant mt-space-xs">Optimisation réseau Fort-de-France</span>
-</div>
+                <div className="flex items-baseline gap-2 mt-3">
+                  <span className="text-3xl font-black text-slate-900">
+                    {rides.length > 0 ? Math.round((assignedCount / rides.length) * 100) : 100}%
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">missions assurées</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div className="bg-teal-600 h-full w-[100%] rounded-full"></div>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-2">Régulation territoriale en temps réel</span>
+              </div>
 </div>
 </section>
 
@@ -810,17 +812,23 @@ export const FacilityPortalPage: React.FC = () => {
                 {/* 2. Chambre & Lit, Étage, Escalier */}
                 <td className="py-3 px-3 align-top">
                   <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-1 font-bold text-slate-900 text-xs leading-tight flex-wrap">
-                      <span className="material-symbols-outlined text-[13px] text-teal-700">hotel</span>
-                      <span>{ride.facilityRoom || 'Ch. 214'}</span>
-                      <span className="text-teal-800 font-extrabold">• {ride.facilityBed || 'Lit A'}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5 flex-wrap">
-                      <span className="material-symbols-outlined text-[12px] text-teal-600">layers</span>
-                      <span>{ride.facilityFloor || '2ème étage'}</span>
-                      <span>•</span>
-                      <span>{ride.facilityStaircase || 'Esc. B'}</span>
-                    </div>
+                    {ride.facilityRoom || ride.facilityBed ? (
+                      <div className="flex items-center gap-1 font-bold text-slate-900 text-xs leading-tight flex-wrap">
+                        <span className="material-symbols-outlined text-[13px] text-teal-700">hotel</span>
+                        <span>{ride.facilityRoom || 'Chambre'}</span>
+                        {ride.facilityBed && <span className="text-teal-800 font-extrabold">• {ride.facilityBed}</span>}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-medium">Accueil / Sas</span>
+                    )}
+                    {(ride.facilityFloor || ride.facilityStaircase) && (
+                      <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5 flex-wrap">
+                        <span className="material-symbols-outlined text-[12px] text-teal-600">layers</span>
+                        {ride.facilityFloor && <span>{ride.facilityFloor}</span>}
+                        {ride.facilityFloor && ride.facilityStaircase && <span>•</span>}
+                        {ride.facilityStaircase && <span>{ride.facilityStaircase}</span>}
+                      </div>
+                    )}
                   </div>
                 </td>
 
@@ -1561,19 +1569,19 @@ export const FacilityPortalPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-1 text-[11px] bg-surface-container-lowest p-2 rounded-xl border border-outline-variant/20">
                     <div>
                       <span className="text-on-surface-variant text-[10px] block">Service :</span>
-                      <strong className="text-primary">{selectedRideForPmt.facilityDepartment || 'Cardiologie'}</strong>
+                      <strong className="text-primary">{selectedRideForPmt.facilityDepartment || 'Non spécifié'}</strong>
                     </div>
                     <div>
                       <span className="text-on-surface-variant text-[10px] block">Étage :</span>
-                      <strong className="text-on-surface">{selectedRideForPmt.facilityFloor || '2ème étage'}</strong>
+                      <strong className="text-on-surface">{selectedRideForPmt.facilityFloor || 'Non spécifié'}</strong>
                     </div>
                     <div>
                       <span className="text-on-surface-variant text-[10px] block">Escalier :</span>
-                      <strong className="text-on-surface">{selectedRideForPmt.facilityStaircase || 'Escalier B'}</strong>
+                      <strong className="text-on-surface">{selectedRideForPmt.facilityStaircase || 'Non spécifié'}</strong>
                     </div>
                     <div>
                       <span className="text-on-surface-variant text-[10px] block">Chambre &amp; Lit :</span>
-                      <strong className="text-secondary">{selectedRideForPmt.facilityRoom || 'Chambre 214'} · {selectedRideForPmt.facilityBed || 'Lit A'}</strong>
+                      <strong className="text-secondary">{selectedRideForPmt.facilityRoom ? `${selectedRideForPmt.facilityRoom}${selectedRideForPmt.facilityBed ? ` · ${selectedRideForPmt.facilityBed}` : ''}` : 'Accueil / Sas'}</strong>
                     </div>
                   </div>
                 </div>
