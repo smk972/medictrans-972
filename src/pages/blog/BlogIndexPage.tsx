@@ -3,10 +3,14 @@ import { Link } from 'react-router-dom';
 import { Header } from '../../components/Header';
 import { Footer } from '../../components/Footer';
 import { SEOHead } from '../../components/SEOHead';
+import { useAuth } from '../../contexts/AuthContext';
 import { blogService } from '../../services/blogService';
 import { BlogPost, BlogCategory } from '../../types/blog';
 
 export const BlogIndexPage: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [articles, setArticles] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
@@ -126,6 +130,17 @@ export const BlogIndexPage: React.FC = () => {
             <p className="text-xs text-slate-600 mt-1">
               Les articles rédigés sont actuellement en cours de validation éditoriale par nos régulateurs avant mise en ligne.
             </p>
+            {isAdmin && (
+              <div className="mt-5">
+                <Link
+                  to="/admin/seo/articles"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-base">edit_document</span>
+                  <span>Gérer et publier les articles</span>
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-12">

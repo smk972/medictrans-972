@@ -119,22 +119,37 @@ export const BlogPreviewPage: React.FC = () => {
         noIndex={true}
       />
 
-      {/* Bandeau d'aperçu Administrateur Fixe */}
-      <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md flex items-center justify-between gap-3 text-xs font-bold">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-base text-slate-950">visibility</span>
+      {/* Bandeau Administrateur Fixe */}
+      <div className={`sticky top-0 z-50 px-4 py-2.5 shadow-md flex items-center justify-between gap-3 text-xs font-bold transition-colors ${
+        post.status === 'published' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-slate-950'
+      }`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="material-symbols-outlined text-base">
+            {post.status === 'published' ? 'verified' : 'visibility'}
+          </span>
           <span>
-            APERÇU SÉCURISÉ ADMIN • Statut : <span className="uppercase">{post.status}</span> • (Balise noindex active, non indexable par Google)
+            {post.status === 'published' ? (
+              <>
+                ARTICLE EN LIGNE (PUBLIÉ) • Accessible au public sur <span className="underline font-extrabold font-mono">/blog/{post.slug}</span>
+              </>
+            ) : (
+              <>
+                APERÇU SÉCURISÉ ADMIN • Statut : <span className="uppercase">{post.status}</span> • (Balise noindex active, non indexable par Google)
+              </>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Link
-            to={`/admin/seo/articles/${post.id}/edit`}
-            className="px-3 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-colors"
-          >
-            Modifier
-          </Link>
-          {post.status !== 'published' && (
+          {post.status === 'published' ? (
+            <Link
+              to={`/blog/${post.slug}`}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-white text-emerald-900 hover:bg-emerald-50 text-xs font-bold transition-colors shadow-xs"
+              title="Voir la version publique en ligne"
+            >
+              <span className="material-symbols-outlined text-sm">open_in_new</span>
+              <span>Voir l'article en ligne</span>
+            </Link>
+          ) : (
             <button
               type="button"
               onClick={handlePublishNow}
@@ -144,12 +159,42 @@ export const BlogPreviewPage: React.FC = () => {
               {publishing ? 'Publication...' : 'Publier en ligne'}
             </button>
           )}
+          <Link
+            to={`/admin/seo/articles/${post.id}/edit`}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+              post.status === 'published' ? 'bg-emerald-900 text-white hover:bg-emerald-950' : 'bg-slate-900 text-white hover:bg-slate-800'
+            }`}
+          >
+            Modifier
+          </Link>
         </div>
       </div>
 
       <Header />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Notice si l'article est déjà publié */}
+        {post.status === 'published' && (
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-center justify-between gap-3 flex-wrap shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-xl text-emerald-700">check_circle</span>
+              <div className="text-xs">
+                <span className="font-bold text-emerald-900">Cet article est actuellement en ligne !</span>
+                <span className="text-emerald-700 block sm:inline sm:ml-1">
+                  URL publique indexable : <code className="font-mono font-semibold bg-emerald-100/70 px-1 py-0.5 rounded">/blog/{post.slug}</code>
+                </span>
+              </div>
+            </div>
+            <Link
+              to={`/blog/${post.slug}`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-all"
+            >
+              <span>Ouvrir la page publique</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+          </div>
+        )}
+
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-6">
           <Link to="/" className="hover:text-slate-900 transition-colors">Accueil</Link>

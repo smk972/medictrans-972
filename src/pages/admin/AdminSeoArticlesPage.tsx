@@ -253,13 +253,26 @@ export const AdminSeoArticlesPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="inline-flex items-center gap-1.5">
-                        {/* Bouton Aperçu (noindex) */}
+                        {/* Bouton Voir en direct si publié */}
+                        {post.status === 'published' && (
+                          <Link
+                            to={`/blog/${post.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            title="Consulter l'article public en direct (Indexable Google)"
+                          >
+                            <span className="material-symbols-outlined text-base">public</span>
+                          </Link>
+                        )}
+
+                        {/* Bouton Aperçu */}
                         <Link
                           to={`/preview/blog/${post.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 rounded-lg border border-outline-variant/30 hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
-                          title="Aperçu Sécurisé (noindex)"
+                          title="Aperçu Sécurisé"
                         >
                           <span className="material-symbols-outlined text-base">visibility</span>
                         </Link>

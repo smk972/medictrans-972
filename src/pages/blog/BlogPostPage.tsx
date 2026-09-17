@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/Header';
 import { Footer } from '../../components/Footer';
 import { SEOHead } from '../../components/SEOHead';
+import { useAuth } from '../../contexts/AuthContext';
 import { blogService } from '../../services/blogService';
 import { BlogPost } from '../../types/blog';
 import { renderMarkdownContent } from '../../utils/markdownRenderer';
@@ -10,6 +11,8 @@ import { renderMarkdownContent } from '../../utils/markdownRenderer';
 export const BlogPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const [post, setPost] = useState<BlogPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
@@ -20,7 +23,7 @@ export const BlogPostPage: React.FC = () => {
     if (slug) {
       loadPost(slug);
     }
-  }, [slug]);
+  }, [slug, isAdmin]);
 
   const loadPost = async (targetSlug: string) => {
     setLoading(true);
@@ -33,9 +36,9 @@ export const BlogPostPage: React.FC = () => {
         return;
       }
 
-      // 2. Récupérer l'article
-      const article = await blogService.getPostBySlug(targetSlug);
-      if (article && article.status === 'published') {
+      // 2. Récupérer l'article (autoriser le brouillon pour un administrateur connecté)
+      const article = await blogService.getPostBySlug(targetSlug, isAdmin);
+      if (article && (article.status === 'published' || isAdmin)) {
         setPost(article);
 
         // Charger articles liés
@@ -181,7 +184,26 @@ export const BlogPostPage: React.FC = () => {
         ogImage={post.featured_image || '/assets/medictrans_hero_discover.jpg'}
         ogType="article"
         schemaJson={schemaJson}
+        noIndex={post.status !== 'published'}
       />
+
+      {/* Alerte Admin si article non publié */}
+      {post.status !== 'published' && (
+        <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md flex items-center justify-between gap-3 text-xs font-bold">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">visibility</span>
+            <span>
+              MODE PRÉVISUALISATION ADMIN • Statut : <span className="uppercase font-extrabold">{post.status}</span> • (Balise noindex active, non indexable tant qu'il n'est pas publié)
+            </span>
+          </div>
+          <Link
+            to={`/admin/seo/articles/${post.id}/edit`}
+            className="px-3 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-colors"
+          >
+            Modifier / Publier
+          </Link>
+        </div>
+      )}
 
       <Header />
 

@@ -47,7 +47,7 @@ export const AdminSeoEditorPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedPostId, setSavedPostId] = useState<string | null>(id || null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; actionUrl?: string; actionLabel?: string } | null>(null);
 
   // Live SEO Score & Internal link suggestions
   const [internalLinkSuggestions, setInternalLinkSuggestions] = useState<Array<{ title: string; url: string; anchorText: string }>>([]);
@@ -220,14 +220,32 @@ export const AdminSeoEditorPage: React.FC = () => {
         setSavedPostId(updated.id);
         setStatus(updated.status);
         setOriginalSlug(updated.slug);
-        setMessage({ type: 'success', text: 'Article mis à jour avec succès !' });
+        if (finalStatus === 'published') {
+          setMessage({
+            type: 'success',
+            text: 'Article publié en ligne avec succès ! Accessible au public et indexable.',
+            actionUrl: `/blog/${updated.slug}`,
+            actionLabel: 'Voir l’article sur le site',
+          });
+        } else {
+          setMessage({ type: 'success', text: 'Article mis à jour avec succès !' });
+        }
       } else {
         const created = await blogService.createPost(postPayload);
         await blogService.syncPostTags(created.id, selectedTagIds);
         setSavedPostId(created.id);
         setStatus(created.status);
         setOriginalSlug(created.slug);
-        setMessage({ type: 'success', text: 'Nouvel article créé avec succès !' });
+        if (finalStatus === 'published') {
+          setMessage({
+            type: 'success',
+            text: 'Nouvel article créé et publié en ligne avec succès !',
+            actionUrl: `/blog/${created.slug}`,
+            actionLabel: 'Voir l’article sur le site',
+          });
+        } else {
+          setMessage({ type: 'success', text: 'Nouvel article créé avec succès !' });
+        }
         // Rediriger vers l'URL d'édition
         navigate(`/admin/seo/articles/${created.id}/edit`, { replace: true });
       }
@@ -360,16 +378,29 @@ export const AdminSeoEditorPage: React.FC = () => {
       subtitle="Éditeur SEO, assistant IA en 2 étapes, audit sémantique et contrôle de sensibilité."
       actions={
         <div className="flex items-center gap-2 flex-wrap">
+          {savedPostId && status === 'published' && (
+            <Link
+              to={`/blog/${slug.toLowerCase().trim()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-all"
+              title="Consulter l'article public en direct (Indexable Google)"
+            >
+              <span className="material-symbols-outlined text-base">public</span>
+              <span>Voir en ligne</span>
+            </Link>
+          )}
+
           {savedPostId && (
             <Link
               to={`/preview/blog/${savedPostId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors"
-              title="Prévisualiser avec noindex, nofollow"
+              title="Prévisualiser avec bandeau sécurisé"
             >
               <span className="material-symbols-outlined text-base">visibility</span>
-              <span>Aperçu Sécurisé</span>
+              <span>Aperçu</span>
             </Link>
           )}
 
@@ -434,11 +465,22 @@ export const AdminSeoEditorPage: React.FC = () => {
               : 'bg-rose-50 text-rose-900 border border-rose-200'
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="material-symbols-outlined text-base">
               {message.type === 'success' ? 'check_circle' : 'error'}
             </span>
             <span>{message.text}</span>
+            {message.actionUrl && (
+              <Link
+                to={message.actionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors text-[11px] font-bold shadow-2xs"
+              >
+                <span>{message.actionLabel || "Voir l'article"}</span>
+                <span className="material-symbols-outlined text-xs">open_in_new</span>
+              </Link>
+            )}
           </div>
           <button type="button" onClick={() => setMessage(null)} className="hover:opacity-75">
             <span className="material-symbols-outlined text-base">close</span>
@@ -705,7 +747,20 @@ export const AdminSeoEditorPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {savedPostId && status === 'published' && (
+                <Link
+                  to={`/blog/${slug.toLowerCase().trim()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-all"
+                  title="Consulter l'article public en direct (Indexable Google)"
+                >
+                  <span className="material-symbols-outlined text-base">public</span>
+                  <span>Voir en ligne</span>
+                </Link>
+              )}
+
               {savedPostId && (
                 <Link
                   to={`/preview/blog/${savedPostId}`}
