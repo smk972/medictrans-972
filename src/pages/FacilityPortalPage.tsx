@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { SEOHead } from '../components/SEOHead';
@@ -12,6 +13,16 @@ import { validateNir } from '../utils/nirValidator';
 
 export const FacilityPortalPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const currentFacilityName = useMemo(() => {
+    return user?.facilityName || 'CHU de Martinique - Hôpital Pierre Zobda-Quitman';
+  }, [user]);
+
+  const currentFacilityDepartment = useMemo(() => {
+    return user?.facilityDepartment || 'Service Néphrologie, Dialyse & Hémodialyse Lourde • Pavillon M - Niveau 3';
+  }, [user]);
+
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
@@ -50,7 +61,13 @@ export const FacilityPortalPage: React.FC = () => {
   const orderNirValidation = useMemo(() => validateNir(orderPatientNir), [orderPatientNir]);
 
   // 2. Localisation précise au sein de l'établissement (Départ)
-  const [orderFacilityName, setOrderFacilityName] = useState('CHU de Martinique - Hôpital Pierre Zobda-Quitman');
+  const [orderFacilityName, setOrderFacilityName] = useState(user?.facilityName || 'CHU de Martinique - Hôpital Pierre Zobda-Quitman');
+
+  useEffect(() => {
+    if (user?.facilityName) {
+      setOrderFacilityName(user.facilityName);
+    }
+  }, [user?.facilityName]);
   const [orderFacilityDepartment, setOrderFacilityDepartment] = useState('');
   const [orderFacilityFloor, setOrderFacilityFloor] = useState('');
   const [orderFacilityStaircase, setOrderFacilityStaircase] = useState('');
@@ -119,15 +136,24 @@ export const FacilityPortalPage: React.FC = () => {
   const loadFacilityRides = useCallback(async () => {
     setIsLoading(true);
     try {
-      const all = await rideService.getAllRides();
-      setRides(all);
+      // Les demandes créées par les clients particuliers (source === 'PATIENT') sont strictement exclues du tableau des établissements.
+      // Chaque établissement suit uniquement les demandes de transport qu'il a lui-même effectuées (source === 'FACILITY').
+      const facilityFilter = user?.role === 'ADMIN'
+        ? undefined
+        : {
+            facilityName: user?.facilityName,
+            userId: user?.id,
+            facilityId: user?.facilityId
+          };
+      const facilityRides = await rideService.getRidesByFacility(facilityFilter);
+      setRides(facilityRides);
     } catch (err) {
       console.warn('Erreur chargement sorties hôpital:', err);
       setRides([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -159,7 +185,9 @@ export const FacilityPortalPage: React.FC = () => {
         pickupCity: rideToRenew.pickupCity,
         dropoffAddress: rideToRenew.dropoffAddress,
         dropoffCity: rideToRenew.dropoffCity,
-        facilityName: rideToRenew.facilityName,
+        facilityName: rideToRenew.facilityName || currentFacilityName,
+        facilityId: user?.facilityId,
+        userId: user?.id,
         facilityDepartment: renewDepartment.trim() || rideToRenew.facilityDepartment,
         facilityFloor: renewFloor.trim() || rideToRenew.facilityFloor,
         facilityRoom: renewRoom.trim() || rideToRenew.facilityRoom,
@@ -226,6 +254,8 @@ export const FacilityPortalPage: React.FC = () => {
       dropoffAddress: orderDropoffAddress || 'Résidence Les Balisiers',
       dropoffCity: orderDropoffCity || 'Schœlcher',
       facilityName: orderFacilityName,
+      facilityId: user?.facilityId,
+      userId: user?.id,
       pickupDateTime: `${orderPickupDate}T${orderPickupTime}:00`,
       isRoundTrip: orderIsRoundTrip,
       returnDateTime: orderIsRoundTrip ? `${orderReturnDate}T${orderReturnTime}:00` : undefined,
@@ -349,7 +379,7 @@ export const FacilityPortalPage: React.FC = () => {
     exportRidesToExcel(displayedRides, {
       filename: `Historique_Demandes_Hopital_${new Date().toISOString().slice(0, 10)}`,
       title: activeTab === 'ACTIVE' ? 'Demandes Sanitaires en Cours - Établissement' : 'Historique des Demandes de Transports - Établissement',
-      userContext: 'CHU de Martinique / Régulation Hospitalière'
+      userContext: `${currentFacilityName} / Régulation Hospitalière`
     });
     setToastMessage({
       title: 'Export Excel réussi',
@@ -361,7 +391,7 @@ export const FacilityPortalPage: React.FC = () => {
     exportRidesToPdf(displayedRides, {
       filename: `Historique_Demandes_Hopital_${new Date().toISOString().slice(0, 10)}`,
       title: activeTab === 'ACTIVE' ? 'Demandes Sanitaires en Cours' : 'Historique des Demandes Sanitaires',
-      subtitle: `Établissement : CHU de Martinique | Onglet : ${activeTab === 'ACTIVE' ? 'Missions en cours' : historyFilter === 'ALL' ? 'Toutes les archives' : historyFilter === 'COMPLETED' ? 'Terminées' : 'Annulées'} (${displayedRides.length} dossiers)`,
+      subtitle: `Établissement : ${currentFacilityName} | Onglet : ${activeTab === 'ACTIVE' ? 'Missions en cours' : historyFilter === 'ALL' ? 'Toutes les archives' : historyFilter === 'COMPLETED' ? 'Terminées' : 'Annulées'} (${displayedRides.length} dossiers)`,
       userContext: 'Service Régulation & Sorties de Lit 972'
     });
     setToastMessage({
@@ -440,8 +470,8 @@ export const FacilityPortalPage: React.FC = () => {
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
                     <span className="text-xs text-slate-500">Raccordement ROR &amp; DPI Direct</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">CHU Pierre Zobda-Quitman</h1>
-                  <p className="text-xs sm:text-sm text-slate-500 font-medium">Service Néphrologie, Dialyse &amp; Hémodialyse Lourde • Pavillon M - Niveau 3</p>
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{currentFacilityName}</h1>
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium">{currentFacilityDepartment}</p>
                 </div>
               </div>
             </div>
@@ -521,7 +551,7 @@ export const FacilityPortalPage: React.FC = () => {
 <button className="px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all flex items-center gap-space-xs bg-surface-container-lowest text-primary shadow-sm font-bold" id="tabBtnTransports">
 <span className="material-symbols-outlined text-[18px]">departure_board</span>
 <span className="">Départs &amp; File de Service</span>
-<span className="bg-primary text-on-primary text-[11px] px-1.5 py-0.5 rounded-full">14</span>
+<span className="bg-primary text-on-primary text-[11px] px-1.5 py-0.5 rounded-full">{activeMissions.length}</span>
 </button>
 <button
   type="button"
@@ -606,7 +636,7 @@ export const FacilityPortalPage: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-0.5 ml-10">
-            CHU Pierre Zobda-Quitman &amp; Établissements conventionnés ARS Martinique
+            {currentFacilityName} &amp; Réseau de transport sanitaire conventionné
           </p>
         </div>
 

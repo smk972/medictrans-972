@@ -212,6 +212,39 @@ export const rideService = {
     return [];
   },
 
+  // Récupérer les courses initiées par un établissement de santé spécifique
+  async getRidesByFacility(facilityFilter?: { facilityName?: string; userId?: string; facilityId?: string }): Promise<Ride[]> {
+    const all = await this.getAllRides();
+    // EXCLUSION STRICTE : Ne retenir QUE les demandes créées par un établissement de santé (source === 'FACILITY')
+    // Les demandes créées par les clients particuliers (source === 'PATIENT') ne doivent JAMAIS apparaître dans le tableau des établissements.
+    const facilityRides = all.filter(r => r.source === 'FACILITY');
+
+    if (!facilityFilter || (!facilityFilter.facilityName && !facilityFilter.userId && !facilityFilter.facilityId)) {
+      return facilityRides;
+    }
+
+    const normName = facilityFilter.facilityName?.trim().toLowerCase();
+
+    return facilityRides.filter(r => {
+      // Correspondance par ID utilisateur (le soignant/cadre qui a créé la demande)
+      if (facilityFilter.userId && r.userId && r.userId === facilityFilter.userId) {
+        return true;
+      }
+      // Correspondance par ID d'établissement
+      if (facilityFilter.facilityId && r.facilityId && r.facilityId === facilityFilter.facilityId) {
+        return true;
+      }
+      // Correspondance par nom d'établissement (insensible à la casse / inclusions)
+      if (normName && r.facilityName) {
+        const rNorm = r.facilityName.trim().toLowerCase();
+        if (rNorm === normName || rNorm.includes(normName) || normName.includes(rNorm)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  },
+
   // Cycle de vie des demandes directes : expiration automatique après 24h00 et rebasculement au pot commun
   processDirectRequestsLifecycle(rides: Ride[]): Ride[] {
     const now = Date.now();
@@ -283,6 +316,8 @@ export const rideService = {
       reference,
       createdAt: rideData.createdAt || now,
       pickupAddress: rideData.pickupAddress || '',
+      userId: rideData.userId,
+      facilityId: rideData.facilityId,
       pickupCity: rideData.pickupCity || '',
       dropoffAddress: rideData.dropoffAddress || '',
       dropoffCity: rideData.dropoffCity || '',
@@ -782,6 +817,8 @@ export const rideService = {
       isRecurring: Boolean(row.is_recurring),
       recurringDates: row.recurring_dates || undefined,
       source: row.source || 'PATIENT',
+      userId: row.user_id || undefined,
+      facilityId: row.facility_id || undefined,
       facilityDepartment: row.facility_department || undefined,
       bedDischargeNumber: row.bed_discharge_number || undefined
     };

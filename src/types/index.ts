@@ -51,6 +51,8 @@ export interface Ride {
   id: string;
   reference: string; // Ex: MT-972-8821
   createdAt: string;
+  userId?: string; // ID utilisateur Supabase du demandeur (patient ou soignant)
+  facilityId?: string; // ID de l'établissement de soins émetteur
   pickupAddress: string;
   pickupCity: string;
   dropoffAddress: string;
