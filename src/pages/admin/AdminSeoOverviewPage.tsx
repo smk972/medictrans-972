@@ -235,7 +235,7 @@ export const AdminSeoOverviewPage: React.FC = () => {
                             to={`/preview/blog/${post.id}`}
                             target="_blank"
                             className="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors"
-                            title="Aperçu Sécurisé (noindex)"
+                            title="Aperçu de l'article"
                           >
                             <span className="material-symbols-outlined text-base">visibility</span>
                           </Link>

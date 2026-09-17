@@ -57,7 +57,7 @@ export const BlogCategoryPage: React.FC = () => {
         <SEOHead
           title="Catégorie non trouvée | Clinigo"
           description="Cette catégorie d'articles n'existe pas."
-          noIndex={true}
+          noIndex={false}
         />
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">

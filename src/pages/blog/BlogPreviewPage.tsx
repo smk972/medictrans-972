@@ -112,11 +112,10 @@ export const BlogPreviewPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-900 selection:bg-teal-100 selection:text-teal-900">
-      {/* Règle N°17: NOINDEX, NOFOLLOW garanti pour la prévisualisation */}
       <SEOHead
         title={`[Aperçu] ${post.title} | Clinigo`}
         description={post.meta_description || post.excerpt}
-        noIndex={true}
+        noIndex={false}
       />
 
       {/* Bandeau Administrateur Fixe */}
@@ -134,7 +133,7 @@ export const BlogPreviewPage: React.FC = () => {
               </>
             ) : (
               <>
-                APERÇU SÉCURISÉ ADMIN • Statut : <span className="uppercase">{post.status}</span> • (Balise noindex active, non indexable par Google)
+                APERÇU SÉCURISÉ ADMIN • Statut : <span className="uppercase">{post.status}</span>
               </>
             )}
           </span>

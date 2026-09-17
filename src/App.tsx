@@ -209,7 +209,7 @@ export const App: React.FC = () => {
           <Route path="/blog/category/:slug" element={<BlogCategoryPage />} />
           <Route path="/blog/tag/:slug" element={<BlogTagPage />} />
 
-          {/* Prévisualisation Sécurisée Protégée Admin (noindex) */}
+          {/* Prévisualisation Protégée Admin */}
           <Route 
             path="/preview/blog/:id" 
             element={

@@ -57,7 +57,7 @@ export const BlogTagPage: React.FC = () => {
         <SEOHead
           title="Tag non trouvé | Clinigo"
           description="Ce tag n'existe pas."
-          noIndex={true}
+          noIndex={false}
         />
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">

@@ -102,7 +102,7 @@ export const BlogPostPage: React.FC = () => {
         <SEOHead
           title="Guide non trouvé | Clinigo"
           description="Cet article n'est pas disponible ou est en cours de révision éditoriale."
-          noIndex={true}
+          noIndex={false}
         />
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">
@@ -184,7 +184,7 @@ export const BlogPostPage: React.FC = () => {
         ogImage={post.featured_image || '/assets/medictrans_hero_discover.jpg'}
         ogType="article"
         schemaJson={schemaJson}
-        noIndex={post.status !== 'published'}
+        noIndex={false}
       />
 
       {/* Alerte Admin si article non publié */}
@@ -193,7 +193,7 @@ export const BlogPostPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-base">visibility</span>
             <span>
-              MODE PRÉVISUALISATION ADMIN • Statut : <span className="uppercase font-extrabold">{post.status}</span> • (Balise noindex active, non indexable tant qu'il n'est pas publié)
+              MODE PRÉVISUALISATION ADMIN • Statut : <span className="uppercase font-extrabold">{post.status}</span>
             </span>
           </div>
           <Link
