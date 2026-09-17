@@ -36,9 +36,12 @@ export const BlogPostPage: React.FC = () => {
         return;
       }
 
-      // 2. Récupérer l'article (autoriser le brouillon pour un administrateur connecté)
-      const article = await blogService.getPostBySlug(targetSlug, isAdmin);
-      if (article && (article.status === 'published' || isAdmin)) {
+      // 2. Récupérer l'article (strictement publié pour l'URL publique /blog/:slug)
+      // L'aperçu administrateur dédié se fait via /preview/blog/:id ou avec ?preview=true explicite
+      const isPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === 'true';
+      const allowDraft = Boolean(isAdmin && isPreview);
+      const article = await blogService.getPostBySlug(targetSlug, allowDraft);
+      if (article && (article.status === 'published' || allowDraft)) {
         setPost(article);
 
         // Charger articles liés

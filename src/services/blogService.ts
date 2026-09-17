@@ -14,7 +14,7 @@ import {
   ContentSensitivity,
 } from '../types/blog';
 
-const STORAGE_KEY_POSTS = 'clinigo_blog_posts_v1';
+const STORAGE_KEY_POSTS = 'clinigo_blog_posts_v2';
 const STORAGE_KEY_CATEGORIES = 'clinigo_blog_categories_v1';
 const STORAGE_KEY_TAGS = 'clinigo_blog_tags_v1';
 const STORAGE_KEY_KEYWORDS = 'clinigo_seo_keywords_v1';
@@ -336,11 +336,11 @@ Avec **Clinigo**, vous planifiez l'ensemble de vos séances en quelques clics :
     metaDescription: 'Guide complet du transport sanitaire pour les patients en ALD : critères d\'exonération, dialyse, chimiothérapie et dispense d\'avance de frais.',
     focusKeyword: 'transport medical ald',
     secondaryKeywords: ['transport dialyse', 'vsl chimiotherapie', 'prise en charge 100% ald'],
-    status: 'published',
+    status: 'draft',
     contentSensitivity: 'MEDICAL_INFO',
     content_sensitivity: 'MEDICAL_INFO',
-    publishedAt: '2026-09-05T08:30:00Z',
-    published_at: '2026-09-05T08:30:00Z',
+    publishedAt: null,
+    published_at: null,
     featured_image: '/assets/step3_care.jpg',
     category: INITIAL_CATEGORIES[2],
     createdAt: '2026-09-05T08:30:00Z',
@@ -748,7 +748,8 @@ export class BlogService {
     // 1. API Serveur prioritaire (IONOS & Local)
     try {
       const res = await fetch(`/api/blog/posts?status=${includeUnpublished ? 'all' : 'published'}`);
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           const formatted = json.data.map((p: any) => ({
@@ -767,7 +768,7 @@ export class BlogService {
         }
       }
     } catch (e) {
-      // repli en cas de coupure réseau
+      // repli en cas de coupure réseau ou API non JSON
     }
 
     // 2. Supabase si configuré
@@ -806,10 +807,11 @@ export class BlogService {
     // 1. API Serveur prioritaire (IONOS & Local)
     try {
       const res = await fetch(`/api/blog/posts?slug=${encodeURIComponent(cleanSlug)}${allowDraft ? '&allowDraft=true' : ''}`);
+      const contentType = res.headers.get('content-type') || '';
       if (res.status === 404) {
         return null;
       }
-      if (res.ok) {
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (json.success && json.data) {
           const p = json.data;
@@ -867,10 +869,11 @@ export class BlogService {
     // 1. API Serveur prioritaire (IONOS & Local)
     try {
       const res = await fetch(`/api/blog/posts/${encodeURIComponent(id)}`);
+      const contentType = res.headers.get('content-type') || '';
       if (res.status === 404) {
         return null;
       }
-      if (res.ok) {
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (json.success && json.data) {
           const p = json.data;
@@ -1008,7 +1011,8 @@ export class BlogService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fullPost),
       });
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (json.success && json.data) {
           fullPost.id = json.data.id;
