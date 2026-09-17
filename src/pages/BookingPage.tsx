@@ -63,6 +63,31 @@ export const BookingPage: React.FC = () => {
   const [transportTime, setTransportTime] = useState(initialTime);
   const [isEditingRoute, setIsEditingRoute] = useState(false);
 
+  // Gestion du défilement automatique fluide entre les étapes du formulaire
+  const completedStepsRef = React.useRef<Set<string>>(new Set());
+
+  const scrollToBlock = (blockId: string) => {
+    const el = document.getElementById(blockId);
+    if (el) {
+      const headerOffset = 110;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({
+        top: Math.max(0, offsetPosition),
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const autoAdvance = (currentStep: string, nextStep: string, delay = 350) => {
+    if (!completedStepsRef.current.has(currentStep)) {
+      completedStepsRef.current.add(currentStep);
+      setTimeout(() => {
+        scrollToBlock(nextStep);
+      }, delay);
+    }
+  };
+
   // Synchronisation avec l'adresse du profil utilisateur dès son chargement
   useEffect(() => {
     if (user?.address && !stateData.pickupAddress && !storedDraft.pickupAddress) {
@@ -149,7 +174,21 @@ export const BookingPage: React.FC = () => {
         setTransportType('vsl');
       }
     }
+    // Défilement automatique fluide vers la prescription médicale (PMT)
+    setTimeout(() => scrollToBlock('block-pmt'), 350);
   };
+
+  // Défilement automatique lors de la complétion des champs obligatoires du patient
+  useEffect(() => {
+    if (
+      firstName.trim().length >= 2 &&
+      lastName.trim().length >= 2 &&
+      phone.replace(/\D/g, '').length >= 10 &&
+      birthDate
+    ) {
+      autoAdvance('step-patient', 'block-mobility', 600);
+    }
+  }, [firstName, lastName, phone, birthDate]);
 
   const handleOxygenChange = (newOxygen: boolean) => {
     setOxygen(newOxygen);
@@ -636,11 +675,44 @@ export const BookingPage: React.FC = () => {
             </aside>
           )}
 
+          {/* Barre de navigation rapide et progression interactive des étapes */}
+          <nav aria-label="Progression des étapes" className="sticky top-16 z-30 bg-surface-container-lowest/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-outline-variant/30 shadow-xs mb-1">
+            <div className="flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
+              {[
+                { id: 'block-route', label: '1. Trajet', icon: 'route' },
+                { id: 'block-datetime', label: '2. Date & Heure', icon: 'schedule' },
+                { id: 'block-patient', label: '3. Patient', icon: 'person' },
+                { id: 'block-mobility', label: '4. Mobilité', icon: 'accessible' },
+                { id: 'block-pmt', label: '5. PMT / Soins', icon: 'description' },
+                { id: 'block-transporter', label: '6. Transporteur', icon: 'local_shipping' },
+              ].map((step, idx) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => scrollToBlock(step.id)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all hover:bg-surface-container text-on-surface-variant hover:text-primary cursor-pointer active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[15px]">{step.icon}</span>
+                  <span className="hidden sm:inline">{step.label}</span>
+                  <span className="sm:hidden">Étape {idx + 1}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => scrollToBlock('block-summary')}
+                className="ml-auto px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-on-primary font-bold text-xs whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <span className="hidden sm:inline">Finaliser</span>
+              </button>
+            </div>
+          </nav>
+
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
             {/* Left Column: Patient Details, Mobility & PMT */}
             <div className="lg:col-span-7 flex flex-col gap-space-xl">
               {/* Card 0: Itinéraire Sanitaire & Destination */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
+              <div id="block-route" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30 scroll-mt-28">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-space-sm">
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
@@ -699,7 +771,11 @@ export const BookingPage: React.FC = () => {
                       showCategories={true}
                       showQuickCommunes={false}
                       referenceAddress={pickupAddress}
-                      onSelectSuggestion={(s) => setDestinationFacility(s.label)}
+                      onSelectSuggestion={(s) => {
+                        setDestinationFacility(s.label);
+                        setIsEditingRoute(false);
+                        setTimeout(() => scrollToBlock('block-datetime'), 350);
+                      }}
                     />
                   </div>
                 ) : (
@@ -732,10 +808,26 @@ export const BookingPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Bouton de passage fluide à l'étape suivante */}
+                <div className="flex items-center justify-between pt-1 border-t border-outline-variant/15 mt-1">
+                  <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
+                    <span className="material-symbols-outlined text-sm text-secondary">verified</span>
+                    Départ et destination validés
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollToBlock('block-datetime')}
+                    className="px-3.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center gap-1 border border-outline-variant/30 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span>Étape suivante : Date &amp; Heure</span>
+                    <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                  </button>
+                </div>
               </div>
 
               {/* Card 0-bis: Date du transport, Heure du rendez-vous médical & Récurrence */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+              <div id="block-datetime" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30 scroll-mt-28">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-space-sm">
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
@@ -932,10 +1024,25 @@ export const BookingPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+                {/* Bouton de passage à l'étape suivante */}
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-2">
+                  <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
+                    <span className="material-symbols-outlined text-sm text-secondary">event_available</span>
+                    Départ planifié le {transportDate} à {transportTime}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollToBlock('block-patient')}
+                    className="px-3.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center gap-1 border border-outline-variant/30 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span>Étape suivante : Fiche Patient</span>
+                    <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                  </button>
+                </div>
               </div>
 
               {/* Card 1: Fiche d'identité */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+              <div id="block-patient" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30 scroll-mt-28">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-space-sm">
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
@@ -1070,10 +1177,26 @@ export const BookingPage: React.FC = () => {
                     <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
                   </label>
                 </div>
+
+                {/* Bouton de passage fluide à l'étape suivante */}
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
+                  <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
+                    <span className="material-symbols-outlined text-sm text-secondary">verified_user</span>
+                    Identité patient renseignée
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollToBlock('block-mobility')}
+                    className="px-3.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center gap-1 border border-outline-variant/30 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span>Étape suivante : Mobilité</span>
+                    <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                  </button>
+                </div>
               </div>
 
               {/* Card 2: Mobilité & Condition Physique */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+              <div id="block-mobility" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30 scroll-mt-28">
                 <div className="flex items-center gap-space-sm">
                   <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
                     <span className="material-symbols-outlined">accessible</span>
@@ -1401,10 +1524,26 @@ export const BookingPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Bouton de passage fluide à l'étape suivante */}
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
+                  <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
+                    <span className="material-symbols-outlined text-sm text-secondary">accessible</span>
+                    Mode adapté : <strong className="text-on-surface capitalize">{transportType === 'ambulance' ? 'Ambulance A/C' : transportType === 'vsl' ? 'VSL Sanitaire' : 'Taxi conventionné'}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollToBlock('block-pmt')}
+                    className="px-3.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center gap-1 border border-outline-variant/30 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span>Étape suivante : Prescription (PMT)</span>
+                    <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                  </button>
+                </div>
               </div>
 
               {/* Card 3: Prescription Médicale de Transport (PMT) */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30">
+              <div id="block-pmt" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30 scroll-mt-28">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-space-sm">
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
@@ -1427,7 +1566,10 @@ export const BookingPage: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setHasPmt('already')}
+                    onClick={() => {
+                      setHasPmt('already');
+                      setTimeout(() => scrollToBlock('block-transporter'), 400);
+                    }}
                     className={`flex-1 py-2.5 px-3 rounded-xl font-label-md text-xs font-bold transition-all border ${
                       hasPmt === 'already'
                         ? 'bg-primary text-on-primary border-primary shadow-xs'
@@ -1438,7 +1580,10 @@ export const BookingPage: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setHasPmt('later')}
+                    onClick={() => {
+                      setHasPmt('later');
+                      setTimeout(() => scrollToBlock('block-transporter'), 400);
+                    }}
                     className={`flex-1 py-2.5 px-3 rounded-xl font-label-md text-xs font-bold transition-all border ${
                       hasPmt === 'later'
                         ? 'bg-primary text-on-primary border-primary shadow-xs'
@@ -1513,10 +1658,26 @@ export const BookingPage: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {/* Bouton de passage fluide à l'étape suivante */}
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
+                  <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
+                    <span className="material-symbols-outlined text-sm text-secondary">description</span>
+                    {hasPmt === 'already' ? 'Bon de transport Cerfa prêt' : 'PMT délivrée en consultation'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => scrollToBlock('block-transporter')}
+                    className="px-3.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center gap-1 border border-outline-variant/30 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span>Étape suivante : Transporteur</span>
+                    <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                  </button>
+                </div>
               </div>
 
               {/* Card 3 bis: Choix du Transporteur Sanitaire (Demande nominative 24h ou Bourse publique) */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
+              <div id="block-transporter" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30 scroll-mt-28">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-space-sm">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
@@ -1557,7 +1718,10 @@ export const BookingPage: React.FC = () => {
                     <select
                       id="transporter-select"
                       value={selectedTransporterId}
-                      onChange={(e) => setSelectedTransporterId(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedTransporterId(e.target.value);
+                        setTimeout(() => scrollToBlock('block-summary'), 350);
+                      }}
                       className="w-full pl-3 pr-10 py-3 rounded-xl border border-outline-variant/50 bg-surface-container-low text-on-surface text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer"
                     >
                       <option value="">
@@ -1598,12 +1762,28 @@ export const BookingPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Bouton de validation vers le récapitulatif */}
+                  <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
+                    <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
+                      <span className="material-symbols-outlined text-sm text-secondary">local_shipping</span>
+                      {selectedTransporter ? selectedTransporter.companyName : 'Diffusion réseau'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => scrollToBlock('block-summary')}
+                      className="px-4 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary/90 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                    >
+                      <span>Finaliser la réservation</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Sticky Ride Recap Card & Dispatch Button */}
-            <aside className="lg:col-span-5 flex flex-col gap-space-md lg:sticky lg:top-24">
+            <aside id="block-summary" className="lg:col-span-5 flex flex-col gap-space-md lg:sticky lg:top-24 scroll-mt-28">
               <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-lg flex flex-col gap-space-md border border-outline-variant/30">
                 <div className="flex items-center justify-between pb-space-xs">
                   <h3 className="font-headline-sm text-headline-sm text-primary font-bold">
