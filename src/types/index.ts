@@ -262,6 +262,8 @@ export interface ClientRecord {
   aldReason?: string;
   hasPmt: boolean;
   pmtPrescriberDoctor?: string;
+  pmtFileUrl?: string;
+  pmtFileName?: string;
   mobility: MobilityNeeds;
   status: 'ACTIVE' | 'SUSPENDED';
   createdAt: string;

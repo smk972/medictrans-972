@@ -1940,6 +1940,85 @@ export const rideService = {
     const current = await this.getAllRides();
     const updated = [newRide, ...current];
     localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(updated));
+
+    // Synchronisation immédiate avec l'annuaire des fiches clients de l'administration
+    try {
+      if (newRide.patient && (newRide.patient.firstName || newRide.patient.lastName || newRide.patient.email || newRide.patient.phone)) {
+        const rawC = localStorage.getItem('medictrans_admin_clients_972');
+        let cList: any[] = rawC ? JSON.parse(rawC) : [];
+        const p = newRide.patient;
+        const pEmail = (p.email || '').trim().toLowerCase();
+        const pNir = (p.nir || '').replace(/\s/g, '');
+        const pFirst = (p.firstName || '').trim().toLowerCase();
+        const pLast = (p.lastName || '').trim().toLowerCase();
+
+        // Ne pas enregistrer de fiche pour le dummy "Aimé GLISSANT"
+        if (!(pFirst === 'aimé' && pLast === 'glissant')) {
+          let postal = p.postalCode;
+          if (!postal) {
+            const m = ((newRide.pickupAddress || '') + ' ' + (p.address || '')).match(/\b(97[1-8]|2[ABab]|0[1-9]|[1-8]\d|9[0-5])\d{3}\b/);
+            postal = m ? m[0] : (p.phone?.startsWith('0696') || p.phone?.startsWith('0596') ? '97200' : '75000');
+          }
+          const city = p.city || newRide.pickupCity || (postal.startsWith('972') ? 'Fort-de-France' : 'Paris');
+
+          const existIdx = cList.findIndex((c: any) => {
+            if (pEmail && c.email && c.email.toLowerCase() === pEmail) return true;
+            if (pNir && c.nir && c.nir.replace(/\s/g, '') === pNir && !pNir.includes('000000')) return true;
+            if (pFirst && pLast && c.firstName?.toLowerCase() === pFirst && c.lastName?.toLowerCase() === pLast) return true;
+            return false;
+          });
+
+          const clientRec = {
+            id: existIdx >= 0 ? cList[existIdx].id : `client-ride-${newRide.id || Date.now()}`,
+            firstName: p.firstName || 'Client',
+            lastName: p.lastName || '',
+            birthDate: p.birthDate || '1975-01-01',
+            nir: p.nir || '1 75 00 00 000 000 00',
+            phone: p.phone || '06 00 00 00 00',
+            email: p.email || `${pFirst || 'client'}.${pLast || 'nouveau'}@clinigo.fr`,
+            address: p.address || newRide.pickupAddress || 'Adresse déclarée',
+            city,
+            postalCode: postal,
+            isAld: p.isAld ?? true,
+            aldReason: p.aldReason || (p.isAld ? 'Prise en charge ALD 100%' : undefined),
+            hasPmt: p.hasPmt ?? true,
+            pmtPrescriberDoctor: p.pmtPrescriberDoctor || 'Médecin prescripteur',
+            pmtFileUrl: p.pmtFileUrl,
+            pmtFileName: p.pmtFileName,
+            mobility: newRide.mobility || {
+              wheelchair: false,
+              stretcher: false,
+              oxygen: false,
+              stairsWithoutElevator: false,
+              needsEscort: false,
+            },
+            status: 'ACTIVE',
+            createdAt: newRide.createdAt || new Date().toISOString(),
+            notes: `Patient issu de la réservation ${newRide.reference} (${newRide.transportType || 'VSL'})`
+          };
+
+          if (existIdx >= 0) {
+            cList[existIdx] = { ...cList[existIdx], ...clientRec };
+          } else {
+            cList.unshift(clientRec);
+          }
+          localStorage.setItem('medictrans_admin_clients_972', JSON.stringify(cList));
+
+          fetch('/api/clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(clientRec)
+          }).catch(() => {});
+
+          try {
+            window.dispatchEvent(new CustomEvent('clinigo_clients_updated'));
+          } catch {}
+        }
+      }
+    } catch (errSync) {
+      console.warn('Sync client dans createRide non-bloquante:', errSync);
+    }
+
     return newRide;
   },
 

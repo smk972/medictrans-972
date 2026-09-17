@@ -8,6 +8,7 @@ const STORAGE_KEY_SETTINGS = 'medictrans_admin_settings_972';
 const STORAGE_KEY_AUDIT_LOGS = 'medictrans_admin_audit_logs_972';
 const STORAGE_KEY_USERS = 'medictrans_admin_users_972';
 const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
+const STORAGE_KEY_DELETED_CLIENTS = 'medictrans_deleted_clients_972';
 
 // Clients initiaux de référence en Martinique
 const INITIAL_CLIENTS: ClientRecord[] = [
@@ -327,6 +328,12 @@ export class AdminService {
   // 1. GESTION DES FICHES CLIENTS / PATIENTS
   // =========================================================================
   static async getAllClients(): Promise<ClientRecord[]> {
+    let deletedIds: string[] = [];
+    try {
+      const rawDel = localStorage.getItem(STORAGE_KEY_DELETED_CLIENTS);
+      if (rawDel) deletedIds = JSON.parse(rawDel);
+    } catch {}
+
     const raw = localStorage.getItem(STORAGE_KEY_CLIENTS);
     let clients: ClientRecord[] = [];
     if (raw) {
@@ -340,6 +347,7 @@ export class AdminService {
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           for (const serverClient of json.data) {
+            if (deletedIds.includes(serverClient.id)) continue;
             const idx = clients.findIndex(c => c.id === serverClient.id || (serverClient.email && c.email.toLowerCase() === serverClient.email.toLowerCase()));
             if (idx >= 0) {
               clients[idx] = { ...clients[idx], ...serverClient };
@@ -355,6 +363,7 @@ export class AdminService {
 
     // 2. Fusionner les fiches de référence initiales Nationales & DOM
     for (const initClient of INITIAL_CLIENTS) {
+      if (deletedIds.includes(initClient.id)) continue;
       if (!clients.some(c => c.email.toLowerCase() === initClient.email.toLowerCase() || c.id === initClient.id)) {
         clients.push(initClient);
       }
@@ -366,6 +375,7 @@ export class AdminService {
       const patientUsers = allUsers.filter(u => u.role === 'PATIENT');
 
       for (const p of patientUsers) {
+        if (deletedIds.includes(`client-${p.id}`) || (p.email && deletedIds.includes(p.email))) continue;
         const exists = clients.some(c => c.email.toLowerCase() === p.email.toLowerCase());
         if (!exists) {
           const dept = p.phone?.startsWith('0696') || p.phone?.startsWith('0596') ? '97200' :
@@ -415,11 +425,118 @@ export class AdminService {
         }
       }
     } catch (err) {
-      console.warn('Sync clients non-bloquante:', err);
+      console.warn('Sync clients depuis utilisateurs non-bloquante:', err);
     }
 
-    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clients));
-    return clients;
+    // 4. Synchroniser automatiquement avec TOUTES les réservations de transport (Supervisions / Courses)
+    try {
+      const allRides = await rideService.getAllRides();
+      for (const r of allRides) {
+        if (!r.patient) continue;
+        const p = r.patient;
+        const pEmail = (p.email || '').trim().toLowerCase();
+        const pNir = (p.nir || '').replace(/\s/g, '');
+        const pFirst = (p.firstName || '').trim().toLowerCase();
+        const pLast = (p.lastName || '').trim().toLowerCase();
+        const pPhone = (p.phone || '').replace(/\s/g, '');
+
+        // Ignorer les courses de test / dummy "Aimé GLISSANT" ou sans identité
+        if (pFirst === 'aimé' && pLast === 'glissant') continue;
+        if (!pFirst && !pLast && !pEmail && !pPhone) continue;
+
+        const rideClientId = `client-ride-${r.id || r.reference}`;
+        if (deletedIds.includes(rideClientId)) continue;
+        if (pEmail && deletedIds.includes(pEmail)) continue;
+
+        // Détection code postal & commune
+        let detectedPostal = p.postalCode;
+        if (!detectedPostal) {
+          const m = ((r.pickupAddress || '') + ' ' + (p.address || '')).match(/\b(97[1-8]|2[ABab]|0[1-9]|[1-8]\d|9[0-5])\d{3}\b/);
+          detectedPostal = m ? m[0] : (pPhone.startsWith('0696') || pPhone.startsWith('0596') || pPhone.startsWith('+330696') ? '97200' : '75000');
+        }
+        const cityName = p.city || r.pickupCity || (detectedPostal.startsWith('972') ? 'Fort-de-France' : 'Paris');
+
+        // Recherche d'un client existant par email, NIR, nom+prénom ou téléphone
+        const existingIdx = clients.findIndex(c => {
+          if (pEmail && c.email && c.email.toLowerCase() === pEmail) return true;
+          if (pNir && c.nir && c.nir.replace(/\s/g, '') === pNir && !pNir.includes('000000')) return true;
+          if (pFirst && pLast && c.firstName.toLowerCase() === pFirst && c.lastName.toLowerCase() === pLast) return true;
+          if (pPhone && c.phone && c.phone.replace(/\s/g, '') === pPhone && !pPhone.includes('000000')) return true;
+          return false;
+        });
+
+        if (existingIdx === -1) {
+          const clientFromRide: ClientRecord = {
+            id: rideClientId,
+            firstName: p.firstName || 'Client',
+            lastName: p.lastName || '',
+            birthDate: p.birthDate || '1975-01-01',
+            nir: p.nir || '1 75 00 00 000 000 00',
+            phone: p.phone || '06 00 00 00 00',
+            email: p.email || `${pFirst || 'client'}.${pLast || 'nouveau'}@clinigo.fr`,
+            address: p.address || r.pickupAddress || 'Adresse déclarée',
+            city: cityName,
+            postalCode: detectedPostal,
+            isAld: p.isAld ?? true,
+            aldReason: p.aldReason || (p.isAld ? 'Prise en charge ALD 100%' : undefined),
+            hasPmt: p.hasPmt ?? true,
+            pmtPrescriberDoctor: p.pmtPrescriberDoctor || 'Médecin prescripteur',
+            pmtFileUrl: p.pmtFileUrl,
+            pmtFileName: p.pmtFileName,
+            mobility: r.mobility || {
+              wheelchair: false,
+              stretcher: false,
+              oxygen: false,
+              stairsWithoutElevator: false,
+              needsEscort: false,
+            },
+            status: 'ACTIVE',
+            createdAt: r.createdAt || new Date().toISOString(),
+            notes: `Patient issu de la réservation ${r.reference} (${r.transportType || 'VSL'})`
+          };
+
+          clients.unshift(clientFromRide);
+
+          // Persister sur l'API serveur
+          try {
+            fetch('/api/clients', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(clientFromRide)
+            }).catch(() => {});
+          } catch {}
+        } else {
+          // Enrichir la fiche existante si elle manquait d'informations
+          const existing = clients[existingIdx];
+          const hasGenericAddress = !existing.address || existing.address.includes('déclarée à l’inscription') || existing.address.includes('Adresse déclarée');
+          const hasGenericPhone = !existing.phone || existing.phone.includes('00 00');
+          const hasGenericDoctor = !existing.pmtPrescriberDoctor || existing.pmtPrescriberDoctor === 'Médecin traitant';
+
+          clients[existingIdx] = {
+            ...existing,
+            phone: hasGenericPhone && p.phone ? p.phone : existing.phone,
+            nir: (!existing.nir || existing.nir.includes('000 000')) && p.nir ? p.nir : existing.nir,
+            address: hasGenericAddress && (p.address || r.pickupAddress) ? (p.address || r.pickupAddress) : existing.address,
+            city: existing.city || cityName,
+            postalCode: existing.postalCode || detectedPostal,
+            isAld: existing.isAld || (p.isAld ?? false),
+            aldReason: existing.aldReason || p.aldReason,
+            hasPmt: existing.hasPmt || (p.hasPmt ?? false),
+            pmtPrescriberDoctor: hasGenericDoctor && p.pmtPrescriberDoctor ? p.pmtPrescriberDoctor : existing.pmtPrescriberDoctor,
+            pmtFileUrl: existing.pmtFileUrl || p.pmtFileUrl,
+            pmtFileName: existing.pmtFileName || p.pmtFileName,
+            mobility: existing.mobility || r.mobility
+          };
+        }
+      }
+    } catch (errRides) {
+      console.warn('[AdminService] Synchro clients depuis courses non-bloquante:', errRides);
+    }
+
+    // Filtrer les éventuels clients supprimés
+    const finalClients = clients.filter(c => !deletedIds.includes(c.id));
+    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(finalClients));
+    return finalClients;
   }
 
   static async getClientById(id: string): Promise<ClientRecord | null> {
@@ -499,6 +616,15 @@ export class AdminService {
   }
 
   static async deleteClient(id: string, adminEmail = 'admin@medictrans972.mq'): Promise<boolean> {
+    try {
+      const rawDel = localStorage.getItem(STORAGE_KEY_DELETED_CLIENTS);
+      const deletedIds: string[] = rawDel ? JSON.parse(rawDel) : [];
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem(STORAGE_KEY_DELETED_CLIENTS, JSON.stringify(deletedIds));
+      }
+    } catch {}
+
     const clients = await this.getAllClients();
     const target = clients.find(c => c.id === id);
     const filtered = clients.filter(c => c.id !== id);

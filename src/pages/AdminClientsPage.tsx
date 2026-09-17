@@ -112,6 +112,26 @@ export const AdminClientsPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    // Actualisation périodique automatique (polling 5s)
+    const interval = setInterval(() => {
+      loadData();
+    }, 5000);
+
+    const onUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('clinigo_clients_updated', onUpdate);
+    window.addEventListener('clinigo_ride_status_updated', onUpdate);
+    window.addEventListener('storage', onUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('clinigo_clients_updated', onUpdate);
+      window.removeEventListener('clinigo_ride_status_updated', onUpdate);
+      window.removeEventListener('storage', onUpdate);
+    };
   }, []);
 
   const filteredClients = useMemo(() => {
