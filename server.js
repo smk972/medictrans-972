@@ -307,6 +307,238 @@ RÈGLES ABSOLUES :
   });
 }
 
+// Handler de l'endpoint IA SEO Content Hub
+const SYSTEM_SEO_PROMPT = `Tu es l'assistant éditorial en chef et expert SEO de Clinigo (clinigo.fr), plateforme de référence en France pour la réservation et la régulation de transports sanitaires (Ambulances, VSL et Taxis Conventionnés).
+
+RÈGLES DÉONTOLOGIQUES & ÉDITORIALES STRICTES :
+1. Tu ne dois JAMAIS inventer de tarifs officiels, de pourcentages de remboursement erronés, d'articles de loi fictifs ou de données médicales inventées.
+2. Privilégie TOUJOURS les références officielles : Caisse Nationale d'Assurance Maladie (ameli.fr), Ministère de la Santé (sante.gouv.fr), Service-Public.fr, Légifrance.
+3. Distingue clairement les faits établis des conseils pratiques. Si une règle dépend de la caisse ou de la situation clinique, écris "Selon les critères définis par votre caisse d'Assurance Maladie" ou "Sous réserve d'accord préalable".
+4. Évite le bourrage de mots-clés (keyword stuffing). Écris dans un français irréprochable, clair, humain, bienveillant et professionnel.
+5. Structure tes réponses en Markdown impeccable avec H2 (##) et H3 (###).
+6. Ne crée des liens internes QUE vers des URLs existantes fournies explicitement dans la liste fournie.`;
+
+async function callGeminiSeoJson(userPrompt, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM_SEO_PROMPT }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
+    })
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API Error (${response.status}): ${errorText.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) throw new Error('Aucune réponse générée par le modèle');
+  try {
+    return JSON.parse(textOutput);
+  } catch {
+    const cleaned = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
+  }
+}
+
+async function handleAiSeo(req, res) {
+  const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress || '127.0.0.1';
+  if (!checkRateLimit(clientIp)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Trop de requêtes. Veuillez patienter une minute.', status: 429 }));
+    return;
+  }
+
+  let rawBody = '';
+  req.on('data', chunk => { rawBody += chunk; });
+  req.on('end', async () => {
+    try {
+      const body = JSON.parse(rawBody || '{}');
+      const { action, payload } = body;
+      const startTime = Date.now();
+      let resultData;
+
+      if (action === 'generatePlan') {
+        const { topic, focusKeyword, targetCity, contentType, tone = 'Professionnel', wordCountTarget = 1000 } = payload || {};
+        if (GEMINI_API_KEY) {
+          const prompt = `Génère le PLAN DÉTAILLÉ (Outline) pour un article SEO sur Clinigo.fr.
+Sujet : "${topic}"
+Mot-clé : "${focusKeyword}"
+${targetCity ? `Zone ciblée : "${targetCity}"` : ''}
+Type : ${contentType}
+Ton : ${tone}
+Longueur : ${wordCountTarget} mots
+Format JSON :
+{
+  "title": "Titre optimisé (50-65 caractères)",
+  "slug": "slug-optimise-sans-accents",
+  "focusKeyword": "${focusKeyword}",
+  "intent": "informationnelle ou commerciale",
+  "headings": ["## 1. Titre H2", "### 1.1 Sous-titre H3", "## 2. Titre H2"],
+  "suggestedQuestions": ["Question 1 ?", "Question 2 ?"],
+  "sourcesToVerify": ["ameli.fr", "service-public.fr"]
+}`;
+          resultData = await callGeminiSeoJson(prompt, GEMINI_API_KEY);
+        } else {
+          resultData = {
+            title: `${topic} : Guide Complet & Démarches Pratiques`,
+            slug: (topic || 'guide').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60),
+            focusKeyword: focusKeyword || 'transport sanitaire',
+            intent: 'informationnelle',
+            headings: [
+              `## 1. Qu'est-ce que ${focusKeyword || topic} ?`,
+              `## 2. Dans quels cas pouvez-vous en bénéficier ?`,
+              `## 3. Modalités de prise en charge et démarches avec la CPAM`,
+              `## 4. Comment réserver sereinement avec Clinigo ?`
+            ],
+            suggestedQuestions: [
+              `Qui a droit au remboursement pour ${focusKeyword || topic} ?`,
+              `Quelle est la différence entre VSL et taxi conventionné ?`
+            ],
+            sourcesToVerify: [
+              'ameli.fr - Prise en charge des transports sanitaires',
+              'service-public.fr - Prescription Médicale de Transport'
+            ]
+          };
+        }
+      } else if (action === 'generateArticle') {
+        const { plan, existingArticles = [] } = payload || {};
+        if (GEMINI_API_KEY) {
+          const prompt = `Rédige l'ARTICLE COMPLET en respectant scrupuleusement ce plan validé :
+Titre : ${plan?.title}
+Mot-clé : ${plan?.focusKeyword}
+Intention : ${plan?.intent}
+Plan des sous-titres :
+${(plan?.headings || []).join('\n')}
+Questions FAQ :
+${(plan?.suggestedQuestions || []).join('\n')}
+Articles existants pour maillage interne :
+${existingArticles.map(a => `- [${a.title}](/blog/${a.slug})`).join('\n') || 'Aucun'}
+Format JSON :
+{
+  "title": "${plan?.title}",
+  "slug": "${(plan?.title || 'article').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}",
+  "excerpt": "Résumé incitatif de 130 à 160 caractères.",
+  "metaTitle": "${plan?.title} | Clinigo",
+  "metaDescription": "Description de 130 à 155 caractères.",
+  "content": "Texte intégral rédigé en Markdown avec H2, H3, listes à puces et liens internes.",
+  "faq": [{ "question": "Q1", "answer": "R1" }],
+  "suggestedCta": "Réserver un transport conventionné",
+  "suggestedImageAlt": "Illustration professionnelle",
+  "sources": [{ "title": "Assurance Maladie Ameli.fr", "url": "https://www.ameli.fr", "organization": "CPAM", "verified": true }]
+}`;
+          resultData = await callGeminiSeoJson(prompt, GEMINI_API_KEY);
+        } else {
+          resultData = {
+            title: plan?.title || 'Guide Médical',
+            slug: (plan?.title || 'guide').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60),
+            excerpt: `Découvrez notre guide complet sur ${plan?.focusKeyword || 'le transport sanitaire'} : démarches et prise en charge.`,
+            metaTitle: `${plan?.title || 'Guide'} | Clinigo`,
+            metaDescription: `Guide pratique sur ${plan?.focusKeyword || 'le transport sanitaire'} : règles de remboursement et réservation en ligne.`,
+            content: `## Introduction\n\nLe recours à un transport sanitaire est encadré par des règles médicales et administratives précises.\n\n## 1. Cadre légal et prescription\n\nTout transport prescrit doit faire l'objet d'une Prescription Médicale de Transport (PMT) établie avant le trajet.\n\n## Comment réserver avec Clinigo ?\n\nSur **Clinigo.fr**, trouvez rapidement une ambulance, un VSL ou un taxi conventionné disponible.`,
+            faq: (plan?.suggestedQuestions || []).map(q => ({ question: q, answer: 'Consultez les recommandations officielles de l\'Assurance Maladie et votre médecin traitant.' })),
+            suggestedCta: 'Réserver un transport sanitaire',
+            suggestedImageAlt: `Illustration pour ${plan?.focusKeyword || 'transport'}`,
+            sources: [{ title: 'Ameli.fr - Frais de transport sanitaire', url: 'https://www.ameli.fr/assure/remboursements/rembourse/transport', organization: 'Assurance Maladie', verified: true }]
+          };
+        }
+      } else if (action === 'generateIdeas') {
+        const count = payload?.count || 5;
+        if (GEMINI_API_KEY) {
+          const prompt = `Propose ${count} idées d'articles SEO stratégiques pour Clinigo.fr autour du transport sanitaire, ambulance, VSL, ALD, dialyse.
+Format JSON :
+{
+  "ideas": [
+    { "topic": "Thème", "keyword": "mot cle", "searchIntent": "informationnelle", "suggestedTitle": "Titre", "priority": "HIGH" }
+  ]
+}`;
+          resultData = await callGeminiSeoJson(prompt, GEMINI_API_KEY);
+        } else {
+          resultData = {
+            ideas: [
+              { topic: 'Prise en charge rééducation', keyword: 'transport kiné rééducation', searchIntent: 'informationnelle', suggestedTitle: 'Séances de rééducation : Conditions de remboursement du transport', priority: 'MEDIUM' },
+              { topic: 'Accord préalable CPAM', keyword: 'délai accord préalable transport', searchIntent: 'informationnelle', suggestedTitle: 'Accord préalable de transport médical : Délais et démarches avec la CPAM', priority: 'HIGH' }
+            ]
+          };
+        }
+      } else if (action === 'transformText') {
+        const { text, instruction, customPrompt, targetKeyword } = payload || {};
+        if (!text || !text.trim()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Texte manquant' }));
+          return;
+        }
+        if (GEMINI_API_KEY) {
+          try {
+            const prompt = `Voici le texte sélectionné :
+"""
+${text}
+"""
+Consigne : ${instruction === 'custom' ? customPrompt : instruction}
+${targetKeyword ? `Mot-clé : "${targetKeyword}"` : ''}
+${instruction === 'transformer_en_tableau' ? 'IMPORTANT : Transforme obligatoirement ces informations en un TABLEAU MARKDOWN propre (| Colonne 1 | Colonne 2 |).' : ''}
+Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavardage.`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const gRes = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: 'Tu es un assistant éditorial expert. Rends uniquement le texte final en Markdown sans bavardage.' }] },
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3 }
+              })
+            });
+            if (gRes.ok) {
+              const d = await gRes.json();
+              const output = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+              if (output) {
+                resultData = { text: output };
+              }
+            }
+          } catch (err) {
+            console.warn('[Plesk SEO Server] Gemini transformText fallback:', err.message);
+          }
+        }
+        if (!resultData) {
+          if (instruction === 'transformer_en_tableau') {
+            const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+            let table = `| Critère / Élément | Détails & Spécificités | Prise en charge Clinigo |\n| :--- | :--- | :--- |\n`;
+            rawLines.forEach((line, idx) => {
+              const parts = line.split(/[:;\-\t|]/).map(p => p.trim()).filter(Boolean);
+              if (parts.length >= 2) {
+                table += `| ${parts[0]} | ${parts.slice(1).join(' - ')} | Conforme CPAM |\n`;
+              } else {
+                table += `| Point ${idx + 1} | ${line.replace(/^[-*•\d.]\s*/, '')} | Inclus |\n`;
+              }
+            });
+            resultData = { text: table };
+          } else if (instruction === 'raccourcir') {
+            resultData = { text: text.split('\n').filter(Boolean).map(l => `• ${l.replace(/^[-*•\d.]\s*/, '').trim()}`).slice(0, 4).join('\n') };
+          } else if (instruction === 'simplifier') {
+            resultData = { text: `**En résumé simple pour le patient :**\n${text}\n\n*Note Clinigo : Prise en charge avec le tiers-payant automatique.*` };
+          } else {
+            resultData = { text };
+          }
+        }
+      } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Action non supportée : ${action}` }));
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, data: resultData, durationMs: Date.now() - startTime }));
+    } catch (err) {
+      console.error('[Plesk SEO Server] Erreur :', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message || 'Erreur interne' }));
+    }
+  });
+}
+
 // Création du serveur HTTP
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -322,6 +554,12 @@ const server = http.createServer((req, res) => {
   // 2. Endpoint API Chat
   if (pathname === '/api/ai/chat' && req.method === 'POST') {
     handleAiChat(req, res);
+    return;
+  }
+
+  // 3. Endpoint API SEO Content Hub
+  if (pathname === '/api/ai/seo' && req.method === 'POST') {
+    handleAiSeo(req, res);
     return;
   }
 

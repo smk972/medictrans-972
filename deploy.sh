@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script de Déploiement Médic'Trans Martinique 972
-# Déploie sur : GitHub, Supabase & Cloudflare Pages
+# Script de Déploiement Clinigo / Médic'Trans
+# Déploiement vers GitHub (Synchronisation directe avec VPS IONOS / Plesk)
 # ==============================================================================
 
 set -e
@@ -12,7 +12,8 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}   Médic'Trans 972 - Déploiement Multi-Plateforme     ${NC}"
+echo -e "${BLUE}======================================================${NC}"
+echo -e "${BLUE}   Clinigo - Déploiement GitHub & Serveur IONOS       ${NC}"
 echo -e "${BLUE}======================================================${NC}\n"
 
 # Charger les variables locales si existantes
@@ -20,36 +21,30 @@ if [ -f .env.local ]; then
     export $(grep -v '^#' .env.local | xargs)
 fi
 
-# 1. BUILD DU SITE
-echo -e "${YELLOW}[1/3] Construction du bundle de production (Vite + TypeScript)...${NC}"
+# 1. COMPILATION DE PRODUCTION
+echo -e "${YELLOW}[1/2] Construction du bundle de production (Vite + TypeScript)...${NC}"
 npm run build
 echo -e "${GREEN}✓ Build réussi dans le dossier dist/${NC}\n"
 
 # 2. PUSH GITHUB
-echo -e "${YELLOW}[2/3] Déploiement sur GitHub (smk972/medictrans-972)...${NC}"
-if git push origin main; then
-    echo -e "${GREEN}✓ Code source et historique poussés avec succès sur GitHub !${NC}\n"
+echo -e "${YELLOW}[2/2] Synchronisation vers GitHub (origin main)...${NC}"
+git add .
+if git commit -m "deploy: mise a jour automatique pour serveur ionos"; then
+    echo -e "${GREEN}✓ Commit créé.${NC}"
 else
-    echo -e "${RED}⚠️ La poussée Git automatique a échoué en raison des identifiants non saisis.${NC}"
-    echo -e "${YELLOW}Veuillez exécuter : git push -u origin main${NC}\n"
+    echo -e "${BLUE}ℹ️ Aucun changement supplémentaire à commiter.${NC}"
 fi
 
-# 3. DEPLOIEMENT CLOUDFLARE PAGES
-echo -e "${YELLOW}[3/3] Déploiement sur Cloudflare Pages...${NC}"
-echo -e "Déploiement du projet 'medictrans-972'..."
-if npx wrangler pages deploy dist --project-name=medictrans-972 --commit-dirty=true; then
-    echo -e "${GREEN}✓ Site déployé avec succès sur Cloudflare Pages !${NC}\n"
+if git push origin main; then
+    echo -e "${GREEN}✓ Code source poussé avec succès sur GitHub (origin main) !${NC}\n"
 else
-    echo -e "${YELLOW}Si vous n'êtes pas encore connecté à Cloudflare dans votre terminal :${NC}"
-    echo -e "1. Exécutez : ${GREEN}npx wrangler login${NC}"
-    echo -e "2. Puis relancez : ${GREEN}./deploy.sh${NC}\n"
+    echo -e "${RED}⚠️ La poussée Git automatique a échoué. Veuillez vérifier votre connexion.${NC}"
+    exit 1
 fi
 
 echo -e "${BLUE}======================================================${NC}"
-echo -e "${GREEN}   RAPPEL SUPABASE :${NC}"
-echo -e "Pour initialiser votre base de données Supabase :"
-echo -e "1. Rendez-vous sur https://supabase.com"
-echo -e "2. Ouvrez le 'SQL Editor' de votre projet"
-echo -e "3. Copiez-collez et exécutez le fichier : supabase/schema.sql"
-echo -e "4. Renseignez vos clés dans .env.local"
+echo -e "${GREEN}✓ DÉPLOIEMENT GITHUB EFFECTUÉ AVEC SUCCÈS !${NC}"
+echo -e "Votre serveur IONOS (Plesk Git) récupère automatiquement la branche main."
+echo -e "Rappel : Pour redémarrer l'application Node.js sur Plesk si nécessaire :"
+echo -e "  touch tmp/restart.txt"
 echo -e "${BLUE}======================================================${NC}\n"
