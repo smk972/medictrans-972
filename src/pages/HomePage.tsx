@@ -6,6 +6,7 @@ import { Header } from '../components/Header';
 import { BrandLogo } from '../components/BrandLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { useAiChat } from '../context/AiChatContext';
+import { blogService } from '../services/blogService';
 import { 
   ShieldCheck, 
   Clock, 
@@ -13,6 +14,7 @@ import {
   Calendar, 
   CheckCircle2, 
   ArrowRight, 
+  BookOpen, 
   Activity, 
   Car, 
   HeartHandshake, 
@@ -58,6 +60,14 @@ export const HomePage: React.FC = () => {
   const [carouselSlide, setCarouselSlide] = useState<number>(0);
   const [carouselAutoPlay, setCarouselAutoPlay] = useState<boolean>(true);
   const [carouselProgress, setCarouselProgress] = useState<number>(0);
+
+  // Chargement des derniers articles de blog publiés pour affichage sur l'accueil
+  const [latestArticles, setLatestArticles] = useState<any[]>([]);
+  useEffect(() => {
+    blogService.getPosts({ status: 'published' }).then(posts => {
+      setLatestArticles(posts.slice(0, 3));
+    }).catch(() => {});
+  }, []);
 
   // Auto-play timer for the 3-object carousel
   useEffect(() => {
@@ -1099,6 +1109,89 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* =========================================================================
+            SECTION GUIDES & ACTUALITÉS RÉGLEMENTAIRES
+            ========================================================================= */}
+        {latestArticles.length > 0 && (
+          <section className="px-4 sm:px-6 lg:px-8 py-16 md:py-20 max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/60 text-teal-800 text-xs font-bold uppercase tracking-wider mb-3">
+                  <BookOpen className="w-3.5 h-3.5 text-teal-600" />
+                  Ressources &amp; Guides Clinigo
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                  Guides &amp; Conseils Transport Médical
+                </h2>
+                <p className="mt-2 text-sm sm:text-base text-slate-600 max-w-2xl">
+                  Règles de prise en charge CPAM, bon de transport PMT, ALD à 100% et organisation sereine de vos trajets médicaux.
+                </p>
+              </div>
+              <Link
+                to="/blog"
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-teal-700 hover:text-teal-900 transition-colors shrink-0 group"
+              >
+                <span>Consulter tous les guides</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {latestArticles.map(art => (
+                <article
+                  key={art.id}
+                  className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                >
+                  <div>
+                    <div className="aspect-video overflow-hidden relative">
+                      <img
+                        src={art.featured_image || art.featuredImage || '/assets/medictrans_hero_discover.jpg'}
+                        alt={art.title}
+                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                      />
+                      {art.category && (
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/90 backdrop-blur-xs text-slate-800 shadow-xs">
+                            {art.category.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2">
+                        <span>{art.reading_time_minutes || art.readingTime || 4} min de lecture</span>
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-700 transition-colors leading-snug line-clamp-2">
+                        <Link to={`/blog/${art.slug}`}>
+                          {art.title}
+                        </Link>
+                      </h3>
+                      {art.excerpt && (
+                        <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
+                          {art.excerpt}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-6 pb-6 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-400">
+                      {art.published_at || art.publishedAt ? new Date(art.published_at || art.publishedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Récent'}
+                    </span>
+                    <Link
+                      to={`/blog/${art.slug}`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-900 transition-colors"
+                    >
+                      <span>Lire le guide</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* =========================================================================
             6. FINAL CALL TO ACTION : Double-Bezel Grand Format

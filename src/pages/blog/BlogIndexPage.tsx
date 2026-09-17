@@ -39,7 +39,9 @@ export const BlogIndexPage: React.FC = () => {
 
   const filteredArticles = articles.filter(post => {
     const matchesCategory =
-      selectedCategorySlug === 'all' || post.category?.slug === selectedCategorySlug;
+      selectedCategorySlug === 'all' || 
+      post.category?.slug === selectedCategorySlug ||
+      categories.find(c => c.slug === selectedCategorySlug)?.id === (post.categoryId || post.category_id);
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (post.excerpt && post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||

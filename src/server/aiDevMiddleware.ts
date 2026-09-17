@@ -1,4 +1,5 @@
 declare const process: any;
+declare const require: any;
 
 import { searchKnowledge, KNOWLEDGE_BASE } from '../services/aiKnowledgeBase';
 import { validateNir, verifyRouteTiming, extractBookingFieldsFromConversation } from '../../functions/api/ai/tools';
@@ -585,4 +586,187 @@ Consignes strictes :
     }
   });
 }
+
+// --------------------------------------------------------------------------
+// MIDDLEWARE BLOG & GUIDES CMS (Vite Dev Server)
+// --------------------------------------------------------------------------
+export function handleBlogMiddleware(req: any, res: any) {
+  const fs = require('fs');
+  const path = require('path');
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+  const method = req.method;
+
+  const DATA_DIR = path.join(process.cwd(), 'data');
+  const POSTS_FILE = path.join(DATA_DIR, 'blog_posts.json');
+  const CATEGORIES_FILE = path.join(DATA_DIR, 'blog_categories.json');
+
+  const getPosts = () => {
+    try {
+      if (fs.existsSync(POSTS_FILE)) {
+        return JSON.parse(fs.readFileSync(POSTS_FILE, 'utf8'));
+      }
+    } catch (e) {}
+    return [];
+  };
+
+  const savePosts = (posts: any[]) => {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2), 'utf8');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const getCategories = () => {
+    try {
+      if (fs.existsSync(CATEGORIES_FILE)) {
+        return JSON.parse(fs.readFileSync(CATEGORIES_FILE, 'utf8'));
+      }
+    } catch (e) {}
+    return [];
+  };
+
+  res.setHeader('Content-Type', 'application/json');
+
+  if (pathname === '/api/blog/categories' && method === 'GET') {
+    res.statusCode = 200;
+    res.end(JSON.stringify({ success: true, data: getCategories() }));
+    return;
+  }
+
+  if (pathname.startsWith('/api/blog/posts')) {
+    const idFromPath = pathname.replace('/api/blog/posts', '').replace(/^\//, '');
+
+    if (idFromPath && method === 'GET') {
+      const posts = getPosts();
+      const post = posts.find((p: any) => p.id === idFromPath || p.slug === idFromPath.toLowerCase());
+      if (post) {
+        res.statusCode = 200;
+        res.end(JSON.stringify({ success: true, data: post }));
+      } else {
+        res.statusCode = 404;
+        res.end(JSON.stringify({ success: false, error: 'Article introuvable' }));
+      }
+      return;
+    }
+
+    if (idFromPath && method === 'DELETE') {
+      let posts = getPosts();
+      const prev = posts.length;
+      posts = posts.filter((p: any) => p.id !== idFromPath);
+      savePosts(posts);
+      res.statusCode = 200;
+      res.end(JSON.stringify({ success: true, deleted: prev !== posts.length }));
+      return;
+    }
+
+    if (method === 'GET') {
+      const slug = parsedUrl.searchParams.get('slug');
+      const status = parsedUrl.searchParams.get('status');
+      const categoryId = parsedUrl.searchParams.get('categoryId');
+      const tagId = parsedUrl.searchParams.get('tagId');
+      const allowDraft = parsedUrl.searchParams.get('allowDraft') === 'true';
+
+      let posts = getPosts();
+
+      if (slug) {
+        const cleanSlug = slug.trim().toLowerCase();
+        const post = posts.find((p: any) => p.slug === cleanSlug);
+        if (post) {
+          if (!allowDraft && post.status !== 'published') {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ success: false, error: 'Article non publié' }));
+            return;
+          }
+          res.statusCode = 200;
+          res.end(JSON.stringify({ success: true, data: post }));
+          return;
+        }
+        res.statusCode = 404;
+        res.end(JSON.stringify({ success: false, error: 'Article introuvable' }));
+        return;
+      }
+
+      if (status && status !== 'all') {
+        posts = posts.filter((p: any) => p.status === status);
+      } else if (!status) {
+        posts = posts.filter((p: any) => p.status === 'published');
+      }
+
+      if (categoryId) {
+        posts = posts.filter((p: any) => p.categoryId === categoryId || p.category_id === categoryId);
+      }
+
+      if (tagId) {
+        posts = posts.filter((p: any) => p.tags && p.tags.some((t: any) => t.id === tagId));
+      }
+
+      res.statusCode = 200;
+      res.end(JSON.stringify({ success: true, data: posts, total: posts.length }));
+      return;
+    }
+
+    if (method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: any) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const postData = JSON.parse(body);
+          let posts = getPosts();
+          const categories = getCategories();
+
+          const now = new Date().toISOString();
+          const id = postData.id || `post-${Date.now()}`;
+          const existingIdx = posts.findIndex((p: any) => p.id === id);
+
+          const catId = postData.categoryId || postData.category_id;
+          const resolvedCategory = postData.category || categories.find((c: any) => c.id === catId);
+
+          const fullPost = {
+            ...(existingIdx >= 0 ? posts[existingIdx] : {}),
+            ...postData,
+            id,
+            slug: (postData.slug || 'article').toLowerCase().trim(),
+            status: postData.status || 'published',
+            featured_image: postData.featured_image || postData.featuredImage || '/assets/step2_dispatch.jpg',
+            featuredImage: postData.featuredImage || postData.featured_image || '/assets/step2_dispatch.jpg',
+            category_id: catId,
+            categoryId: catId,
+            category: resolvedCategory,
+            published_at: postData.status === 'published' ? (postData.published_at || postData.publishedAt || now) : null,
+            publishedAt: postData.status === 'published' ? (postData.publishedAt || postData.published_at || now) : null,
+            updated_at: now,
+            updatedAt: now,
+            created_at: (existingIdx >= 0 && posts[existingIdx].created_at) || postData.created_at || now,
+            createdAt: (existingIdx >= 0 && posts[existingIdx].createdAt) || postData.createdAt || now,
+          };
+
+          if (existingIdx >= 0) {
+            posts[existingIdx] = fullPost;
+          } else {
+            posts.unshift(fullPost);
+          }
+
+          savePosts(posts);
+
+          res.statusCode = 200;
+          res.end(JSON.stringify({ success: true, data: fullPost }));
+        } catch (e: any) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      });
+      return;
+    }
+  }
+
+  res.statusCode = 404;
+  res.end(JSON.stringify({ success: false, error: 'Route blog non reconnue' }));
+}
+
 

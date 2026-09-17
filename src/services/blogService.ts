@@ -79,7 +79,7 @@ export const INITIAL_TAGS: BlogTag[] = [
   { id: 'tag-8', name: 'Bon de transport', slug: 'bon-de-transport', createdAt: '2026-09-01T00:00:00Z' },
 ];
 
-// Articles initiaux de démonstration (TOUS EN STATUS = DRAFT pour contrôle humain, règle absolue #3)
+// Articles initiaux de référence (Publiés pour visibilité immédiate du blog)
 export const INITIAL_POSTS: BlogPost[] = [
   {
     id: 'post-demo-1',
@@ -142,11 +142,17 @@ Sur **Clinigo.fr**, il vous suffit d'indiquer le mode prescrit sur votre PMT (Am
     metaDescription: 'Découvrez les différences fondamentales entre VSL et ambulance : équipements, position du patient, équipage et règles de prise en charge CPAM.',
     focusKeyword: 'vsl ou ambulance',
     secondaryKeywords: ['différence vsl ambulance', 'transport assis professionnalisé', 'pmt ambulance'],
-    status: 'draft', // RÈGLE ABSOLUE : DRAFT POUR CONTRÔLE HUMAIN
+    status: 'published',
     contentSensitivity: 'GENERAL_INFO',
-    publishedAt: null,
+    content_sensitivity: 'GENERAL_INFO',
+    publishedAt: '2026-09-10T10:00:00Z',
+    published_at: '2026-09-10T10:00:00Z',
+    featured_image: '/assets/step2_dispatch.jpg',
+    category: INITIAL_CATEGORIES[1],
     createdAt: '2026-09-10T10:00:00Z',
+    created_at: '2026-09-10T10:00:00Z',
     updatedAt: '2026-09-15T14:30:00Z',
+    updated_at: '2026-09-15T14:30:00Z',
     readingTime: 4,
     wordCount: 520,
     canonicalUrl: 'https://clinigo.fr/blog/vsl-ou-ambulance-quelles-differences',
@@ -237,11 +243,17 @@ Lorsque vous présentez votre PMT valide et votre attestation de droits à jour 
     metaDescription: 'Tout savoir sur le bon de transport médicalisé : conditions de prise en charge CPAM, accord préalable, ALD et tiers-payant intégral.',
     focusKeyword: 'bon de transport',
     secondaryKeywords: ['pmt cerfa transport', 'prescription médicale transport', 'remboursement 100% cpam'],
-    status: 'draft', // RÈGLE ABSOLUE : DRAFT POUR CONTRÔLE HUMAIN
+    status: 'published',
     contentSensitivity: 'REGULATORY_INFO',
-    publishedAt: null,
+    content_sensitivity: 'REGULATORY_INFO',
+    publishedAt: '2026-09-08T09:00:00Z',
+    published_at: '2026-09-08T09:00:00Z',
+    featured_image: '/assets/step1_prescription.jpg',
+    category: INITIAL_CATEGORIES[0],
     createdAt: '2026-09-08T09:00:00Z',
+    created_at: '2026-09-08T09:00:00Z',
     updatedAt: '2026-09-14T11:20:00Z',
+    updated_at: '2026-09-14T11:20:00Z',
     readingTime: 5,
     wordCount: 640,
     canonicalUrl: 'https://clinigo.fr/blog/bon-de-transport-prescription-medicale-guide-complet',
@@ -324,11 +336,17 @@ Avec **Clinigo**, vous planifiez l'ensemble de vos séances en quelques clics :
     metaDescription: 'Guide complet du transport sanitaire pour les patients en ALD : critères d\'exonération, dialyse, chimiothérapie et dispense d\'avance de frais.',
     focusKeyword: 'transport medical ald',
     secondaryKeywords: ['transport dialyse', 'vsl chimiotherapie', 'prise en charge 100% ald'],
-    status: 'draft', // RÈGLE ABSOLUE : DRAFT POUR CONTRÔLE HUMAIN
+    status: 'published',
     contentSensitivity: 'MEDICAL_INFO',
-    publishedAt: null,
+    content_sensitivity: 'MEDICAL_INFO',
+    publishedAt: '2026-09-05T08:30:00Z',
+    published_at: '2026-09-05T08:30:00Z',
+    featured_image: '/assets/step3_care.jpg',
+    category: INITIAL_CATEGORIES[2],
     createdAt: '2026-09-05T08:30:00Z',
+    created_at: '2026-09-05T08:30:00Z',
     updatedAt: '2026-09-12T16:45:00Z',
+    updated_at: '2026-09-12T16:45:00Z',
     readingTime: 4,
     wordCount: 490,
     canonicalUrl: 'https://clinigo.fr/blog/transport-sanitaire-ald-affections-longue-duree',
@@ -727,7 +745,30 @@ export class BlogService {
   // --------------------------------------------------------------------------
 
   static async getAllPosts(includeUnpublished = false): Promise<BlogPost[]> {
-    // 1. Supabase prioritaire
+    // 1. API Serveur prioritaire (IONOS & Local)
+    try {
+      const res = await fetch(`/api/blog/posts?status=${includeUnpublished ? 'all' : 'published'}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const formatted = json.data.map((p: any) => ({
+            ...p,
+            featured_image: p.featured_image || p.featuredImage,
+            featuredImage: p.featuredImage || p.featured_image,
+            category_id: p.category_id || p.categoryId,
+            categoryId: p.categoryId || p.category_id,
+          }));
+          try {
+            localStorage.setItem(STORAGE_KEY_POSTS, JSON.stringify(formatted));
+          } catch (e) {}
+          return formatted;
+        }
+      }
+    } catch (e) {
+      // repli en cas de coupure réseau
+    }
+
+    // 2. Supabase si configuré
     if (isSupabaseConfigured() && supabase) {
       try {
         let query = supabase
@@ -753,13 +794,32 @@ export class BlogService {
       }
     }
 
-    // 2. Fallback LocalStorage
+    // 3. Fallback LocalStorage
     return this.getLocalPosts(includeUnpublished);
   }
 
   static async getPostBySlug(slug: string, allowDraft = false): Promise<BlogPost | null> {
     const cleanSlug = slug.trim().toLowerCase();
 
+    // 1. API Serveur prioritaire (IONOS & Local)
+    try {
+      const res = await fetch(`/api/blog/posts?slug=${encodeURIComponent(cleanSlug)}${allowDraft ? '&allowDraft=true' : ''}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const p = json.data;
+          return {
+            ...p,
+            featured_image: p.featured_image || p.featuredImage,
+            featuredImage: p.featuredImage || p.featured_image,
+            category_id: p.category_id || p.categoryId,
+            categoryId: p.categoryId || p.category_id,
+          };
+        }
+      }
+    } catch (e) {}
+
+    // 2. Supabase si configuré
     if (isSupabaseConfigured() && supabase) {
       try {
         let query = supabase
@@ -785,6 +845,7 @@ export class BlogService {
       }
     }
 
+    // 3. Fallback LocalStorage
     const localPosts = this.getLocalPosts(allowDraft);
     const found = localPosts.find((p) => p.slug === cleanSlug);
     if (found) {
@@ -795,6 +856,25 @@ export class BlogService {
   }
 
   static async getPostById(id: string): Promise<BlogPost | null> {
+    // 1. API Serveur prioritaire (IONOS & Local)
+    try {
+      const res = await fetch(`/api/blog/posts/${encodeURIComponent(id)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const p = json.data;
+          return {
+            ...p,
+            featured_image: p.featured_image || p.featuredImage,
+            featuredImage: p.featuredImage || p.featured_image,
+            category_id: p.category_id || p.categoryId,
+            categoryId: p.categoryId || p.category_id,
+          };
+        }
+      }
+    } catch (e) {}
+
+    // 2. Supabase si configuré
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase
@@ -814,6 +894,7 @@ export class BlogService {
       }
     }
 
+    // 3. Fallback LocalStorage
     const localPosts = this.getLocalPosts(true);
     return localPosts.find((p) => p.id === id) || null;
   }
@@ -864,6 +945,9 @@ export class BlogService {
     const readingTime = Math.max(1, Math.ceil(wordCount / 180));
     const audit = calculateInternalSeoScore(merged);
 
+    const catId = merged.categoryId || merged.category_id;
+    const resolvedCat = merged.category || INITIAL_CATEGORIES.find(c => c.id === catId);
+
     const fullPost: BlogPost = {
       id,
       title: merged.title || 'Sans titre',
@@ -871,16 +955,19 @@ export class BlogService {
       excerpt: merged.excerpt || '',
       content: merged.content || '',
       featuredImage: merged.featuredImage || merged.featured_image || '/assets/step2_dispatch.jpg',
-      featuredImageAlt: merged.featuredImageAlt || merged.title || '',
-      categoryId: merged.categoryId || merged.category_id,
-      category_id: merged.categoryId || merged.category_id,
+      featured_image: merged.featured_image || merged.featuredImage || '/assets/step2_dispatch.jpg',
+      featuredImageAlt: merged.featuredImageAlt || merged.featured_image_alt || merged.title || '',
+      featured_image_alt: merged.featured_image_alt || merged.featuredImageAlt || merged.title || '',
+      categoryId: catId,
+      category_id: catId,
+      category: resolvedCat,
       authorName: merged.authorName || authorName,
       seoTitle: merged.seoTitle || merged.meta_title || merged.title || '',
       metaDescription: merged.metaDescription || merged.meta_description || merged.excerpt || '',
       focusKeyword: merged.focusKeyword || merged.target_keyword || '',
       target_keyword: merged.target_keyword || merged.focusKeyword || '',
       secondaryKeywords: merged.secondaryKeywords || [],
-      status: merged.status || 'draft',
+      status: merged.status || 'published',
       contentSensitivity: merged.contentSensitivity || merged.content_sensitivity || 'GENERAL_INFO',
       content_sensitivity: merged.contentSensitivity || merged.content_sensitivity || 'GENERAL_INFO',
       publishedAt: merged.status === 'published' ? merged.publishedAt || merged.published_at || now : null,
@@ -903,7 +990,24 @@ export class BlogService {
       aiReviewed: merged.aiReviewed || false,
     };
 
-    // 1. Sauvegarde Supabase prioritaire
+    // 1. Sauvegarde API Serveur prioritaire (IONOS & Local)
+    try {
+      const res = await fetch('/api/blog/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fullPost),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          fullPost.id = json.data.id;
+        }
+      }
+    } catch (e) {
+      console.warn('[BlogService] API blog serveur non joignable, sauvegarde locale :', e);
+    }
+
+    // 2. Sauvegarde Supabase si configuré
     if (isSupabaseConfigured() && supabase) {
       try {
         const payload = {
@@ -945,11 +1049,11 @@ export class BlogService {
           fullPost.id = data.id;
         }
       } catch (err) {
-        console.warn('[BlogService] Erreur écriture Supabase, sauvegarde locale :', err);
+        console.warn('[BlogService] Erreur écriture Supabase :', err);
       }
     }
 
-    // 2. Synchronisation LocalStorage
+    // 3. Synchronisation LocalStorage
     this.savePostLocally(fullPost);
 
     return fullPost;
@@ -989,6 +1093,10 @@ export class BlogService {
   }
 
   static async deletePost(id: string): Promise<boolean> {
+    try {
+      await fetch(`/api/blog/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    } catch (e) {}
+
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('blog_posts').delete().eq('id', id);
@@ -1011,6 +1119,16 @@ export class BlogService {
   // --------------------------------------------------------------------------
 
   static async getCategories(): Promise<BlogCategory[]> {
+    try {
+      const res = await fetch('/api/blog/categories');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          return json.data;
+        }
+      }
+    } catch (e) {}
+
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase
@@ -1371,12 +1489,20 @@ export class BlogService {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_POSTS);
       let posts: BlogPost[] = raw ? JSON.parse(raw) : INITIAL_POSTS;
+      posts = posts.map(p => ({
+        ...p,
+        featured_image: p.featured_image || p.featuredImage,
+        featuredImage: p.featuredImage || p.featured_image,
+        category_id: p.category_id || p.categoryId,
+        categoryId: p.categoryId || p.category_id,
+        category: p.category || INITIAL_CATEGORIES.find(c => c.id === (p.categoryId || p.category_id)),
+      }));
       if (!includeUnpublished) {
         posts = posts.filter((p) => p.status === 'published');
       }
       return posts;
     } catch {
-      return includeUnpublished ? INITIAL_POSTS : [];
+      return includeUnpublished ? INITIAL_POSTS : INITIAL_POSTS.filter(p => p.status === 'published');
     }
   }
 

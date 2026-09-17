@@ -1,0 +1,42 @@
+[
+  {
+    "id": "cat-remboursement",
+    "name": "Remboursement & Démarches CPAM",
+    "slug": "remboursement-cpam",
+    "description": "Tout savoir sur la prise en charge à 100% ALD, la prescription médicale de transport (PMT) et le tiers-payant.",
+    "seoTitle": "Remboursement Transport Médical & CPAM | Guides Clinigo",
+    "metaDescription": "Comprendre les règles de prise en charge par l'Assurance Maladie des transports en ambulance, VSL et taxi conventionné.",
+    "createdAt": "2026-09-01T00:00:00Z",
+    "updatedAt": "2026-09-01T00:00:00Z"
+  },
+  {
+    "id": "cat-types-transport",
+    "name": "Ambulance, VSL & Taxi Conventionné",
+    "slug": "types-de-transport",
+    "description": "Comparatifs, équipements sanitaires et critères de choix entre ambulance allongée, demi-assise, VSL et taxi conventionné.",
+    "seoTitle": "Ambulance, VSL ou Taxi Conventionné : Lequel Choisir ? | Clinigo",
+    "metaDescription": "Découvrez les différences réglementaires et médicales entre les modes de transport sanitaire conventionné.",
+    "createdAt": "2026-09-01T00:00:00Z",
+    "updatedAt": "2026-09-01T00:00:00Z"
+  },
+  {
+    "id": "cat-pathologies",
+    "name": "Pathologies & Prise en Charge ALD",
+    "slug": "pathologies-ald",
+    "description": "Trajets récurrents pour dialyse, chimiothérapie, radiothérapie, rééducation ou consultations hospitalières.",
+    "seoTitle": "Transport Sanitaire & Affections Longue Durée (ALD) | Clinigo",
+    "metaDescription": "Guides patients pour l'organisation des transports fréquents liés aux soins chroniques et affections de longue durée.",
+    "createdAt": "2026-09-01T00:00:00Z",
+    "updatedAt": "2026-09-01T00:00:00Z"
+  },
+  {
+    "id": "cat-territoires",
+    "name": "Transport Sanitaire & Territoires",
+    "slug": "territoires-sante",
+    "description": "Spécificités de la régulation en Martinique, Guadeloupe, Guyane, La Réunion et France métropolitaine.",
+    "seoTitle": "Régulation Sanitaire et Transport Médical en Région | Clinigo",
+    "metaDescription": "Les réseaux hospitaliers régionaux (CHUM, cliniques) et les règles de transport sanitaire local.",
+    "createdAt": "2026-09-01T00:00:00Z",
+    "updatedAt": "2026-09-01T00:00:00Z"
+  }
+]

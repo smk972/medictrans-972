@@ -588,6 +588,205 @@ Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavar
   });
 }
 
+// --------------------------------------------------------------------------
+// PERSISTANCE & API DU BLOG CMS (Garantie d'affichage immédiat sur IONOS)
+// --------------------------------------------------------------------------
+const DATA_DIR = path.join(__dirname, 'data');
+const POSTS_FILE = path.join(DATA_DIR, 'blog_posts.json');
+const CATEGORIES_FILE = path.join(DATA_DIR, 'blog_categories.json');
+
+function getStoredPosts() {
+  try {
+    if (fs.existsSync(POSTS_FILE)) {
+      return JSON.parse(fs.readFileSync(POSTS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[Blog Server] Erreur lecture blog_posts.json:', e);
+  }
+  return [];
+}
+
+function saveStoredPosts(posts) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('[Blog Server] Erreur écriture blog_posts.json:', e);
+    return false;
+  }
+}
+
+function getStoredCategories() {
+  try {
+    if (fs.existsSync(CATEGORIES_FILE)) {
+      return JSON.parse(fs.readFileSync(CATEGORIES_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[Blog Server] Erreur lecture blog_categories.json:', e);
+  }
+  return [];
+}
+
+function handleBlogApi(req, res, parsedUrl) {
+  const pathname = decodeURIComponent(parsedUrl.pathname);
+  const method = req.method;
+
+  // En-têtes CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // GET /api/blog/categories
+  if (pathname === '/api/blog/categories' && method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, data: getStoredCategories() }));
+    return;
+  }
+
+  // Routes /api/blog/posts...
+  if (pathname.startsWith('/api/blog/posts')) {
+    const idFromPath = pathname.replace('/api/blog/posts', '').replace(/^\//, '');
+
+    // Article spécifique par ID : GET /api/blog/posts/:id
+    if (idFromPath && method === 'GET') {
+      const posts = getStoredPosts();
+      const post = posts.find(p => p.id === idFromPath || p.slug === idFromPath.toLowerCase());
+      if (post) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, data: post }));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Article introuvable' }));
+      }
+      return;
+    }
+
+    // Suppression d'un article : DELETE /api/blog/posts/:id
+    if (idFromPath && method === 'DELETE') {
+      let posts = getStoredPosts();
+      const prevLen = posts.length;
+      posts = posts.filter(p => p.id !== idFromPath);
+      saveStoredPosts(posts);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, deleted: prevLen !== posts.length }));
+      return;
+    }
+
+    // Liste ou filtrage des articles : GET /api/blog/posts
+    if (method === 'GET') {
+      const slug = parsedUrl.searchParams.get('slug');
+      const status = parsedUrl.searchParams.get('status');
+      const categoryId = parsedUrl.searchParams.get('categoryId');
+      const tagId = parsedUrl.searchParams.get('tagId');
+      const allowDraft = parsedUrl.searchParams.get('allowDraft') === 'true';
+
+      let posts = getStoredPosts();
+
+      if (slug) {
+        const cleanSlug = slug.trim().toLowerCase();
+        const post = posts.find(p => p.slug === cleanSlug);
+        if (post) {
+          if (!allowDraft && post.status !== 'published') {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Article non publié' }));
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, data: post }));
+          return;
+        }
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Article introuvable' }));
+        return;
+      }
+
+      if (status && status !== 'all') {
+        posts = posts.filter(p => p.status === status);
+      } else if (!status) {
+        posts = posts.filter(p => p.status === 'published');
+      }
+
+      if (categoryId) {
+        posts = posts.filter(p => p.categoryId === categoryId || p.category_id === categoryId);
+      }
+
+      if (tagId) {
+        posts = posts.filter(p => p.tags && p.tags.some(t => t.id === tagId));
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, data: posts, total: posts.length }));
+      return;
+    }
+
+    // Sauvegarde / Mise à jour : POST /api/blog/posts
+    if (method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const postData = JSON.parse(body);
+          let posts = getStoredPosts();
+          const categories = getStoredCategories();
+
+          const now = new Date().toISOString();
+          const id = postData.id || `post-${Date.now()}`;
+          const existingIdx = posts.findIndex(p => p.id === id);
+
+          const catId = postData.categoryId || postData.category_id;
+          const resolvedCategory = postData.category || categories.find(c => c.id === catId);
+
+          const fullPost = {
+            ...(existingIdx >= 0 ? posts[existingIdx] : {}),
+            ...postData,
+            id,
+            slug: (postData.slug || 'article').toLowerCase().trim(),
+            status: postData.status || 'published',
+            featured_image: postData.featured_image || postData.featuredImage || '/assets/step2_dispatch.jpg',
+            featuredImage: postData.featuredImage || postData.featured_image || '/assets/step2_dispatch.jpg',
+            category_id: catId,
+            categoryId: catId,
+            category: resolvedCategory,
+            published_at: postData.status === 'published' ? (postData.published_at || postData.publishedAt || now) : null,
+            publishedAt: postData.status === 'published' ? (postData.publishedAt || postData.published_at || now) : null,
+            updated_at: now,
+            updatedAt: now,
+            created_at: (existingIdx >= 0 && posts[existingIdx].created_at) || postData.created_at || now,
+            createdAt: (existingIdx >= 0 && posts[existingIdx].createdAt) || postData.createdAt || now,
+          };
+
+          if (existingIdx >= 0) {
+            posts[existingIdx] = fullPost;
+          } else {
+            posts.unshift(fullPost);
+          }
+
+          saveStoredPosts(posts);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, data: fullPost }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      });
+      return;
+    }
+  }
+
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: false, error: 'Route blog non reconnue' }));
+}
+
 // Création du serveur HTTP
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -609,6 +808,12 @@ const server = http.createServer((req, res) => {
   // 3. Endpoint API SEO Content Hub
   if (pathname === '/api/ai/seo' && req.method === 'POST') {
     handleAiSeo(req, res);
+    return;
+  }
+
+  // 4. Endpoints API Blog & Guides CMS
+  if (pathname.startsWith('/api/blog/')) {
+    handleBlogApi(req, res, parsedUrl);
     return;
   }
 
