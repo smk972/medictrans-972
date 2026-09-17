@@ -29,6 +29,7 @@ export const AdminSeoEditorPage: React.FC = () => {
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
   const [featuredImage, setFeaturedImage] = useState('/assets/medictrans_hero_discover.jpg');
+  const [featuredImageAlt, setFeaturedImageAlt] = useState('');
   const [status, setStatus] = useState<BlogPostStatus>('draft');
   const [contentSensitivity, setContentSensitivity] = useState<ContentSensitivity>('GENERAL_INFO');
   const [categoryId, setCategoryId] = useState<string>('');
@@ -40,6 +41,15 @@ export const AdminSeoEditorPage: React.FC = () => {
   const [faq, setFaq] = useState<FaqItem[]>([]);
   const [sources, setSources] = useState<SourceItem[]>([]);
   const [scheduledAt, setScheduledAt] = useState('');
+
+  // Image Manager Modal States
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageModalTab, setImageModalTab] = useState<'ai' | 'upload' | 'library' | 'url'>('ai');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [imageGenerating, setImageGenerating] = useState(false);
+  const [imageGeneratedUrl, setImageGeneratedUrl] = useState<string | null>(null);
+  const [customUrlInput, setCustomUrlInput] = useState('');
+  const [imageError, setImageError] = useState<string | null>(null);
 
   // Aux data
   const [categories, setCategories] = useState<BlogCategory[]>([]);
@@ -94,7 +104,8 @@ export const AdminSeoEditorPage: React.FC = () => {
           setOriginalSlug(post.slug);
           setExcerpt(post.excerpt || '');
           setContent(post.content);
-          setFeaturedImage(post.featured_image || '/assets/medictrans_hero_discover.jpg');
+          setFeaturedImage(post.featured_image || (post as any).featuredImage || '/assets/medictrans_hero_discover.jpg');
+          setFeaturedImageAlt((post as any).featured_image_alt || (post as any).featuredImageAlt || '');
           setStatus(post.status);
           setContentSensitivity(post.content_sensitivity || 'GENERAL_INFO');
           setCategoryId(post.category_id || '');
@@ -193,6 +204,8 @@ export const AdminSeoEditorPage: React.FC = () => {
         excerpt,
         content,
         featured_image: featuredImage,
+        featured_image_alt: featuredImageAlt || title,
+        featuredImageAlt: featuredImageAlt || title,
         status: finalStatus,
         content_sensitivity: contentSensitivity,
         category_id: categoryId || null,
@@ -370,6 +383,120 @@ export const AdminSeoEditorPage: React.FC = () => {
   const insertInternalLink = (url: string, anchor: string) => {
     const linkMarkdown = ` [${anchor}](${url}) `;
     setContent(prev => prev + linkMarkdown);
+  };
+
+  // Bibliothèque d'images recommandées Clinigo
+  const CLINIGO_IMAGE_LIBRARY = [
+    {
+      title: "Transport Sanitaire Découverte",
+      category: "Véhicules",
+      url: "/assets/medictrans_hero_discover.jpg",
+      description: "Ambulance et VSL d'intervention professionnelle"
+    },
+    {
+      title: "Prescription Médicale (PMT)",
+      category: "Réglementation",
+      url: "/assets/step1_prescription.jpg",
+      description: "Médecin prescripteur et bon de transport Cerfa"
+    },
+    {
+      title: "Régulation & Dispatch SAMU",
+      category: "Centrale",
+      url: "/assets/step2_dispatch.jpg",
+      description: "Centrale d'appels et régulation sanitaire 972"
+    },
+    {
+      title: "Prise en Charge Bienveillante",
+      category: "Soins",
+      url: "/assets/step3_care.jpg",
+      description: "Ambulancier diplômé et accompagnement patient"
+    },
+    {
+      title: "Infirmière & Soignants",
+      category: "Personnel",
+      url: "/assets/nurse_almont.jpg",
+      description: "Soignante de proximité et suivi médicalisé"
+    },
+    {
+      title: "Réseau Santé Martinique",
+      category: "Territoire",
+      url: "/assets/martinique_map.jpg",
+      description: "Carte et couverture des 34 communes de l'île"
+    },
+    {
+      title: "Ambulance en Intervention",
+      category: "Urgence",
+      url: "https://images.unsplash.com/photo-1587745416684-47953f16f02f?auto=format&fit=crop&w=1200&q=80",
+      description: "Véhicule sanitaire moderne sur route"
+    },
+    {
+      title: "Consultation & Hospitalisation",
+      category: "Hôpital",
+      url: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
+      description: "Prise en charge en établissement de santé"
+    }
+  ];
+
+  // Gestionnaire de génération d'image par IA
+  const handleGenerateAiImage = async () => {
+    if (!imagePrompt.trim()) {
+      setImageError("Veuillez saisir un prompt descriptif pour l'image.");
+      return;
+    }
+    setImageGenerating(true);
+    setImageError(null);
+    try {
+      const res = await aiSeoService.generateImage({
+        prompt: imagePrompt.trim(),
+        aspectRatio: '16:9',
+      });
+      if (res && res.imageUrl) {
+        setImageGeneratedUrl(res.imageUrl);
+      } else {
+        throw new Error("Impossible de générer l'image.");
+      }
+    } catch (err: any) {
+      setImageError(err.message || "Erreur lors de la génération de l'image.");
+    } finally {
+      setImageGenerating(false);
+    }
+  };
+
+  // Application de l'image sélectionnée ou générée
+  const handleApplyImage = (url: string, defaultAlt?: string) => {
+    if (!url) return;
+    setFeaturedImage(url);
+    if (!featuredImageAlt && (defaultAlt || title)) {
+      setFeaturedImageAlt(defaultAlt || `Illustration : ${title}`);
+    }
+    setShowImageModal(false);
+    setImageGeneratedUrl(null);
+    setMessage({
+      type: 'success',
+      text: "Image de l'article mise à jour avec succès !",
+    });
+  };
+
+  // Upload direct d'une image locale
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setImageError('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("L'image ne doit pas dépasser 5 Mo.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageGeneratedUrl(reader.result);
+        setImageError(null);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -947,17 +1074,111 @@ export const AdminSeoEditorPage: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1">
-                Image à la une (URL)
-              </label>
-              <input
-                type="text"
-                value={featuredImage}
-                onChange={e => setFeaturedImage(e.target.value)}
-                placeholder="/assets/medictrans_hero_discover.jpg"
-                className="w-full px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface focus:outline-none"
-              />
+            {/* Gestionnaire d'Image à la une */}
+            <div className="space-y-3 pt-3 border-t border-outline-variant/20">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-primary">image</span>
+                  <span>Image à la une</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!imagePrompt) {
+                      setImagePrompt(
+                        title
+                          ? `${title}, transport médical conventionné en Martinique, professionnel, photoréaliste, 4k`
+                          : "Ambulance moderne en intervention en Martinique, photoréaliste, 4k"
+                      );
+                    }
+                    setImageModalTab('ai');
+                    setShowImageModal(true);
+                  }}
+                  className="text-[11px] font-bold text-purple-700 hover:text-purple-900 inline-flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm text-amber-500">auto_awesome</span>
+                  <span>Générer IA</span>
+                </button>
+              </div>
+
+              {/* Aperçu de l'image actuelle */}
+              <div className="relative aspect-video rounded-2xl overflow-hidden border border-outline-variant/40 bg-surface-container-high group shadow-2xs">
+                <img
+                  src={featuredImage || '/assets/medictrans_hero_discover.jpg'}
+                  alt={featuredImageAlt || title || "Image de l'article"}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e: any) => {
+                    e.currentTarget.src = '/assets/medictrans_hero_discover.jpg';
+                  }}
+                />
+                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2 backdrop-blur-[2px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!imagePrompt) {
+                        setImagePrompt(
+                          title
+                            ? `${title}, transport médical en Martinique, haute définition, 4k`
+                            : "Ambulance moderne en Martinique, photoréaliste 4k"
+                        );
+                      }
+                      setShowImageModal(true);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-slate-900 text-xs font-bold shadow-md transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">tune</span>
+                    <span>Changer l'image</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Boutons d'action rapides */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!imagePrompt) {
+                      setImagePrompt(
+                        title
+                          ? `${title}, ambulance ou VSL médicalisé en Martinique, photoréaliste 4k`
+                          : "Ambulance moderne en Martinique, photoréaliste 4k"
+                      );
+                    }
+                    setImageModalTab('ai');
+                    setShowImageModal(true);
+                  }}
+                  className="py-2 px-2.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white text-[11px] font-bold shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm text-amber-300">auto_awesome</span>
+                  <span>Générer IA</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageModalTab('upload');
+                    setShowImageModal(true);
+                  }}
+                  className="py-2 px-2.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-on-surface text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">upload_file</span>
+                  <span>Importer / Biblio</span>
+                </button>
+              </div>
+
+              {/* Texte Alternatif (Alt SEO) */}
+              <div>
+                <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
+                  Texte alternatif SEO (Alt text)
+                </label>
+                <input
+                  type="text"
+                  value={featuredImageAlt}
+                  onChange={e => setFeaturedImageAlt(e.target.value)}
+                  placeholder={title ? `Illustration : ${title}` : "Description pour Google et l'accessibilité"}
+                  className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface focus:outline-none"
+                />
+              </div>
             </div>
 
             <div className="pt-2 border-t border-outline-variant/20">
@@ -1249,6 +1470,366 @@ export const AdminSeoEditorPage: React.FC = () => {
                 <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
                   Génération des sections, FAQ Schema, suggestions de liens internes et balises meta.
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* MODAL GESTIONNAIRE D'IMAGE (IA Prompt, Upload, Bibliothèque, URL) */}
+      {showImageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 space-y-5">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center shadow-xs">
+                  <span className="material-symbols-outlined text-xl">image</span>
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-on-surface">
+                    Image à la une de l'article
+                  </h3>
+                  <p className="text-xs text-on-surface-variant">
+                    Générez une illustration par IA, importez une photo ou parcourez notre bibliothèque
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImageModal(false);
+                  setImageError(null);
+                }}
+                className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Navigation par Onglets */}
+            <div className="flex items-center gap-2 border-b border-outline-variant/20 pb-2 overflow-x-auto text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setImageModalTab('ai')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                  imageModalTab === 'ai'
+                    ? 'bg-purple-700 text-white shadow-xs'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-amber-300">auto_awesome</span>
+                <span>Générer par IA</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImageModalTab('upload')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                  imageModalTab === 'upload'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">upload_file</span>
+                <span>Importer un fichier</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImageModalTab('library')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                  imageModalTab === 'library'
+                    ? 'bg-teal-700 text-white shadow-xs'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">photo_library</span>
+                <span>Bibliothèque Clinigo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImageModalTab('url')}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                  imageModalTab === 'url'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">link</span>
+                <span>Lien URL externe</span>
+              </button>
+            </div>
+
+            {imageError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">error</span>
+                <span>{imageError}</span>
+              </div>
+            )}
+
+            {/* Onglet 1 : Génération IA par Prompt */}
+            {imageModalTab === 'ai' && (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-on-surface flex items-center gap-1">
+                      <span>Description de l'image souhaitée (Prompt IA)</span>
+                      <span className="text-error">*</span>
+                    </label>
+                    <span className="text-[11px] text-on-surface-variant font-mono bg-surface-container px-2 py-0.5 rounded">Format 16:9 recommandé</span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={imagePrompt}
+                    onChange={e => setImagePrompt(e.target.value)}
+                    placeholder="Ex: Ambulance moderne arrivant devant le CHU de Martinique sous le soleil des Antilles, équipement professionnel, photoréaliste, 4k"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-purple-600/30 leading-relaxed"
+                  />
+                </div>
+
+                {/* Suggestions de Prompts rapides */}
+                <div>
+                  <div className="text-[11px] font-semibold text-on-surface-variant mb-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm text-amber-500">lightbulb</span>
+                    <span>Idées de prompts rapides adaptés :</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: "🚑 Ambulance moderne CHU", prompt: "Ambulance moderne en intervention devant un hôpital en Martinique, photoréaliste 4k, lumière du jour tropicale" },
+                      { label: "🚗 VSL transport assis", prompt: "Véhicule Sanitaire Léger (VSL) blanc professionnel sur une route ensoleillée de Martinique, photoréaliste" },
+                      { label: "📋 Prescription médicale PMT", prompt: "Médecin prescripteur et patient complétant un bon de transport Cerfa, consultation médicale bienveillante" },
+                      { label: "🏥 Soins & Dialyse", prompt: "Patient pris en charge avec bienveillance par un ambulancier pour une séance de soins, transport sanitaire de qualité" },
+                      { label: "🌴 Transport santé Martinique", prompt: "Transport médicalisé professionnel en Martinique sous les tropiques, soleil, nature, véhicule conventionné" }
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setImagePrompt(item.prompt)}
+                        className="px-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/30 hover:bg-purple-50 hover:text-purple-900 hover:border-purple-300 text-[11px] text-on-surface-variant transition-colors cursor-pointer"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bouton de génération */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiImage}
+                    disabled={imageGenerating || !imagePrompt.trim()}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-900 text-white font-bold text-xs shadow-md active:scale-98 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {imageGenerating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Génération de l'image en cours par l'IA...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-base text-amber-300">auto_awesome</span>
+                        <span>Générer l'image avec l'IA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Résultat généré */}
+                {imageGeneratedUrl && (
+                  <div className="p-4 rounded-2xl bg-surface-container border border-purple-200 space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between text-xs font-bold text-on-surface">
+                      <div className="flex items-center gap-1.5 text-purple-800">
+                        <span className="material-symbols-outlined text-base text-purple-700">check_circle</span>
+                        <span>Aperçu de l'image générée</span>
+                      </div>
+                      <span className="text-[10px] font-mono bg-purple-100 text-purple-900 px-2 py-0.5 rounded-full">
+                        Format 16:9 Optimisé
+                      </span>
+                    </div>
+
+                    <div className="relative aspect-video rounded-xl overflow-hidden shadow-md bg-black/5">
+                      <img
+                        src={imageGeneratedUrl}
+                        alt="Image générée par IA"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleGenerateAiImage}
+                        disabled={imageGenerating}
+                        className="px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors cursor-pointer"
+                      >
+                        Générer une autre variante
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyImage(imageGeneratedUrl, imagePrompt)}
+                        className="px-4 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">done</span>
+                        <span>Appliquer à l'article</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Onglet 2 : Importer un fichier */}
+            {imageModalTab === 'upload' && (
+              <div className="space-y-4 text-center">
+                <div className="border-2 border-dashed border-outline-variant/40 hover:border-primary rounded-3xl p-8 bg-surface-container-low/30 transition-colors">
+                  <span className="material-symbols-outlined text-5xl text-outline mb-2">cloud_upload</span>
+                  <h4 className="text-sm font-bold text-on-surface">
+                    Glissez-déposez votre image ici
+                  </h4>
+                  <p className="text-xs text-on-surface-variant mt-1 mb-4">
+                    Formats acceptés : JPG, PNG, WEBP (Max : 5 Mo)
+                  </p>
+
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs cursor-pointer active:scale-95 transition-all">
+                    <span className="material-symbols-outlined text-base">folder_open</span>
+                    <span>Parcourir mes fichiers...</span>
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {imageGeneratedUrl && (
+                  <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/30 space-y-3 text-left">
+                    <div className="text-xs font-bold text-on-surface">Image sélectionnée :</div>
+                    <div className="aspect-video rounded-xl overflow-hidden shadow-xs">
+                      <img src={imageGeneratedUrl} alt="Aperçu import" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setImageGeneratedUrl(null)}
+                        className="px-3 py-1.5 rounded-xl border border-outline-variant/40 text-xs font-semibold cursor-pointer"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyImage(imageGeneratedUrl, title)}
+                        className="px-4 py-1.5 rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-xs cursor-pointer"
+                      >
+                        Appliquer cette image
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Onglet 3 : Bibliothèque d'images Clinigo */}
+            {imageModalTab === 'library' && (
+              <div className="space-y-3">
+                <p className="text-xs text-on-surface-variant">
+                  Sélectionnez l'une des illustrations officielles et professionnelles du réseau Clinigo :
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1">
+                  {CLINIGO_IMAGE_LIBRARY.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleApplyImage(item.url, item.title)}
+                      className={`group relative rounded-2xl overflow-hidden border p-2 transition-all cursor-pointer flex flex-col gap-2 ${
+                        featuredImage === item.url
+                          ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20'
+                          : 'border-outline-variant/30 bg-surface-container-lowest hover:border-primary/50 hover:shadow-sm'
+                      }`}
+                    >
+                      <div className="aspect-video rounded-xl overflow-hidden relative bg-black/5">
+                        <img
+                          src={item.url}
+                          alt={item.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e: any) => {
+                            e.currentTarget.src = '/assets/medictrans_hero_discover.jpg';
+                          }}
+                        />
+                        <span className="absolute top-2 left-2 text-[10px] font-bold bg-slate-900/80 text-white px-2 py-0.5 rounded-md backdrop-blur-xs">
+                          {item.category}
+                        </span>
+                        {featuredImage === item.url && (
+                          <div className="absolute inset-0 bg-emerald-900/30 flex items-center justify-center">
+                            <span className="bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm">check</span>
+                              Actuelle
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors truncate">
+                          {item.title}
+                        </h4>
+                        <p className="text-[11px] text-on-surface-variant line-clamp-1">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Onglet 4 : Lien URL externe */}
+            {imageModalTab === 'url' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-on-surface mb-1">
+                    Coller l'URL d'une image web
+                  </label>
+                  <input
+                    type="url"
+                    value={customUrlInput}
+                    onChange={e => setCustomUrlInput(e.target.value)}
+                    placeholder="https://images.unsplash.com/... ou /assets/mon-image.jpg"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface focus:outline-none"
+                  />
+                </div>
+
+                {customUrlInput && (
+                  <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/30 space-y-2">
+                    <div className="text-[11px] font-bold text-on-surface-variant">Aperçu du lien :</div>
+                    <div className="aspect-video rounded-xl overflow-hidden max-h-52">
+                      <img
+                        src={customUrlInput}
+                        alt="Aperçu URL"
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError("Impossible de charger l'image depuis cette URL.")}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowImageModal(false)}
+                    className="px-4 py-2 rounded-xl border border-outline-variant/40 text-xs font-semibold text-on-surface cursor-pointer"
+                  >
+                    Fermer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyImage(customUrlInput, title)}
+                    disabled={!customUrlInput.trim()}
+                    className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    Appliquer cette URL
+                  </button>
+                </div>
               </div>
             )}
           </div>

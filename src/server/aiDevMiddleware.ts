@@ -524,6 +524,55 @@ Consignes strictes :
           originalText: text,
           instruction
         };
+      } else if (action === 'generateImage') {
+        const { prompt, aspectRatio = '16:9' } = payload || {};
+        if (!prompt || !prompt.trim()) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ success: false, error: "Prompt manquant pour la génération d'image" }));
+          return;
+        }
+
+        let generatedUrl: string | null = null;
+
+        if (geminiApiKey) {
+          try {
+            const imgRes = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/images/generations', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${geminiApiKey}`
+              },
+              body: JSON.stringify({
+                model: 'imagen-3.0-generate-002',
+                prompt: `${prompt}, realistic photography, high resolution, professional medical transport, 4k`,
+                n: 1,
+                size: '1024x1024'
+              })
+            });
+            if (imgRes.ok) {
+              const imgData: any = await imgRes.json();
+              const b64 = imgData.data?.[0]?.b64_json;
+              const remoteUrl = imgData.data?.[0]?.url;
+              if (b64) {
+                generatedUrl = `data:image/png;base64,${b64}`;
+              } else if (remoteUrl) {
+                generatedUrl = remoteUrl;
+              }
+            }
+          } catch (e: any) {
+            console.warn('[AI SEO Dev] Imagen fallback to Pollinations:', e.message);
+          }
+        }
+
+        if (!generatedUrl) {
+          const encoded = encodeURIComponent(`${prompt}, realistic photo, professional healthcare transportation, high resolution`);
+          generatedUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1200&height=675&nologo=true&seed=${Date.now()}`;
+        }
+
+        resultData = {
+          imageUrl: generatedUrl,
+          prompt
+        };
       } else {
         resultData = { message: 'Action traitée avec succès' };
       }

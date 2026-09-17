@@ -57,6 +57,7 @@ export interface BlogPost {
   featuredImage?: string;
   featuredImageAlt?: string;
   featured_image?: string;
+  featured_image_alt?: string;
   categoryId?: string | null;
   category_id?: string | null;
   category?: BlogCategory;

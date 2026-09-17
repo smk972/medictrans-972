@@ -523,6 +523,55 @@ Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavar
             resultData = { text };
           }
         }
+      } else if (action === 'generateImage') {
+        const { prompt, aspectRatio = '16:9' } = payload || {};
+        if (!prompt || !prompt.trim()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: "Prompt manquant pour la génération d'image" }));
+          return;
+        }
+
+        let generatedUrl = null;
+
+        if (GEMINI_API_KEY) {
+          try {
+            const imgRes = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/images/generations', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GEMINI_API_KEY}`
+              },
+              body: JSON.stringify({
+                model: 'imagen-3.0-generate-002',
+                prompt: `${prompt}, realistic photography, high quality, professional medical atmosphere, 4k`,
+                n: 1,
+                size: '1024x1024'
+              })
+            });
+            if (imgRes.ok) {
+              const imgData = await imgRes.json();
+              const b64 = imgData.data?.[0]?.b64_json;
+              const remoteUrl = imgData.data?.[0]?.url;
+              if (b64) {
+                generatedUrl = `data:image/png;base64,${b64}`;
+              } else if (remoteUrl) {
+                generatedUrl = remoteUrl;
+              }
+            }
+          } catch (imgErr) {
+            console.warn('[Plesk SEO Server] Imagen API error, fallback to Pollinations:', imgErr.message);
+          }
+        }
+
+        if (!generatedUrl) {
+          const encoded = encodeURIComponent(`${prompt}, realistic photo, professional healthcare transportation, high resolution`);
+          generatedUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1200&height=675&nologo=true&seed=${Date.now()}`;
+        }
+
+        resultData = {
+          imageUrl: generatedUrl,
+          prompt
+        };
       } else {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: `Action non supportée : ${action}` }));
