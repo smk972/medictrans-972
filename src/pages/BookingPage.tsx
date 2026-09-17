@@ -6,8 +6,8 @@ import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { FileUpload, UploadedFile } from '../components/FileUpload';
 import { PhoneInput } from '../components/PhoneInput';
 import { GoogleMapView } from '../components/GoogleMapView';
-import { whatsappService } from '../services/whatsappService';
-import { rideService } from '../services/rideService';
+import { rideService, getTransporterDepartment } from '../services/rideService';
+import { extractDepartmentFromAddress } from '../services/addressService';
 import { calculateMedicalRidePricing } from '../services/pricingService';
 import { TransportType, Transporter } from '../types';
 import { SEOHead } from '../components/SEOHead';
@@ -50,7 +50,7 @@ export const BookingPage: React.FC = () => {
   }
 
   const initialTransport = stateData.transportType || storedDraft.transportType || 'vsl';
-  const initialPickup = stateData.pickupAddress || storedDraft.pickupAddress || 'Résidence Les Alizés, Cluny, Schoelcher';
+  const initialPickup = stateData.pickupAddress || storedDraft.pickupAddress || user?.address || 'Résidence Les Alizés, Cluny, Schoelcher';
   const initialDest = stateData.destinationFacility || storedDraft.destinationFacility || 'CHU Pierre Zobda-Quitman - Pôle Oncologie, FdF';
   const initialDate = stateData.transportDate || storedDraft.transportDate || '2026-10-24';
   const initialTime = stateData.transportTime || storedDraft.transportTime || '08:30';
@@ -62,6 +62,13 @@ export const BookingPage: React.FC = () => {
   const [transportDate, setTransportDate] = useState(initialDate);
   const [transportTime, setTransportTime] = useState(initialTime);
   const [isEditingRoute, setIsEditingRoute] = useState(false);
+
+  // Synchronisation avec l'adresse du profil utilisateur dès son chargement
+  useEffect(() => {
+    if (user?.address && !stateData.pickupAddress && !storedDraft.pickupAddress) {
+      setPickupAddress(user.address);
+    }
+  }, [user?.address]);
 
   // Form states - Rendez-vous & Récurrence
   const [isRecurring, setIsRecurring] = useState(false);
@@ -171,10 +178,6 @@ export const BookingPage: React.FC = () => {
     }
   };
   
-  // WhatsApp notification automation states
-  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
-  const [whatsappPhone, setWhatsappPhone] = useState('06 96 44 20 18');
-
   // Attribution directe nominative (délai 24h) ou diffusion générale (pot commun)
   const [transportersList, setTransportersList] = useState<Transporter[]>([]);
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>('');
@@ -186,10 +189,73 @@ export const BookingPage: React.FC = () => {
     });
   }, []);
 
+  // Détection du département patient depuis l'adresse de départ ou de destination ou profil utilisateur
+  const patientDept = useMemo(() => {
+    const fromPickup = extractDepartmentFromAddress(pickupAddress);
+    if (fromPickup) return fromPickup;
+    if (user?.address) {
+      const fromUser = extractDepartmentFromAddress(user.address);
+      if (fromUser) return fromUser;
+    }
+    const fromDest = extractDepartmentFromAddress(destinationFacility);
+    if (fromDest) return fromDest;
+    return '972';
+  }, [pickupAddress, user?.address, destinationFacility]);
+
+  const deptLabel = useMemo(() => {
+    const names: Record<string, string> = {
+      '31': 'Haute-Garonne (31)',
+      '33': 'Gironde (33)',
+      '34': 'Hérault (34)',
+      '75': 'Paris (75)',
+      '92': 'Hauts-de-Seine (92)',
+      '93': 'Seine-Saint-Denis (93)',
+      '94': 'Val-de-Marne (94)',
+      '77': 'Seine-et-Marne (77)',
+      '78': 'Yvelines (78)',
+      '91': 'Essonne (91)',
+      '95': "Val-d'Oise (95)",
+      '69': 'Rhône (69)',
+      '13': 'Bouches-du-Rhône (13)',
+      '59': 'Nord (59)',
+      '44': 'Loire-Atlantique (44)',
+      '67': 'Bas-Rhin (67)',
+      '35': 'Ille-et-Vilaine (35)',
+      '06': 'Alpes-Maritimes (06)',
+      '971': 'Guadeloupe (971)',
+      '972': 'Martinique (972)',
+      '973': 'Guyane (973)',
+      '974': 'La Réunion (974)',
+      '976': 'Mayotte (976)',
+    };
+    return names[patientDept] || `Secteur ${patientDept}`;
+  }, [patientDept]);
+
+  // Filtrage strict des compagnies de transport conventionnées du département du patient
+  const departmentTransporters = useMemo(() => {
+    const list = transportersList.filter((t) => getTransporterDepartment(t) === patientDept);
+    // Si aucun transporteur spécifique n'est encore enregistré pour ce département,
+    // on replie sur l'ensemble pour garantir le service tout en informant le patient
+    if (list.length === 0) {
+      return transportersList;
+    }
+    return list;
+  }, [transportersList, patientDept]);
+
+  // Réinitialisation automatique du choix direct si le département de prise en charge change
+  useEffect(() => {
+    if (selectedTransporterId) {
+      const isValidInDept = departmentTransporters.some((t) => t.id === selectedTransporterId);
+      if (!isValidInDept) {
+        setSelectedTransporterId('');
+      }
+    }
+  }, [patientDept, departmentTransporters, selectedTransporterId]);
+
   const selectedTransporter = useMemo(() => {
     if (!selectedTransporterId) return null;
-    return transportersList.find((t) => t.id === selectedTransporterId) || null;
-  }, [selectedTransporterId, transportersList]);
+    return departmentTransporters.find((t) => t.id === selectedTransporterId) || transportersList.find((t) => t.id === selectedTransporterId) || null;
+  }, [selectedTransporterId, departmentTransporters, transportersList]);
 
   // Consommation automatique d'un brouillon pré-rempli par Eva
   useEffect(() => {
@@ -305,7 +371,6 @@ export const BookingPage: React.FC = () => {
       if (user.lastName) setLastName(user.lastName);
       if (user.phone) {
         setPhone(user.phone);
-        setWhatsappPhone(user.phone);
       }
       if (user.nir) {
         const val = validateNir(user.nir);
@@ -340,14 +405,19 @@ export const BookingPage: React.FC = () => {
 
     setIsSubmitting(true);
 
-    const finalRef = `MT-972-${Math.floor(1000 + Math.random() * 9000)}`;
+    const deptMatch = (pickupAddress + ' ' + destinationFacility).match(/\b(97[1-8]|2[ABab]|0[1-9]|[1-8]\d|9[0-5])\d{3}\b/);
+    const deptCode = deptMatch ? deptMatch[1] : 'FR';
+    const finalRef = `MT-${deptCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const zipMatch = pickupAddress.match(/\b\d{5}\b/);
+    const detectedPostal = zipMatch ? zipMatch[0] : (deptMatch ? `${deptMatch[1]}000` : '75000');
 
     try {
       const createdRide = await rideService.createRide({
         pickupAddress,
-        pickupCity: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Schœlcher',
+        pickupCity: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Domicile',
         dropoffAddress: destinationFacility,
-        dropoffCity: 'Fort-de-France',
+        dropoffCity: destinationFacility.includes(',') ? destinationFacility.split(',')[1].trim() : 'Centre de soins',
         facilityName: destinationFacility,
         pickupDateTime: `${transportDate}T${transportTime}:00`,
         isRoundTrip: true,
@@ -361,8 +431,8 @@ export const BookingPage: React.FC = () => {
           phone,
           email: user?.email || guestEmail || `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
           address: pickupAddress,
-          city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Schœlcher',
-          postalCode: '97233',
+          city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Ville',
+          postalCode: detectedPostal,
           isAld,
           hasPmt: hasPmt === 'already' && !!uploadedPmtDoc,
           pmtUploaded: hasPmt === 'already' && !!uploadedPmtDoc,
@@ -405,8 +475,6 @@ export const BookingPage: React.FC = () => {
         patientName: `${firstName} ${lastName}`,
         nir: currentNir,
         phone,
-        whatsappOptIn,
-        whatsappPhone: whatsappPhone || phone,
         uploadedPmtDoc,
         isDirectRequest: !!selectedTransporter,
         targetTransporterId: selectedTransporter?.id,
@@ -435,8 +503,6 @@ export const BookingPage: React.FC = () => {
         patientName: `${firstName} ${lastName}`,
         nir: currentNir,
         phone,
-        whatsappOptIn,
-        whatsappPhone: whatsappPhone || phone,
         uploadedPmtDoc,
         isDirectRequest: !!selectedTransporter,
         targetTransporterId: selectedTransporter?.id,
@@ -550,44 +616,6 @@ export const BookingPage: React.FC = () => {
         </section>
 
         <div className="max-w-[1280px] mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-xl w-full flex flex-col gap-6">
-          {/* Bannière d'aide interactive Assistant IA Niveau 2 - Eva */}
-          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/80 rounded-2xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                <span className="material-symbols-outlined text-xl">support_agent</span>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-blue-950 flex items-center gap-2">
-                  <span>Eva - Aide à la réservation</span>
-                  <span className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded-full font-semibold uppercase tracking-wider">Remplissage en direct</span>
-                </p>
-                <p className="text-xs text-blue-800 mt-0.5">
-                  Discutez avec Eva et elle remplira directement les cases de votre formulaire au fil de votre échange (départ, destination, date, horaires, véhicule).
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
-              <button
-                type="button"
-                id="btn-open-ai-chat-live-fill"
-                onClick={() => openChat("Je veux que tu remplisses directement les champs de ma réservation en conversant avec moi. Que dois-je t'indiquer ?")}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all hover:scale-[1.02] shrink-0 active:scale-[0.98] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-base">chat</span>
-                <span>Remplir en discutant avec Eva</span>
-              </button>
-              <button
-                type="button"
-                id="btn-open-ai-booking-helper"
-                onClick={() => openChat("Aide-moi à remplir le formulaire de réservation pas à pas.")}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition-all hover:scale-[1.02] shrink-0 active:scale-[0.98] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-base">help_outline</span>
-                <span>Poser une question</span>
-              </button>
-            </div>
-          </div>
-
           {/* Toast de confirmation en direct lorsqu'Eva modifie un champ */}
           {liveUpdatedFields && (
             <aside
@@ -623,7 +651,7 @@ export const BookingPage: React.FC = () => {
                         Itinéraire &amp; Établissement de Soins
                       </h2>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        Suggestions Google Maps &amp; Répertoire Hospitalier 972
+                        Suggestions Google Maps &amp; Répertoire Hospitalier National &amp; DOM
                       </span>
                     </div>
                   </div>
@@ -653,6 +681,7 @@ export const BookingPage: React.FC = () => {
                       allowManualEntry={true}
                       showCategories={false}
                       showQuickCommunes={true}
+                      referenceAddress={destinationFacility}
                       onSelectSuggestion={(s) => setPickupAddress(s.label)}
                     />
 
@@ -664,11 +693,12 @@ export const BookingPage: React.FC = () => {
                       onChange={setDestinationFacility}
                       required
                       icon="domain"
-                      defaultFilter="etablissement"
+                      defaultFilter="ALL"
                       helperText="Tous les CHU, hôpitaux, cliniques et centres de soins"
                       allowManualEntry={true}
                       showCategories={true}
                       showQuickCommunes={false}
+                      referenceAddress={pickupAddress}
                       onSelectSuggestion={(s) => setDestinationFacility(s.label)}
                     />
                   </div>
@@ -970,12 +1000,7 @@ export const BookingPage: React.FC = () => {
                     value={phone}
                     defaultDialCode="+33"
                     showValidation={false}
-                    onChange={(full) => {
-                      setPhone(full);
-                      if (!whatsappPhone || whatsappPhone === phone) {
-                        setWhatsappPhone(full);
-                      }
-                    }}
+                    onChange={(full) => setPhone(full)}
                   />
 
                   <div className="flex flex-col gap-1.5">
@@ -1479,26 +1504,35 @@ export const BookingPage: React.FC = () => {
                       <span className="material-symbols-outlined text-[24px]">local_shipping</span>
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
                           Choix du Transporteur Sanitaire
                         </h2>
                         <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
                           Attribution
                         </span>
+                        <span className="bg-secondary/10 text-secondary text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border border-secondary/20">
+                          <span className="material-symbols-outlined text-xs">location_on</span>
+                          <span>Secteur {deptLabel}</span>
+                        </span>
                       </div>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        Adressez directement votre demande à un transporteur précis ou diffusez-la au réseau
+                        Adressez directement votre demande à un transporteur agréé de votre département ou diffusez-la à l'ensemble du réseau local
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-space-sm pt-space-xs">
-                  <label htmlFor="transporter-select" className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-primary">domain</span>
-                    <span>Transporteur conventionné (Optionnel) :</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="transporter-select" className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm text-primary">domain</span>
+                      <span>Transporteur conventionné du secteur ({departmentTransporters.length} disponibles) :</span>
+                    </label>
+                    <span className="text-[11px] text-on-surface-variant font-medium">
+                      Bassin : <strong className="text-on-surface">{deptLabel}</strong>
+                    </span>
+                  </div>
 
                   <div className="relative">
                     <select
@@ -1508,11 +1542,11 @@ export const BookingPage: React.FC = () => {
                       className="w-full pl-3 pr-10 py-3 rounded-xl border border-outline-variant/50 bg-surface-container-low text-on-surface text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer"
                     >
                       <option value="">
-                        🌐 Diffusion générale (Bourse publique — Premier transporteur disponible)
+                        🌐 Diffusion générale (Bourse publique — {deptLabel} — Premier disponible)
                       </option>
-                      {transportersList.map((t) => (
+                      {departmentTransporters.map((t) => (
                         <option key={t.id} value={t.id}>
-                          🏢 {t.companyName} ({t.city || 'Conventionné'})
+                          {t.fleetAmbulances > 0 ? '🚑' : '🚖'} {t.companyName} ({t.city || deptLabel}) — Conventionné ARS & CPAM ({t.fleetAmbulances} amb., {t.fleetVsl} VSL)
                         </option>
                       ))}
                     </select>
@@ -1525,15 +1559,15 @@ export const BookingPage: React.FC = () => {
                     <div className="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-950 text-xs flex flex-col gap-2.5 animate-fadeIn">
                       <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
                         <span className="material-symbols-outlined text-amber-600 text-xl">local_fire_department</span>
-                        <span>Demande directe nominative adressée à : {selectedTransporter.companyName}</span>
+                        <span>Demande directe nominative adressée à : {selectedTransporter.companyName} ({selectedTransporter.city || deptLabel})</span>
                       </div>
                       <p className="text-[12px] text-amber-950/90 leading-relaxed">
-                        Cette demande apparaîtra <strong>en orange vif</strong> dans le panel de <strong>{selectedTransporter.companyName}</strong> avec un <strong>délai prioritaire de 24h00</strong> pour confirmer sa prise en charge.
+                        Cette demande apparaîtra <strong>en orange vif</strong> dans le terminal de gestion de <strong>{selectedTransporter.companyName}</strong> avec un <strong>délai prioritaire de 24h00</strong> pour accepter et confirmer la prise en charge.
                       </p>
                       <div className="flex items-start gap-2 text-[11px] text-amber-900 bg-amber-500/15 p-2.5 rounded-lg font-medium border border-amber-500/20">
                         <span className="material-symbols-outlined text-sm text-amber-700 shrink-0 mt-0.5">sync_alt</span>
                         <span>
-                          <strong>Rebasculement automatique dans le pot commun :</strong> Si le transporteur ne répond pas dans ce délai de 24h00 (ou s'il décline), votre demande sera immédiatement rebasculée dans le <em>pot commun</em> des demandes en attente d'attribution pour être honorée par le premier transporteur disponible.
+                          <strong>Garantie de prise en charge :</strong> Si {selectedTransporter.companyName} ne répond pas dans ce délai de 24h00 (ou s'il décline), votre demande sera immédiatement rebasculée dans le <em>pot commun</em> du secteur <strong>{deptLabel}</strong> pour être prise par le premier véhicule conventionné disponible.
                         </span>
                       </div>
                     </div>
@@ -1541,99 +1575,11 @@ export const BookingPage: React.FC = () => {
                     <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs flex items-start gap-2.5 text-on-surface-variant">
                       <span className="material-symbols-outlined text-secondary text-base shrink-0 mt-0.5">hub</span>
                       <div className="text-[11px] leading-relaxed">
-                        <strong>Diffusion générale optimale :</strong> Votre demande sera transmise simultanément à l'ensemble des compagnies de transport sanitaire conventionnées de votre secteur pour une attribution au premier disponible.
+                        <strong>Diffusion générale optimale ({deptLabel}) :</strong> Votre demande sera transmise simultanément à l'ensemble des compagnies de transport sanitaire conventionnées ({departmentTransporters.length} sociétés agréées) de votre secteur pour une attribution instantanée au premier disponible.
                       </div>
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Card 4: Automatisation & Notifications WhatsApp */}
-              <div className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-space-sm">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
-                      <span className="material-symbols-outlined text-[24px]">chat</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-                          Suivi &amp; Alertes Automatiques WhatsApp
-                        </h2>
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                          Recommandé 972
-                        </span>
-                      </div>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        Suivi d'approche du véhicule, coordonnées chauffeur et récapitulatif direct sur WhatsApp
-                      </span>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      checked={whatsappOptIn}
-                      onChange={(e) => setWhatsappOptIn(e.target.checked)}
-                      className="sr-only peer"
-                      type="checkbox"
-                    />
-                    <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-
-                {whatsappOptIn && (
-                  <div className="flex flex-col gap-space-md pt-space-xs animate-fadeIn">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md items-center">
-                      <PhoneInput
-                        id="whatsappPhone"
-                        label="Numéro WhatsApp (Alertes temps-réel)"
-                        variant="whatsapp"
-                        value={whatsappPhone}
-                        defaultDialCode="+596"
-                        onChange={(full) => setWhatsappPhone(full)}
-                      />
-
-                      <div className="bg-emerald-50/70 border border-emerald-200/60 p-3 rounded-xl flex flex-col gap-1 text-xs">
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                          <span className="material-symbols-outlined text-sm text-emerald-600">verified</span>
-                          3 notifications automatiques programmées :
-                        </div>
-                        <ul className="text-emerald-800/90 text-[11px] list-disc list-inside space-y-0.5">
-                          <li>Confirmation immédiate de prise en charge</li>
-                          <li>Attribution du transporteur &amp; immatriculation</li>
-                          <li>Alerte départ 15 min avant arrivée avec lien GPS live</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between bg-surface-container-low p-space-sm rounded-xl border border-outline-variant/20 text-xs">
-                      <span className="text-on-surface-variant text-[11px]">
-                        Tester immédiatement le lien WhatsApp direct :
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          whatsappService.openWhatsAppDirect(
-                            whatsappPhone || phone,
-                            'BOOKING_CONFIRMATION',
-                            {
-                              patientName: `${firstName} ${lastName}`,
-                              bookingRef: 'MT-972-SIMUL',
-                              pickupAddress,
-                              facilityName: destinationFacility,
-                              transportType: transportType.toUpperCase(),
-                              pickupTime: transportTime,
-                              pickupDate: transportDate,
-                            }
-                          );
-                        }}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1 transition-all shadow-xs"
-                      >
-                        <span className="material-symbols-outlined text-sm">open_in_new</span>
-                        <span>Tester notification WhatsApp</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1745,7 +1691,7 @@ export const BookingPage: React.FC = () => {
                     ) : (
                       <span className="font-bold text-secondary flex items-center gap-1 text-xs">
                         <span className="material-symbols-outlined text-xs">public</span>
-                        <span>Bourse publique (Premier dispo)</span>
+                        <span>Bourse publique ({deptLabel} — 1er dispo)</span>
                       </span>
                     )}
                   </div>
@@ -1877,7 +1823,7 @@ export const BookingPage: React.FC = () => {
                         <>
                           <strong className="text-on-surface">Diffusion instantanée :</strong> Alerte
                           transmise par SMS et console télématique aux{' '}
-                          <span className="text-primary font-bold">professionnels certifiés</span> du secteur.
+                          <span className="text-primary font-bold">professionnels conventionnés</span> du secteur {deptLabel}.
                         </>
                       )}
                     </p>

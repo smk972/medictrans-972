@@ -43,6 +43,7 @@ import { AdminSeoKeywordsPage } from './pages/admin/AdminSeoKeywordsPage';
 import { AdminSeoCategoriesPage } from './pages/admin/AdminSeoCategoriesPage';
 import { AdminSeoTagsPage } from './pages/admin/AdminSeoTagsPage';
 import { AdminSeoSettingsPage } from './pages/admin/AdminSeoSettingsPage';
+import { EmailPreviewPage } from './pages/EmailPreviewPage';
 
 function ScrollToTop() {
   const { pathname } = window.location;
@@ -292,6 +293,11 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             } 
           />
+
+          {/* Maquette E-mail Transactionnel de Bienvenue */}
+          <Route path="/email-preview" element={<EmailPreviewPage />} />
+          <Route path="/maquette-email" element={<EmailPreviewPage />} />
+          <Route path="/admin/email-preview" element={<EmailPreviewPage />} />
           </Routes>
           <AiChatWidget />
         </AiChatProvider>

@@ -6,17 +6,27 @@ import { TransportBadge } from '../components/TransportBadge';
 import { StatusBadge } from '../components/StatusBadge';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { calculateMedicalRidePricing } from '../services/pricingService';
+import {
+  SUPERVISION_TERRITORIES,
+  SUPERVISION_SECTORS,
+  getRideTerritory,
+  getRideDepartmentBadge,
+  matchRideSector
+} from '../data/supervisionSectors';
+import { TerritoryId } from '../data/nationalTerritoriesData';
+import { Search, X } from 'lucide-react';
 
 export const AdminSupervisionPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filters
+  // Filters - National & DOM
+  const [selectedTerritory, setSelectedTerritory] = useState<TerritoryId | 'ALL'>('ALL');
+  const [selectedSector, setSelectedSector] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedType, setSelectedType] = useState<string>('ALL');
-  const [selectedSector, setSelectedSector] = useState<string>('ALL');
 
   // Selected Mission for Side Drawer
   const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
@@ -46,10 +56,16 @@ export const AdminSupervisionPage: React.FC = () => {
     loadData();
   }, []);
 
+  // Changement de territoire -> réinitialisation immédiate du sous-secteur
+  const handleTerritoryChange = (territory: TerritoryId | 'ALL') => {
+    setSelectedTerritory(territory);
+    setSelectedSector('ALL');
+  };
+
   // Filtered rides
   const filteredRides = useMemo(() => {
     return rides.filter((ride) => {
-      // Search
+      // Search (référence, patient, villes, département, établissement, chauffeur)
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -58,6 +74,8 @@ export const AdminSupervisionPage: React.FC = () => {
         ride.patient.lastName.toLowerCase().includes(q) ||
         ride.pickupCity.toLowerCase().includes(q) ||
         ride.dropoffCity.toLowerCase().includes(q) ||
+        (ride.patient.postalCode?.toLowerCase().includes(q) ?? false) ||
+        (ride.facilityName?.toLowerCase().includes(q) ?? false) ||
         (ride.assignedTransporter?.driverName.toLowerCase().includes(q) ?? false) ||
         (ride.assignedTransporter?.companyName.toLowerCase().includes(q) ?? false);
 
@@ -70,33 +88,41 @@ export const AdminSupervisionPage: React.FC = () => {
       // Transport Type
       const matchType = selectedType === 'ALL' || ride.transportType === selectedType;
 
-      // Sector (simplified logic by Martinique city)
-      let matchSector = true;
-      if (selectedSector === 'CENTRE') {
-        matchSector = ['Fort-de-France', 'Le Lamentin', 'Schœlcher', 'Ducos', 'Saint-Joseph'].includes(ride.pickupCity) ||
-                      ['Fort-de-France', 'Le Lamentin', 'Schœlcher', 'Ducos'].includes(ride.dropoffCity);
-      } else if (selectedSector === 'SUD') {
-        matchSector = ['Le Marin', 'Sainte-Luce', 'Rivière-Salée', 'Le Diamant', 'Les Trois-Îlets', 'Sainte-Anne', 'Rivière-Pilote', 'Le Vauclin'].includes(ride.pickupCity);
-      } else if (selectedSector === 'NORD_ATLANTIQUE') {
-        matchSector = ['La Trinité', 'Sainte-Marie', 'Le Robert', 'Gros-Morne', 'Le Lorrain', 'Marigot'].includes(ride.pickupCity);
-      } else if (selectedSector === 'NORD_CARAIBE') {
-        matchSector = ['Saint-Pierre', 'Case-Pilote', 'Bellefontaine', 'Carbet', 'Le Prêcheur', 'Le Morne-Rouge'].includes(ride.pickupCity);
-      }
+      // Territory & Sector matching (National & DOM)
+      const matchSector = matchRideSector(ride, selectedTerritory, selectedSector);
 
       return matchSearch && matchStatus && matchType && matchSector;
     });
-  }, [rides, searchQuery, selectedStatus, selectedType, selectedSector]);
+  }, [rides, searchQuery, selectedStatus, selectedType, selectedTerritory, selectedSector]);
 
   const handleOpenDrawer = (ride: Ride) => {
     setSelectedRide(ride);
     if (ride.assignedTransporter) {
+      const matchedTransporter = transporters.find(t => t.companyName === ride.assignedTransporter?.companyName);
+      setReassignTransporterId(matchedTransporter?.id || '');
       setReassignDriverName(ride.assignedTransporter.driverName);
       setReassignDriverPhone(ride.assignedTransporter.driverPhone);
       setReassignVehiclePlate(ride.assignedTransporter.vehiclePlate);
     } else {
+      const terr = getRideTerritory(ride);
+      const defaultPhone =
+        terr === 'GUADELOUPE' ? '0690 11 22 33' :
+        terr === 'GUYANE' ? '0694 11 22 33' :
+        terr === 'REUNION' ? '0262 11 22 33' :
+        terr === 'METROPOLE' ? '06 12 34 56 78' :
+        '0696 11 22 33';
+
+      const defaultPlate =
+        terr === 'GUADELOUPE' ? 'CD-971-GP' :
+        terr === 'GUYANE' ? 'CD-973-GF' :
+        terr === 'REUNION' ? 'CD-974-RE' :
+        terr === 'METROPOLE' ? 'CD-750-FR' :
+        'CD-972-MQ';
+
+      setReassignTransporterId('');
       setReassignDriverName('Chauffeur disponible');
-      setReassignDriverPhone('0696 11 22 33');
-      setReassignVehiclePlate('CD-972-EF');
+      setReassignDriverPhone(defaultPhone);
+      setReassignVehiclePlate(defaultPlate);
     }
   };
 
@@ -135,7 +161,7 @@ export const AdminSupervisionPage: React.FC = () => {
   return (
     <AdminLayout
       title="Supervision des Demandes & Régulation en Direct"
-      subtitle="Suivi temps réel des courses sanitaires, assignations de chauffeurs et horodatage BPEC certifié"
+      subtitle="Suivi temps réel des courses sanitaires, assignations de chauffeurs et horodatage BPEC certifié • Couverture Nationale & DOM"
       urgentCount={urgentCount}
       actions={
         <button
@@ -150,64 +176,109 @@ export const AdminSupervisionPage: React.FC = () => {
       {/* 4 Mini Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase">Missions du Jour</span>
-          <div className="text-2xl font-extrabold text-primary font-mono mt-0.5">{rides.length}</div>
+          <span className="text-[11px] font-bold text-on-surface-variant uppercase">Missions (Filtre actif)</span>
+          <div className="text-2xl font-extrabold text-primary font-mono mt-0.5">
+            {filteredRides.length} <span className="text-xs font-normal text-on-surface-variant">/ {rides.length} tot.</span>
+          </div>
         </div>
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
           <span className="text-[11px] font-bold text-on-surface-variant uppercase">Alertes / En Attente</span>
           <div className="text-2xl font-extrabold text-error font-mono mt-0.5">
-            {rides.filter(r => r.status === 'PENDING').length}
+            {filteredRides.filter(r => r.status === 'PENDING').length}
           </div>
         </div>
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
           <span className="text-[11px] font-bold text-on-surface-variant uppercase">Véhicules Actifs</span>
           <div className="text-2xl font-extrabold text-on-surface font-mono mt-0.5">
-            {rides.filter(r => r.status === 'EN_ROUTE' || r.status === 'PICKED_UP').length}
+            {filteredRides.filter(r => r.status === 'EN_ROUTE' || r.status === 'PICKED_UP').length}
           </div>
         </div>
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase">Prise en Charge CPAM</span>
-          <div className="text-2xl font-extrabold text-secondary font-mono mt-0.5">99.1%</div>
+          <span className="text-[11px] font-bold text-on-surface-variant uppercase">Prise en Charge CPAM / CGSS</span>
+          <div className="text-2xl font-extrabold text-secondary font-mono mt-0.5">99.2%</div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs mb-6 space-y-3">
-        <div className="flex flex-col md:flex-row items-center gap-3">
+      <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs mb-6 space-y-3.5">
+        {/* Quick Territory Selector Tabs (National & DOM) */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm text-primary">public</span>
+              Territoire Régulé (National & DOM) :
+            </span>
+            <span className="text-[11px] font-semibold text-primary">
+              {SUPERVISION_TERRITORIES.find(t => t.id === selectedTerritory)?.label}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {SUPERVISION_TERRITORIES.map((terr) => {
+              const countInTerr = terr.id === 'ALL'
+                ? rides.length
+                : rides.filter(r => getRideTerritory(r) === terr.id).length;
+              const isSelected = selectedTerritory === terr.id;
+
+              return (
+                <button
+                  key={terr.id}
+                  onClick={() => handleTerritoryChange(terr.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                    isSelected
+                      ? 'bg-primary text-on-primary border-primary shadow-xs'
+                      : 'bg-surface-container/60 text-on-surface-variant border-transparent hover:bg-surface-container hover:text-on-surface'
+                  }`}
+                >
+                  <span>{terr.flag}</span>
+                  <span>{terr.shortLabel}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    isSelected ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-container-highest text-on-surface-variant'
+                  }`}>
+                    {countInTerr}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 2: Search, Sector Select, and Type Select */}
+        <div className="flex flex-col md:flex-row items-center gap-3 pt-2 border-t border-outline-variant/20">
           {/* Search Input */}
           <div className="relative flex-1 w-full">
-            <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-xl">
-              search
-            </span>
+            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-on-surface-variant pointer-events-none select-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher par référence (MT-972-XXXX), nom du patient, commune, chauffeur..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant/50 focus:border-primary text-xs sm:text-sm bg-surface-container-lowest text-on-surface outline-none"
+              placeholder="Rechercher par référence, patient, commune, dép. (971, 972, 973, 974, 75, 69...)..."
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-outline-variant/50 focus:border-primary text-xs sm:text-sm bg-surface-container-lowest text-on-surface outline-none"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5 text-on-surface-variant hover:text-on-surface"
+                className="absolute right-3 top-3 text-on-surface-variant hover:text-on-surface"
               >
-                <span className="material-symbols-outlined text-sm">close</span>
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Sector Select */}
-          <select
-            value={selectedSector}
-            onChange={(e) => setSelectedSector(e.target.value)}
-            className="w-full md:w-48 px-3 py-2.5 rounded-xl border border-outline-variant/50 text-xs font-semibold bg-surface-container-lowest text-on-surface outline-none"
-          >
-            <option value="ALL">Tous les secteurs 972</option>
-            <option value="CENTRE">Bassin Centre (FDF, Lamentin)</option>
-            <option value="SUD">Bassin Sud (Marin, Ste-Luce)</option>
-            <option value="NORD_ATLANTIQUE">Nord Atlantique (Trinité)</option>
-            <option value="NORD_CARAIBE">Nord Caraïbe (St-Pierre)</option>
-          </select>
+          {/* Sector / Health Basin Select (Dynamic based on selectedTerritory) */}
+          <div className="w-full md:w-72">
+            <select
+              value={selectedSector}
+              onChange={(e) => setSelectedSector(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-outline-variant/50 text-xs font-semibold bg-surface-container-lowest text-on-surface outline-none truncate"
+              title="Filtrer par secteur / bassin sanitaire"
+            >
+              {SUPERVISION_SECTORS[selectedTerritory]?.map((sec) => (
+                <option key={sec.id} value={sec.id}>
+                  {sec.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Type Select */}
           <select
@@ -226,13 +297,13 @@ export const AdminSupervisionPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-outline-variant/20">
           <span className="text-xs font-bold text-on-surface-variant mr-2">Statut :</span>
           {[
-            { id: 'ALL', label: 'Toutes', count: rides.length },
-            { id: 'PENDING', label: 'En attente', count: rides.filter(r => r.status === 'PENDING').length },
-            { id: 'URGENT', label: 'Alertes', count: urgentCount },
-            { id: 'ACCEPTED', label: 'Assignées', count: rides.filter(r => r.status === 'ACCEPTED').length },
-            { id: 'EN_ROUTE', label: 'En route', count: rides.filter(r => r.status === 'EN_ROUTE').length },
-            { id: 'PICKED_UP', label: 'Pris en charge', count: rides.filter(r => r.status === 'PICKED_UP').length },
-            { id: 'COMPLETED', label: 'Terminées', count: rides.filter(r => r.status === 'COMPLETED').length }
+            { id: 'ALL', label: 'Toutes', count: filteredRides.length },
+            { id: 'PENDING', label: 'En attente', count: filteredRides.filter(r => r.status === 'PENDING').length },
+            { id: 'URGENT', label: 'Alertes', count: filteredRides.filter(r => r.status === 'PENDING' && (r.mobility.stretcher || r.transportType === 'AMBULANCE')).length },
+            { id: 'ACCEPTED', label: 'Assignées', count: filteredRides.filter(r => r.status === 'ACCEPTED').length },
+            { id: 'EN_ROUTE', label: 'En route', count: filteredRides.filter(r => r.status === 'EN_ROUTE').length },
+            { id: 'PICKED_UP', label: 'Pris en charge', count: filteredRides.filter(r => r.status === 'PICKED_UP').length },
+            { id: 'COMPLETED', label: 'Terminées', count: filteredRides.filter(r => r.status === 'COMPLETED').length }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -262,7 +333,7 @@ export const AdminSupervisionPage: React.FC = () => {
               <tr>
                 <th className="py-3 px-4">Réf. & Date</th>
                 <th className="py-3 px-4">Patient & NIR</th>
-                <th className="py-3 px-4">Itinéraire (972)</th>
+                <th className="py-3 px-4">Itinéraire & Secteur</th>
                 <th className="py-3 px-4">Véhicule</th>
                 <th className="py-3 px-4">Transporteur Assigné</th>
                 <th className="py-3 px-4">Statut</th>
@@ -275,11 +346,16 @@ export const AdminSupervisionPage: React.FC = () => {
                   <td colSpan={7} className="py-12 text-center text-on-surface-variant">
                     <span className="material-symbols-outlined text-3xl mb-1">search_off</span>
                     <p className="font-bold text-sm">Aucune mission ne correspond à vos filtres</p>
+                    <p className="text-xs text-on-surface-variant mt-1">
+                      Essayez de réinitialiser le secteur ou de sélectionner "Tous les territoires".
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filteredRides.map((ride) => {
                   const isSelected = selectedRide?.id === ride.id;
+                  const depBadge = getRideDepartmentBadge(ride);
+
                   return (
                     <tr
                       key={ride.id}
@@ -317,6 +393,12 @@ export const AdminSupervisionPage: React.FC = () => {
                         </div>
                         <div className="text-on-surface-variant flex items-center gap-1">
                           <span className="text-primary font-bold">ARR:</span> {ride.facilityName || ride.dropoffCity}
+                        </div>
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${depBadge.bgClass} ${depBadge.textClass}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80"></span>
+                            {depBadge.code} • {depBadge.label}
+                          </span>
                         </div>
                       </td>
 
@@ -579,9 +661,9 @@ export const AdminSupervisionPage: React.FC = () => {
                 </span>
                 <div>
                   <span className="font-bold text-on-surface block">
-                    Télétransmission CGSS Martinique certifiée
+                    Télétransmission CPAM & CGSS (National & DOM) certifiée
                   </span>
-                  Numéro d'agrément BPEC : <span className="font-mono">972-BPEC-2026-X8</span>. Données cryptées conformes HDS.
+                  Numéro d'agrément BPEC / Sécurité Sociale : <span className="font-mono">BPEC-FR-2026-X8</span>. Données de santé chiffrées conformes HDS & RGPD.
                 </div>
               </div>
             </div>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { AdminLayout } from '../../components/AdminLayout';
 import { AdminSeoSubnav } from '../../components/admin/AdminSeoSubnav';
 import { blogService } from '../../services/blogService';
 import { BlogPost, BlogPostStatus, ContentSensitivity } from '../../types/blog';
 
 export const AdminSeoArticlesPage: React.FC = () => {
+  const location = useLocation();
   const [articles, setArticles] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,8 +14,18 @@ export const AdminSeoArticlesPage: React.FC = () => {
   const [sensitivityFilter, setSensitivityFilter] = useState<string>('all');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Suppression unitaire & multiple
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     loadArticles();
+    if (location.state && (location.state as any).deletedMessage) {
+      setMessage({ type: 'success', text: (location.state as any).deletedMessage });
+      window.history.replaceState({}, document.title);
+    }
   }, []);
 
   const loadArticles = async () => {
@@ -22,6 +33,7 @@ export const AdminSeoArticlesPage: React.FC = () => {
     try {
       const data = await blogService.getPosts({ status: 'all' });
       setArticles(data);
+      setSelectedIds([]);
     } catch (err) {
       console.error('Erreur chargement articles:', err);
     } finally {
@@ -46,16 +58,34 @@ export const AdminSeoArticlesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (post: BlogPost) => {
-    if (!window.confirm(`Confirmez-vous la suppression définitive de l'article "${post.title}" ?`)) {
-      return;
-    }
+  const confirmSingleDelete = async () => {
+    if (!postToDelete) return;
+    setIsDeleting(true);
     try {
-      await blogService.deletePost(post.id);
-      setMessage({ type: 'success', text: `Article "${post.title}" supprimé avec succès.` });
+      await blogService.deletePost(postToDelete.id);
+      setMessage({ type: 'success', text: `Article "${postToDelete.title}" supprimé définitivement.` });
+      setPostToDelete(null);
       await loadArticles();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Erreur lors de la suppression.' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await blogService.deletePosts(selectedIds);
+      setMessage({ type: 'success', text: `${selectedIds.length} article(s) supprimé(s) avec succès.` });
+      setShowBulkDeleteModal(false);
+      setSelectedIds([]);
+      await loadArticles();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Erreur lors de la suppression groupée.' });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -70,6 +100,24 @@ export const AdminSeoArticlesPage: React.FC = () => {
 
     return matchesSearch && matchesStatus && matchesSensitivity;
   });
+
+  const allVisibleSelected =
+    filteredArticles.length > 0 &&
+    filteredArticles.every(post => selectedIds.includes(post.id));
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredArticles.map(p => p.id));
+    }
+  };
+
+  const toggleSelectPost = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
 
   const getSensitivityBadge = (level: ContentSensitivity) => {
     switch (level) {
@@ -146,6 +194,33 @@ export const AdminSeoArticlesPage: React.FC = () => {
         </div>
       )}
 
+      {/* Barre d'action groupée (Sélection multiple) */}
+      {selectedIds.length > 0 && (
+        <div className="mb-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2 text-xs font-bold text-rose-900">
+            <span className="material-symbols-outlined text-base text-rose-600">checklist</span>
+            <span>{selectedIds.length} article(s) sélectionné(s)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-100/50 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            >
+              Désélectionner
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">delete</span>
+              <span>Supprimer la sélection ({selectedIds.length})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Barre de Filtres & Recherche */}
       <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs mb-6 flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-80">
@@ -205,7 +280,16 @@ export const AdminSeoArticlesPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="bg-surface-container-low/50 border-b border-outline-variant/30 text-on-surface-variant font-bold">
-                  <th className="py-3.5 px-4">Article</th>
+                  <th className="py-3.5 pl-4 pr-2 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectAll}
+                      title="Tout sélectionner / désélectionner"
+                      className="w-4 h-4 rounded text-primary focus:ring-primary border-outline-variant cursor-pointer"
+                    />
+                  </th>
+                  <th className="py-3.5 px-3">Article</th>
                   <th className="py-3.5 px-3">Sensibilité</th>
                   <th className="py-3.5 px-3">Statut</th>
                   <th className="py-3.5 px-3 text-center">Score SEO interne</th>
@@ -214,9 +298,26 @@ export const AdminSeoArticlesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {filteredArticles.map(post => (
-                  <tr key={post.id} className="hover:bg-surface-container-low/30 transition-colors">
-                    <td className="py-3.5 px-4 max-w-sm">
+                {filteredArticles.map(post => {
+                  const isChecked = selectedIds.includes(post.id);
+                  return (
+                    <tr
+                      key={post.id}
+                      className={`transition-colors ${
+                        isChecked
+                          ? 'bg-rose-50/40 hover:bg-rose-50/60'
+                          : 'hover:bg-surface-container-low/30'
+                      }`}
+                    >
+                      <td className="py-3.5 pl-4 pr-2">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelectPost(post.id)}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary border-outline-variant cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-3.5 px-3 max-w-sm">
                       <div className="font-bold text-on-surface truncate" title={post.title}>
                         {post.title}
                       </div>
@@ -302,24 +403,114 @@ export const AdminSeoArticlesPage: React.FC = () => {
                           </span>
                         </button>
 
-                        {/* Supprimer */}
+                        {/* Supprimer avec modale de confirmation */}
                         <button
                           type="button"
-                          onClick={() => handleDelete(post)}
-                          className="p-1.5 rounded-lg border border-outline-variant/30 hover:bg-rose-50 text-on-surface-variant hover:text-rose-600 transition-colors"
-                          title="Supprimer définitivement"
+                          onClick={() => setPostToDelete(post)}
+                          className="p-1.5 rounded-lg border border-outline-variant/30 hover:bg-rose-50 text-on-surface-variant hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Supprimer définitivement cet article"
                         >
                           <span className="material-symbols-outlined text-base">delete</span>
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Modale de confirmation de suppression unitaire */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 animate-scaleUp">
+            <div className="flex items-center gap-3 text-rose-600 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0 border border-rose-200">
+                <span className="material-symbols-outlined text-xl">delete_forever</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-on-surface leading-tight">Supprimer cet article ?</h3>
+                <p className="text-xs text-on-surface-variant">Cette action est immédiate et irréversible.</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-surface-container-low rounded-xl mb-4 border border-outline-variant/20 text-xs space-y-1">
+              <div className="font-bold text-on-surface truncate">{postToDelete.title}</div>
+              <div className="text-[11px] font-mono text-on-surface-variant">/blog/{postToDelete.slug}</div>
+            </div>
+
+            <p className="text-xs text-on-surface-variant leading-relaxed mb-5">
+              L'article sera définitivement effacé de votre catalogue et deviendra immédiatement inaccessible sur le site public (page 404 « Guide introuvable »).
+            </p>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs font-semibold text-on-surface transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmSingleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">delete</span>
+                <span>{isDeleting ? 'Suppression...' : 'Supprimer définitivement'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale de confirmation de suppression groupée */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 animate-scaleUp">
+            <div className="flex items-center gap-3 text-rose-600 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0 border border-rose-200">
+                <span className="material-symbols-outlined text-xl">delete_sweep</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-on-surface leading-tight">
+                  Supprimer les {selectedIds.length} articles sélectionnés ?
+                </h3>
+                <p className="text-xs text-on-surface-variant">Cette action groupée est irréversible.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-on-surface-variant leading-relaxed mb-5">
+              Ces {selectedIds.length} articles seront immédiatement retirés de votre catalogue, désindexés et inaccessibles sur le site public.
+            </p>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs font-semibold text-on-surface transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmBulkDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">delete</span>
+                <span>{isDeleting ? 'Suppression groupée...' : `Supprimer ${selectedIds.length} articles`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

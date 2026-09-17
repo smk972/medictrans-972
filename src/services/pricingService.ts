@@ -195,7 +195,33 @@ function normalizeText(text: string): string {
 export function resolveCoordinates(input: string, targetTerritory?: TerritoryId): { lat: number; lng: number; label: string } {
   const norm = normalizeText(input);
 
-  // 1. Recherche parmi les établissements de santé de Martinique
+  // 1. Établissements de santé majeurs nationaux & DOM
+  const NATIONAL_FACILITY_PINS: Record<string, { lat: number; lng: number; label: string }> = {
+    'purpan': { lat: 43.6089, lng: 1.4014, label: 'CHU Toulouse Purpan' },
+    'rangueil': { lat: 43.5574, lng: 1.4547, label: 'CHU Toulouse Rangueil' },
+    'pasteur-toulouse': { lat: 43.5939, lng: 1.4172, label: 'Clinique Pasteur Toulouse' },
+    'oncopole': { lat: 43.5591, lng: 1.4287, label: 'IUCT Oncopole Toulouse' },
+    'ducuing': { lat: 43.5978, lng: 1.4312, label: 'Hôpital Joseph Ducuing' },
+    'salpetriere': { lat: 48.8392, lng: 2.3653, label: 'AP-HP Pitié-Salpêtrière' },
+    'hegp': { lat: 48.8395, lng: 2.2741, label: 'AP-HP Georges-Pompidou' },
+    'necker': { lat: 48.8458, lng: 2.3155, label: 'AP-HP Necker' },
+    'herriot': { lat: 45.7441, lng: 4.8814, label: 'HCL Édouard Herriot' },
+    'timone': { lat: 43.2891, lng: 5.4025, label: 'AP-HM Timone' },
+    'pellegrin': { lat: 44.8306, lng: -0.6033, label: 'CHU Bordeaux Pellegrin' },
+    'lapeyronie': { lat: 43.6318, lng: 3.8587, label: 'CHU Montpellier Lapeyronie' },
+    'hautepierre': { lat: 48.5917, lng: 7.7028, label: 'CHU Strasbourg Hautepierre' },
+    'pontchaillou': { lat: 48.1219, lng: -1.6961, label: 'CHU Rennes Pontchaillou' },
+    'huriez': { lat: 50.6105, lng: 3.0336, label: 'CHU Lille Huriez' },
+    'hotel-dieu-nantes': { lat: 47.2119, lng: -1.5528, label: 'CHU Nantes Hôtel-Dieu' },
+  };
+
+  for (const [key, pin] of Object.entries(NATIONAL_FACILITY_PINS)) {
+    if (norm.includes(key)) {
+      return pin;
+    }
+  }
+
+  // Établissements de santé de Martinique
   for (const [key, facility] of Object.entries(HEALTHCARE_FACILITY_COORDINATES)) {
     const fNorm = normalizeText(facility.name);
     if (norm.includes(key) || norm.includes(fNorm) || fNorm.includes(norm)) {
@@ -229,29 +255,54 @@ export function resolveCoordinates(input: string, targetTerritory?: TerritoryId)
     return { lat: f.lat, lng: f.lng, label: f.name };
   }
 
-  // 2. Recherche spécifique dans le territoire demandé ou détecté
-  const territory = targetTerritory || detectTerritoryFromAddress(input);
-  const cfg = TERRITORIES_CONFIG[territory];
-  if (cfg) {
-    for (const z of cfg.zones) {
-      const zNorm = normalizeText(z.name);
-      if (norm.includes(zNorm) || zNorm.includes(norm) || (z.postalCode && norm.includes(z.postalCode))) {
-        return { lat: z.lat, lng: z.lng, label: z.name };
-      }
-    }
+  // 2. Détection par département officiel ou métropole
+  const deptMatch = norm.match(/\b(97[1-6]|2[ab]|0[1-9]|[1-8]\d|9[0-5])\d{3}\b/);
+  const deptCode = deptMatch ? deptMatch[1] : null;
+
+  if (deptCode === '31' || norm.includes('toulouse') || norm.includes('blagnac') || norm.includes('colomiers')) {
+    return { lat: 43.6047, lng: 1.4442, label: 'Toulouse (31)' };
+  }
+  if (['75', '92', '93', '94', '77', '78', '91', '95'].includes(deptCode || '') || norm.includes('paris')) {
+    return { lat: 48.8566, lng: 2.3522, label: 'Paris (IDF)' };
+  }
+  if (deptCode === '69' || norm.includes('lyon')) {
+    return { lat: 45.7640, lng: 4.8357, label: 'Lyon (69)' };
+  }
+  if (deptCode === '13' || norm.includes('marseille')) {
+    return { lat: 43.2965, lng: 5.3698, label: 'Marseille (13)' };
+  }
+  if (deptCode === '33' || norm.includes('bordeaux')) {
+    return { lat: 44.8378, lng: -0.5792, label: 'Bordeaux (33)' };
+  }
+  if (deptCode === '34' || norm.includes('montpellier')) {
+    return { lat: 43.6108, lng: 3.8767, label: 'Montpellier (34)' };
+  }
+  if (deptCode === '67' || norm.includes('strasbourg')) {
+    return { lat: 48.5734, lng: 7.7521, label: 'Strasbourg (67)' };
+  }
+  if (deptCode === '35' || norm.includes('rennes')) {
+    return { lat: 48.1173, lng: -1.6778, label: 'Rennes (35)' };
+  }
+  if (deptCode === '59' || norm.includes('lille')) {
+    return { lat: 50.6292, lng: 3.0573, label: 'Lille (59)' };
+  }
+  if (deptCode === '44' || norm.includes('nantes')) {
+    return { lat: 47.2184, lng: -1.5536, label: 'Nantes (44)' };
+  }
+  if (deptCode === '06' || norm.includes('nice')) {
+    return { lat: 43.7102, lng: 7.2620, label: 'Nice (06)' };
+  }
+  if (deptCode === '971' || norm.includes('guadeloupe') || norm.includes('pointe a pitre')) {
+    return { lat: 16.2411, lng: -61.5331, label: 'Pointe-à-Pitre (971)' };
+  }
+  if (deptCode === '973' || norm.includes('guyane') || norm.includes('cayenne')) {
+    return { lat: 4.9372, lng: -52.3260, label: 'Cayenne (973)' };
+  }
+  if (deptCode === '974' || norm.includes('reunion') || norm.includes('saint denis')) {
+    return { lat: -20.8789, lng: 55.4481, label: 'Saint-Denis (974)' };
   }
 
-  // 3. Recherche élargie dans tous les territoires configurés
-  for (const c of Object.values(TERRITORIES_CONFIG)) {
-    for (const z of c.zones) {
-      const zNorm = normalizeText(z.name);
-      if (norm.includes(zNorm) || zNorm.includes(norm)) {
-        return { lat: z.lat, lng: z.lng, label: z.name };
-      }
-    }
-  }
-
-  // 4. Recherche parmi les communes de Martinique (compatibilité historique)
+  // 3. Recherche dans les communes de Martinique (compatibilité historique)
   for (const [communeKey, coords] of Object.entries(MARTINIQUE_COMMUNE_COORDINATES)) {
     const cNorm = normalizeText(communeKey);
     if (norm.includes(cNorm) || cNorm.includes(norm)) {
@@ -259,7 +310,8 @@ export function resolveCoordinates(input: string, targetTerritory?: TerritoryId)
     }
   }
 
-  // 5. Fallback par défaut selon le territoire
+  // 4. Fallback par défaut selon le territoire
+  const territory = targetTerritory || detectTerritoryFromAddress(input);
   if (territory === 'GUADELOUPE') return { lat: 16.2411, lng: -61.5331, label: 'Pointe-à-Pitre' };
   if (territory === 'REUNION') return { lat: -20.8789, lng: 55.4481, label: 'Saint-Denis' };
   if (territory === 'GUYANE') return { lat: 4.9372, lng: -52.3260, label: 'Cayenne' };
@@ -397,7 +449,7 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
     mobility
   } = params;
 
-  const { distanceKm, durationMinutes } = calculateMartiniqueRoadDistance(originAddress, destinationAddress);
+  const { distanceKm, durationMinutes } = calculateNationalRoadDistance(originAddress, destinationAddress);
 
   // Déterminer si le transport a lieu de nuit ou le week-end
   let isNightOrWeekend = false;
@@ -472,6 +524,13 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
     mutuelleAmount,
     patientRemainder,
     isAld,
-    tariffRegime: 'Convention Nationale des Transporteurs Sanitaires & Avenant CGSS Martinique 972',
+    tariffRegime: (() => {
+      const terr = detectTerritoryFromAddress(originAddress) || detectTerritoryFromAddress(destinationAddress);
+      if (terr === 'GUADELOUPE') return 'Convention Nationale des Transporteurs Sanitaires & CGSS Guadeloupe (971)';
+      if (terr === 'GUYANE') return 'Convention Nationale des Transporteurs Sanitaires & CGSS Guyane (973)';
+      if (terr === 'REUNION') return 'Convention Nationale des Transporteurs Sanitaires & CGSS La Réunion (974)';
+      if (terr === 'METROPOLE') return 'Convention Nationale des Transporteurs Sanitaires & CPAM Métropole';
+      return 'Convention Nationale des Transporteurs Sanitaires & Avenant CGSS Martinique (972)';
+    })(),
   };
 }

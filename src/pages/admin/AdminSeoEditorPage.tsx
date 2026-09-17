@@ -50,6 +50,7 @@ export const AdminSeoEditorPage: React.FC = () => {
   const [imageGeneratedUrl, setImageGeneratedUrl] = useState<string | null>(null);
   const [customUrlInput, setCustomUrlInput] = useState('');
   const [imageError, setImageError] = useState<string | null>(null);
+  const generatedPreviewRef = React.useRef<HTMLDivElement>(null);
 
   // Aux data
   const [categories, setCategories] = useState<BlogCategory[]>([]);
@@ -58,6 +59,10 @@ export const AdminSeoEditorPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [savedPostId, setSavedPostId] = useState<string | null>(id || null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string; actionUrl?: string; actionLabel?: string } | null>(null);
+
+  // Suppression d'article
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Live SEO Score & Internal link suggestions
   const [internalLinkSuggestions, setInternalLinkSuggestions] = useState<Array<{ title: string; url: string; anchorText: string }>>([]);
@@ -169,6 +174,23 @@ export const AdminSeoEditorPage: React.FC = () => {
     }
   };
 
+  // Suppression de l'article en cours
+  const handleDeleteArticle = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      await blogService.deletePost(id);
+      navigate('/admin/seo/articles', {
+        state: { deletedMessage: `L'article "${title || 'Sans titre'}" a été définitivement supprimé.` },
+      });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Erreur lors de la suppression de l\'article.' });
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Sauvegarde
   const handleSave = async (forcedStatus?: BlogPostStatus) => {
     if (!title.trim()) {
@@ -270,6 +292,170 @@ export const AdminSeoEditorPage: React.FC = () => {
   };
 
   // GESTION IA : Étape 1 - Générer le Plan
+  // Détection automatique de la catégorie selon le sujet et mot-clé
+  const autoDetectCategory = (topic: string, keyword: string, cats: BlogCategory[]): string => {
+    const text = `${topic} ${keyword}`.toLowerCase();
+    if (text.includes('dialyse') || text.includes('chimio') || text.includes('cancer') || text.includes('ald') || text.includes('pathologie') || text.includes('rééducation') || text.includes('soin')) {
+      const cat = cats.find(c => c.slug === 'pathologies-ald' || c.id === 'cat-pathologies');
+      if (cat) return cat.id;
+    }
+    if (text.includes('vsl') || text.includes('ambulance') || text.includes('taxi') || text.includes('différence') || text.includes('difference') || text.includes('véhicule') || text.includes('vehicule') || text.includes('choisir') || text.includes('transport')) {
+      const cat = cats.find(c => c.slug === 'types-de-transport' || c.id === 'cat-types-transport');
+      if (cat) return cat.id;
+    }
+    if (text.includes('remboursement') || text.includes('cpam') || text.includes('pmt') || text.includes('prescription') || text.includes('100%') || text.includes('bon de transport') || text.includes('droits') || text.includes('prise en charge')) {
+      const cat = cats.find(c => c.slug === 'remboursement-cpam' || c.id === 'cat-remboursement');
+      if (cat) return cat.id;
+    }
+    return cats[0]?.id || 'cat-types-transport';
+  };
+
+  // Détection automatique de la photo à la une 16:9 haute définition selon le sujet
+  const autoDetectFeaturedImage = (topic: string, keyword: string) => {
+    const lower = `${topic} ${keyword}`.toLowerCase();
+    if (lower.includes('régulation') || lower.includes('regulation') || lower.includes('dispatch') || lower.includes('standard') || lower.includes('permanence')) {
+      return {
+        url: '/assets/gallery/regulation_ambulance_dispatch.jpg',
+        alt: 'Centre de régulation des transports sanitaires et coordination des ambulances en Martinique'
+      };
+    }
+    if (lower.includes('pmr') || lower.includes('fauteuil') || lower.includes('handicap') || lower.includes('rampe')) {
+      return {
+        url: '/assets/gallery/transport_pmr_fauteuil.jpg',
+        alt: 'Véhicule adapté PMR avec rampe d\'accès et prise en charge bienveillante en Martinique'
+      };
+    }
+    if (lower.includes('dialyse') || lower.includes('néphrologie') || lower.includes('nephrologie') || lower.includes('rein')) {
+      return {
+        url: '/assets/gallery/dialyse_centre_soins.jpg',
+        alt: 'Centre de soins et dialyse avec transport sanitaire conventionné en Martinique'
+      };
+    }
+    if (lower.includes('bébé') || lower.includes('bebe') || lower.includes('enfant') || lower.includes('maternité') || lower.includes('maternite') || lower.includes('pédiatrie') || lower.includes('pediatrie')) {
+      return {
+        url: '/assets/gallery/pediatrie_maternite.jpg',
+        alt: 'Transport médicalisé pédiatrique et maternité en Martinique'
+      };
+    }
+    if (lower.includes('hélicoptère') || lower.includes('helicoptere') || lower.includes('evasan') || lower.includes('dragon')) {
+      return {
+        url: '/assets/gallery/evasan_helicoptere_chu.jpg',
+        alt: 'Évacuation sanitaire héliportée Dragon 972 SAMU en Martinique'
+      };
+    }
+    if (lower.includes('clinique') || lower.includes('accueil') || lower.includes('admission')) {
+      return {
+        url: '/assets/gallery/clinique_accueil_urgences.jpg',
+        alt: 'Accueil et admissions en clinique médicale partenaire en Martinique'
+      };
+    }
+    if (lower.includes('taxi') || lower.includes('conventionné') || lower.includes('conventionne')) {
+      return {
+        url: '/assets/gallery/taxi_conventionne_aidant.jpg',
+        alt: 'Chauffeur de taxi conventionné CPAM bienveillant pour transport médical en Martinique'
+      };
+    }
+    if (lower.includes('vsl') || lower.includes('assis') || lower.includes('véhicule sanitaire') || lower.includes('vehicule sanitaire')) {
+      return {
+        url: '/assets/gallery/vsl_transport_cote.jpg',
+        alt: 'Véhicule Sanitaire Léger (VSL) conventionné longeant la côte en Martinique'
+      };
+    }
+    if (lower.includes('brancard') || lower.includes('allongé') || lower.includes('allonge')) {
+      return {
+        url: '/assets/gallery/brancardiers_soins_hopital.jpg',
+        alt: 'Équipe d\'ambulanciers brancardiers et transfert civière sécurisé'
+      };
+    }
+    if (lower.includes('pmt') || lower.includes('prescription') || lower.includes('médecin') || lower.includes('medecin') || lower.includes('cerfa')) {
+      return {
+        url: '/assets/gallery/medecin_prescription_pmt.jpg',
+        alt: 'Consultation médicale et validation du bon de transport Cerfa PMT'
+      };
+    }
+    return {
+      url: '/assets/gallery/ambulance_martinique_chu.jpg',
+      alt: 'Ambulance moderne conventionnée prête pour une mission en Martinique'
+    };
+  };
+
+  // GESTION IA : Génération Directe en 1 Clic (Article complet + Tous les champs remplis)
+  const handleOneClickGenerateArticle = async () => {
+    if (!aiTopic.trim()) {
+      setAiError('Veuillez renseigner un sujet ou une intention de recherche.');
+      return;
+    }
+    setAiLoading(true);
+    setAiError(null);
+    setAiStep('generating');
+    try {
+      const chosenKw = aiKeyword.trim() || aiTopic.trim();
+
+      // 1. Élaboration du plan structuré
+      const plan = await aiSeoService.generatePlan({
+        topic: aiTopic.trim(),
+        targetKeyword: chosenKw,
+        targetAudience: aiAudience,
+        contentSensitivity: aiSensitivity,
+      });
+
+      // 2. Rédaction complète de l'article avec sections, FAQ et maillage
+      const generated = await aiSeoService.generateArticle({
+        topic: aiTopic.trim(),
+        targetKeyword: chosenKw,
+        targetAudience: aiAudience,
+        contentSensitivity: aiSensitivity,
+        approvedPlan: plan,
+      });
+
+      // 3. Remplissage automatique de l'ensemble des champs du formulaire
+      setTitle(generated.title);
+      setSlug(generated.slug);
+      setOriginalSlug(generated.slug);
+      setExcerpt(generated.excerpt);
+      setContent(generated.content);
+      setMetaTitle(generated.metaTitle);
+      setMetaDescription(generated.metaDescription);
+      setCanonicalUrl(`https://clinigo.fr/blog/${generated.slug.toLowerCase().trim()}`);
+      setContentSensitivity(aiSensitivity);
+      setTargetKeyword(chosenKw);
+
+      // Image à la une & Alt text SEO automatiques
+      const autoImg = autoDetectFeaturedImage(aiTopic, chosenKw);
+      setFeaturedImage(autoImg.url);
+      setFeaturedImageAlt(generated.suggestedImageAlt || autoImg.alt);
+
+      // Catégorie thématique automatique
+      const autoCatId = autoDetectCategory(aiTopic, chosenKw, categories);
+      if (autoCatId) {
+        setCategoryId(autoCatId);
+      }
+
+      // FAQ Schema.org
+      if (generated.faq && generated.faq.length > 0) {
+        setFaq(generated.faq);
+      }
+      // Sources officielles
+      if (generated.sources && generated.sources.length > 0) {
+        setSources(generated.sources);
+      }
+
+      setStatus('draft');
+      setAiStep('done');
+      setShowAiModal(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMessage({
+        type: 'success',
+        text: '🎉 Article complet rédigé avec succès ! Tous les champs (titre, image à la une, catégorie, contenu Markdown, SEO, FAQ et sources) ont été remplis automatiquement.',
+      });
+    } catch (err: any) {
+      setAiError(err.message || "Erreur lors de la génération automatique de l'article.");
+      setAiStep('prompt');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleGeneratePlan = async () => {
     if (!aiTopic.trim()) {
       setAiError('Veuillez renseigner un sujet ou une intention.');
@@ -300,9 +486,10 @@ export const AdminSeoEditorPage: React.FC = () => {
     setAiError(null);
     setAiStep('generating');
     try {
+      const chosenKw = aiKeyword.trim() || (aiPlan as any).focusKeyword || aiTopic.trim();
       const generated = await aiSeoService.generateArticle({
         topic: aiTopic,
-        targetKeyword: aiKeyword || aiTopic,
+        targetKeyword: chosenKw,
         targetAudience: aiAudience,
         contentSensitivity: aiSensitivity,
         approvedPlan: aiPlan,
@@ -311,26 +498,40 @@ export const AdminSeoEditorPage: React.FC = () => {
       // Injecter dans l'éditeur
       setTitle(generated.title);
       setSlug(generated.slug);
+      setOriginalSlug(generated.slug);
       setExcerpt(generated.excerpt);
       setContent(generated.content);
       setMetaTitle(generated.metaTitle);
       setMetaDescription(generated.metaDescription);
+      setCanonicalUrl(`https://clinigo.fr/blog/${generated.slug.toLowerCase().trim()}`);
       setContentSensitivity(aiSensitivity);
-      if (aiKeyword) setTargetKeyword(aiKeyword);
+      setTargetKeyword(chosenKw);
+
+      // Image à la une & Alt text SEO automatiques si non renseignés
+      const autoImg = autoDetectFeaturedImage(aiTopic, chosenKw);
+      setFeaturedImage(autoImg.url);
+      setFeaturedImageAlt(generated.suggestedImageAlt || autoImg.alt);
+
+      // Catégorie thématique automatique
+      const autoCatId = autoDetectCategory(aiTopic, chosenKw, categories);
+      if (autoCatId) {
+        setCategoryId(autoCatId);
+      }
+
       if (generated.faq && generated.faq.length > 0) {
         setFaq(generated.faq);
       }
       if (generated.sources && generated.sources.length > 0) {
         setSources(generated.sources);
       }
-      // Règle 2 : le statut initial reste 'draft'
       setStatus('draft');
 
       setAiStep('done');
       setShowAiModal(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setMessage({
         type: 'success',
-        text: 'Article et métadonnées générés avec succès par l’IA ! Statut défini en Brouillon pour vérification humaine.',
+        text: '🎉 Article complet et métadonnées générés avec succès par l’IA ! Statut défini en Brouillon pour vérification humaine.',
       });
     } catch (err: any) {
       setAiError(err.message || 'Erreur lors de la génération du contenu complet.');
@@ -424,16 +625,70 @@ export const AdminSeoEditorPage: React.FC = () => {
       description: "Carte et couverture des 34 communes de l'île"
     },
     {
-      title: "Ambulance en Intervention",
+      title: "Ambulance SAMU 972 CHUM",
       category: "Urgence",
-      url: "https://images.unsplash.com/photo-1587745416684-47953f16f02f?auto=format&fit=crop&w=1200&q=80",
-      description: "Véhicule sanitaire moderne sur route"
+      url: "/assets/gallery/ambulance_martinique_chu.jpg",
+      description: "Ambulance d'urgence devant le CHUM sous les tropiques"
     },
     {
-      title: "Consultation & Hospitalisation",
+      title: "VSL Transport Médicalisé",
+      category: "Véhicules",
+      url: "/assets/gallery/vsl_transport_cote.jpg",
+      description: "Véhicule Sanitaire Léger en bord de mer en Martinique"
+    },
+    {
+      title: "Taxi Conventionné CPAM",
+      category: "Véhicules",
+      url: "/assets/gallery/taxi_conventionne_aidant.jpg",
+      description: "Chauffeur conventionné aidant un patient avec bienveillance"
+    },
+    {
+      title: "Véhicule Adapté PMR & Fauteuil",
+      category: "Véhicules",
+      url: "/assets/gallery/transport_pmr_fauteuil.jpg",
+      description: "Rampe d'accès et assistance bienveillante pour fauteuil roulant"
+    },
+    {
+      title: "Dialyse & Soins Réguliers",
       category: "Hôpital",
-      url: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
-      description: "Prise en charge en établissement de santé"
+      url: "/assets/gallery/dialyse_centre_soins.jpg",
+      description: "Prise en charge spécialisée pour centre de néphrologie"
+    },
+    {
+      title: "Pédiatrie & Maternité",
+      category: "Soins",
+      url: "/assets/gallery/pediatrie_maternite.jpg",
+      description: "Transport mère-enfant rassurant devant l'hôpital soleil"
+    },
+    {
+      title: "Évacuation Sanitaire Hélicoptère",
+      category: "Urgence",
+      url: "/assets/gallery/evasan_helicoptere_chu.jpg",
+      description: "Hélicoptère Dragon 972 SAMU sur l'héliport du CHUM"
+    },
+    {
+      title: "Salle de Régulation & Dispatch SAMU",
+      category: "Régulation",
+      url: "/assets/gallery/regulation_ambulance_dispatch.jpg",
+      description: "Centre de régulation des ambulances et coordination GPS en Martinique"
+    },
+    {
+      title: "Clinique & Accueil Médical",
+      category: "Accueil",
+      url: "/assets/gallery/clinique_accueil_urgences.jpg",
+      description: "Accueil chaleureux et admissions en clinique moderne"
+    },
+    {
+      title: "Brancardiers & Soins Hospitaliers",
+      category: "Hôpital",
+      url: "/assets/gallery/brancardiers_soins_hopital.jpg",
+      description: "Équipe soignante et transfert civière sécurisé"
+    },
+    {
+      title: "Médecin & Prescription Cerfa PMT",
+      category: "Réglementation",
+      url: "/assets/gallery/medecin_prescription_pmt.jpg",
+      description: "Consultation médicale et validation du bon de transport"
     }
   ];
 
@@ -452,6 +707,9 @@ export const AdminSeoEditorPage: React.FC = () => {
       });
       if (res && res.imageUrl) {
         setImageGeneratedUrl(res.imageUrl);
+        setTimeout(() => {
+          generatedPreviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
       } else {
         throw new Error("Impossible de générer l'image.");
       }
@@ -529,6 +787,18 @@ export const AdminSeoEditorPage: React.FC = () => {
               <span className="material-symbols-outlined text-base">visibility</span>
               <span>Aperçu</span>
             </Link>
+          )}
+
+          {isEditing && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-colors cursor-pointer"
+              title="Supprimer définitivement cet article"
+            >
+              <span className="material-symbols-outlined text-base">delete</span>
+              <span className="hidden sm:inline">Supprimer</span>
+            </button>
           )}
 
           <button
@@ -900,6 +1170,18 @@ export const AdminSeoEditorPage: React.FC = () => {
                 </Link>
               )}
 
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-colors cursor-pointer"
+                  title="Supprimer définitivement cet article"
+                >
+                  <span className="material-symbols-outlined text-base">delete</span>
+                  <span>Supprimer l'article</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 id="btn-save-article-bottom"
@@ -1104,6 +1386,7 @@ export const AdminSeoEditorPage: React.FC = () => {
               {/* Aperçu de l'image actuelle */}
               <div className="relative aspect-video rounded-2xl overflow-hidden border border-outline-variant/40 bg-surface-container-high group shadow-2xs">
                 <img
+                  data-testid="featured-image-preview"
                   src={featuredImage || '/assets/medictrans_hero_discover.jpg'}
                   alt={featuredImageAlt || title || "Image de l'article"}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -1322,21 +1605,45 @@ export const AdminSeoEditorPage: React.FC = () => {
                     type="text"
                     value={aiTopic}
                     onChange={e => setAiTopic(e.target.value)}
-                    placeholder="Ex: Dans quels cas le transport en VSL est-il pris en charge à 100% ?"
+                    placeholder="Ex: VSL ou Ambulance : Quelles Différences et Quel Transport Choisir ?"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface focus:outline-none"
                   />
+
+                  {/* Suggestions de sujets rapides */}
+                  <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[10px] text-on-surface-variant font-semibold">💡 Sujets populaires :</span>
+                    {[
+                      { topic: "VSL ou Ambulance : Quelles Différences et Quel Transport Choisir ?", kw: "différence vsl ambulance" },
+                      { topic: "Prise en charge transport médical CPAM à 100% et ALD", kw: "remboursement transport cpam ald" },
+                      { topic: "Transport régulier pour dialyse et néphrologie en Martinique", kw: "transport dialyse martinique" },
+                      { topic: "Comment réserver un taxi conventionné avec bon de transport PMT ?", kw: "taxi conventionne pmt cerfa" },
+                      { topic: "Transport adapté PMR et fauteuil roulant en Martinique", kw: "transport pmr martinique" },
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setAiTopic(item.topic);
+                          setAiKeyword(item.kw);
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-[10px] text-on-surface transition-colors cursor-pointer"
+                      >
+                        {item.topic.split(':')[0]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-on-surface-variant mb-1">
-                      Mot-clé cible principal
+                      Mot-clé cible principal (optionnel)
                     </label>
                     <input
                       type="text"
                       value={aiKeyword}
                       onChange={e => setAiKeyword(e.target.value)}
-                      placeholder="Ex: prise en charge transport vsl 100"
+                      placeholder="Ex: vsl ou ambulance difference"
                       className="w-full px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/40 text-xs text-on-surface focus:outline-none"
                     />
                   </div>
@@ -1373,23 +1680,36 @@ export const AdminSeoEditorPage: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2">
+                <div className="pt-3 border-t border-outline-variant/20 flex items-center justify-between gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setShowAiModal(false)}
-                    className="px-4 py-2 rounded-xl border border-outline-variant/40 text-xs font-semibold text-on-surface"
+                    className="px-4 py-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs font-semibold text-on-surface transition-colors cursor-pointer"
                   >
                     Annuler
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleGeneratePlan}
-                    disabled={aiLoading}
-                    className="px-5 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-md hover:opacity-95 transition-all disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-sm">assignment</span>
-                    <span>{aiLoading ? 'Génération du plan...' : 'Générer le Plan (Étape 1)'}</span>
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleGeneratePlan}
+                      disabled={aiLoading}
+                      className="px-4 py-2 rounded-xl border border-purple-300 hover:bg-purple-50 text-purple-900 font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                      title="Prévisualiser d'abord le plan des titres H2/H3"
+                    >
+                      <span className="material-symbols-outlined text-sm">assignment</span>
+                      <span>{aiLoading && aiStep === 'prompt' ? 'Génération...' : '1. Prévisualiser le Plan'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOneClickGenerateArticle}
+                      disabled={aiLoading}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-700 to-emerald-700 hover:from-purple-800 hover:to-emerald-800 text-white font-bold text-xs shadow-lg shadow-purple-500/25 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                      title="Génère directement tout l'article avec image HD, catégorie, SEO et FAQ en 1 clic"
+                    >
+                      <span className="material-symbols-outlined text-base text-amber-300 animate-pulse">auto_awesome</span>
+                      <span>{aiLoading ? 'Rédaction complète en cours...' : 'Rédiger l\'article complet en 1 clic'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1596,11 +1916,16 @@ export const AdminSeoEditorPage: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {[
-                      { label: "🚑 Ambulance moderne CHU", prompt: "Ambulance moderne en intervention devant un hôpital en Martinique, photoréaliste 4k, lumière du jour tropicale" },
+                      { label: "🖥️ Salle de régulation", prompt: "Salle de régulation et dispatch des ambulances en Martinique, opérateurs avec casques et écrans GPS de suivi" },
+                      { label: "🚑 Ambulance SAMU CHU", prompt: "Ambulance moderne SAMU en intervention devant l'hôpital en Martinique, photoréaliste 4k, lumière du jour tropicale" },
                       { label: "🚗 VSL transport assis", prompt: "Véhicule Sanitaire Léger (VSL) blanc professionnel sur une route ensoleillée de Martinique, photoréaliste" },
-                      { label: "📋 Prescription médicale PMT", prompt: "Médecin prescripteur et patient complétant un bon de transport Cerfa, consultation médicale bienveillante" },
-                      { label: "🏥 Soins & Dialyse", prompt: "Patient pris en charge avec bienveillance par un ambulancier pour une séance de soins, transport sanitaire de qualité" },
-                      { label: "🌴 Transport santé Martinique", prompt: "Transport médicalisé professionnel en Martinique sous les tropiques, soleil, nature, véhicule conventionné" }
+                      { label: "♿ Véhicule PMR & fauteuil", prompt: "Véhicule médical adapté PMR avec rampe d'accès, chauffeur aidant un patient en fauteuil roulant en Martinique" },
+                      { label: "🚕 Taxi conventionné CPAM", prompt: "Taxi médical conventionné avec chauffeur bienveillant aidant un patient senior, Martinique" },
+                      { label: "🩺 Dialyse & néphrologie", prompt: "Patient accueilli avec soin pour une séance d'hémodialyse en centre médical spécialisé en Martinique" },
+                      { label: "👶 Pédiatrie & maternité", prompt: "Mère et nouveau-né pris en charge avec douceur devant le pôle mère-enfant de l'hôpital en Martinique" },
+                      { label: "🚁 Évacuation Dragon 972", prompt: "Hélicoptère médicalisé Dragon 972 de la Sécurité Civile sur l'héliport du CHUM en Martinique" },
+                      { label: "📋 Prescription Cerfa PMT", prompt: "Médecin prescripteur et patient complétant un bon de transport Cerfa PMT lors d'une consultation médicale" },
+                      { label: "🏥 Clinique & admissions", prompt: "Accueil moderne et soignants à la réception d'une clinique médicale en Martinique" }
                     ].map((item, idx) => (
                       <button
                         key={idx}
@@ -1625,7 +1950,7 @@ export const AdminSeoEditorPage: React.FC = () => {
                     {imageGenerating ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Génération de l'image en cours par l'IA...</span>
+                        <span>Génération de l'image en cours selon votre prompt...</span>
                       </>
                     ) : (
                       <>
@@ -1636,45 +1961,98 @@ export const AdminSeoEditorPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Résultat généré */}
-                {imageGeneratedUrl && (
-                  <div className="p-4 rounded-2xl bg-surface-container border border-purple-200 space-y-3 animate-fadeIn">
+                {/* Résultat généré ou en cours de génération */}
+                {(imageGeneratedUrl || imageGenerating) && (
+                  <div
+                    ref={generatedPreviewRef}
+                    className="p-4 rounded-2xl bg-surface-container border border-purple-200 space-y-3 animate-fadeIn scroll-mt-4"
+                  >
                     <div className="flex items-center justify-between text-xs font-bold text-on-surface">
                       <div className="flex items-center gap-1.5 text-purple-800">
-                        <span className="material-symbols-outlined text-base text-purple-700">check_circle</span>
-                        <span>Aperçu de l'image générée</span>
+                        <span className="material-symbols-outlined text-base text-purple-700">
+                          {imageGenerating ? 'hourglass_top' : 'check_circle'}
+                        </span>
+                        <span>
+                          {imageGenerating
+                            ? 'Création de l\'illustration en cours...'
+                            : 'Illustration générée pour votre prompt'}
+                        </span>
                       </div>
                       <span className="text-[10px] font-mono bg-purple-100 text-purple-900 px-2 py-0.5 rounded-full">
                         Format 16:9 Optimisé
                       </span>
                     </div>
 
-                    <div className="relative aspect-video rounded-xl overflow-hidden shadow-md bg-black/5">
-                      <img
-                        src={imageGeneratedUrl}
-                        alt="Image générée par IA"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="relative aspect-video rounded-xl overflow-hidden shadow-md bg-slate-900/5 flex items-center justify-center">
+                      {imageGenerating ? (
+                        <div className="absolute inset-0 z-10 bg-surface-container/90 backdrop-blur-xs flex flex-col items-center justify-center gap-2.5 p-4 text-center">
+                          <div className="w-10 h-10 border-3 border-purple-300 border-t-purple-700 rounded-full animate-spin"></div>
+                          <div>
+                            <div className="text-xs font-bold text-purple-950">Génération de l'illustration en cours...</div>
+                            <div className="text-[11px] text-purple-700 mt-0.5">Adaptation photographique 16:9 au transport sanitaire</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          key={imageGeneratedUrl}
+                          data-testid="generated-ai-preview"
+                          src={imageGeneratedUrl || ''}
+                          alt="Image générée par IA"
+                          className="w-full h-full object-cover"
+                          onError={(e: any) => {
+                            e.currentTarget.onerror = null;
+                            const lower = (imagePrompt || '').toLowerCase();
+                            if (lower.includes('régulation') || lower.includes('regulation') || lower.includes('dispatch') || lower.includes('standard')) {
+                              e.currentTarget.src = '/assets/gallery/regulation_ambulance_dispatch.jpg';
+                            } else if (lower.includes('pmr') || lower.includes('fauteuil')) {
+                              e.currentTarget.src = '/assets/gallery/transport_pmr_fauteuil.jpg';
+                            } else if (lower.includes('dialyse')) {
+                              e.currentTarget.src = '/assets/gallery/dialyse_centre_soins.jpg';
+                            } else if (lower.includes('hélicoptère') || lower.includes('evasan') || lower.includes('dragon')) {
+                              e.currentTarget.src = '/assets/gallery/evasan_helicoptere_chu.jpg';
+                            } else if (lower.includes('clinique') || lower.includes('accueil')) {
+                              e.currentTarget.src = '/assets/gallery/clinique_accueil_urgences.jpg';
+                            } else if (lower.includes('taxi') || lower.includes('chauffeur')) {
+                              e.currentTarget.src = '/assets/gallery/taxi_conventionne_aidant.jpg';
+                            } else if (lower.includes('vsl') || lower.includes('assis')) {
+                              e.currentTarget.src = '/assets/gallery/vsl_transport_cote.jpg';
+                            } else if (lower.includes('brancard')) {
+                              e.currentTarget.src = '/assets/gallery/brancardiers_soins_hopital.jpg';
+                            } else if (lower.includes('pmt') || lower.includes('médecin') || lower.includes('cerfa')) {
+                              e.currentTarget.src = '/assets/gallery/medecin_prescription_pmt.jpg';
+                            } else {
+                              e.currentTarget.src = '/assets/gallery/ambulance_martinique_chu.jpg';
+                            }
+                          }}
+                        />
+                      )}
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleGenerateAiImage}
-                        disabled={imageGenerating}
-                        className="px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors cursor-pointer"
-                      >
-                        Générer une autre variante
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleApplyImage(imageGeneratedUrl, imagePrompt)}
-                        className="px-4 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">done</span>
-                        <span>Appliquer à l'article</span>
-                      </button>
-                    </div>
+                    <p className="text-[11px] text-on-surface-variant italic bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/20 line-clamp-2">
+                      « {imagePrompt} »
+                    </p>
+
+                    {!imageGenerating && imageGeneratedUrl && (
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleGenerateAiImage}
+                          disabled={imageGenerating}
+                          className="px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-sm">refresh</span>
+                          <span>Variante</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyImage(imageGeneratedUrl, imagePrompt)}
+                          className="px-4 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        >
+                          <span className="material-symbols-outlined text-base">done</span>
+                          <span>Appliquer à l'article</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1832,6 +2210,52 @@ export const AdminSeoEditorPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modale de confirmation de suppression */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant/30 animate-scaleUp">
+            <div className="flex items-center gap-3 text-rose-600 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0 border border-rose-200">
+                <span className="material-symbols-outlined text-xl">delete_forever</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-on-surface leading-tight">Supprimer cet article ?</h3>
+                <p className="text-xs text-on-surface-variant">Cette action est immédiate et irréversible.</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-surface-container-low rounded-xl mb-4 border border-outline-variant/20 text-xs space-y-1">
+              <div className="font-bold text-on-surface truncate">{title || 'Sans titre'}</div>
+              <div className="text-[11px] font-mono text-on-surface-variant">/blog/{slug || 'sans-slug'}</div>
+            </div>
+
+            <p className="text-xs text-on-surface-variant leading-relaxed mb-5">
+              L'article sera définitivement effacé du catalogue, désindexé et renverra désormais un écran 404 « Guide introuvable » aux visiteurs publics.
+            </p>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs font-semibold text-on-surface transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteArticle}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">delete</span>
+                <span>{isDeleting ? 'Suppression...' : 'Supprimer définitivement'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

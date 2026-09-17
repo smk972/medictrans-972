@@ -10,6 +10,7 @@
  */
 
 import http from 'node:http';
+import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +24,10 @@ const DIST_DIR = path.join(__dirname, 'dist');
 
 // Clé API Gemini (passée par Plesk dans les variables d'environnement)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+
+// Configuration Resend pour l'envoi d'emails transactionnels
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Clinigo <bonjour@notifications.clinigo.fr>';
 
 // Table des types MIME essentiels
 const MIME_TYPES = {
@@ -524,15 +529,68 @@ Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavar
           }
         }
       } else if (action === 'generateImage') {
-        const { prompt, aspectRatio = '16:9' } = payload || {};
-        if (!prompt || !prompt.trim()) {
+        const rawPrompt = payload?.prompt || parsed?.prompt || '';
+        const { aspectRatio = '16:9' } = payload || {};
+        if (!rawPrompt || !rawPrompt.trim()) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: "Prompt manquant pour la génération d'image" }));
           return;
         }
 
-        let generatedUrl = null;
+        const cleanPrompt = rawPrompt.trim();
+        const distGenDir = path.join(DIST_DIR, 'assets', 'generated');
+        const galleryDir = path.join(DIST_DIR, 'assets', 'gallery');
 
+        try {
+          if (!fs.existsSync(distGenDir)) fs.mkdirSync(distGenDir, { recursive: true });
+        } catch (e) {}
+
+        const saveBufferToAssets = (buffer) => {
+          const fileName = `ai-${Date.now()}-${Math.floor(Math.random() * 10000)}.jpg`;
+          try {
+            fs.writeFileSync(path.join(distGenDir, fileName), buffer);
+            return `/assets/generated/${fileName}`;
+          } catch (e) {
+            return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+          }
+        };
+
+        const frReplacements = [
+          [/ambulance/gi, 'modern medical emergency ambulance vehicle'],
+          [/vsl|véhicule sanitaire léger|vehicule sanitaire leger/gi, 'white medical patient transport car'],
+          [/taxi conventionné|taxi conventionne/gi, 'certified healthcare medical taxi'],
+          [/brancard(ier)?|civière/gi, 'paramedic stretcher transport'],
+          [/fauteuil roulant|pmr|handicap|rampe/gi, 'wheelchair accessible medical transport van with ramp lift'],
+          [/dialyse|hémodialyse|nephrologie/gi, 'hemodialysis medical care center transport'],
+          [/maternité|maternite|enceinte|bébé|nourrisson|pédiatrie|pediatrie/gi, 'pediatric and maternity hospital transport caring'],
+          [/hélicoptère|helicoptere|dragon 972|évasan|evasan/gi, 'medical evacuation emergency helicopter SAMU helipad'],
+          [/clinique|accueil|secrétaire/gi, 'modern medical clinic reception welcoming'],
+          [/patient(e)?/gi, 'patient'],
+          [/personne âgée|senior/gi, 'elderly patient'],
+          [/médecin|docteur/gi, 'doctor with stethoscope'],
+          [/soignant(e)?|infirmi(er|ère)/gi, 'nurse healthcare professional'],
+          [/hôpital|hopital|chu|clinique/gi, 'modern medical clinic hospital'],
+          [/martinique|guadeloupe|antilles|caraïbes/gi, 'tropical caribbean island with palm trees sunny'],
+          [/ensoleillé(e)?|soleil/gi, 'bright sunny daylight'],
+          [/jaune et blanche|blanche et jaune/gi, 'yellow and white medical livery'],
+          [/blanche?|blanc/gi, 'white medical livery'],
+          [/jaune/gi, 'yellow medical livery'],
+          [/bleue?|bleu/gi, 'blue medical livery'],
+          [/route/gi, 'scenic coastal road'],
+          [/devant/gi, 'parked in front of'],
+          [/aide|aidant/gi, 'kindly assisting'],
+          [/urgence/gi, 'emergency medical care']
+        ];
+
+        let englishPrompt = cleanPrompt;
+        for (const [re, en] of frReplacements) {
+          englishPrompt = englishPrompt.replace(re, en);
+        }
+        const enrichedPrompt = `${englishPrompt}, professional realistic photography, 4k, cinematic daylight, high quality`;
+
+        let finalImageUrl = null;
+
+        // Étape A : Gemini Image API
         if (GEMINI_API_KEY) {
           try {
             const imgRes = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/images/generations', {
@@ -541,9 +599,11 @@ Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavar
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${GEMINI_API_KEY}`
               },
+              signal: AbortSignal.timeout(2000),
               body: JSON.stringify({
-                model: 'imagen-3.0-generate-002',
-                prompt: `${prompt}, realistic photography, high quality, professional medical atmosphere, 4k`,
+                model: 'gemini-2.5-flash-image',
+                prompt: enrichedPrompt,
+                response_format: 'b64_json',
                 n: 1,
                 size: '1024x1024'
               })
@@ -551,26 +611,129 @@ Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau en Markdown sans aucun bavar
             if (imgRes.ok) {
               const imgData = await imgRes.json();
               const b64 = imgData.data?.[0]?.b64_json;
-              const remoteUrl = imgData.data?.[0]?.url;
               if (b64) {
-                generatedUrl = `data:image/png;base64,${b64}`;
-              } else if (remoteUrl) {
-                generatedUrl = remoteUrl;
+                finalImageUrl = saveBufferToAssets(Buffer.from(b64, 'base64'));
               }
             }
           } catch (imgErr) {
-            console.warn('[Plesk SEO Server] Imagen API error, fallback to Pollinations:', imgErr.message);
+            console.warn('[Plesk SEO Server] Gemini API error, fallback:', imgErr.message);
           }
         }
 
-        if (!generatedUrl) {
-          const encoded = encodeURIComponent(`${prompt}, realistic photo, professional healthcare transportation, high resolution`);
-          generatedUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1200&height=675&nologo=true&seed=${Date.now()}`;
+        // Étape B : Pollinations direct
+        if (!finalImageUrl) {
+          try {
+            const fluxUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=1024&height=576&nologo=true&seed=${Date.now() % 100000}`;
+            const fluxRes = await fetch(fluxUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+              },
+              signal: AbortSignal.timeout(3500)
+            });
+            if (fluxRes.ok && (fluxRes.headers.get('content-type') || '').includes('image')) {
+              const buf = Buffer.from(await fluxRes.arrayBuffer());
+              if (buf.length > 5000) {
+                finalImageUrl = saveBufferToAssets(buf);
+              }
+            }
+          } catch (e) {
+            console.warn('[Plesk SEO Server] Flux timeout/error, fallback gallery:', e.message);
+          }
+        }
+
+        // Étape C : Sélection sémantique parmi les 10 catégories 4K
+        if (!finalImageUrl) {
+          const lower = cleanPrompt.toLowerCase();
+          const categories = [
+            {
+              file: 'regulation_ambulance_dispatch.jpg',
+              keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'centre de regulation', 'standard', 'permanence', 'opérateur', 'operateur', 'coordination', 'écran', 'ecran', 'samu 972', 'centre de contrôle'],
+              weight: 3.0
+            },
+            {
+              file: 'transport_pmr_fauteuil.jpg',
+              keywords: ['pmr', 'fauteuil', 'roulant', 'handicap', 'rampe', 'ufr', 'mobilité', 'mobilite', 'invalide', 'marcheur', 'chariot'],
+              weight: 2.5
+            },
+            {
+              file: 'dialyse_centre_soins.jpg',
+              keywords: ['dialyse', 'hémodialyse', 'hemodialyse', 'rein', 'néphrologie', 'nephrologie', 'chimio', 'chimiothérapie', 'chimiotherapie', 'oncologie', 'séance', 'seance', 'régulier', 'regulier'],
+              weight: 2.5
+            },
+            {
+              file: 'pediatrie_maternite.jpg',
+              keywords: ['enfant', 'pédiatrie', 'pediatrie', 'bébé', 'bebe', 'nourrisson', 'maternité', 'maternite', 'mère', 'mere', 'maman', 'enceinte', 'grossesse', 'accouchement', 'naissance', 'pédiatrique', 'pediatrique'],
+              weight: 2.5
+            },
+            {
+              file: 'evasan_helicoptere_chu.jpg',
+              keywords: ['hélicoptère', 'helicoptere', 'dragon', 'dragon 972', 'évasan', 'evasan', 'évacuation', 'evacuation', 'héliport', 'heliport', 'aérien', 'aerien', 'vol'],
+              weight: 2.5
+            },
+            {
+              file: 'clinique_accueil_urgences.jpg',
+              keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet', 'sainte-marie', 'saint-paul', 'centre médical', 'centre medical'],
+              weight: 2.0
+            },
+            {
+              file: 'taxi_conventionne_aidant.jpg',
+              keywords: ['taxi', 'conventionné', 'conventionne', 'cpam', 'chauffeur', 'senior', 'personne âgée', 'personne agee', 'aide', 'aidant', 'bienveillance', 'domicile', 'artisan'],
+              weight: 2.0
+            },
+            {
+              file: 'vsl_transport_cote.jpg',
+              keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'assis', 'berline', 'voiture', 'côte', 'cote', 'route', 'littoral', 'bord de mer'],
+              weight: 2.0
+            },
+            {
+              file: 'brancardiers_soins_hopital.jpg',
+              keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert'],
+              weight: 2.0
+            },
+            {
+              file: 'medecin_prescription_pmt.jpg',
+              keywords: ['pmt', 'cerfa', 'prescription', 'bon de transport', 'médecin', 'medecin', 'docteur', 'ordonnance', '100%', 'ald', 'sécurité sociale', 'securite sociale', 'remboursement', 'ameli'],
+              weight: 2.0
+            },
+            {
+              file: 'ambulance_martinique_chu.jpg',
+              keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'chum', 'hôpital', 'hopital', 'trinité', 'trinite', 'fort-de-france', 'lamentin', 'garde'],
+              weight: 1.5
+            }
+          ];
+
+          let bestFile = 'ambulance_martinique_chu.jpg';
+          let highestScore = 0;
+
+          for (const cat of categories) {
+            let catScore = 0;
+            for (const kw of cat.keywords) {
+              if (lower.includes(kw)) {
+                catScore += kw.length * cat.weight;
+              }
+            }
+            if (catScore > highestScore) {
+              highestScore = catScore;
+              bestFile = cat.file;
+            }
+          }
+
+          if (highestScore === 0) {
+            if (lower.includes('voiture') || lower.includes('assis')) {
+              bestFile = 'vsl_transport_cote.jpg';
+            } else if (lower.includes('médecin') || lower.includes('papier') || lower.includes('droit')) {
+              bestFile = 'medecin_prescription_pmt.jpg';
+            } else {
+              bestFile = 'ambulance_martinique_chu.jpg';
+            }
+          }
+
+          finalImageUrl = `/assets/gallery/${bestFile}`;
         }
 
         resultData = {
-          imageUrl: generatedUrl,
-          prompt
+          imageUrl: finalImageUrl,
+          prompt: cleanPrompt
         };
       } else {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -787,6 +950,150 @@ function handleBlogApi(req, res, parsedUrl) {
   res.end(JSON.stringify({ success: false, error: 'Route blog non reconnue' }));
 }
 
+// Handler de l'API Email Welcome
+function handleWelcomeEmail(req, res) {
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', () => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    try {
+      const data = body ? JSON.parse(body) : {};
+      const { email, firstName, lastName, loginUrl } = data;
+      if (!email || !email.includes('@')) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Adresse email valide requise' }));
+        return;
+      }
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanFirstName = (firstName || 'Bienvenue').trim();
+      const contactUrl = 'https://clinigo.fr/#contact';
+      const redirectLogin = loginUrl || 'https://clinigo.fr/connexion';
+
+      const htmlContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bienvenue sur Clinigo 👋</title>
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    body { margin: 0; padding: 0; width: 100% !important; background-color: #F5F7FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    @media screen and (max-width: 600px) {
+      .email-container { width: 100% !important; margin: auto !important; }
+      .email-content { padding: 32px 20px !important; }
+      .feature-col { display: block !important; width: 100% !important; margin-bottom: 14px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F5F7FA;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F5F7FA; padding: 36px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" class="email-container" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px; max-width: 600px; background-color: #FFFFFF; border-radius: 20px; border: 1px solid #E5E7EB; overflow: hidden; text-align: left;">
+          <tr>
+            <td align="center" style="padding: 40px 40px 24px 40px; border-bottom: 1px solid #F3F4F6;">
+              <a href="https://clinigo.fr" target="_blank"><img src="https://clinigo.fr/assets/clinigo-logo.png" alt="Clinigo" width="148" style="display: block; width: 148px; border: 0;" /></a>
+            </td>
+          </tr>
+          <tr>
+            <td class="email-content" style="padding: 40px 48px;">
+              <h1 style="margin: 0 0 10px 0; font-size: 26px; line-height: 32px; font-weight: 800; color: #111827; text-align: center;">Bonjour ${cleanFirstName} 👋</h1>
+              <div style="margin: 0 0 20px 0; font-size: 17px; font-weight: 600; color: #2563EB; text-align: center;">Bienvenue sur Clinigo.</div>
+              <p style="margin: 0 0 32px 0; font-size: 15px; line-height: 24px; color: #4B5563; text-align: center;">Votre compte a bien été créé.<br />Vous pouvez maintenant utiliser Clinigo pour organiser vos transports sanitaires simplement et en toute tranquillité.</p>
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto 36px auto;">
+                <tr>
+                  <td align="center" bgcolor="#2563EB" style="border-radius: 12px; background-color: #2563EB;">
+                    <a href="${redirectLogin}" target="_blank" style="display: inline-block; padding: 15px 36px; font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 12px;">ACCÉDER À MON COMPTE</a>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F0F7FF; border: 1px solid #DBEAFE; border-radius: 14px; margin-bottom: 36px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <div style="font-size: 15px; font-weight: 700; color: #1E40AF; padding-bottom: 6px;">🚑 Votre espace Clinigo</div>
+                    <div style="font-size: 13px; line-height: 20px; color: #3B82F6;">Depuis votre espace personnel, vous pourrez demander un transport, consulter vos réservations et suivre vos courses en temps réel.</div>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="text-align: center;">
+                <tr>
+                  <td align="center">
+                    <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 4px;">Besoin d'aide ?</div>
+                    <div style="font-size: 13px; line-height: 20px; color: #6B7280; margin-bottom: 8px;">Notre équipe Clinigo est disponible pour répondre à vos questions.</div>
+                    <a href="${contactUrl}" target="_blank" style="font-size: 13px; font-weight: 700; color: #2563EB; text-decoration: none;">Contacter Clinigo &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="background-color: #FAFAFA; border-top: 1px solid #F3F4F6; padding: 32px 24px; text-align: center;">
+              <div style="font-size: 12px; font-weight: 500; color: #6B7280; margin-bottom: 8px;">Le transport sanitaire simplifié.</div>
+              <div style="font-size: 11px; color: #9CA3AF;">&copy; 2026 Clinigo. Tous droits réservés.</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+      const payload = JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: [cleanEmail],
+        subject: 'Bienvenue sur Clinigo 👋',
+        html: htmlContent,
+        tags: [{ name: 'category', value: 'welcome_email' }, { name: 'app', value: 'clinigo' }]
+      });
+
+      const options = {
+        hostname: 'api.resend.com',
+        port: 443,
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        }
+      };
+
+      const resendReq = https.request(options, (resendRes) => {
+        let resendBody = '';
+        resendRes.on('data', chunk => { resendBody += chunk; });
+        resendRes.on('end', () => {
+          try {
+            const parsed = JSON.parse(resendBody);
+            if (resendRes.statusCode >= 200 && resendRes.statusCode < 300) {
+              res.writeHead(200);
+              res.end(JSON.stringify({ success: true, resendId: parsed.id }));
+            } else {
+              res.writeHead(resendRes.statusCode || 502);
+              res.end(JSON.stringify({ error: parsed.message || 'Erreur Resend', details: parsed }));
+            }
+          } catch {
+            res.writeHead(502);
+            res.end(JSON.stringify({ error: 'Réponse Resend invalide' }));
+          }
+        });
+      });
+
+      resendReq.on('error', (err) => {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: err.message }));
+      });
+
+      resendReq.write(payload);
+      resendReq.end();
+    } catch (e) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: e.message }));
+    }
+  });
+}
+
 // Création du serveur HTTP
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -814,6 +1121,12 @@ const server = http.createServer((req, res) => {
   // 4. Endpoints API Blog & Guides CMS
   if (pathname.startsWith('/api/blog/')) {
     handleBlogApi(req, res, parsedUrl);
+    return;
+  }
+
+  // 5. Endpoint API Email Welcome
+  if (pathname === '/api/email/welcome' && req.method === 'POST') {
+    handleWelcomeEmail(req, res);
     return;
   }
 

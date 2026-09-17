@@ -71,6 +71,97 @@ export async function onRequestPost(context: any): Promise<Response> {
       resultData = await handleGenerateIdeas(payload, geminiApiKey);
     } else if (action === 'transformText') {
       resultData = await handleTransformText(payload, geminiApiKey);
+    } else if (action === 'generateImage') {
+      const prompt = (payload?.prompt || (body as any)?.prompt || '').trim();
+      const lower = prompt.toLowerCase();
+      const categories = [
+        {
+          file: '/assets/gallery/regulation_ambulance_dispatch.jpg',
+          keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'standard', 'permanence', 'opérateur', 'coordination', 'écran'],
+          weight: 3.0
+        },
+        {
+          file: '/assets/gallery/transport_pmr_fauteuil.jpg',
+          keywords: ['pmr', 'fauteuil', 'roulant', 'handicap', 'rampe', 'ufr', 'mobilité', 'mobilite', 'invalide', 'marcheur'],
+          weight: 2.5
+        },
+        {
+          file: '/assets/gallery/dialyse_centre_soins.jpg',
+          keywords: ['dialyse', 'hémodialyse', 'hemodialyse', 'rein', 'néphrologie', 'nephrologie', 'chimio', 'chimiothérapie', 'oncologie', 'séance', 'régulier'],
+          weight: 2.5
+        },
+        {
+          file: '/assets/gallery/pediatrie_maternite.jpg',
+          keywords: ['enfant', 'pédiatrie', 'pediatrie', 'bébé', 'bebe', 'nourrisson', 'maternité', 'maternite', 'mère', 'mere', 'maman', 'enceinte', 'grossesse', 'accouchement', 'naissance', 'pédiatrique'],
+          weight: 2.5
+        },
+        {
+          file: '/assets/gallery/evasan_helicoptere_chu.jpg',
+          keywords: ['hélicoptère', 'helicoptere', 'dragon', 'dragon 972', 'évasan', 'evasan', 'évacuation', 'evacuation', 'héliport', 'heliport', 'aérien', 'aerien'],
+          weight: 2.5
+        },
+        {
+          file: '/assets/gallery/clinique_accueil_urgences.jpg',
+          keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet', 'sainte-marie', 'saint-paul'],
+          weight: 2.0
+        },
+        {
+          file: '/assets/gallery/taxi_conventionne_aidant.jpg',
+          keywords: ['taxi', 'conventionné', 'conventionne', 'cpam', 'chauffeur', 'senior', 'personne âgée', 'personne agee', 'aide', 'aidant', 'bienveillance', 'domicile'],
+          weight: 2.0
+        },
+        {
+          file: '/assets/gallery/vsl_transport_cote.jpg',
+          keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'assis', 'berline', 'voiture', 'côte', 'cote', 'route', 'littoral'],
+          weight: 2.0
+        },
+        {
+          file: '/assets/gallery/brancardiers_soins_hopital.jpg',
+          keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert'],
+          weight: 2.0
+        },
+        {
+          file: '/assets/gallery/medecin_prescription_pmt.jpg',
+          keywords: ['pmt', 'cerfa', 'prescription', 'bon de transport', 'médecin', 'medecin', 'docteur', 'ordonnance', '100%', 'ald', 'sécurité sociale', 'remboursement', 'ameli'],
+          weight: 2.0
+        },
+        {
+          file: '/assets/gallery/ambulance_martinique_chu.jpg',
+          keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'chum', 'hôpital', 'hopital', 'trinité', 'fort-de-france', 'lamentin'],
+          weight: 1.5
+        }
+      ];
+
+      let bestFile = '/assets/gallery/ambulance_martinique_chu.jpg';
+      let highestScore = 0;
+
+      for (const cat of categories) {
+        let catScore = 0;
+        for (const kw of cat.keywords) {
+          if (lower.includes(kw)) {
+            catScore += kw.length * cat.weight;
+          }
+        }
+        if (catScore > highestScore) {
+          highestScore = catScore;
+          bestFile = cat.file;
+        }
+      }
+
+      if (highestScore === 0) {
+        if (lower.includes('voiture') || lower.includes('assis')) {
+          bestFile = '/assets/gallery/vsl_transport_cote.jpg';
+        } else if (lower.includes('médecin') || lower.includes('papier') || lower.includes('droit')) {
+          bestFile = '/assets/gallery/medecin_prescription_pmt.jpg';
+        } else {
+          bestFile = '/assets/gallery/ambulance_martinique_chu.jpg';
+        }
+      }
+
+      resultData = {
+        imageUrl: bestFile,
+        prompt
+      };
     } else {
       return new Response(JSON.stringify({ error: `Action inconnue : ${action}` }), {
         status: 400,

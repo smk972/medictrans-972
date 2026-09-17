@@ -15,6 +15,7 @@ import {
 } from '../types/blog';
 
 const STORAGE_KEY_POSTS = 'clinigo_blog_posts_v2';
+const STORAGE_KEY_DELETED_POSTS = 'clinigo_blog_deleted_ids_v2';
 const STORAGE_KEY_CATEGORIES = 'clinigo_blog_categories_v1';
 const STORAGE_KEY_TAGS = 'clinigo_blog_tags_v1';
 const STORAGE_KEY_KEYWORDS = 'clinigo_seo_keywords_v1';
@@ -1124,6 +1125,14 @@ export class BlogService {
       }
     }
 
+    // Enregistrer l'ID supprimé dans la liste d'exclusion permanente
+    try {
+      const rawDeleted = localStorage.getItem(STORAGE_KEY_DELETED_POSTS);
+      const deletedIds = new Set<string>(rawDeleted ? JSON.parse(rawDeleted) : []);
+      deletedIds.add(id);
+      localStorage.setItem(STORAGE_KEY_DELETED_POSTS, JSON.stringify(Array.from(deletedIds)));
+    } catch (e) {}
+
     const posts = this.getLocalPosts(true).filter((p) => p.id !== id);
     try {
       localStorage.setItem(STORAGE_KEY_POSTS, JSON.stringify(posts));
@@ -1131,6 +1140,15 @@ export class BlogService {
     } catch {
       return false;
     }
+  }
+
+  static async deletePosts(ids: string[]): Promise<boolean> {
+    let allOk = true;
+    for (const id of ids) {
+      const ok = await this.deletePost(id);
+      if (!ok) allOk = false;
+    }
+    return allOk;
   }
 
   // --------------------------------------------------------------------------
@@ -1506,16 +1524,21 @@ export class BlogService {
 
   private static getLocalPosts(includeUnpublished = false): BlogPost[] {
     try {
+      const rawDeleted = localStorage.getItem(STORAGE_KEY_DELETED_POSTS);
+      const deletedIds = new Set<string>(rawDeleted ? JSON.parse(rawDeleted) : []);
+
       const raw = localStorage.getItem(STORAGE_KEY_POSTS);
       let posts: BlogPost[] = raw ? JSON.parse(raw) : INITIAL_POSTS;
-      posts = posts.map(p => ({
-        ...p,
-        featured_image: p.featured_image || p.featuredImage,
-        featuredImage: p.featuredImage || p.featured_image,
-        category_id: p.category_id || p.categoryId,
-        categoryId: p.categoryId || p.category_id,
-        category: p.category || INITIAL_CATEGORIES.find(c => c.id === (p.categoryId || p.category_id)),
-      }));
+      posts = posts
+        .filter(p => !deletedIds.has(p.id) && !deletedIds.has(p.slug))
+        .map(p => ({
+          ...p,
+          featured_image: p.featured_image || p.featuredImage,
+          featuredImage: p.featuredImage || p.featured_image,
+          category_id: p.category_id || p.categoryId,
+          categoryId: p.categoryId || p.category_id,
+          category: p.category || INITIAL_CATEGORIES.find(c => c.id === (p.categoryId || p.category_id)),
+        }));
       if (!includeUnpublished) {
         posts = posts.filter((p) => p.status === 'published');
       }

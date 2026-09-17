@@ -2,8 +2,55 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import { AdminService } from '../services/adminService';
 import { ClientRecord, Ride } from '../types';
-import { MARTINIQUE_COMMUNES } from '../services/rideService';
 import { useAuth } from '../contexts/AuthContext';
+
+export const TERRITORIES = [
+  { id: 'ALL', label: 'Tous territoires (National & DOM)' },
+  { id: 'METROPOLE', label: 'France Métropolitaine' },
+  { id: 'MARTINIQUE', label: 'Martinique (972)' },
+  { id: 'GUADELOUPE', label: 'Guadeloupe (971)' },
+  { id: 'GUYANE', label: 'Guyane (973)' },
+  { id: 'REUNION', label: 'La Réunion (974)' },
+  { id: 'MAYOTTE', label: 'Mayotte (976)' },
+];
+
+export const REFERENCE_CITIES: Record<string, string[]> = {
+  METROPOLE: ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 'Montpellier', 'Strasbourg', 'Bordeaux', 'Lille', 'Rennes', 'Reims', 'Saint-Étienne', 'Toulon', 'Le Havre', 'Grenoble', 'Dijon', 'Angers'],
+  MARTINIQUE: ['Fort-de-France', 'Le Lamentin', 'Le Robert', 'Schœlcher', 'Sainte-Marie', 'Le François', 'Ducos', 'Saint-Joseph', 'La Trinité', 'Rivière-Pilote', 'Gros-Morne', 'Rivière-Salée', 'Sainte-Luce', 'Saint-Esprit', 'Le Vauclin', 'Le Marin', 'Le Lorrain', 'Le Diamant', 'Saint-Pierre', 'Les Trois-Îlets', 'Basse-Pointe', 'Le Morne-Rouge', 'Sainte-Anne', 'Le Carbet', 'Case-Pilote', 'Bellefontaine', 'Macouba', 'Grand’Rivière', 'Ajoupa-Bouillon', 'Fonds-Saint-Denis', 'Le Prêcheur', 'Marigot'],
+  GUADELOUPE: ['Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', 'Petit-Bourg', 'Sainte-Anne', 'Le Moule', 'Sainte-Rose', 'Capesterre-Belle-Eau', 'Morne-à-l’Eau', 'Lamentin', 'Basse-Terre', 'Saint-François', 'Petit-Canal', 'Gourbeyre', 'Vieux-Habitants', 'Bouillante', 'Trois-Rivières'],
+  GUYANE: ['Cayenne', 'Matoury', 'Saint-Laurent-du-Maroni', 'Kourou', 'Rémire-Montjoly', 'Mana', 'Macouria', 'Apatou', 'Maripasoula'],
+  REUNION: ['Saint-Denis', 'Saint-Paul', 'Saint-Pierre', 'Le Tampon', 'Saint-André', 'Saint-Louis', 'Le Port', 'Saint-Leu', 'La Possession', 'Sainte-Marie'],
+  MAYOTTE: ['Mamoudzou', 'Koungou', 'Dzaoudzi', 'Dembeni', 'Pamandzi']
+};
+
+export const getTerritoryForPostalCode = (postalCode?: string): string => {
+  if (!postalCode) return 'METROPOLE';
+  const clean = postalCode.trim();
+  if (clean.startsWith('971')) return 'GUADELOUPE';
+  if (clean.startsWith('972')) return 'MARTINIQUE';
+  if (clean.startsWith('973')) return 'GUYANE';
+  if (clean.startsWith('974')) return 'REUNION';
+  if (clean.startsWith('976')) return 'MAYOTTE';
+  return 'METROPOLE';
+};
+
+export const getTerritoryBadge = (postalCode?: string) => {
+  const terr = getTerritoryForPostalCode(postalCode);
+  switch (terr) {
+    case 'MARTINIQUE':
+      return <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-200">MQ 972</span>;
+    case 'GUADELOUPE':
+      return <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">GP 971</span>;
+    case 'GUYANE':
+      return <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-teal-100 text-teal-900 border border-teal-200">GF 973</span>;
+    case 'REUNION':
+      return <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-100 text-sky-900 border border-sky-200">RE 974</span>;
+    case 'MAYOTTE':
+      return <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">YT 976</span>;
+    default:
+      return <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-800 border border-slate-200">FR Métro</span>;
+  }
+};
 
 export const AdminClientsPage: React.FC = () => {
   const { user } = useAuth();
@@ -11,6 +58,7 @@ export const AdminClientsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAld, setFilterAld] = useState<'ALL' | 'ALD' | 'NON_ALD'>('ALL');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>('ALL');
+  const [filterTerritory, setFilterTerritory] = useState<string>('ALL');
   const [filterCity, setFilterCity] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,7 +124,8 @@ export const AdminClientsPage: React.FC = () => {
         c.nir.replace(/\s/g, '').includes(q.replace(/\s/g, '')) ||
         c.email.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
-        c.city.toLowerCase().includes(q);
+        c.city.toLowerCase().includes(q) ||
+        (c.postalCode && c.postalCode.includes(q));
 
       const matchAld =
         filterAld === 'ALL' ||
@@ -84,31 +133,59 @@ export const AdminClientsPage: React.FC = () => {
         (filterAld === 'NON_ALD' && !c.isAld);
 
       const matchStatus = filterStatus === 'ALL' || c.status === filterStatus;
-      const matchCity = filterCity === 'ALL' || c.city === filterCity;
 
-      return matchSearch && matchAld && matchStatus && matchCity;
+      const clientTerritory = getTerritoryForPostalCode(c.postalCode);
+      const matchTerritory =
+        filterTerritory === 'ALL' ||
+        filterTerritory === clientTerritory;
+
+      const matchCity = filterCity === 'ALL' || c.city.toLowerCase() === filterCity.toLowerCase();
+
+      return matchSearch && matchAld && matchStatus && matchTerritory && matchCity;
     });
-  }, [clients, searchQuery, filterAld, filterStatus, filterCity]);
+  }, [clients, searchQuery, filterAld, filterStatus, filterTerritory, filterCity]);
 
   // Statistiques
   const totalAld = clients.filter(c => c.isAld).length;
   const totalWithPmt = clients.filter(c => c.hasPmt).length;
   const totalActive = clients.filter(c => c.status === 'ACTIVE').length;
 
+  const availableCities = useMemo(() => {
+    const set = new Set<string>();
+    // 1. Ajouter les villes des patients existants filtrées selon le territoire sélectionné
+    clients.forEach((c) => {
+      const terr = getTerritoryForPostalCode(c.postalCode);
+      if (filterTerritory === 'ALL' || filterTerritory === terr) {
+        if (c.city && c.city.trim()) {
+          set.add(c.city.trim());
+        }
+      }
+    });
+
+    // 2. Ajouter les villes de référence du territoire sélectionné
+    if (filterTerritory === 'ALL') {
+      Object.values(REFERENCE_CITIES).forEach(arr => arr.forEach(city => set.add(city)));
+    } else if (REFERENCE_CITIES[filterTerritory]) {
+      REFERENCE_CITIES[filterTerritory].forEach(city => set.add(city));
+    }
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [clients, filterTerritory]);
+
   const openCreateModal = () => {
     setFormFirstName('');
     setFormLastName('');
-    setFormBirthDate('1970-01-01');
+    setFormBirthDate('1980-01-01');
     setFormNir('');
-    setFormPhone('0696 ');
+    setFormPhone('06');
     setFormEmail('');
     setFormAddress('');
-    setFormCity('Fort-de-France');
-    setFormPostalCode('97200');
-    setFormIsAld(true);
+    setFormCity('Paris');
+    setFormPostalCode('75000');
+    setFormIsAld(false);
     setFormAldReason('ALD 30 - Affection de longue durée exonérante');
     setFormHasPmt(true);
-    setFormDoctor('Dr. Praticien Hospitalier CHU 972');
+    setFormDoctor('Médecin prescripteur conventionné');
     setFormWheelchair(false);
     setFormStretcher(false);
     setFormOxygen(false);
@@ -116,7 +193,7 @@ export const AdminClientsPage: React.FC = () => {
     setFormFloorNumber(0);
     setFormNeedsEscort(false);
     setFormNotes('');
-    setFormInitialPassword(`MT972-${Math.random().toString(36).slice(-5).toUpperCase()}!`);
+    setFormInitialPassword(`CLINIGO-${Math.random().toString(36).slice(-5).toUpperCase()}!`);
     setIsCreateModalOpen(true);
   };
 
@@ -269,8 +346,8 @@ export const AdminClientsPage: React.FC = () => {
 
   return (
     <AdminLayout
-      title="Fiches Clients & Patients 972"
-      subtitle="Répertoire complet des patients, vérification NIR CPAM, prise en charge ALD et gestion des accès"
+      title="Fiches Clients & Patients — National & DOM"
+      subtitle="Répertoire complet de tous les patients inscrits, vérification NIR CPAM, prise en charge ALD et gestion des accès (France entière & Outre-mer)"
       actions={
         <div className="flex items-center gap-2">
           <button
@@ -295,7 +372,7 @@ export const AdminClientsPage: React.FC = () => {
         <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs">
           <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Patients Enregistrés</span>
           <div className="text-3xl font-extrabold text-primary font-mono mt-1">{clients.length}</div>
-          <p className="text-[11px] text-on-surface-variant mt-1">Bénéficiaires actifs en Martinique</p>
+          <p className="text-[11px] text-on-surface-variant mt-1">Bénéficiaires actifs France & Outre-mer</p>
         </div>
 
         <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs">
@@ -333,6 +410,32 @@ export const AdminClientsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Filtre Territoire */}
+          <select
+            value={filterTerritory}
+            onChange={(e) => {
+              setFilterTerritory(e.target.value);
+              setFilterCity('ALL');
+            }}
+            className="px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-semibold text-on-surface outline-none"
+          >
+            {TERRITORIES.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
+
+          {/* Filtre Commune / Ville */}
+          <select
+            value={filterCity}
+            onChange={(e) => setFilterCity(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-semibold text-on-surface outline-none max-w-[200px]"
+          >
+            <option value="ALL">Toutes communes / villes ({availableCities.length})</option>
+            {availableCities.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
           {/* Filtre ALD */}
           <select
             value={filterAld}
@@ -353,18 +456,6 @@ export const AdminClientsPage: React.FC = () => {
             <option value="ALL">Tous les statuts</option>
             <option value="ACTIVE">Actifs uniquement</option>
             <option value="SUSPENDED">Suspendus uniquement</option>
-          </select>
-
-          {/* Filtre Commune */}
-          <select
-            value={filterCity}
-            onChange={(e) => setFilterCity(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-outline-variant/40 bg-surface-container-lowest text-xs font-semibold text-on-surface outline-none max-w-[160px]"
-          >
-            <option value="ALL">Toutes communes</option>
-            {MARTINIQUE_COMMUNES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
           </select>
         </div>
       </div>
@@ -453,9 +544,12 @@ export const AdminClientsPage: React.FC = () => {
                           <span className="text-[11px] text-on-surface-variant truncate max-w-[200px]" title={client.email}>
                             {client.email}
                           </span>
-                          <span className="text-[10px] text-on-surface-variant font-medium">
-                            📍 {client.city} ({client.postalCode})
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-on-surface-variant font-medium">
+                              📍 {client.city} ({client.postalCode})
+                            </span>
+                            {getTerritoryBadge(client.postalCode)}
+                          </div>
                         </div>
                       </td>
 
@@ -584,7 +678,7 @@ export const AdminClientsPage: React.FC = () => {
                     {editingClient ? `Modifier la fiche : ${editingClient.firstName} ${editingClient.lastName}` : 'Créer une nouvelle fiche patient'}
                   </h3>
                   <span className="text-[11px] text-on-surface-variant">
-                    Identité administrative, droits CPAM Martinique et besoins de mobilité sanitaire
+                    Identité administrative, droits CPAM (Régime Général / ALD) et besoins de mobilité sanitaire
                   </span>
                 </div>
               </div>
@@ -702,16 +796,21 @@ export const AdminClientsPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-on-surface mb-1">Commune 972 *</label>
-                    <select
+                    <label className="block text-[11px] font-bold text-on-surface mb-1">Ville / Commune *</label>
+                    <input
+                      type="text"
+                      required
+                      list="cities-list"
                       value={formCity}
                       onChange={(e) => setFormCity(e.target.value)}
+                      placeholder="Ex: Paris, Fort-de-France, Toulouse..."
                       className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface outline-none focus:border-primary"
-                    >
-                      {MARTINIQUE_COMMUNES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                    />
+                    <datalist id="cities-list">
+                      {availableCities.map((c) => (
+                        <option key={c} value={c} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
                 </div>
               </div>
@@ -720,7 +819,7 @@ export const AdminClientsPage: React.FC = () => {
               <div className="p-4 rounded-2xl bg-surface-container-low/50 border border-outline-variant/30 space-y-3">
                 <div className="font-bold text-primary text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">verified_user</span>
-                  <span>3. Droits CPAM Martinique & Prescripteur</span>
+                  <span>3. Droits CPAM & Prescripteur</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">

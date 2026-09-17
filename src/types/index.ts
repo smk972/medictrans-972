@@ -139,6 +139,27 @@ export interface TransporterSubscription {
   invoices?: TransporterInvoice[];
 }
 
+export interface TransporterDriver {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  phone: string;
+  email?: string;
+  status: 'DISPONIBLE' | 'EN_MISSION' | 'EN_REPOS';
+  assignedVehiclePlate?: string;
+}
+
+export interface TransporterVehicle {
+  id: string;
+  name: string;
+  type: TransportType;
+  plate: string;
+  driver?: string;
+  phone?: string;
+  status: 'DISPONIBLE' | 'EN_MISSION' | 'EN_PAUSE' | 'MAINTENANCE';
+}
+
 export interface Transporter {
   id: string;
   companyName: string;
@@ -153,6 +174,8 @@ export interface Transporter {
   fleetAmbulances: number;
   fleetVsl: number;
   fleetTaxis: number;
+  vehicles?: TransporterVehicle[];
+  drivers?: TransporterDriver[];
   verified: boolean;
   status?: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
   avgApproachMinutes?: number;

@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { 
   resolveCoordinates, 
-  calculateMartiniqueRoadDistance, 
+  calculateNationalRoadDistance, 
   HEALTHCARE_FACILITY_COORDINATES 
 } from '../services/pricingService';
+import { detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 
 export interface GoogleMapViewProps {
   mode?: 'route' | 'tracking' | 'fleet' | 'facility';
@@ -74,7 +75,19 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
 
   // Résolution des coordonnées selon les adresses fournies
   const routeData = useMemo(() => {
-    return calculateMartiniqueRoadDistance(origin, destination);
+    return calculateNationalRoadDistance(origin, destination);
+  }, [origin, destination]);
+
+  const mapTerritoryBadge = useMemo(() => {
+    const terr = detectTerritoryFromAddress(origin) || detectTerritoryFromAddress(destination);
+    if (terr === 'GUADELOUPE') return '971 GP';
+    if (terr === 'GUYANE') return '973 GF';
+    if (terr === 'REUNION') return '974 RE';
+    if (terr === 'METROPOLE') {
+      const deptMatch = (origin + ' ' + destination).match(/\b(0[1-9]|[1-8]\d|9[0-5]|2[abAB])\d{3}\b/);
+      return deptMatch ? `${deptMatch[1]} FR` : 'France FR';
+    }
+    return '972 MQ';
   }, [origin, destination]);
 
   useEffect(() => {
@@ -284,7 +297,7 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
             Google Maps
           </span>
           <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">
-            972 MQ
+            {mapTerritoryBadge}
           </span>
         </div>
 

@@ -526,15 +526,81 @@ Consignes strictes :
           instruction
         };
       } else if (action === 'generateImage') {
-        const { prompt, aspectRatio = '16:9' } = payload || {};
-        if (!prompt || !prompt.trim()) {
+        const rawPrompt = payload?.prompt || parsed?.prompt || '';
+        const { aspectRatio = '16:9' } = payload || {};
+        if (!rawPrompt || !rawPrompt.trim()) {
           res.statusCode = 400;
           res.end(JSON.stringify({ success: false, error: "Prompt manquant pour la génération d'image" }));
           return;
         }
 
-        let generatedUrl: string | null = null;
+        const fs = require('fs');
+        const path = require('path');
+        const { Buffer } = require('buffer');
+        const cleanPrompt = rawPrompt.trim();
 
+        // Dossiers locaux pour sauvegarder les images générées
+        const publicGenDir = path.join(process.cwd(), 'public', 'assets', 'generated');
+        const distGenDir = path.join(process.cwd(), 'dist', 'assets', 'generated');
+        const galleryDir = path.join(process.cwd(), 'public', 'assets', 'gallery');
+
+        try {
+          if (!fs.existsSync(publicGenDir)) fs.mkdirSync(publicGenDir, { recursive: true });
+          if (fs.existsSync(path.join(process.cwd(), 'dist')) && !fs.existsSync(distGenDir)) {
+            fs.mkdirSync(distGenDir, { recursive: true });
+          }
+        } catch (e) {}
+
+        const saveBufferToAssets = (buffer: any): string => {
+          const fileName = `ai-${Date.now()}-${Math.floor(Math.random() * 10000)}.jpg`;
+          try {
+            fs.writeFileSync(path.join(publicGenDir, fileName), buffer);
+            if (fs.existsSync(path.join(process.cwd(), 'dist', 'assets'))) {
+              fs.writeFileSync(path.join(distGenDir, fileName), buffer);
+            }
+            return `/assets/generated/${fileName}`;
+          } catch (e) {
+            return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+          }
+        };
+
+        // 1. Traduction & enrichissement sémantique du prompt pour l'IA
+        const frReplacements: Array<[RegExp, string]> = [
+          [/ambulance/gi, 'modern medical emergency ambulance vehicle'],
+          [/vsl|véhicule sanitaire léger|vehicule sanitaire leger/gi, 'white medical patient transport car'],
+          [/taxi conventionné|taxi conventionne/gi, 'certified healthcare medical taxi'],
+          [/brancard(ier)?|civière/gi, 'paramedic stretcher transport'],
+          [/fauteuil roulant|pmr|handicap|rampe/gi, 'wheelchair accessible medical transport van with ramp lift'],
+          [/dialyse|hémodialyse|nephrologie/gi, 'hemodialysis medical care center transport'],
+          [/maternité|maternite|enceinte|bébé|nourrisson|pédiatrie|pediatrie/gi, 'pediatric and maternity hospital transport caring'],
+          [/hélicoptère|helicoptere|dragon 972|évasan|evasan/gi, 'medical evacuation emergency helicopter SAMU helipad'],
+          [/clinique|accueil|secrétaire/gi, 'modern medical clinic reception welcoming'],
+          [/patient(e)?/gi, 'patient'],
+          [/personne âgée|senior/gi, 'elderly patient'],
+          [/médecin|docteur/gi, 'doctor with stethoscope'],
+          [/soignant(e)?|infirmi(er|ère)/gi, 'nurse healthcare professional'],
+          [/hôpital|hopital|chu|clinique/gi, 'modern medical clinic hospital'],
+          [/martinique|guadeloupe|antilles|caraïbes/gi, 'tropical caribbean island with palm trees sunny'],
+          [/ensoleillé(e)?|soleil/gi, 'bright sunny daylight'],
+          [/jaune et blanche|blanche et jaune/gi, 'yellow and white medical livery'],
+          [/blanche?|blanc/gi, 'white medical livery'],
+          [/jaune/gi, 'yellow medical livery'],
+          [/bleue?|bleu/gi, 'blue medical livery'],
+          [/route/gi, 'scenic coastal road'],
+          [/devant/gi, 'parked in front of'],
+          [/aide|aidant/gi, 'kindly assisting'],
+          [/urgence/gi, 'emergency medical care']
+        ];
+
+        let englishPrompt = cleanPrompt;
+        for (const [re, en] of frReplacements) {
+          englishPrompt = englishPrompt.replace(re, en);
+        }
+        const enrichedPrompt = `${englishPrompt}, professional realistic photography, 4k, cinematic daylight, high quality`;
+
+        let finalImageUrl: string | null = null;
+
+        // Étape A : Tentative Gemini Image API si clé disponible
         if (geminiApiKey) {
           try {
             const imgRes = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/images/generations', {
@@ -543,9 +609,11 @@ Consignes strictes :
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${geminiApiKey}`
               },
+              signal: AbortSignal.timeout(2000),
               body: JSON.stringify({
-                model: 'imagen-3.0-generate-002',
-                prompt: `${prompt}, realistic photography, high resolution, professional medical transport, 4k`,
+                model: 'gemini-2.5-flash-image',
+                prompt: enrichedPrompt,
+                response_format: 'b64_json',
                 n: 1,
                 size: '1024x1024'
               })
@@ -553,26 +621,130 @@ Consignes strictes :
             if (imgRes.ok) {
               const imgData: any = await imgRes.json();
               const b64 = imgData.data?.[0]?.b64_json;
-              const remoteUrl = imgData.data?.[0]?.url;
               if (b64) {
-                generatedUrl = `data:image/png;base64,${b64}`;
-              } else if (remoteUrl) {
-                generatedUrl = remoteUrl;
+                finalImageUrl = saveBufferToAssets(Buffer.from(b64, 'base64'));
               }
             }
           } catch (e: any) {
-            console.warn('[AI SEO Dev] Imagen fallback to Pollinations:', e.message);
+            console.warn('[AI Image Dev] Gemini Image API error, fallback:', e.message);
           }
         }
 
-        if (!generatedUrl) {
-          const encoded = encodeURIComponent(`${prompt}, realistic photo, professional healthcare transportation, high resolution`);
-          generatedUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1200&height=675&nologo=true&seed=${Date.now()}`;
+        // Étape B : Tentative Pollinations / SANA direct avec timeout modéré
+        if (!finalImageUrl) {
+          try {
+            const fluxUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=1024&height=576&nologo=true&seed=${Date.now() % 100000}`;
+            const fluxRes = await fetch(fluxUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+              },
+              signal: AbortSignal.timeout(3500)
+            });
+            if (fluxRes.ok && (fluxRes.headers.get('content-type') || '').includes('image')) {
+              const buf = Buffer.from(await fluxRes.arrayBuffer());
+              if (buf.length > 5000) {
+                finalImageUrl = saveBufferToAssets(buf);
+              }
+            }
+          } catch (e: any) {
+            console.warn('[AI Image Dev] External AI generation unavailable or timed out, activating semantic matcher:', e.message);
+          }
+        }
+
+        // Étape C : Sélection sémantique intelligente parmi les 10 catégories 4K
+        if (!finalImageUrl) {
+          const lower = cleanPrompt.toLowerCase();
+          const categories = [
+            {
+              file: 'regulation_ambulance_dispatch.jpg',
+              keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'centre de regulation', 'standard', 'permanence', 'opérateur', 'operateur', 'coordination', 'écran', 'ecran', 'samu 972', 'centre de contrôle'],
+              weight: 3.0
+            },
+            {
+              file: 'transport_pmr_fauteuil.jpg',
+              keywords: ['pmr', 'fauteuil', 'roulant', 'handicap', 'rampe', 'ufr', 'mobilité', 'mobilite', 'invalide', 'marcheur', 'chariot'],
+              weight: 2.5
+            },
+            {
+              file: 'dialyse_centre_soins.jpg',
+              keywords: ['dialyse', 'hémodialyse', 'hemodialyse', 'rein', 'néphrologie', 'nephrologie', 'chimio', 'chimiothérapie', 'chimiotherapie', 'oncologie', 'séance', 'seance', 'régulier', 'regulier'],
+              weight: 2.5
+            },
+            {
+              file: 'pediatrie_maternite.jpg',
+              keywords: ['enfant', 'pédiatrie', 'pediatrie', 'bébé', 'bebe', 'nourrisson', 'maternité', 'maternite', 'mère', 'mere', 'maman', 'enceinte', 'grossesse', 'accouchement', 'naissance', 'pédiatrique', 'pediatrique'],
+              weight: 2.5
+            },
+            {
+              file: 'evasan_helicoptere_chu.jpg',
+              keywords: ['hélicoptère', 'helicoptere', 'dragon', 'dragon 972', 'évasan', 'evasan', 'évacuation', 'evacuation', 'héliport', 'heliport', 'aérien', 'aerien', 'vol'],
+              weight: 2.5
+            },
+            {
+              file: 'clinique_accueil_urgences.jpg',
+              keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet', 'sainte-marie', 'saint-paul', 'centre médical', 'centre medical'],
+              weight: 2.0
+            },
+            {
+              file: 'taxi_conventionne_aidant.jpg',
+              keywords: ['taxi', 'conventionné', 'conventionne', 'cpam', 'chauffeur', 'senior', 'personne âgée', 'personne agee', 'aide', 'aidant', 'bienveillance', 'domicile', 'artisan'],
+              weight: 2.0
+            },
+            {
+              file: 'vsl_transport_cote.jpg',
+              keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'assis', 'berline', 'voiture', 'côte', 'cote', 'route', 'littoral', 'bord de mer'],
+              weight: 2.0
+            },
+            {
+              file: 'brancardiers_soins_hopital.jpg',
+              keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert'],
+              weight: 2.0
+            },
+            {
+              file: 'medecin_prescription_pmt.jpg',
+              keywords: ['pmt', 'cerfa', 'prescription', 'bon de transport', 'médecin', 'medecin', 'docteur', 'ordonnance', '100%', 'ald', 'sécurité sociale', 'securite sociale', 'remboursement', 'ameli'],
+              weight: 2.0
+            },
+            {
+              file: 'ambulance_martinique_chu.jpg',
+              keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'chum', 'hôpital', 'hopital', 'trinité', 'trinite', 'fort-de-france', 'lamentin', 'garde'],
+              weight: 1.5
+            }
+          ];
+
+          let bestFile = 'ambulance_martinique_chu.jpg';
+          let highestScore = 0;
+
+          for (const cat of categories) {
+            let catScore = 0;
+            for (const kw of cat.keywords) {
+              if (lower.includes(kw)) {
+                catScore += kw.length * cat.weight;
+              }
+            }
+            if (catScore > highestScore) {
+              highestScore = catScore;
+              bestFile = cat.file;
+            }
+          }
+
+          // Si le prompt contient "voiture", "transport" sans précision
+          if (highestScore === 0) {
+            if (lower.includes('voiture') || lower.includes('assis')) {
+              bestFile = 'vsl_transport_cote.jpg';
+            } else if (lower.includes('médecin') || lower.includes('papier') || lower.includes('droit')) {
+              bestFile = 'medecin_prescription_pmt.jpg';
+            } else {
+              bestFile = 'ambulance_martinique_chu.jpg';
+            }
+          }
+
+          finalImageUrl = `/assets/gallery/${bestFile}`;
         }
 
         resultData = {
-          imageUrl: generatedUrl,
-          prompt
+          imageUrl: finalImageUrl,
+          prompt: cleanPrompt
         };
       } else {
         resultData = { message: 'Action traitée avec succès' };

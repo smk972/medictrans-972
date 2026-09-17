@@ -1,6 +1,7 @@
 import { ClientRecord, Facility, Transporter, UserProfile, UserRole, Ride, SystemSettings, AuditLog } from '../types';
 import { rideService } from './rideService';
-import { AuthService } from './authService';
+import { AuthService, REALISTIC_PROFILES } from './authService';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const STORAGE_KEY_CLIENTS = 'medictrans_admin_clients_972';
 const STORAGE_KEY_SETTINGS = 'medictrans_admin_settings_972';
@@ -143,6 +144,136 @@ const INITIAL_CLIENTS: ClientRecord[] = [
     status: 'ACTIVE',
     createdAt: '2026-05-18T11:20:00.000Z',
     notes: 'Conventionné CPAM Régime Général 65%'
+  },
+  {
+    id: 'client-6',
+    firstName: 'Jean',
+    lastName: 'Dupont',
+    birthDate: '1985-04-12',
+    nir: '1 85 04 75 112 345 88',
+    phone: '06 12 34 56 78',
+    email: 'jean.dupont@orange.fr',
+    address: '45 Rue de Vaugirard',
+    city: 'Paris',
+    postalCode: '75006',
+    isAld: true,
+    aldReason: 'ALD 30 - Affection cardiovasculaire grave (Suivi HEGP)',
+    hasPmt: true,
+    pmtPrescriberDoctor: 'Dr. Mercier - Hôpital Européen Georges-Pompidou',
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false,
+      notes: 'Consultation cardiologie mensuelle'
+    },
+    status: 'ACTIVE',
+    createdAt: '2026-01-10T10:00:00.000Z',
+    notes: 'Prise en charge VSL conventionné CPAM Paris'
+  },
+  {
+    id: 'client-7',
+    firstName: 'Sophie',
+    lastName: 'Laurent',
+    birthDate: '1990-08-15',
+    nir: '2 90 08 69 044 123 45',
+    phone: '06 88 99 11 22',
+    email: 'sophie.laurent@gmail.com',
+    address: '12 Avenue des Frères Lumière',
+    city: 'Lyon',
+    postalCode: '69008',
+    isAld: true,
+    aldReason: 'ALD 4 - Diabète de type 1 sévère avec suivi néphrologie',
+    hasPmt: true,
+    pmtPrescriberDoctor: 'Dr. Faure - Hôpital Édouard Herriot Lyon',
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false
+    },
+    status: 'ACTIVE',
+    createdAt: '2026-01-12T10:00:00.000Z',
+    notes: 'Transport régulier pour séances de dialyse Lyon'
+  },
+  {
+    id: 'client-8',
+    firstName: 'Marie',
+    lastName: 'Leroy',
+    birthDate: '1975-03-20',
+    nir: '2 75 03 31 555 432 10',
+    phone: '06 45 67 89 01',
+    email: 'marie.leroy@gmail.com',
+    address: '8 Place du Capitole',
+    city: 'Toulouse',
+    postalCode: '31000',
+    isAld: true,
+    aldReason: 'ALD 23 - Maladie de Crohn et suivi gastro-entérologie',
+    hasPmt: true,
+    pmtPrescriberDoctor: 'Dr. Durand - CHU Purpan Toulouse',
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false
+    },
+    status: 'ACTIVE',
+    createdAt: '2026-02-01T09:00:00.000Z',
+    notes: 'Consultation spécialisée CHU Rangueil / Purpan'
+  },
+  {
+    id: 'client-9',
+    firstName: 'Jacqueline',
+    lastName: 'Evariste',
+    birthDate: '1962-11-14',
+    nir: '2 62 11 97 105 321 54',
+    phone: '0690 12 34 56',
+    email: 'jacqueline.evariste@orange.fr',
+    address: 'Section Lauricisque',
+    city: 'Pointe-à-Pitre',
+    postalCode: '97110',
+    isAld: true,
+    aldReason: 'ALD 19 - Insuffisance rénale chronique hémodialyse',
+    hasPmt: true,
+    pmtPrescriberDoctor: 'Dr. Bellerose - CHU Guadeloupe',
+    mobility: {
+      wheelchair: true,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: true
+    },
+    status: 'ACTIVE',
+    createdAt: '2026-01-20T08:00:00.000Z',
+    notes: 'Hémodialyse triterbienne CHU Pointe-à-Pitre'
+  },
+  {
+    id: 'client-10',
+    firstName: 'Denis',
+    lastName: 'Golitin',
+    birthDate: '1971-06-08',
+    nir: '1 71 06 97 302 456 78',
+    phone: '0694 22 33 44',
+    email: 'denis.golitin@guyane.fr',
+    address: 'Route de Montabo',
+    city: 'Cayenne',
+    postalCode: '97300',
+    isAld: false,
+    hasPmt: true,
+    pmtPrescriberDoctor: 'Dr. Némorin - Centre Hospitalier Andrée Rosemon',
+    mobility: {
+      wheelchair: false,
+      stretcher: false,
+      oxygen: false,
+      stairsWithoutElevator: false,
+      needsEscort: false
+    },
+    status: 'ACTIVE',
+    createdAt: '2026-02-15T10:00:00.000Z',
+    notes: 'Prise en charge rééducation post-opératoire'
   }
 ];
 
@@ -197,15 +328,67 @@ export class AdminService {
   // =========================================================================
   static async getAllClients(): Promise<ClientRecord[]> {
     const raw = localStorage.getItem(STORAGE_KEY_CLIENTS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(INITIAL_CLIENTS));
-      return INITIAL_CLIENTS;
+    let clients: ClientRecord[] = [];
+    if (raw) {
+      try { clients = JSON.parse(raw); } catch { clients = []; }
     }
+
+    // 1. Fusionner les fiches de référence initiales Nationales & DOM
+    for (const initClient of INITIAL_CLIENTS) {
+      if (!clients.some(c => c.email.toLowerCase() === initClient.email.toLowerCase() || c.id === initClient.id)) {
+        clients.push(initClient);
+      }
+    }
+
+    // 2. Synchroniser automatiquement avec tous les utilisateurs inscrits ayant le rôle PATIENT
     try {
-      return JSON.parse(raw);
-    } catch {
-      return INITIAL_CLIENTS;
+      const allUsers = await this.getAllUsers();
+      const patientUsers = allUsers.filter(u => u.role === 'PATIENT');
+
+      for (const p of patientUsers) {
+        const exists = clients.some(c => c.email.toLowerCase() === p.email.toLowerCase());
+        if (!exists) {
+          const dept = p.phone?.startsWith('0696') || p.phone?.startsWith('0596') ? '97200' :
+                       p.phone?.startsWith('0690') || p.phone?.startsWith('0590') ? '97100' :
+                       p.phone?.startsWith('0694') || p.phone?.startsWith('0594') ? '97300' :
+                       p.phone?.startsWith('0692') || p.phone?.startsWith('0262') ? '97400' : '75000';
+          const cityName = dept === '97200' ? 'Fort-de-France' :
+                            dept === '97100' ? 'Pointe-à-Pitre' :
+                            dept === '97300' ? 'Cayenne' :
+                            dept === '97400' ? 'Saint-Denis' : 'Paris';
+
+          clients.unshift({
+            id: `client-${p.id}`,
+            firstName: p.firstName || 'Patient',
+            lastName: p.lastName || '',
+            birthDate: '1980-01-01',
+            nir: p.nir || '1 80 01 75 000 000 00',
+            phone: p.phone || '06 00 00 00 00',
+            email: p.email,
+            address: 'Adresse déclarée à l’inscription',
+            city: cityName,
+            postalCode: dept,
+            isAld: false,
+            hasPmt: true,
+            mobility: {
+              wheelchair: false,
+              stretcher: false,
+              oxygen: false,
+              stairsWithoutElevator: false,
+              needsEscort: false
+            },
+            status: 'ACTIVE',
+            createdAt: p.createdAt || new Date().toISOString(),
+            notes: 'Inscription en ligne sur Clinigo.fr'
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Sync clients non-bloquante:', err);
     }
+
+    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clients));
+    return clients;
   }
 
   static async getClientById(id: string): Promise<ClientRecord | null> {
@@ -493,14 +676,32 @@ export class AdminService {
     if (index === -1) throw new Error('Transporteur introuvable');
 
     const updatedTransporter = { ...transporters[index], ...updates };
+
+    // Si les véhicules sont mis à jour, recalculer automatiquement la flotte déclarée
+    if (updates.vehicles) {
+      updatedTransporter.fleetAmbulances = updates.vehicles.filter(v => v.type === 'AMBULANCE').length;
+      updatedTransporter.fleetVsl = updates.vehicles.filter(v => v.type === 'VSL').length;
+      updatedTransporter.fleetTaxis = updates.vehicles.filter(v => v.type === 'TAXI_CONVENTIONNE').length;
+    }
+
     transporters[index] = updatedTransporter;
     localStorage.setItem('medictrans_transporters_972', JSON.stringify(transporters));
+
+    // Si c'est le transporteur de démo principal, synchroniser aussi les clés du portail transporteur
+    if (id === 'transporter-1' || id === 'madinina-secours') {
+      if (updates.vehicles) {
+        localStorage.setItem('medictrans_transporter_fleet_v2', JSON.stringify(updates.vehicles));
+      }
+      if (updates.drivers) {
+        localStorage.setItem('medictrans_transporter_drivers_v2', JSON.stringify(updates.drivers));
+      }
+    }
 
     await this.logAdminAction(
       'MODIFICATION_TRANSPORTEUR',
       'TRANSPORTER',
       id,
-      `Mise à jour du transporteur : ${updatedTransporter.companyName}`,
+      `Mise à jour complète de la fiche transporteur : ${updatedTransporter.companyName} (Flotte & Chauffeurs)`,
       adminEmail
     );
 
@@ -574,99 +775,45 @@ export class AdminService {
       try { users = JSON.parse(raw); } catch { users = []; }
     }
 
-    if (users.length === 0) {
-      // Pré-charger les comptes de base
-      users = [
-        {
-          id: 'usr-admin-1',
-          email: 'admin@medictrans972.mq',
-          role: 'ADMIN',
-          firstName: 'Régulation',
-          lastName: 'Centrale 972',
-          phone: '0596 72 00 97',
-          avatarUrl: '/assets/logo-icon.svg',
-          createdAt: '2026-01-01T00:00:00.000Z'
-        },
-        {
-          id: 'usr-facility-chu',
-          email: 'coordination@chu-martinique.fr',
-          role: 'FACILITY',
-          firstName: 'Marie-Paule',
-          lastName: 'Valaire',
-          phone: '0596 55 20 00',
-          facilityId: 'chu-zobda-quitman',
-          facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
-          facilityFiness: '970211145',
-          facilityAccessStatus: 'APPROVED',
-          facilityAccessApprovedAt: '2026-01-05T00:00:00.000Z',
-          avatarUrl: '/assets/nurse_almont.jpg',
-          createdAt: '2026-01-05T00:00:00.000Z'
-        },
-        {
-          id: 'usr-facility-pending-1',
-          email: 'direction@clinique-stpaul.mq',
-          role: 'FACILITY',
-          firstName: 'Dr. Jean-Marc',
-          lastName: 'Sainte-Rose',
-          phone: '0596 39 40 00',
-          facilityName: 'Clinique Sainte-Marie - Pôle Oncologie',
-          facilityFiness: '970200054',
-          facilityAccessStatus: 'PENDING',
-          facilityAccessRequestedAt: new Date(Date.now() - 3 * 3600000).toISOString(),
-          createdAt: new Date(Date.now() - 3 * 3600000).toISOString()
-        },
-        {
-          id: 'usr-transporter-madinina',
-          email: 'dispatch@madinina-secours.mq',
-          role: 'TRANSPORTER',
-          firstName: 'Patrick',
-          lastName: 'Césaire',
-          phone: '0696 75 20 20',
-          transporterId: 'madinina-secours',
-          transporterName: 'Ambulances Madinina Secours',
-          subscription: {
-            status: 'TRIAL',
-            trialDaysTotal: 30,
-            trialDaysRemaining: 28,
-            trialStartedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-            trialExpiresAt: new Date(Date.now() + 28 * 86400000).toISOString(),
-            isTrialUnlocked: true,
-            whatsappVerified: true,
-            whatsappPhone: '0696 75 20 20',
-            planName: 'Formule Pro Sanitaire (Illimitée)',
-            monthlyPrice: 19.9,
-            currentPeriodStart: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
-            currentPeriodEnd: new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10),
-            invoices: [
-              {
-                id: 'inv-1',
-                invoiceNumber: 'FACT-2026-0089',
-                date: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
-                amount: 0,
-                description: 'Période d’essai gratuit 30 jours (Vérification WhatsApp activée)',
-                status: 'TRIAL_FREE',
-                periodStart: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
-                periodEnd: new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10)
-              }
-            ]
-          },
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          createdAt: '2026-01-10T00:00:00.000Z'
-        },
-        {
-          id: 'usr-patient-christian',
-          email: 'c.marieluce@orange.fr',
-          role: 'PATIENT',
-          firstName: 'Christian',
-          lastName: 'Marie-Luce',
-          phone: '0696 55 44 33',
-          nir: '1 54 11 97 208 771 72',
-          avatarUrl: '/assets/headshot.png',
-          createdAt: '2026-01-15T00:00:00.000Z'
-        }
-      ];
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    // 1. Fusionner avec tous les comptes réalistes nationaux & DOM
+    const realisticList = Object.values(REALISTIC_PROFILES);
+    for (const rUser of realisticList) {
+      const idx = users.findIndex(u => u.email.toLowerCase() === rUser.email.toLowerCase());
+      if (idx === -1) {
+        users.push(rUser);
+      }
     }
+
+    // 2. Interroger Supabase en direct pour récupérer toutes les nouvelles inscriptions
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data: sbProfiles } = await supabase.from('profiles').select('*');
+        if (sbProfiles && sbProfiles.length > 0) {
+          for (const sp of sbProfiles) {
+            const idx = users.findIndex(u => u.email.toLowerCase() === (sp.email || '').toLowerCase() || u.id === sp.id);
+            const mappedUser: UserProfile = {
+              id: sp.id,
+              email: sp.email || '',
+              firstName: sp.first_name || 'Utilisateur',
+              lastName: sp.last_name || '',
+              role: (sp.role ? sp.role.toUpperCase() : 'PATIENT') as UserRole,
+              phone: sp.phone || undefined,
+              avatarUrl: sp.avatar_url || '/assets/headshot.png',
+              createdAt: sp.created_at || new Date().toISOString()
+            };
+            if (idx >= 0) {
+              users[idx] = { ...users[idx], ...mappedUser };
+            } else {
+              users.unshift(mappedUser);
+            }
+          }
+        }
+      } catch (sbErr) {
+        console.warn('[AdminService] Supabase profiles sync non-bloquante:', sbErr);
+      }
+    }
+
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
     return users;
   }
 

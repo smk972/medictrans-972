@@ -1,5 +1,5 @@
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-import { HealthcareFacility, MARTINIQUE_HEALTHCARE_FACILITIES } from '../data/facilities';
+import { HealthcareFacility, MARTINIQUE_HEALTHCARE_FACILITIES, FRENCH_HEALTHCARE_FACILITIES } from '../data/facilities';
 
 export interface AddressSuggestion {
   id: string;
@@ -14,13 +14,100 @@ export interface AddressSuggestion {
   coordinates?: { lat: number; lng: number };
 }
 
-// Bounds Martinique 972
-const MARTINIQUE_BOUNDS = {
-  north: 14.92,
-  south: 14.38,
-  west: -61.25,
-  east: -60.78,
+export interface AddressSearchOptions {
+  includeFacilities?: boolean;
+  categoryFilter?: string;
+  referenceAddress?: string;
+}
+
+// Coordonnées de référence par département ou territoire pour centrer les recherches
+const DEPARTMENT_COORDINATES: Record<string, { lat: number; lng: number; name: string }> = {
+  // Occitanie / Toulouse
+  '31': { lat: 43.6047, lng: 1.4442, name: 'Haute-Garonne (Toulouse)' },
+  '34': { lat: 43.6108, lng: 3.8767, name: 'Hérault (Montpellier)' },
+  // Île-de-France / Paris
+  '75': { lat: 48.8566, lng: 2.3522, name: 'Paris (75)' },
+  '92': { lat: 48.8924, lng: 2.2153, name: 'Hauts-de-Seine (92)' },
+  '93': { lat: 48.9137, lng: 2.4846, name: 'Seine-Saint-Denis (93)' },
+  '94': { lat: 48.7904, lng: 2.4556, name: 'Val-de-Marne (94)' },
+  '77': { lat: 48.6056, lng: 2.8962, name: 'Seine-et-Marne (77)' },
+  '78': { lat: 48.8049, lng: 2.1204, name: 'Yvelines (78)' },
+  '91': { lat: 48.5323, lng: 2.2562, name: 'Essonne (91)' },
+  '95': { lat: 49.0722, lng: 2.1386, name: "Val-d'Oise (95)" },
+  // Auvergne-Rhône-Alpes / Lyon
+  '69': { lat: 45.7640, lng: 4.8357, name: 'Rhône (Lyon)' },
+  '38': { lat: 45.1885, lng: 5.7245, name: 'Isère (Grenoble)' },
+  // PACA / Marseille / Nice
+  '13': { lat: 43.2965, lng: 5.3698, name: 'Bouches-du-Rhône (Marseille)' },
+  '06': { lat: 43.7102, lng: 7.2620, name: 'Alpes-Maritimes (Nice)' },
+  // Nouvelle-Aquitaine / Bordeaux
+  '33': { lat: 44.8378, lng: -0.5792, name: 'Gironde (Bordeaux)' },
+  // Hauts-de-France / Lille
+  '59': { lat: 50.6292, lng: 3.0573, name: 'Nord (Lille)' },
+  '62': { lat: 50.5000, lng: 2.6000, name: 'Pas-de-Calais' },
+  // Pays de la Loire / Nantes
+  '44': { lat: 47.2184, lng: -1.5536, name: 'Loire-Atlantique (Nantes)' },
+  // Bretagne / Rennes
+  '35': { lat: 48.1173, lng: -1.6778, name: 'Ille-et-Vilaine (Rennes)' },
+  // Grand Est / Strasbourg
+  '67': { lat: 48.5734, lng: 7.7521, name: 'Bas-Rhin (Strasbourg)' },
+  // DOM
+  '971': { lat: 16.2411, lng: -61.5331, name: 'Guadeloupe (971)' },
+  '972': { lat: 14.6161, lng: -61.0588, name: 'Martinique (972)' },
+  '973': { lat: 4.9372, lng: -52.3260, name: 'Guyane (973)' },
+  '974': { lat: -20.8789, lng: 55.4481, name: 'La Réunion (974)' },
+  '976': { lat: -12.7806, lng: 45.2278, name: 'Mayotte (976)' },
 };
+
+/**
+ * Normalise un texte (sans accents, sans ponctuation inutile, en minuscules)
+ */
+function normalizeStr(text: string): string {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-_'/.,]/g, ' ')
+    .trim();
+}
+
+/**
+ * Détecte le département officiel ou code postal depuis une adresse ou commune
+ */
+export function extractDepartmentFromAddress(address: string): string | null {
+  if (!address) return null;
+  const str = address.trim();
+
+  // 1. Code postal à 5 chiffres explicite
+  const zipMatch = str.match(/\b(97[1-8]|2[ABab]|0[1-9]|[1-8]\d|9[0-5])(\d{3})\b/);
+  if (zipMatch) {
+    const code = zipMatch[1];
+    return code.startsWith('97') ? code : code.toUpperCase();
+  }
+
+  // 2. Détection par nom de commune ou zone majeure
+  const norm = normalizeStr(str);
+  if (norm.includes('toulouse') || norm.includes('blagnac') || norm.includes('purpan') || norm.includes('colomiers') || norm.includes('rangueil')) return '31';
+  if (norm.includes('paris') || norm.includes('salpetriere') || norm.includes('necker') || norm.includes('hegp') || norm.includes('bichat')) return '75';
+  if (norm.includes('lyon') || norm.includes('villeurbanne') || norm.includes('herriot')) return '69';
+  if (norm.includes('marseille') || norm.includes('timone') || norm.includes('aix')) return '13';
+  if (norm.includes('bordeaux') || norm.includes('pellegrin') || norm.includes('merignac')) return '33';
+  if (norm.includes('nantes')) return '44';
+  if (norm.includes('lille')) return '59';
+  if (norm.includes('strasbourg') || norm.includes('hautepierre')) return '67';
+  if (norm.includes('rennes') || norm.includes('pontchaillou')) return '35';
+  if (norm.includes('montpellier') || norm.includes('lapeyronie')) return '34';
+  if (norm.includes('nice') || norm.includes('pasteur')) return '06';
+
+  // DOM
+  if (norm.includes('martinique') || norm.includes('fort de france') || norm.includes('lamentin') || norm.includes('schoelcher') || norm.includes('zobda') || norm.includes('trinite') || norm.includes('marin')) return '972';
+  if (norm.includes('guadeloupe') || norm.includes('pointe a pitre') || norm.includes('abymes') || norm.includes('basse terre')) return '971';
+  if (norm.includes('guyane') || norm.includes('cayenne') || norm.includes('kourou')) return '973';
+  if (norm.includes('reunion') || norm.includes('saint denis') || norm.includes('saint paul') || norm.includes('saint pierre')) return '974';
+  if (norm.includes('mayotte') || norm.includes('mamoudzou')) return '976';
+
+  return null;
+}
 
 let googleMapsConfigured = false;
 
@@ -35,7 +122,7 @@ function initGoogleMapsConfig(): boolean {
         key: apiKey,
         v: 'weekly',
         language: 'fr',
-        region: 'MQ',
+        region: 'FR',
       });
       googleMapsConfigured = true;
     } catch {
@@ -46,53 +133,106 @@ function initGoogleMapsConfig(): boolean {
 }
 
 export const addressService = {
-  // Recherche d'établissements de santé locaux en Martinique
-  searchFacilities(query: string, categoryFilter?: string): AddressSuggestion[] {
-    const q = query.trim().toLowerCase();
-    let facilities = MARTINIQUE_HEALTHCARE_FACILITIES;
+  /**
+   * Recherche multi-critères des établissements de santé
+   * Priorise automatiquement les établissements du même département que l'adresse de référence
+   */
+  searchFacilities(query: string, options?: AddressSearchOptions | string): AddressSuggestion[] {
+    const opts: AddressSearchOptions = typeof options === 'string' ? { categoryFilter: options } : (options || {});
+    const q = query.trim();
+    const qNorm = normalizeStr(q);
+    const tokens = qNorm.split(/\s+/).filter(Boolean);
 
-    if (categoryFilter && categoryFilter !== 'ALL') {
-      facilities = facilities.filter(f => f.category === categoryFilter);
+    let facilities = FRENCH_HEALTHCARE_FACILITIES;
+
+    const validCategories = ['HOSPITAL', 'CLINIC', 'DIALYSIS', 'SSR', 'ONCOLOGY', 'EHPAD', 'CABINET'];
+    if (opts.categoryFilter && opts.categoryFilter !== 'ALL' && opts.categoryFilter !== 'etablissement' && validCategories.includes(opts.categoryFilter)) {
+      facilities = facilities.filter(f => f.category === opts.categoryFilter);
     }
 
+    const refDept = extractDepartmentFromAddress(opts.referenceAddress || '');
+
+    // Si aucune saisie, retourner les établissements concordants avec le lieu du départ (ou grands CHU nationaux)
     if (!q) {
-      return facilities.slice(0, 10).map(f => ({
-        id: `fac-${f.id}`,
-        label: f.name,
-        secondaryText: `${f.city} • ${f.address}`,
-        address: `${f.name}, ${f.address}`,
-        city: f.city,
-        postalCode: f.postalCode,
-        type: 'FACILITY',
-        facility: f,
-        categoryLabel: f.categoryLabel,
-      }));
+      const sorted = [...facilities].sort((a, b) => {
+        const aDept = a.postalCode.startsWith('97') ? a.postalCode.slice(0, 3) : a.postalCode.slice(0, 2);
+        const bDept = b.postalCode.startsWith('97') ? b.postalCode.slice(0, 3) : b.postalCode.slice(0, 2);
+
+        if (refDept) {
+          const aMatch = aDept === refDept ? 1 : 0;
+          const bMatch = bDept === refDept ? 1 : 0;
+          if (aMatch !== bMatch) return bMatch - aMatch;
+        }
+        return 0;
+      });
+
+      return sorted.slice(0, 10).map(f => {
+        const dept = f.postalCode.startsWith('97') ? f.postalCode.slice(0, 3) : f.postalCode.slice(0, 2);
+        return {
+          id: `fac-${f.id}`,
+          label: f.name,
+          secondaryText: `${f.city} (${f.postalCode}) • ${f.ambulanceAccessNotes || f.address}`,
+          address: `${f.name}, ${f.address}, ${f.postalCode} ${f.city}`,
+          city: f.city,
+          postalCode: f.postalCode,
+          type: 'FACILITY',
+          facility: f,
+          categoryLabel: `${f.categoryLabel} (${dept})`,
+        };
+      });
     }
 
-    return facilities
-      .filter(f => 
-        f.name.toLowerCase().includes(q) ||
-        (f.shortName && f.shortName.toLowerCase().includes(q)) ||
-        f.city.toLowerCase().includes(q) ||
-        f.address.toLowerCase().includes(q) ||
-        f.categoryLabel.toLowerCase().includes(q)
-      )
-      .slice(0, 8)
-      .map(f => ({
+    // Filtrage multi-mots clés souple : chaque token de la saisie doit être présent dans le descriptif de l'établissement
+    const matched = facilities.filter(f => {
+      const target = normalizeStr(
+        `${f.name} ${f.shortName || ''} ${f.city} ${f.address} ${f.postalCode} ${f.categoryLabel}`
+      );
+      return tokens.every(token => target.includes(token));
+    });
+
+    // Trier par pertinence et concordance géographique avec l'adresse du patient
+    matched.sort((a, b) => {
+      const aDept = a.postalCode.startsWith('97') ? a.postalCode.slice(0, 3) : a.postalCode.slice(0, 2);
+      const bDept = b.postalCode.startsWith('97') ? b.postalCode.slice(0, 3) : b.postalCode.slice(0, 2);
+
+      // 1. Bonus fort de proximité si même département que l'adresse entrée
+      if (refDept) {
+        const aMatch = aDept === refDept ? 10 : 0;
+        const bMatch = bDept === refDept ? 10 : 0;
+        if (aMatch !== bMatch) return bMatch - aMatch;
+      }
+
+      // 2. Correspondance exacte du nom ou nom court
+      const aNameNorm = normalizeStr(a.name);
+      const bNameNorm = normalizeStr(b.name);
+      const aExact = aNameNorm.includes(qNorm) ? 5 : 0;
+      const bExact = bNameNorm.includes(qNorm) ? 5 : 0;
+      if (aExact !== bExact) return bExact - aExact;
+
+      return 0;
+    });
+
+    return matched.slice(0, 8).map(f => {
+      const dept = f.postalCode.startsWith('97') ? f.postalCode.slice(0, 3) : f.postalCode.slice(0, 2);
+      return {
         id: `fac-${f.id}`,
         label: f.name,
-        secondaryText: `${f.city} (${f.postalCode}) • ${f.ambulanceAccessNotes}`,
+        secondaryText: `${f.city} (${f.postalCode}) • ${f.ambulanceAccessNotes || f.address}`,
         address: `${f.name}, ${f.address}, ${f.postalCode} ${f.city}`,
         city: f.city,
         postalCode: f.postalCode,
         type: 'FACILITY',
         facility: f,
-        categoryLabel: f.categoryLabel,
-      }));
+        categoryLabel: `${f.categoryLabel} (${dept})`,
+      };
+    });
   },
 
-  // Recherche via l'API Base Adresse Nationale (France & Martinique 972)
-  async searchBanAddresses(query: string): Promise<AddressSuggestion[]> {
+  /**
+   * Recherche via l'API officielle Base Adresse Nationale (data.gouv.fr)
+   * Prise en compte de la concordance territoriale avec le point de départ
+   */
+  async searchBanAddresses(query: string, referenceAddress?: string): Promise<AddressSuggestion[]> {
     const trimmed = query.trim();
     if (!trimmed || trimmed.length < 2) return [];
 
@@ -100,80 +240,67 @@ export const addressService = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-      // Détecter un éventuel code postal à 5 chiffres dans la saisie (ex: 97200, 97232)
-      const zipMatch = trimmed.match(/\b(97\d{3}|\d{5})\b/);
-      const zipParam = zipMatch ? `&postcode=${zipMatch[1]}` : '';
+      // Détecter un code postal explicite dans la requête ou dans l'adresse de référence
+      const queryZipMatch = trimmed.match(/\b(97\d{3}|\d{5})\b/);
+      const refDept = extractDepartmentFromAddress(referenceAddress || '');
 
-      // Requête priorisée géographiquement sur la Martinique (lat 14.616, lon -61.058)
-      const primaryUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
-        trimmed
-      )}&lat=14.616&lon=-61.058&limit=8${zipParam}`;
+      let url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(trimmed)}&limit=10`;
 
-      const primaryPromise = fetch(primaryUrl, { signal: controller.signal })
-        .then((res) => (res.ok ? res.json() : { features: [] }))
+      if (queryZipMatch) {
+        url += `&postcode=${queryZipMatch[1]}`;
+      } else if (refDept && DEPARTMENT_COORDINATES[refDept]) {
+        // Centrer la recherche autour du secteur géographique de l'adresse de référence
+        const coords = DEPARTMENT_COORDINATES[refDept];
+        url += `&lat=${coords.lat}&lon=${coords.lng}`;
+      }
+
+      const res = await fetch(url, { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : { features: [] }))
         .catch(() => ({ features: [] }));
 
-      // Si la requête ne mentionne pas déjà Martinique ou 972, requêter également avec 'Martinique'
-      const shouldQueryMartiniqueExplicit =
-        !trimmed.toLowerCase().includes('martinique') && !trimmed.includes('972');
-
-      const secondaryPromise = shouldQueryMartiniqueExplicit
-        ? fetch(
-            `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
-              `${trimmed} Martinique`
-            )}&limit=5`,
-            { signal: controller.signal }
-          )
-            .then((res) => (res.ok ? res.json() : { features: [] }))
-            .catch(() => ({ features: [] }))
-        : Promise.resolve({ features: [] });
-
-      const [primaryData, secondaryData] = await Promise.all([primaryPromise, secondaryPromise]);
       clearTimeout(timeoutId);
 
-      const allFeatures = [
-        ...(primaryData.features || []),
-        ...(secondaryData.features || []),
-      ];
+      const features = res.features || [];
+      if (features.length === 0) return [];
 
-      if (allFeatures.length === 0) return [];
-
-      const seenIds = new Set<string>();
       const results: AddressSuggestion[] = [];
+      const seenIds = new Set<string>();
 
-      for (const item of allFeatures) {
+      for (const item of features) {
         const props = item.properties || {};
         const id = props.id || props.banId || `${props.label}-${props.postcode}`;
         if (seenIds.has(id)) continue;
         seenIds.add(id);
 
-        const isMartinique =
-          props.postcode?.startsWith('972') ||
-          props.context?.includes('972') ||
-          props.context?.toLowerCase().includes('martinique') ||
-          props.city?.toLowerCase().includes('martinique');
-
+        const postcode = props.postcode || '';
+        const dept = postcode.startsWith('97') ? postcode.slice(0, 3) : postcode.slice(0, 2);
         const coords = item.geometry?.coordinates;
+
+        // Contexte territorial fidèle (ex: 31, Haute-Garonne, Occitanie ou 972, Martinique)
+        const contextText = props.context || (dept ? `Dépt ${dept}` : '');
+        const secondary = [postcode, props.city, contextText].filter(Boolean).join(' • ');
 
         results.push({
           id: `ban-${id}`,
           label: props.label || props.name,
-          secondaryText: `${props.postcode || ''} ${props.city || ''} • Martinique`,
-          address: props.label || `${props.name}, ${props.postcode || ''} ${props.city || ''}`,
-          city: props.city || 'Martinique',
-          postalCode: props.postcode,
+          secondaryText: secondary,
+          address: props.label || `${props.name}, ${postcode} ${props.city || ''}`,
+          city: props.city || '',
+          postalCode: postcode,
           type: 'BAN_ADDRESS',
-          categoryLabel: isMartinique ? 'Martinique (972)' : 'Adresse',
+          categoryLabel: dept ? `${dept} • ${props.city || 'Adresse'}` : 'Adresse',
           coordinates: coords ? { lng: coords[0], lat: coords[1] } : undefined,
         });
       }
 
-      // Trier : Martinique (972) en premier, puis pertinence
-      results.sort((a, b) => {
-        const aIs972 = a.postalCode?.startsWith('972') ? 1 : 0;
-        const bIs972 = b.postalCode?.startsWith('972') ? 1 : 0;
-        return bIs972 - aIs972;
-      });
+      // Trier : donner priorité aux adresses du même département que l'adresse renseignée
+      if (refDept) {
+        results.sort((a, b) => {
+          const aMatch = (a.postalCode?.startsWith(refDept) || a.secondaryText?.includes(refDept)) ? 1 : 0;
+          const bMatch = (b.postalCode?.startsWith(refDept) || b.secondaryText?.includes(refDept)) ? 1 : 0;
+          return bMatch - aMatch;
+        });
+      }
 
       return results.slice(0, 8);
     } catch (err) {
@@ -182,40 +309,50 @@ export const addressService = {
     }
   },
 
-  // Recherche via Google Maps Platform (Places Autocomplete) si une clé est configurée
-  async searchGoogleMaps(query: string): Promise<AddressSuggestion[]> {
+  /**
+   * Recherche via Google Maps Platform (Places Autocomplete)
+   */
+  async searchGoogleMaps(query: string, referenceAddress?: string): Promise<AddressSuggestion[]> {
     if (!initGoogleMapsConfig() || !query || query.trim().length < 2) return [];
 
     try {
       const placesLib = (await importLibrary('places')) as any;
       const coreLib = (await importLibrary('core')) as any;
 
+      const refDept = extractDepartmentFromAddress(referenceAddress || '');
+      const refCoords = refDept ? DEPARTMENT_COORDINATES[refDept] : undefined;
+
       return new Promise<AddressSuggestion[]>((resolve) => {
         const service = new placesLib.AutocompleteService();
+        const requestOptions: any = {
+          input: query,
+          componentRestrictions: { country: ['fr', 'mq', 'gp', 'gf', 're', 'yt'] },
+        };
+
+        if (refCoords) {
+          requestOptions.locationBias = new coreLib.LatLng(refCoords.lat, refCoords.lng);
+        }
+
         service.getPlacePredictions(
-          {
-            input: query,
-            componentRestrictions: { country: ['mq', 'fr'] },
-            locationBias: new coreLib.LatLngBounds(
-              new coreLib.LatLng(MARTINIQUE_BOUNDS.south, MARTINIQUE_BOUNDS.west),
-              new coreLib.LatLng(MARTINIQUE_BOUNDS.north, MARTINIQUE_BOUNDS.east)
-            ),
-          },
+          requestOptions,
           (predictions: any[] | null, status: any) => {
             if (status !== 'OK' || !predictions) {
               resolve([]);
               return;
             }
 
-            const results: AddressSuggestion[] = predictions.map((p: any) => ({
-              id: `gmaps-${p.place_id}`,
-              label: p.structured_formatting?.main_text || p.description,
-              secondaryText: p.structured_formatting?.secondary_text || 'Martinique',
-              address: p.description,
-              city: p.structured_formatting?.secondary_text?.split(',')[0]?.trim() || 'Martinique',
-              type: 'GOOGLE_MAPS' as const,
-              categoryLabel: 'Google Maps 972',
-            }));
+            const results: AddressSuggestion[] = predictions.map((p: any) => {
+              const sec = p.structured_formatting?.secondary_text || '';
+              return {
+                id: `gmaps-${p.place_id}`,
+                label: p.structured_formatting?.main_text || p.description,
+                secondaryText: sec,
+                address: p.description,
+                city: sec.split(',')[0]?.trim() || '',
+                type: 'GOOGLE_MAPS' as const,
+                categoryLabel: 'Google Maps',
+              };
+            });
             resolve(results);
           }
         );
@@ -226,33 +363,35 @@ export const addressService = {
     }
   },
 
-  // Recherche combinée et dédupliquée
+  /**
+   * Recherche combinée et dédupliquée en temps réel
+   */
   async searchCombined(
     query: string,
-    options: {
-      includeFacilities?: boolean;
-      categoryFilter?: string;
-    } = { includeFacilities: true }
+    options: AddressSearchOptions = { includeFacilities: true }
   ): Promise<AddressSuggestion[]> {
     const trimmed = query.trim();
+
     if (!trimmed) {
-      return options.includeFacilities !== false ? this.searchFacilities('', options.categoryFilter) : [];
+      return options.includeFacilities !== false 
+        ? this.searchFacilities('', options) 
+        : [];
     }
 
     const promises: Promise<AddressSuggestion[]>[] = [];
 
-    // 1. Établissements de soins internes
+    // 1. Établissements de santé nationaux et régionaux
     if (options.includeFacilities !== false) {
-      promises.push(Promise.resolve(this.searchFacilities(trimmed, options.categoryFilter)));
+      promises.push(Promise.resolve(this.searchFacilities(trimmed, options)));
     }
 
-    // 2. Google Maps (si clé dispo)
+    // 2. Google Maps Places (si API configurée)
     if (initGoogleMapsConfig()) {
-      promises.push(this.searchGoogleMaps(trimmed));
+      promises.push(this.searchGoogleMaps(trimmed, options.referenceAddress));
     }
 
-    // 3. Base Adresse Nationale (couverture 100% rues et communes 972)
-    promises.push(this.searchBanAddresses(trimmed));
+    // 3. Base Adresse Nationale (couverture 100% France Métropolitaine & DOM)
+    promises.push(this.searchBanAddresses(trimmed, options.referenceAddress));
 
     const resultsArray = await Promise.all(promises);
     const combined = resultsArray.flat();
@@ -272,8 +411,10 @@ export const addressService = {
     return unique.slice(0, 10);
   },
 
-  // Géolocalisation de l'utilisateur avec résolution d'adresse
-  async getCurrentPositionAddress(): Promise<{ address: string; city: string } | null> {
+  /**
+   * Géolocalisation de l'utilisateur avec géocodage inversé précis
+   */
+  async getCurrentPositionAddress(): Promise<{ address: string; city: string; postalCode?: string } | null> {
     if (!navigator.geolocation) {
       return null;
     }
@@ -292,7 +433,8 @@ export const addressService = {
               if (feature?.properties) {
                 resolve({
                   address: feature.properties.label || `${feature.properties.name}, ${feature.properties.city}`,
-                  city: feature.properties.city || 'Fort-de-France',
+                  city: feature.properties.city || '',
+                  postalCode: feature.properties.postcode,
                 });
                 return;
               }
@@ -301,8 +443,8 @@ export const addressService = {
             console.warn('Reverse geocoding error:', e);
           }
           resolve({
-            address: 'Position actuelle (Martinique)',
-            city: 'Fort-de-France',
+            address: 'Position actuelle (GPS)',
+            city: '',
           });
         },
         () => resolve(null),
@@ -311,8 +453,7 @@ export const addressService = {
     });
   },
 
-  // Récupérer tous les établissements
   getAllFacilities(): HealthcareFacility[] {
-    return MARTINIQUE_HEALTHCARE_FACILITIES;
+    return FRENCH_HEALTHCARE_FACILITIES;
   },
 };

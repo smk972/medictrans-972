@@ -29,11 +29,11 @@ export const AdminUsersPage: React.FC = () => {
     firstName: '',
     lastName: '',
     email: '',
-    phone: '0596 ',
+    phone: '06 ',
     facilityName: '',
     transporterName: '',
     nir: '',
-    password: `MEDIC-972-${Math.random().toString(36).slice(-5).toUpperCase()}!`
+    password: `CLINIGO-${Math.random().toString(36).slice(-5).toUpperCase()}!`
   });
 
   // Edit User form
@@ -82,11 +82,11 @@ export const AdminUsersPage: React.FC = () => {
       firstName: '',
       lastName: '',
       email: '',
-      phone: '0596 ',
+      phone: '06 ',
       facilityName: '',
       transporterName: '',
       nir: '',
-      password: `MEDIC-972-${Math.random().toString(36).slice(-5).toUpperCase()}!`
+      password: `CLINIGO-${Math.random().toString(36).slice(-5).toUpperCase()}!`
     });
     setShowCreateModal(true);
   };
@@ -151,7 +151,7 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleOpenPasswordReset = (user: UserProfile) => {
     setSelectedUser(user);
-    setGeneratedPassword(`SEC972-${Math.random().toString(36).slice(-5).toUpperCase()}!`);
+    setGeneratedPassword(`CLINIGO-${Math.random().toString(36).slice(-5).toUpperCase()}!`);
     setPasswordCopied(false);
     setShowPasswordModal(true);
   };
@@ -160,20 +160,21 @@ export const AdminUsersPage: React.FC = () => {
     if (!selectedUser) return;
     try {
       await adminService.resetUserPassword(selectedUser.id, generatedPassword);
+      setActionFeedback(`Nouveau mot de passe généré et appliqué pour ${selectedUser.email}`);
       setShowPasswordModal(false);
-      setActionFeedback(`Nouveau mot de passe validé pour ${selectedUser.email}.`);
+      await loadData();
       setTimeout(() => setActionFeedback(null), 4000);
     } catch (err: any) {
       alert(err.message || 'Erreur lors de la réinitialisation');
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteUser = async () => {
     if (!selectedUser) return;
     try {
       await adminService.deleteUser(selectedUser.id);
+      setActionFeedback(`Le compte ${selectedUser.email} a été supprimé.`);
       setShowDeleteModal(false);
-      setActionFeedback(`Compte ${selectedUser.email} supprimé définitivement.`);
       await loadData();
       setTimeout(() => setActionFeedback(null), 3500);
     } catch (err: any) {
@@ -212,8 +213,8 @@ export const AdminUsersPage: React.FC = () => {
 
   return (
     <AdminLayout
-      title="Gouvernance des Comptes & Sécurité"
-      subtitle="Gestion centralisée des identités, droits d'accès et mots de passe sur l'ensemble de la plateforme"
+      title="Gouvernance des Comptes & Sécurité — National & DOM"
+      subtitle="Supervision globale de tous les comptes inscrits sur l'ensemble du territoire national et outre-mer (France entière)"
       actions={
         <div className="flex items-center gap-2">
           <button
@@ -827,7 +828,7 @@ export const AdminUsersPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={handleDeleteUser}
                 className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-xs hover:bg-rose-700 transition-colors"
               >
                 Confirmer la Révocation

@@ -103,6 +103,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 <span className="material-symbols-outlined text-base text-amber-500">auto_awesome</span>
                 <span>SEO AI</span>
               </NavLink>
+
+              <NavLink to="/email-preview" className={navClass} title="Maquette E-mail de Bienvenue Resend">
+                <span className="material-symbols-outlined text-base text-blue-600">mail</span>
+                <span>E-mail</span>
+              </NavLink>
             </nav>
 
             {/* Right: Status, User & Public Link */}
@@ -126,11 +131,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                   {user ? (user.firstName?.[0]?.toUpperCase() || user.fullName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'R') : 'R'}
                 </div>
                 <div className="hidden xl:flex flex-col text-left">
-                  <span className="text-xs font-bold text-on-surface leading-none">
-                    {user ? (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.fullName || user.email)) : 'Régulation Centrale'}
+                  <span className="text-xs font-bold text-on-surface">
+                    {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Régulateur National'}
                   </span>
-                  <span className="text-[10px] text-on-surface-variant leading-none mt-1">
-                    Administrateur ARS 972
+                  <span className="text-[10px] text-primary font-bold tracking-tight">
+                    Régulation Sanitaire Nationale & DOM
                   </span>
                 </div>
               </div>
@@ -216,7 +221,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-primary mb-1">
               <span className="material-symbols-outlined text-sm">tune</span>
-              <span>CONSOLE RÉGIONALE DE TRANSPORT SANITAIRE 972</span>
+              <span>CONSOLE DE RÉGULATION NATIONALE & DOM</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-on-surface tracking-tight">
               {title}

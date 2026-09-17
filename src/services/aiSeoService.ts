@@ -303,11 +303,35 @@ export class AiSeoService {
 
       return json.data;
     } catch (err: any) {
-      console.warn('[AiSeoService] Repli génération image client direct :', err);
-      // Fallback direct et infaillible côté client avec Pollinations AI
-      const encoded = encodeURIComponent(`${params.prompt}, realistic photography, professional healthcare transportation, high resolution`);
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1200&height=675&nologo=true&seed=${Date.now()}`;
-      return { imageUrl: fallbackUrl, prompt: params.prompt };
+      console.warn('[AiSeoService] Repli local pour image :', err);
+      const lower = (params.prompt || '').toLowerCase();
+      const categories = [
+        { file: '/assets/gallery/regulation_ambulance_dispatch.jpg', keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'standard', 'permanence', 'opérateur', 'coordination', 'écran'], weight: 3.0 },
+        { file: '/assets/gallery/transport_pmr_fauteuil.jpg', keywords: ['pmr', 'fauteuil', 'roulant', 'handicap', 'rampe', 'ufr', 'mobilité', 'mobilite'], weight: 2.5 },
+        { file: '/assets/gallery/dialyse_centre_soins.jpg', keywords: ['dialyse', 'hémodialyse', 'rein', 'néphrologie', 'chimio', 'séance', 'régulier'], weight: 2.5 },
+        { file: '/assets/gallery/pediatrie_maternite.jpg', keywords: ['enfant', 'pédiatrie', 'bébé', 'nourrisson', 'maternité', 'mère', 'maman', 'enceinte', 'naissance'], weight: 2.5 },
+        { file: '/assets/gallery/evasan_helicoptere_chu.jpg', keywords: ['hélicoptère', 'helicoptere', 'dragon', 'évasan', 'évacuation', 'héliport', 'aérien'], weight: 2.5 },
+        { file: '/assets/gallery/clinique_accueil_urgences.jpg', keywords: ['clinique', 'accueil', 'secrétaire', 'admission', 'rendez-vous', 'rdv'], weight: 2.0 },
+        { file: '/assets/gallery/taxi_conventionne_aidant.jpg', keywords: ['taxi', 'conventionné', 'cpam', 'chauffeur', 'senior', 'personne âgée', 'aide', 'aidant'], weight: 2.0 },
+        { file: '/assets/gallery/vsl_transport_cote.jpg', keywords: ['vsl', 'véhicule sanitaire', 'assis', 'berline', 'voiture', 'côte', 'route'], weight: 2.0 },
+        { file: '/assets/gallery/brancardiers_soins_hopital.jpg', keywords: ['brancard', 'brancardier', 'civière', 'allongé', 'couché', 'soins', 'transfert'], weight: 2.0 },
+        { file: '/assets/gallery/medecin_prescription_pmt.jpg', keywords: ['pmt', 'cerfa', 'prescription', 'bon de transport', 'médecin', 'ordonnance', '100%'], weight: 2.0 },
+        { file: '/assets/gallery/ambulance_martinique_chu.jpg', keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'chum', 'hôpital', 'hopital'], weight: 1.5 }
+      ];
+
+      let fallback = '/assets/gallery/ambulance_martinique_chu.jpg';
+      let highestScore = 0;
+      for (const cat of categories) {
+        let catScore = 0;
+        for (const kw of cat.keywords) {
+          if (lower.includes(kw)) catScore += kw.length * cat.weight;
+        }
+        if (catScore > highestScore) {
+          highestScore = catScore;
+          fallback = cat.file;
+        }
+      }
+      return { imageUrl: fallback, prompt: params.prompt };
     }
   }
 }

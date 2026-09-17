@@ -1,5 +1,6 @@
 import { UserProfile, UserRole, TransporterSubscription } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { EmailService } from './emailService';
 
 const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
 
@@ -551,6 +552,16 @@ export class AuthService {
         console.warn('Supabase signUp non-bloquant:', err);
       }
     }
+
+    // Expédition automatique de l'email de bienvenue Clinigo via Resend
+    EmailService.sendWelcomeEmail({
+      email: cleanEmail,
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      userId: newUser.id,
+    }).catch(err => {
+      console.warn('[AuthService] Envoi email de bienvenue non-bloquant:', err);
+    });
 
     this.setLocalUser(newUser);
     return { user: newUser, error: null };

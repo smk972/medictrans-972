@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { addressService, AddressSuggestion } from '../services/addressService';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { addressService, AddressSuggestion, extractDepartmentFromAddress } from '../services/addressService';
 
 export type { AddressSuggestion };
 
@@ -20,6 +20,7 @@ export interface AddressAutocompleteProps {
   showCategories?: boolean;
   showQuickCommunes?: boolean;
   defaultFilter?: string;
+  referenceAddress?: string;
   onSelectSuggestion?: (suggestion: AddressSuggestion) => void;
 }
 
@@ -27,7 +28,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   id,
   value,
   onChange,
-  placeholder = "Saisissez une adresse ou un établissement en Martinique...",
+  placeholder = "Saisissez une adresse ou un établissement de santé...",
   label,
   required = false,
   isDestination = false,
@@ -40,15 +41,53 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   showCategories,
   showQuickCommunes = false,
   defaultFilter,
+  referenceAddress,
   onSelectSuggestion,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>(defaultFilter || 'ALL');
+  const [activeCategory, setActiveCategory] = useState<string>(
+    defaultFilter && defaultFilter !== 'etablissement' ? defaultFilter : 'ALL'
+  );
   const [isLocating, setIsLocating] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+
+  // Détection territoriale dynamique du département
+  const refDept = useMemo(() => {
+    return extractDepartmentFromAddress(referenceAddress || inputValue || '');
+  }, [referenceAddress, inputValue]);
+
+  // Communes d'accès rapide adaptées au secteur géographique
+  const quickCommunesList = useMemo(() => {
+    if (refDept === '31') return ['Toulouse', 'Blagnac', 'Colomiers', 'Tournefeuille', 'Muret'];
+    if (refDept === '75' || ['92', '93', '94', '77', '78', '91', '95'].includes(refDept || '')) {
+      return ['Paris', 'Boulogne-Billancourt', 'Créteil', 'Saint-Denis', 'Argenteuil'];
+    }
+    if (refDept === '69') return ['Lyon', 'Villeurbanne', 'Vénissieux', 'Bron', 'Caluire-et-Cuire'];
+    if (refDept === '13') return ['Marseille', 'Aix-en-Provence', 'Aubagne', 'Marignane', 'La Ciotat'];
+    if (refDept === '33') return ['Bordeaux', 'Mérignac', 'Pessac', 'Talence', 'Bègles'];
+    if (refDept === '971') return ['Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Basse-Terre', 'Le Gosier'];
+    if (refDept === '972') return ['Fort-de-France', 'Le Lamentin', 'Schoelcher', 'Le Robert', 'Le Marin'];
+    if (refDept === '973') return ['Cayenne', 'Kourou', 'Saint-Laurent-du-Maroni', 'Matoury', 'Remire-Montjoly'];
+    if (refDept === '974') return ['Saint-Denis', 'Saint-Paul', 'Saint-Pierre', 'Le Tampon', 'Saint-André'];
+    return ['Toulouse', 'Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Fort-de-France'];
+  }, [refDept]);
+
+  const territoryFooterLabel = useMemo(() => {
+    if (refDept === '31') return 'Haute-Garonne (Toulouse - 31)';
+    if (refDept === '75' || ['92', '93', '94', '77', '78', '91', '95'].includes(refDept || '')) return 'Paris & Île-de-France';
+    if (refDept === '69') return 'Rhône / Lyon (69)';
+    if (refDept === '13') return 'Bouches-du-Rhône / Marseille (13)';
+    if (refDept === '33') return 'Gironde / Bordeaux (33)';
+    if (refDept === '971') return 'Guadeloupe (971)';
+    if (refDept === '972') return 'Martinique (972)';
+    if (refDept === '973') return 'Guyane (973)';
+    if (refDept === '974') return 'La Réunion (974)';
+    if (refDept) return `Secteur Dépt ${refDept}`;
+    return 'France (Métropole & DOM)';
+  }, [refDept]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +117,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         const results = await addressService.searchCombined(inputValue, {
           includeFacilities: true,
           categoryFilter: activeCategory !== 'ALL' ? activeCategory : undefined,
+          referenceAddress,
         });
         setSuggestions(results);
       } catch (err) {
@@ -88,7 +128,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     }, 180);
 
     return () => clearTimeout(timer);
-  }, [inputValue, activeCategory, isOpen]);
+  }, [inputValue, activeCategory, isOpen, referenceAddress]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nextVal = e.target.value;
@@ -208,7 +248,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                 isLocating ? 'animate-pulse text-secondary' : ''
               }`}
               onClick={handleGeolocation}
-              title="Utiliser ma position GPS en Martinique"
+              title="Utiliser ma position GPS"
               type="button"
             >
               <span className="material-symbols-outlined text-[18px]">
@@ -227,14 +267,13 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
       {showQuickCommunes && (
         <div className="flex gap-1.5 flex-wrap mt-0.5">
-          {['Le Lamentin', 'Fort-de-France', 'Schoelcher', 'Le Marin', 'La Trinité'].map((c) => (
+          {quickCommunesList.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => {
-                const addr = `${c}, Martinique`;
-                setInputValue(addr);
-                onChange(addr);
+                setInputValue(c);
+                onChange(c);
               }}
               className="px-2.5 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant hover:text-primary transition-colors border border-outline-variant/30 text-[11px]"
             >
@@ -302,7 +341,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             {isLoading ? (
               <div className="p-4 text-center text-on-surface-variant text-sm flex items-center justify-center gap-2">
                 <span className="material-symbols-outlined text-primary animate-spin text-lg">sync</span>
-                <span>Recherche d'adresses en Martinique...</span>
+                <span>Recherche d'adresses et d'établissements...</span>
               </div>
             ) : suggestions.length === 0 ? (
               <div className="p-4 text-center text-on-surface-variant text-sm flex flex-col gap-1">
@@ -398,7 +437,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
           {/* Footer note */}
           <div className="px-3 py-1.5 bg-surface-container-low/70 border-t border-outline-variant/20 flex items-center justify-between text-[11px] text-on-surface-variant">
-            <span>Martinique (972) • Hôpitaux, cliniques &amp; adresses</span>
+            <span>{territoryFooterLabel} • Hôpitaux, cliniques &amp; adresses</span>
             <span className="font-semibold text-primary">Prescription Médicale CPAM</span>
           </div>
         </div>
