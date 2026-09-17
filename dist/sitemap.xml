@@ -83,5 +83,42 @@
     <priority>0.6</priority>
   </url>
 
+  <!-- Hub Blog & Guides Médicaux (Indexable) -->
+  <url>
+    <loc>https://clinigo.fr/blog</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Catégories Publiques Indexables -->
+  <url>
+    <loc>https://clinigo.fr/blog/category/prise-en-charge-et-remboursement</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://clinigo.fr/blog/category/reglementation-et-legislation</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://clinigo.fr/blog/category/guides-patients-et-familles</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://clinigo.fr/blog/category/transporteurs-et-etablissements</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
 </urlset>
 

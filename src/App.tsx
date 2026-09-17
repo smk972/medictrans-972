@@ -27,6 +27,23 @@ import { TransporterSalesPage } from './pages/TransporterSalesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
+// CMS SEO & Blog Public
+import { BlogIndexPage } from './pages/blog/BlogIndexPage';
+import { BlogPostPage } from './pages/blog/BlogPostPage';
+import { BlogCategoryPage } from './pages/blog/BlogCategoryPage';
+import { BlogTagPage } from './pages/blog/BlogTagPage';
+import { BlogPreviewPage } from './pages/blog/BlogPreviewPage';
+
+// Admin CMS & SEO Hub
+import { AdminSeoOverviewPage } from './pages/admin/AdminSeoOverviewPage';
+import { AdminSeoArticlesPage } from './pages/admin/AdminSeoArticlesPage';
+import { AdminSeoEditorPage } from './pages/admin/AdminSeoEditorPage';
+import { AdminSeoIdeasPage } from './pages/admin/AdminSeoIdeasPage';
+import { AdminSeoKeywordsPage } from './pages/admin/AdminSeoKeywordsPage';
+import { AdminSeoCategoriesPage } from './pages/admin/AdminSeoCategoriesPage';
+import { AdminSeoTagsPage } from './pages/admin/AdminSeoTagsPage';
+import { AdminSeoSettingsPage } from './pages/admin/AdminSeoSettingsPage';
+
 function ScrollToTop() {
   const { pathname } = window.location;
   React.useEffect(() => {
@@ -182,6 +199,96 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute requiredRole="ADMIN">
                 <AdminSettingsPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* CMS Blog Public & Guides */}
+          <Route path="/blog" element={<BlogIndexPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/blog/category/:slug" element={<BlogCategoryPage />} />
+          <Route path="/blog/tag/:slug" element={<BlogTagPage />} />
+
+          {/* Prévisualisation Sécurisée Protégée Admin (noindex) */}
+          <Route 
+            path="/preview/blog/:id" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <BlogPreviewPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Content Hub SEO & Rédaction IA (Console Admin) */}
+          <Route 
+            path="/admin/seo" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoOverviewPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/articles" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoArticlesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/articles/new" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoEditorPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/articles/:id/edit" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoEditorPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/ideas" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoIdeasPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/keywords" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoKeywordsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/categories" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoCategoriesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/tags" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoTagsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/seo/settings" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminSeoSettingsPage />
               </ProtectedRoute>
             } 
           />

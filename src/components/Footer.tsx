@@ -53,6 +53,12 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/blog" className="hover:text-slate-950 font-semibold text-primary transition-colors flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm text-primary">auto_stories</span>
+                  <span>Guides, Conseils &amp; Blog</span>
+                </Link>
+              </li>
+              <li>
                 <Link to="/suivi" className="hover:text-slate-950 transition-colors">
                   Suivi de ma demande en direct
                 </Link>

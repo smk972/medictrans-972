@@ -5,6 +5,8 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /admin
+Disallow: /preview/
+Disallow: /preview
 
 # Indexation prioritaire des images haute résolution pour Google Discover
 User-agent: Googlebot-Image

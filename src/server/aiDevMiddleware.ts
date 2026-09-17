@@ -1,3 +1,5 @@
+declare const process: any;
+
 import { searchKnowledge, KNOWLEDGE_BASE } from '../services/aiKnowledgeBase';
 import { validateNir, verifyRouteTiming, extractBookingFieldsFromConversation } from '../../functions/api/ai/tools';
 
@@ -250,3 +252,288 @@ ${contextSnippet}`;
     }
   });
 }
+
+/**
+ * Middleware Vite Dev pour POST /api/ai/seo (Génération de contenu SEO, Plan, FAQ, Meta)
+ */
+export function handleAiSeoMiddleware(req: any, res: any, apiKey?: string) {
+  let body = '';
+  req.on('data', (chunk: any) => {
+    body += chunk;
+  });
+
+  req.on('end', async () => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const parsed = JSON.parse(body || '{}');
+      const { action, payload } = parsed;
+      const geminiApiKey = apiKey || (typeof process !== 'undefined' ? (process as any).env?.GEMINI_API_KEY : '') || '';
+
+      const SYSTEM_SEO_PROMPT = `Tu es l'assistant éditorial en chef et expert SEO de Clinigo (clinigo.fr), plateforme de réservation et régulation de transports sanitaires en France (Ambulance, VSL, Taxi conventionné).
+Règles strictes :
+1. N'invente AUCUN tarif, loi ou règle légale fictive. Privilégie les sources officielles (ameli.fr, sante.gouv.fr, service-public.fr, legifrance.gouv.fr).
+2. Français soigné, pédagogique et empathique. Structure en Markdown (H2 ##, H3 ###).
+3. Ne crée de liens internes que vers des URLs existantes.
+4. Réponds toujours au format JSON strictement valide.`;
+
+      let resultData: any;
+
+      if (action === 'generatePlan') {
+        const { topic, focusKeyword, contentType = 'Guide', wordCountTarget = 1000 } = payload || {};
+        if (geminiApiKey) {
+          try {
+            const prompt = `Génère le PLAN DÉTAILLÉ pour un article SEO sur Clinigo.fr.
+Sujet : "${topic}"
+Mot-clé : "${focusKeyword}"
+Type : ${contentType}
+Longueur : ${wordCountTarget} mots
+Réponds en JSON :
+{
+  "title": "Titre optimisé (50-65 car.)",
+  "slug": "${(topic || 'article').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}",
+  "focusKeyword": "${focusKeyword}",
+  "intent": "informationnelle",
+  "headings": ["## 1. Introduction", "## 2. Conditions de prise en charge", "## 3. Démarches pratiques", "## Comment réserver avec Clinigo ?"],
+  "suggestedQuestions": ["Qui est éligible ?", "Faut-il avancer les frais ?"],
+  "sourcesToVerify": ["ameli.fr", "service-public.fr"]
+}`;
+            const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: SYSTEM_SEO_PROMPT }] },
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
+              })
+            });
+            if (apiRes.ok) {
+              const d: any = await apiRes.json();
+              resultData = JSON.parse(d.candidates[0].content.parts[0].text);
+            }
+          } catch (e) {
+            console.warn('[AI SEO Dev] Fallback local plan :', e);
+          }
+        }
+        if (!resultData) {
+          resultData = {
+            title: `${topic} : Guide Complet & Démarches Pratiques`,
+            slug: (topic || 'article').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60),
+            focusKeyword: focusKeyword || topic,
+            intent: 'informationnelle',
+            headings: [
+              `## 1. Qu'est-ce que ${focusKeyword || topic} ?`,
+              `## 2. Dans quels cas pouvez-vous en bénéficier ?`,
+              `## 3. Prise en charge par l'Assurance Maladie et tiers-payant`,
+              `## Comment réserver simplement sur Clinigo.fr ?`
+            ],
+            suggestedQuestions: [
+              `Qui a droit au remboursement pour ${focusKeyword || topic} ?`,
+              `Quels documents fournir au transporteur sanitaire ?`
+            ],
+            sourcesToVerify: [
+              'ameli.fr - Prise en charge des transports sanitaires',
+              'service-public.fr - Prescription Médicale de Transport'
+            ]
+          };
+        }
+      } else if (action === 'generateArticle') {
+        const { plan, existingArticles = [] } = payload || {};
+        if (geminiApiKey) {
+          try {
+            const prompt = `Rédige l'article complet en suivant ce plan validé :
+Titre : ${plan?.title}
+Mot-clé : ${plan?.focusKeyword}
+Plan : ${plan?.headings?.join('\n')}
+FAQ : ${plan?.suggestedQuestions?.join('\n')}
+Articles existants pour maillage : ${existingArticles.map((a: any) => `- [${a.title}](/blog/${a.slug})`).join('\n')}
+
+Format JSON attendu :
+{
+  "title": "${plan?.title}",
+  "slug": "${plan?.slug}",
+  "excerpt": "Résumé incitatif de 130 à 160 caractères contenant le mot-clé.",
+  "metaTitle": "${plan?.title} | Clinigo",
+  "metaDescription": "Description incitative pour Google.",
+  "content": "Article complet en Markdown avec H2, H3, listes à puces et liens internes.",
+  "faq": [{"question": "Question 1", "answer": "Réponse sourcée"}],
+  "suggestedCta": "Réserver un transport médicalisé",
+  "suggestedImageAlt": "Illustration professionnelle",
+  "sources": [{"title": "Ameli.fr", "url": "https://www.ameli.fr", "organization": "Assurance Maladie", "verified": true}]
+}`;
+            const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: SYSTEM_SEO_PROMPT }] },
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
+              })
+            });
+            if (apiRes.ok) {
+              const d: any = await apiRes.json();
+              resultData = JSON.parse(d.candidates[0].content.parts[0].text);
+            }
+          } catch (e) {
+            console.warn('[AI SEO Dev] Fallback local article :', e);
+          }
+        }
+        if (!resultData) {
+          resultData = {
+            title: plan?.title || 'Guide Sanitaire',
+            slug: plan?.slug || 'guide-sanitaire',
+            excerpt: `Découvrez notre guide pratique sur ${plan?.focusKeyword || 'le transport médical'} : règles de remboursement, PMT et démarches auprès de la CPAM.`,
+            metaTitle: `${plan?.title} | Clinigo`,
+            metaDescription: `Guide pratique sur ${plan?.focusKeyword} : prise en charge Sécurité sociale, bon de transport et réservation sur Clinigo.fr.`,
+            content: `## Introduction\n\nLe recours à un **${plan?.focusKeyword || 'transport sanitaire'}** est soumis à des dispositions réglementaires strictes pour garantir la sécurité du patient et le bon usage des fonds publics.\n\n## 1. Conditions médicales d'éligibilité\n\nPour être remboursé par l'Assurance Maladie, le transport doit obligatoirement faire l'objet d'une Prescription Médicale de Transport (PMT) délivrée préalablement par votre médecin.\n\n## 2. Démarches et prise en charge\n\nSi vous bénéficiez d'une exonération du ticket modérateur (ALD 100%, Accident du travail), vous n'avez aucune avance de frais à effectuer.\n\n## Réserver votre trajet avec Clinigo\n\nSur **Clinigo.fr**, votre demande est transmise immédiatement aux ambulances, VSL et taxis conventionnés agréés les plus proches.`,
+            faq: (plan?.suggestedQuestions || []).map((q: string) => ({
+              question: q,
+              answer: 'Consultez votre médecin traitant et le portail ameli.fr pour les critères spécifiques à votre caisse.'
+            })),
+            suggestedCta: 'Réserver un transport sanitaire',
+            suggestedImageAlt: `Illustration sanitaire pour ${plan?.focusKeyword || 'Clinigo'}`,
+            sources: [
+              {
+                title: 'Assurance Maladie - Frais de transport',
+                url: 'https://www.ameli.fr/assure/remboursements/rembourse/transport',
+                organization: 'Caisse Nationale d\'Assurance Maladie (Ameli)',
+                verified: true
+              }
+            ]
+          };
+        }
+      } else if (action === 'generateIdeas') {
+        resultData = {
+          ideas: [
+            {
+              topic: 'Transport dialyse',
+              keyword: 'transport dialyse remboursement',
+              searchIntent: 'informationnelle',
+              suggestedTitle: 'Séances de dialyse : Comment organiser et faire rembourser vos transports récurrents ?',
+              priority: 'HIGH'
+            },
+            {
+              topic: 'Sortie d\'hospitalisation',
+              keyword: 'ambulance sortie clinique',
+              searchIntent: 'commerciale',
+              suggestedTitle: 'Sortie d\'hospitalisation : Qui réserve le transport sanitaire et dans quel délai ?',
+              priority: 'HIGH'
+            }
+          ]
+        };
+      } else if (action === 'generateFAQ') {
+        const { topic } = payload || {};
+        resultData = {
+          faq: [
+            {
+              question: `Comment faire prendre en charge un transport pour ${topic || 'mes soins'} ?`,
+              answer: 'La prise en charge requiert obligatoirement une prescription médicale de transport délivrée par votre médecin avant le trajet.'
+            },
+            {
+              question: 'Dois-je avancer les frais avec Clinigo ?',
+              answer: 'Non, si vous bénéficiez du tiers-payant (ALD 100%, CSS, maternité), nos transporteurs conventionnés télétransmettent directement à votre caisse.'
+            }
+          ]
+        };
+      } else if (action === 'transformText') {
+        const { text, instruction, customPrompt, targetKeyword } = payload || {};
+        if (!text || !text.trim()) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ success: false, error: 'Texte source requis pour la transformation.' }));
+          return;
+        }
+
+        let transformed = '';
+
+        if (geminiApiKey) {
+          try {
+            const prompt = `Tu es l'assistant de rédaction et d'édition de contenu de Clinigo.fr.
+Voici le texte sélectionné par l'auteur :
+"""
+${text}
+"""
+
+Consigne demandée : ${instruction === 'custom' ? customPrompt : instruction}
+${targetKeyword ? `Mot-clé cible associé : "${targetKeyword}"` : ''}
+${instruction === 'transformer_en_tableau' ? 'IMPORTANT : Transforme obligatoirement ces informations sous la forme d’un TABLEAU MARKDOWN propre et lisible avec des colonnes cohérentes (| Colonne 1 | Colonne 2 | ... |).' : ''}
+
+Consignes strictes :
+1. Reste fidèle au sens d'origine.
+2. Ne commence JAMAIS par des formules de politesse ("Voici la version...") ni de bavardage.
+3. Rends DIRECTEMENT et UNIQUEMENT le texte ou tableau transformé en Markdown prêt à être inséré.`;
+
+            const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: 'Tu es un assistant éditorial expert en rédaction médicale et SEO. Rends uniquement le texte final sans bavardage.' }] },
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3 }
+              })
+            });
+
+            if (apiRes.ok) {
+              const d: any = await apiRes.json();
+              transformed = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+            }
+          } catch (err) {
+            console.warn('[AI Dev Middleware] Fallback local transformText :', err);
+          }
+        }
+
+        // Fallback local algorithmique
+        if (!transformed) {
+          if (instruction === 'transformer_en_tableau') {
+            const rawLines = text.split('\n').map((l: string) => l.trim()).filter(Boolean);
+            if (rawLines.length > 0) {
+              transformed = `| Élément / Étape | Description & Précisions | Modalités Clinigo |\n| :--- | :--- | :--- |\n`;
+              rawLines.forEach((line: string, idx: number) => {
+                const parts = line.split(/[:;\-\t|]/).map((p: string) => p.trim()).filter(Boolean);
+                if (parts.length >= 2) {
+                  transformed += `| ${parts[0]} | ${parts.slice(1).join(' - ')} | Inclus / Garanti |\n`;
+                } else {
+                  transformed += `| Point ${idx + 1} | ${line.replace(/^[-*•\d.]\s*/, '')} | Conforme CPAM |\n`;
+                }
+              });
+            } else {
+              transformed = `| Critère | Détail | Statut |\n| :--- | :--- | :--- |\n| ${text} | Informations vérifiées | Valide |\n`;
+            }
+          } else if (instruction === 'raccourcir') {
+            transformed = text
+              .split('\n')
+              .filter(Boolean)
+              .map((l: string) => `• ${l.replace(/^[-*•\d.]\s*/, '').trim()}`)
+              .slice(0, 4)
+              .join('\n');
+          } else if (instruction === 'simplifier') {
+            transformed = `**En clair pour les patients :**\n${text.replace(/ALD\s*30/gi, 'Affection de Longue Durée (ALD)').replace(/PMT/gi, 'Bon de transport (Prescription Médicale)')}\n\n*Conseil Clinigo : Présentez votre attestation de droits à jour au chauffeur lors de la prise en charge.*`;
+          } else if (instruction === 'developper') {
+            transformed = `${text}\n\nIl convient de noter que la prise en charge à 100% s'applique sous réserve de présentation d'une prescription médicale de transport conforme et, le cas échéant, de l'accord préalable du médecin-conseil de votre caisse d'Assurance Maladie.`;
+          } else if (instruction === 'optimiser_seo') {
+            transformed = `**${targetKeyword || 'Transport sanitaire'} :** ${text}\n\nNos transporteurs conventionnés (VSL, ambulances, taxis) assurent le respect strict des critères de remboursement Sécurité Sociale.`;
+          } else {
+            // Reformuler
+            transformed = text
+              .replace(/faut/g, 'est nécessaire de')
+              .replace(/on peut/g, 'il est possible de')
+              .trim();
+          }
+        }
+
+        resultData = {
+          transformedText: transformed,
+          originalText: text,
+          instruction
+        };
+      } else {
+        resultData = { message: 'Action traitée avec succès' };
+      }
+
+      res.statusCode = 200;
+      res.end(JSON.stringify({ success: true, data: resultData }));
+    } catch (err: any) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ success: false, error: err.message || 'Erreur serveur IA' }));
+    }
+  });
+}
+

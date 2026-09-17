@@ -98,6 +98,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 <span className="material-symbols-outlined text-base">tune</span>
                 <span>Paramètres</span>
               </NavLink>
+
+              <NavLink to="/admin/seo" className={navClass} title="Content Hub SEO & Générateur IA">
+                <span className="material-symbols-outlined text-base text-amber-500">auto_awesome</span>
+                <span>SEO AI</span>
+              </NavLink>
             </nav>
 
             {/* Right: Status, User & Public Link */}
@@ -108,7 +113,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 download="Guide_Administrateur_MedicTrans_972.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-secondary/40 text-secondary hover:bg-secondary/10 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                className="hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-secondary/40 text-secondary hover:bg-secondary/10 text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 title="Télécharger le Guide d'Utilisation Administrateur (Format PDF)"
               >
                 <span className="material-symbols-outlined text-base">picture_as_pdf</span>
@@ -138,6 +143,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               >
                 <span className="material-symbols-outlined text-base">open_in_new</span>
                 <span>Site</span>
+              </Link>
+
+              {/* Link to public blog */}
+              <Link
+                to="/blog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs font-semibold text-primary hover:text-primary transition-colors"
+                title="Consulter le Blog Public"
+              >
+                <span className="material-symbols-outlined text-base">auto_stories</span>
+                <span>Blog</span>
               </Link>
 
               {/* Bouton Déconnexion Console Admin */}
@@ -177,6 +194,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </NavLink>
           <NavLink to="/admin/parametres" className={navClass}>
             Paramètres
+          </NavLink>
+          <NavLink to="/admin/seo" className={navClass}>
+            SEO AI
           </NavLink>
           <a
             href="/Guide_Administrateur_MedicTrans_972.pdf"

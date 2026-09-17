@@ -42,7 +42,7 @@ export const Header: React.FC = () => {
       case 'FACILITY':
         return '/etablissements';
       case 'ADMIN':
-        return '/admin';
+        return '/profil';
       case 'PATIENT':
       default:
         return '/suivi';
@@ -80,7 +80,7 @@ export const Header: React.FC = () => {
         <BrandLogo subtitleClassName="hidden 2xl:inline-block" />
 
         {/* Desktop Nav (libellés concis et élégants; version longue uniquement dès 2xl: 1536px) */}
-        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 2xl:gap-2 shrink min-w-0">
+        <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 xl:gap-2 shrink-0 min-w-0">
           <NavLink to="/reserver" className={navLinkClass}>
             <span className="hidden 2xl:inline">Réserver un transport</span>
             <span className="2xl:hidden">Réserver</span>
@@ -91,7 +91,7 @@ export const Header: React.FC = () => {
           <NavLink
             to="/etablissements"
             className={({ isActive }) =>
-              `whitespace-nowrap shrink-0 px-2 lg:px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
+              `whitespace-nowrap shrink-0 px-2.5 lg:px-3 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
                 isActive || location.pathname.startsWith('/etablissement')
                   ? 'bg-slate-900 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
@@ -104,7 +104,7 @@ export const Header: React.FC = () => {
           <NavLink
             to={transporterPath}
             className={({ isActive }) =>
-              `whitespace-nowrap shrink-0 px-2 lg:px-2.5 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
+              `whitespace-nowrap shrink-0 px-2.5 lg:px-3 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center justify-center ${
                 isActive || location.pathname.startsWith('/portal-transporteur') || location.pathname.startsWith('/dispatch-transporteur')
                   ? 'bg-slate-900 text-white font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
@@ -114,12 +114,21 @@ export const Header: React.FC = () => {
             <span className="hidden 2xl:inline">Espace Transporteurs</span>
             <span className="2xl:hidden">Transporteurs</span>
           </NavLink>
-          {user?.role === 'ADMIN' && (
-            <NavLink to="/admin" className={navLinkClass}>
-              <span className="hidden 2xl:inline">Régulation 972</span>
-              <span className="2xl:hidden">Admin</span>
-            </NavLink>
-          )}
+          <NavLink
+            to="/blog"
+            className={({ isActive }) =>
+              `whitespace-nowrap shrink-0 px-2.5 lg:px-3 2xl:px-3.5 py-1.5 2xl:py-2 rounded-xl text-xs 2xl:text-sm font-medium transition-all duration-150 inline-flex items-center gap-1.5 justify-center ${
+                isActive || location.pathname.startsWith('/blog')
+                  ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+              }`
+            }
+            title="Consulter les guides, articles et conseils Clinigo"
+          >
+            <span className="material-symbols-outlined text-[17px] text-primary">auto_stories</span>
+            <span className="hidden lg:inline">Guides &amp; Blog</span>
+            <span className="lg:hidden">Blog</span>
+          </NavLink>
         </nav>
 
         {/* Right Info & Profile */}
@@ -177,19 +186,6 @@ export const Header: React.FC = () => {
                     </div>
 
                     <div className="py-1">
-                      {user.role === 'ADMIN' && (
-                        <Link
-                          to="/admin"
-                          onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-800 bg-purple-50/60 hover:bg-purple-100/80 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-base text-purple-600">
-                            tune
-                          </span>
-                          Supervision & Régulation
-                        </Link>
-                      )}
-
                       {user.role === 'FACILITY' && (
                         <Link
                           to="/etablissements"
@@ -249,6 +245,17 @@ export const Header: React.FC = () => {
                           add_circle
                         </span>
                         Nouvelle réservation
+                      </Link>
+
+                      <Link
+                        to="/blog"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base text-primary">
+                          auto_stories
+                        </span>
+                        Guides &amp; Blog Clinigo
                       </Link>
                     </div>
 
@@ -397,6 +404,14 @@ export const Header: React.FC = () => {
               <span>Espace Transporteurs</span>
               {user?.role === 'TRANSPORTER' && <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Mon Dashboard</span>}
             </Link>
+            <Link
+              to="/blog"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-base text-primary">auto_stories</span>
+              <span>Guides &amp; Blog</span>
+            </Link>
             {/* Espace Mon Profil Mobile */}
             {isAuthenticated && (
               <Link
@@ -412,15 +427,6 @@ export const Header: React.FC = () => {
                 <span className="material-symbols-outlined text-sm text-teal-700">arrow_forward</span>
               </Link>
             )}
-
-            <Link
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-900 bg-slate-100 hover:bg-slate-200/80 transition-colors flex items-center justify-between"
-            >
-              <span>Tour de Contrôle & Régulation</span>
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </Link>
 
             {isAuthenticated && (
               <div className="pt-2 border-t border-slate-100 mt-2">
