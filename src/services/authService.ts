@@ -4,190 +4,9 @@ import { EmailService } from './emailService';
 
 const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
 
-// Comptes réalistes pré-configurés (France Métropolitaine & DOM)
-export const REALISTIC_PROFILES: Record<string, UserProfile> = {
-  // 1. PATIENTS
-  'jean.dupont@orange.fr': {
-    id: 'user-pat-01',
-    email: 'jean.dupont@orange.fr',
-    role: 'PATIENT',
-    firstName: 'Jean',
-    lastName: 'Dupont',
-    phone: '06 12 34 56 78',
-    nir: '1 85 04 75 112 345 88',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-10T10:00:00Z'
-  },
-  'c.marieluce@orange.fr': {
-    id: 'demo-patient-972',
-    email: 'c.marieluce@orange.fr',
-    role: 'PATIENT',
-    firstName: 'Christian',
-    lastName: 'Marie-Luce',
-    phone: '0696 55 44 33',
-    nir: '1 54 11 97 208 771 72',
-    avatarUrl: '/assets/headshot.png',
-    createdAt: '2026-01-10T10:00:00Z'
-  },
-  'sophie.laurent@gmail.com': {
-    id: 'user-pat-02',
-    email: 'sophie.laurent@gmail.com',
-    role: 'PATIENT',
-    firstName: 'Sophie',
-    lastName: 'Laurent',
-    phone: '06 88 99 11 22',
-    nir: '2 90 08 69 044 123 45',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-12T10:00:00Z'
-  },
-
-  // 2. ÉTABLISSEMENTS DE SANTÉ
-  'coordination@aphp.fr': {
-    id: 'user-fac-01',
-    email: 'coordination@aphp.fr',
-    role: 'FACILITY',
-    firstName: 'Dr. Alexandre',
-    lastName: 'Mercier',
-    phone: '01 42 16 00 00',
-    facilityId: 'aphp-pitie-salpetriere',
-    facilityName: 'AP-HP - Hôpital Universitaire Pitié-Salpêtrière',
-    facilityFiness: '750100018',
-    facilityAccessStatus: 'APPROVED',
-    facilityAccessApprovedAt: '2026-01-01T08:00:00.000Z',
-    avatarUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-01T08:00:00Z'
-  },
-  'coordination@chu-martinique.fr': {
-    id: 'demo-facility-972',
-    email: 'coordination@chu-martinique.fr',
-    role: 'FACILITY',
-    firstName: 'Marie-Paule',
-    lastName: 'Valaire',
-    phone: '0596 55 20 00',
-    facilityId: 'chu-zobda-quitman',
-    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
-    facilityFiness: '970211145',
-    facilityAccessStatus: 'APPROVED',
-    facilityAccessApprovedAt: '2026-01-01T08:00:00.000Z',
-    avatarUrl: '/assets/nurse_almont.jpg',
-    createdAt: '2026-01-01T08:00:00Z'
-  },
-  'coordination@chu-bordeaux.fr': {
-    id: 'user-fac-02',
-    email: 'coordination@chu-bordeaux.fr',
-    role: 'FACILITY',
-    firstName: 'Hélène',
-    lastName: 'Fabre',
-    phone: '05 56 79 56 79',
-    facilityId: 'chu-bordeaux-pellegrin',
-    facilityName: 'CHU de Bordeaux - Groupe Hospitalier Pellegrin',
-    facilityFiness: '330100012',
-    facilityAccessStatus: 'APPROVED',
-    facilityAccessApprovedAt: '2026-01-01T08:00:00.000Z',
-    avatarUrl: 'https://images.unsplash.com/photo-1594824813593-90d0b001a4ee?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-01T08:00:00Z'
-  },
-
-  // 3. TRANSPORTEURS SANITAIRES
-  'dispatch@ambulances-idf.fr': {
-    id: 'user-trans-01',
-    email: 'dispatch@ambulances-idf.fr',
-    role: 'TRANSPORTER',
-    firstName: 'Thomas',
-    lastName: 'Leroy',
-    phone: '06 20 30 40 50',
-    transporterId: 'ambulances-idf-secours',
-    transporterName: 'Ambulances Île-de-France Secours',
-    transporterLicense: '75-AMB-2024-12',
-    subscription: {
-      status: 'ACTIVE',
-      trialDaysTotal: 30,
-      trialDaysRemaining: 30,
-      planName: 'Formule Pro Nationale (Illimitée)',
-      monthlyPrice: 19.9,
-      isTrialUnlocked: true,
-      whatsappVerified: true,
-      whatsappPhone: '06 20 30 40 50'
-    },
-    avatarUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-05T08:00:00Z'
-  },
-  'dispatch@madinina-secours.mq': {
-    id: 'demo-transporter-972',
-    email: 'dispatch@madinina-secours.mq',
-    role: 'TRANSPORTER',
-    firstName: 'Patrick',
-    lastName: 'Césaire',
-    phone: '0696 75 20 20',
-    transporterId: 'madinina-secours',
-    transporterName: 'Ambulances Madinina Secours',
-    transporterLicense: '972-AMB-2024-08',
-    subscription: {
-      status: 'ACTIVE',
-      trialDaysTotal: 30,
-      trialDaysRemaining: 30,
-      planName: 'Formule Pro Sanitaire (Illimitée)',
-      monthlyPrice: 19.9,
-      isTrialUnlocked: true,
-      whatsappVerified: true,
-      whatsappPhone: '0696 75 20 20'
-    },
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-05T08:00:00Z'
-  },
-  'contact@taxis-sante-lyon.fr': {
-    id: 'user-trans-02',
-    email: 'contact@taxis-sante-lyon.fr',
-    role: 'TRANSPORTER',
-    firstName: 'Karim',
-    lastName: 'Belkacem',
-    phone: '06 70 80 90 10',
-    transporterId: 'taxis-sante-lyon',
-    transporterName: 'Taxis Conventionnés Santé Rhône',
-    transporterLicense: '69-CPAM-2023-45',
-    subscription: {
-      status: 'NONE',
-      trialDaysTotal: 30,
-      trialDaysRemaining: 30,
-      planName: 'Formule Taxi Conventionné Pro',
-      monthlyPrice: 39,
-      isTrialUnlocked: false,
-      whatsappVerified: false,
-      whatsappPhone: '06 70 80 90 10'
-    },
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    createdAt: '2026-01-08T08:00:00Z'
-  },
-
-  // 4. ADMINISTRATEURS & RÉGULATEURS
-  'admin@clinigo.fr': {
-    id: 'user-admin-01',
-    email: 'admin@clinigo.fr',
-    role: 'ADMIN',
-    firstName: 'Pierre',
-    lastName: 'Delmas',
-    phone: '01 89 00 12 34',
-    avatarUrl: '/assets/logo-icon.svg',
-    createdAt: '2026-01-01T00:00:00Z'
-  },
-  'admin@medictrans972.mq': {
-    id: 'demo-admin-972',
-    email: 'admin@medictrans972.mq',
-    role: 'ADMIN',
-    firstName: 'Régulation',
-    lastName: 'Centrale',
-    phone: '0596 72 00 97',
-    avatarUrl: '/assets/logo-icon.svg',
-    createdAt: '2026-01-01T00:00:00Z'
-  }
-};
-
-export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
-  PATIENT: REALISTIC_PROFILES['jean.dupont@orange.fr'],
-  FACILITY: REALISTIC_PROFILES['coordination@aphp.fr'],
-  TRANSPORTER: REALISTIC_PROFILES['dispatch@ambulances-idf.fr'],
-  ADMIN: REALISTIC_PROFILES['admin@clinigo.fr']
-};
+// Zéro mock en production : les profils sont gérés par Supabase Auth
+export const REALISTIC_PROFILES: Record<string, UserProfile> = {};
+export const DEMO_PROFILES: Partial<Record<UserRole, UserProfile>> = {};
 
 export class AuthService {
   /**
@@ -366,84 +185,40 @@ export class AuthService {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Détection prioritaire des comptes réalistes pré-configurés
-    if (REALISTIC_PROFILES[cleanEmail]) {
-      const demoUser = { ...REALISTIC_PROFILES[cleanEmail] };
-      this.setLocalUser(demoUser);
-      return { user: demoUser, error: null };
+    // 1. Authentification officielle via Supabase Auth
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (error) {
+          const msg = error.message === 'Invalid login credentials' 
+            ? 'Identifiants invalides. Vérifiez votre adresse email et votre mot de passe.' 
+            : error.message;
+          return { user: null, error: msg };
+        }
+        if (data?.user) {
+          const user = await this.getCurrentUser();
+          if (user) return { user, error: null };
+        }
+      } catch (err: unknown) {
+        console.warn('Erreur Supabase signInWithPassword:', err);
+        return { user: null, error: 'Erreur de connexion au serveur d’authentification.' };
+      }
     }
 
-    const matchedDemoRole = (Object.keys(DEMO_PROFILES) as UserRole[]).find(
-      r => DEMO_PROFILES[r].email.toLowerCase() === cleanEmail
-    );
-
-    if (matchedDemoRole) {
-      const demoUser = { ...DEMO_PROFILES[matchedDemoRole] };
-      this.setLocalUser(demoUser);
-      return { user: demoUser, error: null };
-    }
-
-    // 2. Recherche dans les comptes gérés par l'administration (medictrans_admin_users_972)
+    // 2. Recherche dans les comptes utilisateurs locaux (si hors-ligne)
     try {
       const storedUsersRaw = localStorage.getItem('medictrans_admin_users_972');
       if (storedUsersRaw) {
         const storedUsers: UserProfile[] = JSON.parse(storedUsersRaw);
         const found = storedUsers.find(u => u.email.toLowerCase() === cleanEmail);
-        if (found) {
-          if (found.password && found.password !== password && password !== 'Admin972!' && password !== 'demo' && password !== 'medictrans') {
-            return { user: null, error: 'Mot de passe incorrect pour ce compte.' };
-          }
+        if (found && found.password && found.password === password) {
           this.setLocalUser(found);
           return { user: found, error: null };
         }
       }
     } catch {}
 
-    // 3. Tenter Supabase si configuré
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-        if (!error && data?.user) {
-          const user = await this.getCurrentUser();
-          if (user) return { user, error: null };
-        }
-      } catch (err: unknown) {
-        console.warn('Supabase signInWithPassword ignoré, bascule en local:', err);
-      }
-    }
-
-    // 4. Si l'email ou le rôle est ADMIN (ex: admin@... ou sélection Admin)
-    if (role === 'ADMIN' || cleanEmail.includes('admin')) {
-      const adminUser: UserProfile = {
-        id: `admin-${Date.now()}`,
-        email: cleanEmail,
-        role: 'ADMIN',
-        firstName: 'Administrateur',
-        lastName: 'Régulation 972',
-        phone: '0596 72 00 97',
-        avatarUrl: '/assets/logo-icon.svg',
-        createdAt: new Date().toISOString()
-      };
-      this.setLocalUser(adminUser);
-      return { user: adminUser, error: null };
-    }
-
-    // 5. Compte utilisateur standard (authentification locale tolérante)
-    if (password.length >= 1) {
-      const fallbackUser: UserProfile = {
-        id: `user-${Date.now()}`,
-        email: cleanEmail,
-        role: role,
-        firstName: cleanEmail.split('@')[0].split('.')[0] || 'Utilisateur',
-        lastName: cleanEmail.split('@')[0].split('.')[1] || '',
-        avatarUrl: '/assets/headshot.png',
-        createdAt: new Date().toISOString()
-      };
-      this.setLocalUser(fallbackUser);
-      return { user: fallbackUser, error: null };
-    }
-
-    return { user: null, error: 'Identifiants invalides. Veuillez renseigner un mot de passe.' };
+    return { user: null, error: 'Identifiants invalides. Aucun compte correspondant trouvé.' };
   }
 
   /**
@@ -464,13 +239,16 @@ export class AuthService {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    const isFacility = profileData.role === 'FACILITY';
-    const isTransporter = profileData.role === 'TRANSPORTER';
+    // Protection anti-escalade : interdiction absolue de s'inscrire directement avec le rôle ADMIN
+    const safeRole: UserRole = profileData.role === 'ADMIN' ? 'PATIENT' : profileData.role;
+
+    const isFacility = safeRole === 'FACILITY';
+    const isTransporter = safeRole === 'TRANSPORTER';
 
     const newUser: UserProfile = {
       id: `user-${Date.now()}`,
       email: cleanEmail,
-      role: profileData.role,
+      role: safeRole,
       firstName: profileData.firstName || 'Utilisateur',
       lastName: profileData.lastName || '',
       phone: profileData.phone,
@@ -625,7 +403,15 @@ export class AuthService {
    * Connexion instantanée avec un profil Démo pré-rempli
    */
   static loginAsDemo(role: UserRole): UserProfile {
-    const profile = { ...DEMO_PROFILES[role] };
+    const fallback: UserProfile = {
+      id: `demo-${role.toLowerCase()}`,
+      email: `demo-${role.toLowerCase()}@clinigo.fr`,
+      role,
+      firstName: 'Utilisateur',
+      lastName: role,
+      createdAt: new Date().toISOString()
+    };
+    const profile = (DEMO_PROFILES[role] as UserProfile) || fallback;
     this.setLocalUser(profile);
     return profile;
   }

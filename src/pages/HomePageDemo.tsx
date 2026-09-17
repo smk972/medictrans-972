@@ -1107,7 +1107,7 @@ export const HomePageDemo: React.FC = () => {
         </section>
 
         {/* =========================================================================
-            5. SOCIAL PROOF & AVIS VÉRIFIÉS
+            5. ENGAGEMENTS ET GARANTIES RÉGLEMENTAIRES
             ========================================================================= */}
         <section className="px-4 sm:px-6 lg:px-8 py-16 bg-[#F8FAFD]">
           <div className="max-w-7xl mx-auto">
@@ -1115,73 +1115,71 @@ export const HomePageDemo: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12 scroll-reveal">
               <div>
                 <span className="text-xs font-bold uppercase tracking-widest text-teal-800">
-                  Témoignages vérifiés
+                  Garanties Officielles
                 </span>
                 <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
-                  Ce que disent nos patients et soignants
+                  Nos engagements pour votre transport sanitaire
                 </h2>
               </div>
               
               <div className="flex items-center gap-4 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="flex text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-amber-400" />
-                  ))}
+                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div className="text-left">
-                  <span className="text-sm font-extrabold text-slate-900 block">4.9 / 5 étoiles</span>
-                  <span className="text-xs text-slate-600">+2 400 transports régulés</span>
+                  <span className="text-sm font-extrabold text-slate-900 block">Agrément ARS &amp; CPAM</span>
+                  <span className="text-xs text-slate-600">Régulation sanitaire officielle</span>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              {/* Review 1 */}
+              {/* Engagement 1 */}
               <div className="p-6 rounded-3xl bg-white border border-slate-200/70 shadow-xs scroll-reveal delay-100">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center text-sm">
-                    MR
+                    <span className="material-symbols-outlined text-lg">credit_card</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Marie-Rose L.</h4>
-                    <p className="text-xs text-slate-600">Patiente en dialyse • CHU FdF</p>
+                    <h4 className="text-sm font-bold text-slate-900">Tiers-Payant Intégral</h4>
+                    <p className="text-xs text-slate-600">Prise en charge Sécurité Sociale</p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic">
-                  « Pour mes séances de dialyse trois fois par semaine, Clinigo a transformé mon quotidien. Le chauffeur est toujours ponctuel et d'une gentillesse remarquable. Aucun frais à avancer. »
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  Aucune avance de frais pour les patients en ALD (100%), accident du travail ou hospitalisation sur présentation de la prescription médicale de transport (Cerfa).
                 </p>
               </div>
 
-              {/* Review 2 */}
+              {/* Engagement 2 */}
               <div className="p-6 rounded-3xl bg-white border border-slate-200/70 shadow-xs scroll-reveal delay-200">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-sky-100 text-sky-800 font-bold flex items-center justify-center text-sm">
-                    Dr
+                    <span className="material-symbols-outlined text-lg">verified</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Dr. Jean-Philippe C.</h4>
-                    <p className="text-xs text-slate-600">Oncologue • Clinique Sainte-Marie</p>
+                    <h4 className="text-sm font-bold text-slate-900">Transporteurs Agréés ARS</h4>
+                    <p className="text-xs text-slate-600">Ambulances, VSL &amp; Taxis</p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic">
-                  « Nos secrétaires médicales gagnent un temps précieux pour coordonner les sorties et les séances de chimio. La plateforme est d'une grande rigueur réglementaire. »
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  Tous les professionnels du réseau disposent d'un agrément préfectoral délivré par l'ARS et sont conventionnés par l'Assurance Maladie.
                 </p>
               </div>
 
-              {/* Review 3 */}
+              {/* Engagement 3 */}
               <div className="p-6 rounded-3xl bg-white border border-slate-200/70 shadow-xs scroll-reveal delay-300">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm">
-                    TA
+                    <span className="material-symbols-outlined text-lg">lock</span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Thierry A.</h4>
-                    <p className="text-xs text-slate-600">Ambulancier conventionné partenaire</p>
+                    <h4 className="text-sm font-bold text-slate-900">Secret Médical &amp; RGPD</h4>
+                    <p className="text-xs text-slate-600">Données de santé protégées</p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic">
-                  « En tant que professionnel, la transmission des bons Cerfa et l'optimisation des tournées nous permettent d'éviter les trajets à vide tout en répondant aux urgences sanitaires. »
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  Vos informations personnelles et médicales sont traitées dans le respect strict du secret médical et des réglementations applicables aux données de santé.
                 </p>
               </div>
 

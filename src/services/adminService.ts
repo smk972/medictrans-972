@@ -10,318 +10,26 @@ const STORAGE_KEY_USERS = 'medictrans_admin_users_972';
 const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
 const STORAGE_KEY_DELETED_CLIENTS = 'medictrans_deleted_clients_972';
 
-// Clients initiaux de référence en Martinique
-const INITIAL_CLIENTS: ClientRecord[] = [
-  {
-    id: 'client-1',
-    firstName: 'Christian',
-    lastName: 'Marie-Luce',
-    birthDate: '1954-11-03',
-    nir: '1 54 11 97 208 771 72',
-    phone: '0696 55 44 33',
-    email: 'c.marieluce@orange.fr',
-    address: 'Quartier Cap Est, Morne Calebasse',
-    city: 'Le Marin',
-    postalCode: '97290',
-    isAld: true,
-    aldReason: 'ALD 19 - Insuffisance Rénale Chronique Terminale (Hémodialyse)',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Sylvie Brival - Hôpital Trinité',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false,
-      notes: 'Patient autonome pour la marche, surveillance post-séance de dialyse'
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-01-15T08:00:00.000Z',
-    notes: 'Transport récurrent bi-hebdomadaire pour dialyse'
-  },
-  {
-    id: 'client-2',
-    firstName: 'Maryse',
-    lastName: 'Brival',
-    birthDate: '1968-09-27',
-    nir: '2 68 09 97 205 119 46',
-    phone: '0696 44 88 99',
-    email: 'maryse.brival@gmail.com',
-    address: 'Quartier Morne Pavillon, Route des Religieuses',
-    city: 'Fort-de-France',
-    postalCode: '97200',
-    isAld: true,
-    aldReason: 'ALD 30 - Affection cardiovasculaire grave (Post-opératoire)',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Joseph Rénier - Cardiologue CHU',
-    mobility: {
-      wheelchair: true,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: true,
-      floorNumber: 2,
-      needsEscort: true,
-      notes: 'Fauteuil roulant pliant. Portage nécessaire au départ (2 étages sans ascenseur).'
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-02-10T10:30:00.000Z',
-    notes: 'Prise en charge avec portage escaliers déclarée'
-  },
-  {
-    id: 'client-3',
-    firstName: 'Gérard',
-    lastName: 'Théodore',
-    birthDate: '1947-03-12',
-    nir: '1 47 03 97 212 663 81',
-    phone: '0696 23 88 77',
-    email: 'gerard.theodore@wanadoo.fr',
-    address: 'Lotissement Les Hauts de Tartane',
-    city: 'La Trinité',
-    postalCode: '97220',
-    isAld: true,
-    aldReason: 'ALD 4 - Diabète de type 1 sévère avec complications',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Alix Célestine - CHU Martinique',
-    mobility: {
-      wheelchair: false,
-      stretcher: true,
-      oxygen: true,
-      stairsWithoutElevator: false,
-      needsEscort: false,
-      notes: 'Brancardage impératif et oxygénothérapie 2L/min en cours de route'
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-03-01T09:15:00.000Z',
-    notes: 'Prescription Ambulance Type B obligatoire'
-  },
-  {
-    id: 'client-4',
-    firstName: 'Éliane',
-    lastName: 'Bernard',
-    birthDate: '1956-07-22',
-    nir: '2 56 07 97 214 382 69',
-    phone: '0696 34 56 78',
-    email: 'eliane.bernard972@gmail.com',
-    address: 'Résidence Les Balisiers, Apt 24',
-    city: 'Schœlcher',
-    postalCode: '97233',
-    isAld: true,
-    aldReason: 'ALD 3 - Cardiopathie ischémique chronique',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Célestine - Service Cardiologie',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false,
-      notes: 'Sortie post-angioplastie'
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-04-12T14:00:00.000Z',
-    notes: 'Patient régulier consultation de cardiologie CHU'
-  },
-  {
-    id: 'client-5',
-    firstName: 'Victor',
-    lastName: 'Marie-Luce',
-    birthDate: '1982-12-05',
-    nir: '1 82 12 97 201 445 28',
-    phone: '0696 77 88 99',
-    email: 'victor.mluce@outremer.mq',
-    address: 'Rue de la République',
-    city: 'Fort-de-France',
-    postalCode: '97200',
-    isAld: false,
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Joseph Rénier',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-05-18T11:20:00.000Z',
-    notes: 'Conventionné CPAM Régime Général 65%'
-  },
-  {
-    id: 'client-6',
-    firstName: 'Jean',
-    lastName: 'Dupont',
-    birthDate: '1985-04-12',
-    nir: '1 85 04 75 112 345 88',
-    phone: '06 12 34 56 78',
-    email: 'jean.dupont@orange.fr',
-    address: '45 Rue de Vaugirard',
-    city: 'Paris',
-    postalCode: '75006',
-    isAld: true,
-    aldReason: 'ALD 30 - Affection cardiovasculaire grave (Suivi HEGP)',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Mercier - Hôpital Européen Georges-Pompidou',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false,
-      notes: 'Consultation cardiologie mensuelle'
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-01-10T10:00:00.000Z',
-    notes: 'Prise en charge VSL conventionné CPAM Paris'
-  },
-  {
-    id: 'client-7',
-    firstName: 'Sophie',
-    lastName: 'Laurent',
-    birthDate: '1990-08-15',
-    nir: '2 90 08 69 044 123 45',
-    phone: '06 88 99 11 22',
-    email: 'sophie.laurent@gmail.com',
-    address: '12 Avenue des Frères Lumière',
-    city: 'Lyon',
-    postalCode: '69008',
-    isAld: true,
-    aldReason: 'ALD 4 - Diabète de type 1 sévère avec suivi néphrologie',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Faure - Hôpital Édouard Herriot Lyon',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-01-12T10:00:00.000Z',
-    notes: 'Transport régulier pour séances de dialyse Lyon'
-  },
-  {
-    id: 'client-8',
-    firstName: 'Marie',
-    lastName: 'Leroy',
-    birthDate: '1975-03-20',
-    nir: '2 75 03 31 555 432 10',
-    phone: '06 45 67 89 01',
-    email: 'marie.leroy@gmail.com',
-    address: '8 Place du Capitole',
-    city: 'Toulouse',
-    postalCode: '31000',
-    isAld: true,
-    aldReason: 'ALD 23 - Maladie de Crohn et suivi gastro-entérologie',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Durand - CHU Purpan Toulouse',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-02-01T09:00:00.000Z',
-    notes: 'Consultation spécialisée CHU Rangueil / Purpan'
-  },
-  {
-    id: 'client-9',
-    firstName: 'Jacqueline',
-    lastName: 'Evariste',
-    birthDate: '1962-11-14',
-    nir: '2 62 11 97 105 321 54',
-    phone: '0690 12 34 56',
-    email: 'jacqueline.evariste@orange.fr',
-    address: 'Section Lauricisque',
-    city: 'Pointe-à-Pitre',
-    postalCode: '97110',
-    isAld: true,
-    aldReason: 'ALD 19 - Insuffisance rénale chronique hémodialyse',
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Bellerose - CHU Guadeloupe',
-    mobility: {
-      wheelchair: true,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: true
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-01-20T08:00:00.000Z',
-    notes: 'Hémodialyse triterbienne CHU Pointe-à-Pitre'
-  },
-  {
-    id: 'client-10',
-    firstName: 'Denis',
-    lastName: 'Golitin',
-    birthDate: '1971-06-08',
-    nir: '1 71 06 97 302 456 78',
-    phone: '0694 22 33 44',
-    email: 'denis.golitin@guyane.fr',
-    address: 'Route de Montabo',
-    city: 'Cayenne',
-    postalCode: '97300',
-    isAld: false,
-    hasPmt: true,
-    pmtPrescriberDoctor: 'Dr. Némorin - Centre Hospitalier Andrée Rosemon',
-    mobility: {
-      wheelchair: false,
-      stretcher: false,
-      oxygen: false,
-      stairsWithoutElevator: false,
-      needsEscort: false
-    },
-    status: 'ACTIVE',
-    createdAt: '2026-02-15T10:00:00.000Z',
-    notes: 'Prise en charge rééducation post-opératoire'
-  }
-];
+// Fiches clients initiales (zéro mock en production)
+const INITIAL_CLIENTS: ClientRecord[] = [];
 
 // Paramètres par défaut de la plateforme
 const DEFAULT_SETTINGS: SystemSettings = {
   bannerActive: true,
   bannerLevel: 'INFO',
-  bannerText: 'Régulation Sanitaire 972 : Réseau actif en direct. Synchronisation continue avec la CPAM et le SAMU 972.',
+  bannerText: 'Régulation Sanitaire : Réseau actif en direct. Synchronisation continue avec la CPAM.',
   cancellationThresholdHours: 24,
   defaultDispatchRadiusKm: 25,
   cpamBaseForfaitAmbulance: 58.50,
   cpamBaseForfaitVsl: 32.20,
   cpamRatePerKm: 2.15,
   cpamNightSundaySurchargePercent: 25,
-  lastUpdatedBy: 'admin@medictrans972.mq',
+  lastUpdatedBy: 'admin@clinigo.fr',
   lastUpdatedAt: new Date().toISOString()
 };
 
-// Journal d'audit initial
-const INITIAL_AUDIT_LOGS: AuditLog[] = [
-  {
-    id: 'log-1',
-    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-    adminEmail: 'admin@medictrans972.mq',
-    action: 'INITIALISATION_PLATEFORME',
-    targetType: 'SETTINGS',
-    details: 'Initialisation de la console de régulation et des barèmes CPAM Martinique.'
-  },
-  {
-    id: 'log-2',
-    timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
-    adminEmail: 'admin@medictrans972.mq',
-    action: 'VALIDATION_AGREMENT_ARS',
-    targetType: 'TRANSPORTER',
-    targetId: 'transporter-1',
-    details: 'Contrôle annuel validé pour Ambulances Madinina Secours (Agrément 972-AMB-2021-04).'
-  },
-  {
-    id: 'log-3',
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-    adminEmail: 'admin@medictrans972.mq',
-    action: 'HABILITATION_CADRE',
-    targetType: 'FACILITY',
-    targetId: 'chu-zobda-quitman',
-    details: 'Ajout et confirmation des accès coordinateur pour le CHU Pierre Zobda-Quitman.'
-  }
-];
+// Journal d'audit initial (vide au démarrage)
+const INITIAL_AUDIT_LOGS: AuditLog[] = [];
 
 export class AdminService {
   // =========================================================================
@@ -392,8 +100,8 @@ export class AdminService {
             firstName: p.firstName || 'Patient',
             lastName: p.lastName || '',
             birthDate: '1980-01-01',
-            nir: p.nir || '1 80 01 75 000 000 00',
-            phone: p.phone || '06 00 00 00 00',
+            nir: p.nir || '',
+            phone: p.phone || '',
             email: p.email,
             address: 'Adresse déclarée à l’inscription',
             city: cityName,

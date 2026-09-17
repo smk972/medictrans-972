@@ -5,9 +5,10 @@ import { Footer } from '../components/Footer';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { SEOHead } from '../components/SEOHead';
 import { rideService } from '../services/rideService';
-import { useAuth } from '../contexts/AuthContext';
 import { Ride } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export const TrackingPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -38,18 +39,31 @@ export const TrackingPage: React.FC = () => {
     try {
       const allRides = await rideService.getAllRides();
 
-      // Récupérer une référence récente si réservée en local ou passée en paramètre URL
+      // Nettoyer toute référence de test éventuelle stockée dans le navigateur
       let lastBookingRef: string | null = urlRef ? urlRef.trim() : null;
       if (!lastBookingRef) {
         try {
           const raw = localStorage.getItem('medictrans_last_booking');
           if (raw) {
             const parsed = JSON.parse(raw);
-            lastBookingRef = parsed.ref;
+            if (parsed.ref && (parsed.ref.toUpperCase().startsWith('VERIF-') || parsed.ref.toUpperCase().startsWith('TEST-'))) {
+              localStorage.removeItem('medictrans_last_booking');
+            } else {
+              lastBookingRef = parsed.ref;
+            }
           }
         } catch {
           // ignore
         }
+      }
+
+      // Si une référence spécifique est demandée via l'URL (?ref=MT-972-XXXX)
+      if (urlRef && urlRef.trim()) {
+        const cleanRef = urlRef.trim().toUpperCase();
+        const single = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
+        setRides(single);
+        setIsLoading(false);
+        return;
       }
 
       if (!isAuthenticated || !user) {
@@ -67,7 +81,14 @@ export const TrackingPage: React.FC = () => {
       let relevantRides: Ride[] = [];
 
       if (user.role === 'ADMIN') {
-        relevantRides = allRides;
+        // Mode Consultation Admin sur la page de suivi patient :
+        // Ne jamais déverser toutes les courses d'un coup sur cette vue dédiée au suivi unitaire.
+        if (lastBookingRef) {
+          const cleanRef = lastBookingRef.trim().toUpperCase();
+          relevantRides = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
+        } else {
+          relevantRides = allRides.filter(r => user.email && r.patient?.email?.toLowerCase() === user.email.toLowerCase());
+        }
       } else if (user.role === 'FACILITY') {
         relevantRides = allRides.filter((r) => 
           (r.facilityName && user.facilityName && r.facilityName.toLowerCase().includes(user.facilityName.toLowerCase())) ||
@@ -102,10 +123,31 @@ export const TrackingPage: React.FC = () => {
     window.scrollTo(0, 0);
     loadRides();
 
-    // Polling actif pour actualiser le statut dès que le transporteur accepte
+    // Abonnement Supabase Realtime pour recevoir les changements de statut en direct
+    let channel: any = null;
+    if (isSupabaseConfigured() && supabase) {
+      channel = supabase
+        .channel('realtime_tracking_rides')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rides' },
+          (payload: any) => {
+            loadRides();
+            if (payload.eventType === 'UPDATE' && payload.new?.status === 'ACCEPTED') {
+              setToastMessage({
+                title: 'Course confirmée !',
+                desc: `Votre transporteur (${payload.new.transporter_name || 'Transporteur Sanitaire Agréé'}) a validé votre mission.`
+              });
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // Polling de précaution
     const interval = setInterval(() => {
       loadRides();
-    }, 4000);
+    }, 5000);
 
     const onStatusUpdate = () => {
       loadRides();
@@ -115,6 +157,9 @@ export const TrackingPage: React.FC = () => {
     return () => {
       clearInterval(interval);
       window.removeEventListener('clinigo_ride_status_updated', onStatusUpdate);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [loadRides]);
 
@@ -514,7 +559,7 @@ export const TrackingPage: React.FC = () => {
                       </div>
                       <div className="flex flex-col">
                         <span className="font-label-sm text-xs font-bold text-on-surface">Flotte Conventionnée</span>
-                        <span className="font-body-xs text-[11px] text-on-surface-variant mt-0.5">42 ambulances, VSL et taxis agréés ARS 972</span>
+                        <span className="font-body-xs text-[11px] text-on-surface-variant mt-0.5">Ambulances, VSL et taxis conventionnés ARS Martinique</span>
                       </div>
                     </div>
 
@@ -705,12 +750,14 @@ export const TrackingPage: React.FC = () => {
                                 </span>
                                 <div className="flex items-center gap-space-sm mt-1">
                                   <span className="font-label-sm text-label-sm text-on-surface flex items-center gap-1 text-xs">
-                                    <span className="material-symbols-outlined text-sm text-amber-500">star</span>{' '}
-                                    4.9 (Avis certifiés)
+                                    <span className="material-symbols-outlined text-sm text-emerald-600">verified</span>
+                                    Agrément ARS vérifié
                                   </span>
-                                  <span className="text-on-surface-variant font-label-sm text-label-sm text-xs">
-                                    · Plaque {activeRide.assignedTransporter.vehiclePlate}
-                                  </span>
+                                  {activeRide.assignedTransporter.vehiclePlate && (
+                                    <span className="text-on-surface-variant font-label-sm text-label-sm text-xs">
+                                      · Plaque {activeRide.assignedTransporter.vehiclePlate}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1038,7 +1085,7 @@ export const TrackingPage: React.FC = () => {
                   <span>
                     {activeRide
                       ? `Mission active : ${activeRide.reference}`
-                      : 'Réseau territorial disponible (42 véhicules en liaison)'}
+                      : 'Réseau territorial de transport sanitaire conventionné'}
                   </span>
                 </div>
               </div>

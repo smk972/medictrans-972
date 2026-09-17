@@ -1303,7 +1303,7 @@ export const FacilityPortalPage: React.FC = () => {
 <div className="pt-space-md flex flex-col sm:flex-row items-center justify-between gap-space-md">
 <div className="flex items-center gap-space-xs text-on-surface-variant font-label-sm text-label-sm">
 <span className="material-symbols-outlined text-[18px] text-secondary">security</span>
-<span className="">Diffusion instantanée aux 42 ambulanciers &amp; taxis conventionnés 972</span>
+<span className="">Diffusion instantanée aux transporteurs sanitaires &amp; taxis conventionnés 972</span>
 </div>
 <div className="flex items-center gap-space-sm w-full sm:w-auto">
 <button className="w-full sm:w-auto px-space-lg h-12 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all"  type="button">

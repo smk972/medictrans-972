@@ -18,7 +18,9 @@ echo -e "${BLUE}======================================================${NC}\n"
 
 # Charger les variables locales si existantes
 if [ -f .env.local ]; then
-    export $(grep -v '^#' .env.local | xargs)
+    set -a
+    source .env.local
+    set +a
 fi
 
 # 1. COMPILATION DE PRODUCTION

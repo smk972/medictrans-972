@@ -35,3 +35,4 @@ dist-ssr/
 
 # Scratch & Temporary Testing Media
 scratch/
+supabase/.temp/

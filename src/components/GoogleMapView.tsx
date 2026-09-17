@@ -19,17 +19,10 @@ export interface GoogleMapViewProps {
   etaMinutes?: number;
   driverName?: string;
   vehiclePlate?: string;
+  driverLat?: number;
+  driverLng?: number;
   onRouteComputed?: (distKm: number, durMin: number) => void;
 }
-
-// Positions simulées des flottes sanitaires en patrouille en Martinique
-const FLEET_VEHICLES = [
-  { id: 'amb-1', name: 'Ambulance ASSU 01', type: 'AMBULANCE', city: 'Fort-de-France', lat: 14.6190, lng: -61.0425, status: 'EN_ROUTE' },
-  { id: 'amb-2', name: 'Ambulance 04', type: 'AMBULANCE', city: 'La Trinité', lat: 14.7395, lng: -60.9630, status: 'DISPONIBLE' },
-  { id: 'vsl-1', name: 'VSL Médic 02', type: 'VSL', city: 'Le Lamentin', lat: 14.6152, lng: -60.9995, status: 'DISPONIBLE' },
-  { id: 'taxi-1', name: 'Taxi Conv. 972', type: 'TAXI', city: 'Ducos', lat: 14.5753, lng: -60.9753, status: 'EN_MISSION' },
-  { id: 'vsl-2', name: 'VSL Sud Sanitaire', type: 'VSL', city: 'Le Marin', lat: 14.4710, lng: -60.8710, status: 'DISPONIBLE' },
-];
 
 let gmpConfigured = false;
 
@@ -59,23 +52,34 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
   origin = 'Fort-de-France',
   destination = 'CHU Pierre Zobda-Quitman, Fort-de-France',
   facilityName,
-  height = '100%',
+  height = '320px',
   className = '',
+  interactive = true,
   showControls = true,
-  etaMinutes = 14,
-  driverName = 'J. Maréchal (Ambulances Madinina)',
-  vehiclePlate = 'FA-972-MQ',
+  etaMinutes = 15,
+  driverName,
+  vehiclePlate,
+  driverLat,
+  driverLng,
   onRouteComputed,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [mapType, setMapType] = useState<'m' | 'k'>('m'); // 'm' = Roadmap, 'k' = Satellite
   const [useJsApi, setUseJsApi] = useState<boolean>(false);
-  const [mapType, setMapType] = useState<'m' | 'k'>('m'); // m = road map, k = satellite
-  const [activeLayer, setActiveLayer] = useState<'all' | 'ambulances' | 'hospitals'>('all');
-  const [trackingOffset, setTrackingOffset] = useState<{ lat: number; lng: number }>({ lat: 0, lng: 0 });
 
-  // Résolution des coordonnées selon les adresses fournies
+  // Calcul des coordonnées GPS réelles et distance routière officielle
   const routeData = useMemo(() => {
-    return calculateNationalRoadDistance(origin, destination);
+    const terr = detectTerritoryFromAddress(origin) || detectTerritoryFromAddress(destination);
+    const originCoords = resolveCoordinates(origin, terr);
+    const destCoords = resolveCoordinates(destination, terr);
+    const roadCalc = calculateNationalRoadDistance(origin, destination, terr);
+
+    return {
+      originCoords,
+      destCoords,
+      distanceKm: roadCalc.distanceKm,
+      durationMinutes: roadCalc.durationMinutes,
+    };
   }, [origin, destination]);
 
   const mapTerritoryBadge = useMemo(() => {
@@ -95,23 +99,6 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
       onRouteComputed(routeData.distanceKm, routeData.durationMinutes);
     }
   }, [routeData, onRouteComputed]);
-
-  // Animation de déplacement du chauffeur en direct en mode tracking
-  useEffect(() => {
-    if (mode !== 'tracking') return;
-    const interval = setInterval(() => {
-      setTrackingOffset((prev) => {
-        // Déplacement progressif vers la destination
-        const stepLat = (routeData.destCoords.lat - routeData.originCoords.lat) * 0.005;
-        const stepLng = (routeData.destCoords.lng - routeData.originCoords.lng) * 0.005;
-        return {
-          lat: prev.lat + (Math.random() * 0.0004 - 0.0002) + stepLat * 0.1,
-          lng: prev.lng + (Math.random() * 0.0004 - 0.0002) + stepLng * 0.1,
-        };
-      });
-    }, 2500);
-    return () => clearInterval(interval);
-  }, [mode, routeData]);
 
   // Initialisation du Google Maps JavaScript API si une clé est disponible
   useEffect(() => {
@@ -212,19 +199,19 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
             });
           });
 
-          // Marqueurs Véhicules sanitaires en direct
-          FLEET_VEHICLES.forEach((veh) => {
+          // Marqueur Véhicule sanitaire en direct (si coordonnées GPS réelles transmises)
+          if (driverLat && driverLng) {
             const vPin = document.createElement('div');
-            vPin.className = 'w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg border-2 border-white animate-bounce';
+            vPin.className = 'w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg border-2 border-white animate-pulse';
             vPin.innerHTML = '<span class="material-symbols-outlined text-[14px]">ambulance</span>';
 
             new markerLib.AdvancedMarkerElement({
               map,
-              position: { lat: veh.lat, lng: veh.lng },
-              title: `${veh.name} • ${veh.city}`,
+              position: { lat: driverLat, lng: driverLng },
+              title: driverName || 'Véhicule sanitaire en mission',
               content: vPin,
             });
-          });
+          }
         }
 
         setUseJsApi(true);
@@ -362,7 +349,7 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
         </div>
       )}
 
-      {/* Overlay spécifique : Tracking en direct avec fiche chauffeur */}
+      {/* Overlay spécifique : Suivi en direct du transporteur */}
       {mode === 'tracking' && (
         <div className="absolute bottom-3 left-3 right-3 z-10">
           <div className="bg-surface-container-lowest/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-outline-variant/30 flex items-center justify-between">
@@ -371,36 +358,26 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
                 <span className="material-symbols-outlined text-lg">ambulance</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-on-surface">{driverName}</span>
+                <span className="text-xs font-bold text-on-surface">
+                  {driverName || 'Transporteur en cours d’attribution'}
+                </span>
                 <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-mono">
-                  <span>{vehiclePlate}</span>
-                  <span>•</span>
-                  <span className="text-emerald-700 font-bold">GPS Actif</span>
+                  {vehiclePlate && <span>{vehiclePlate} • </span>}
+                  {driverLat && driverLng ? (
+                    <span className="text-emerald-700 font-bold">Position actualisée</span>
+                  ) : (
+                    <span className="text-slate-500">Position du transporteur indisponible</span>
+                  )}
                 </span>
               </div>
             </div>
 
-            <div className="text-right">
-              <span className="text-[11px] text-on-surface-variant">Arrivée estimée</span>
-              <div className="text-sm font-extrabold text-primary">{etaMinutes} minutes</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Overlay spécifique : Filtres de flottes sanitaires en mode Fleet */}
-      {mode === 'fleet' && (
-        <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">
-          <div className="bg-surface-container-lowest/90 backdrop-blur-md px-2.5 py-1 rounded-xl shadow-md border border-outline-variant/30 text-[11px] font-semibold text-on-surface flex items-center gap-2">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-secondary"></span>
-              <span>18 Hôpitaux &amp; Dialyses</span>
-            </span>
-            <span className="opacity-40">|</span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-              <span>14 Ambulances / VSL en service</span>
-            </span>
+            {etaMinutes ? (
+              <div className="text-right">
+                <span className="text-[11px] text-on-surface-variant">Arrivée estimée</span>
+                <div className="text-sm font-extrabold text-primary">{etaMinutes} min</div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

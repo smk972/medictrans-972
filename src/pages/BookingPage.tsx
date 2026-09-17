@@ -156,6 +156,7 @@ export const BookingPage: React.FC = () => {
   }, [nir]);
   const isNirInvalid = nir.trim().length > 0 && !nirValidation.isValid;
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const [phone, setPhone] = useState(user?.phone || '');
   const [birthDate, setBirthDate] = useState('1980-01-01');
   const [isAld, setIsAld] = useState(true);
@@ -443,6 +444,7 @@ export const BookingPage: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    setBookingError(null);
 
     const deptMatch = (pickupAddress + ' ' + destinationFacility).match(/\b(97[1-8]|2[ABab]|0[1-9]|[1-8]\d|9[0-5])\d{3}\b/);
     const deptCode = deptMatch ? deptMatch[1] : 'FR';
@@ -528,34 +530,12 @@ export const BookingPage: React.FC = () => {
       setTimeout(() => {
         navigate(`/confirmation/${actualRef}`);
       }, 500);
-    } catch {
-      const bookingRecord = {
-        ref: finalRef,
-        pickupAddress,
-        destinationFacility,
-        transportType,
-        transportDate,
-        transportTime,
-        appointmentTime: transportTime,
-        isRecurring,
-        recurringDates: isRecurring ? recurringDates : undefined,
-        patientName: `${firstName} ${lastName}`,
-        nir: currentNir,
-        phone,
-        uploadedPmtDoc,
-        isDirectRequest: !!selectedTransporter,
-        targetTransporterId: selectedTransporter?.id,
-        targetTransporterName: selectedTransporter?.companyName,
-      };
-      try {
-        localStorage.setItem('medictrans_last_booking', JSON.stringify(bookingRecord));
-      } catch {
-        // ignore
-      }
-
-      setTimeout(() => {
-        navigate(`/confirmation/${finalRef}`);
-      }, 500);
+    } catch (err: any) {
+      console.error('[BookingPage] Error submitting ride:', err);
+      setIsSubmitting(false);
+      setBookingError(
+        err?.message || 'Une erreur est survenue lors de l\'enregistrement de votre demande. Veuillez vérifier votre connexion et réessayer.'
+      );
     }
   };
 
@@ -1970,6 +1950,20 @@ export const BookingPage: React.FC = () => {
                         <strong className="text-amber-900 font-bold">Numéro de Sécurité Sociale (NIR) incomplet :</strong>
                         <span className="text-[11px] text-amber-800 leading-tight mt-0.5">
                           {nirValidation.errorMessage || "Le NIR doit comporter 13 chiffres valides."}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {bookingError && (
+                    <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-950 text-xs">
+                      <span className="material-symbols-outlined text-red-600 text-[20px] shrink-0 mt-0.5">
+                        error
+                      </span>
+                      <div className="flex flex-col">
+                        <strong className="text-red-900 font-bold">Échec de la transmission :</strong>
+                        <span className="text-[12px] text-red-800 leading-tight mt-0.5">
+                          {bookingError}
                         </span>
                       </div>
                     </div>

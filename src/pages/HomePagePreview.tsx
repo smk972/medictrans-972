@@ -715,16 +715,16 @@ export const HomePagePreview: React.FC = () => {
                   {/* Badge 4 */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                        <span className="material-symbols-outlined text-lg">star</span>
+                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-100">
+                        <span className="material-symbols-outlined text-lg">verified</span>
                       </div>
                       <div>
-                        <span className="font-bold text-slate-900 text-xs block">Satisfaction Usagers</span>
-                        <span className="text-[11px] text-slate-500">Avis vérifiés Martinique</span>
+                        <span className="font-bold text-slate-900 text-xs block">Conventionnement CPAM</span>
+                        <span className="text-[11px] text-slate-500">Tiers-payant Sécurité Sociale</span>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 text-xs font-extrabold">
-                      98.4%
+                    <span className="px-2.5 py-1 rounded-xl bg-teal-50 text-teal-800 text-xs font-extrabold border border-teal-200">
+                      100%
                     </span>
                   </div>
                 </div>

@@ -41,73 +41,8 @@ export const RADIUS_STORAGE_KEY = 'medictrans_transporter_radius_km';
 export const OUTSIDE_RADIUS_STORAGE_KEY = 'medictrans_transporter_include_outside';
 export const BASE_COMMUNE_STORAGE_KEY = 'medictrans_transporter_base_commune';
 
-export const DEFAULT_DRIVERS: Driver[] = [
-  {
-    id: 'dr-1',
-    firstName: 'Patrick',
-    lastName: 'Césaire',
-    role: 'Ambulancier DEA (Cadre)',
-    phone: '0696 75 20 20',
-    status: 'DISPONIBLE',
-    assignedVehiclePlate: 'GH-972-MQ'
-  },
-  {
-    id: 'dr-2',
-    firstName: 'Loïc',
-    lastName: 'Marie-Rose',
-    role: 'Ambulancier DEA',
-    phone: '0696 34 56 78',
-    status: 'DISPONIBLE',
-    assignedVehiclePlate: 'AA-972-FX'
-  },
-  {
-    id: 'dr-3',
-    firstName: 'Marcelle',
-    lastName: 'Eustache',
-    role: 'Chauffeur Taxi Conventionné',
-    phone: '0696 90 12 34',
-    status: 'DISPONIBLE',
-    assignedVehiclePlate: 'BC-972-MQ'
-  },
-  {
-    id: 'dr-4',
-    firstName: 'Aurélie',
-    lastName: 'Sainte-Rose',
-    role: 'Ambulancière Auxiliaire',
-    phone: '0696 45 11 22',
-    status: 'DISPONIBLE'
-  }
-];
-
-export const DEFAULT_FLEET: VehicleFleet[] = [
-  {
-    id: 'fl-1',
-    name: 'Ambulance ASSU 01',
-    type: 'AMBULANCE',
-    plate: 'GH-972-MQ',
-    driver: 'Patrick Césaire (Ambulancier DEA)',
-    phone: '0696 75 20 20',
-    status: 'DISPONIBLE'
-  },
-  {
-    id: 'fl-2',
-    name: 'VSL Médical 02',
-    type: 'VSL',
-    plate: 'AA-972-FX',
-    driver: 'Loïc Marie-Rose (Ambulancier DEA)',
-    phone: '0696 34 56 78',
-    status: 'DISPONIBLE'
-  },
-  {
-    id: 'fl-3',
-    name: 'Taxi Conventionné 03',
-    type: 'TAXI_CONVENTIONNE',
-    plate: 'BC-972-MQ',
-    driver: 'Marcelle Eustache (Chauffeur Taxi)',
-    phone: '0696 90 12 34',
-    status: 'DISPONIBLE'
-  }
-];
+export const DEFAULT_DRIVERS: Driver[] = [];
+export const DEFAULT_FLEET: VehicleFleet[] = [];
 
 /**
  * Règle de protection du secret médical (RGPD & Déontologie Santé) :
@@ -1420,56 +1355,6 @@ export const TransporterPortalPage: React.FC = () => {
     }
   };
 
-  // Création d'une course test réelle dans Supabase pour démonstration
-  const handleCreateTestMission = async () => {
-    try {
-      const testRide = await rideService.createRide({
-        pickupAddress: '14 Rue Victor Hugo, Place Clémenceau',
-        pickupCity: 'Le Lamentin',
-        dropoffAddress: 'CHU Pierre Zobda-Quitman, Route de Châteauboeuf',
-        dropoffCity: 'Fort-de-France',
-        facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
-        pickupDateTime: new Date(Date.now() + 45 * 60000).toISOString(),
-        isRoundTrip: false,
-        transportType: 'VSL',
-        source: 'FACILITY',
-        facilityDepartment: 'Néphrologie & Dialyse',
-        patient: {
-          firstName: 'Éliane',
-          lastName: 'Moutoussamy',
-          birthDate: '1961-04-18',
-          nir: '2 61 04 97 215 098',
-          phone: '0696 22 88 11',
-          email: 'eliane.moutoussamy@sante-972.fr',
-          address: '14 Rue Victor Hugo',
-          city: 'Le Lamentin',
-          postalCode: '97232',
-          isAld: true,
-          aldReason: 'Insuffisance Rénale Chronique (ALD 19)',
-          hasPmt: true,
-          pmtPrescriberDoctor: 'Dr. Alix Célestine - CHU Martinique'
-        },
-        mobility: {
-          wheelchair: false,
-          stretcher: false,
-          oxygen: false,
-          stairsWithoutElevator: false,
-          needsEscort: false,
-          notes: 'Séance de dialyse programmée à 14h30 - Patient autonome'
-        }
-      });
-
-      setToastMessage({
-        title: 'Nouvelle demande diffusée !',
-        desc: `Course test #${testRide.reference} générée avec succès depuis Le Lamentin vers le CHU.`,
-        type: 'info'
-      });
-
-      await loadMissions();
-    } catch (e) {
-      console.error('Erreur création test ride:', e);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-teal-50/70 to-sky-100/60 text-slate-900 font-sans antialiased relative selection:bg-teal-600 selection:text-white">
@@ -2335,14 +2220,6 @@ export const TransporterPortalPage: React.FC = () => {
                         <span>Réafficher les missions déclinées ({declinedRefs.length})</span>
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={handleCreateTestMission}
-                      className="px-4 py-2 rounded-full bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 transition-all shadow-xs flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-sm">add</span>
-                      <span>Générer une course test en direct</span>
-                    </button>
                   </div>
                 </div>
               ) : (

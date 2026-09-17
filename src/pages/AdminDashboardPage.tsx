@@ -11,26 +11,37 @@ export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [rides, setRides] = useState<Ride[]>([]);
   const [transporters, setTransporters] = useState<Transporter[]>([]);
-  const [stats, setStats] = useState({
-    totalActiveRides: 142,
-    pendingCount: 4,
-    enRouteCount: 68,
-    completedTodayCount: 70,
-    urgentAlertsCount: 3,
-    avgAttributionMinutes: 4.25,
-    totalFleetsCount: 38,
-    fleetBreakdown: { ambulances: 18, vsl: 14, taxis: 6 },
-    transportersCount: 5,
-    verifiedTransportersCount: 4
+  const [stats, setStats] = useState<{
+    totalActiveRides: number;
+    pendingCount: number;
+    enRouteCount: number;
+    completedTodayCount: number;
+    urgentAlertsCount: number;
+    avgAttributionMinutes: number | null;
+    totalFleetsCount: number;
+    fleetBreakdown: { ambulances: number; vsl: number; taxis: number };
+    transportersCount: number;
+    verifiedTransportersCount: number;
+  }>({
+    totalActiveRides: 0,
+    pendingCount: 0,
+    enRouteCount: 0,
+    completedTodayCount: 0,
+    urgentAlertsCount: 0,
+    avgAttributionMinutes: null,
+    totalFleetsCount: 0,
+    fleetBreakdown: { ambulances: 0, vsl: 0, taxis: 0 },
+    transportersCount: 0,
+    verifiedTransportersCount: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal d'attribution rapide
   const [assignModalRide, setAssignModalRide] = useState<Ride | null>(null);
   const [selectedTransporterId, setSelectedTransporterId] = useState('');
-  const [driverName, setDriverName] = useState('Chauffeur d\'astreinte');
-  const [driverPhone, setDriverPhone] = useState('0696 12 34 56');
-  const [vehiclePlate, setVehiclePlate] = useState('AB-972-CD');
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
   const [isSubmittingAssign, setIsSubmittingAssign] = useState(false);
 
   const loadData = async () => {
@@ -71,12 +82,16 @@ export const AdminDashboardPage: React.FC = () => {
 
     setIsSubmittingAssign(true);
     const chosenTransporter = transporters.find(t => t.id === selectedTransporterId) || transporters[0];
+    if (!chosenTransporter) {
+      setIsSubmittingAssign(false);
+      return;
+    }
 
     await rideService.reassignRide(assignModalRide.reference, {
-      companyName: chosenTransporter ? chosenTransporter.companyName : 'Ambulances Agréées 972',
-      driverName,
-      driverPhone,
-      vehiclePlate,
+      companyName: chosenTransporter.companyName,
+      driverName: driverName || 'Chauffeur assigné',
+      driverPhone: driverPhone || chosenTransporter.phone || '',
+      vehiclePlate: vehiclePlate || '',
       etaMinutes: 15
     }, 'ACCEPTED');
 
@@ -121,8 +136,8 @@ export const AdminDashboardPage: React.FC = () => {
             <span className="text-3xl sm:text-4xl font-extrabold text-primary font-mono tracking-tight">
               {stats.totalActiveRides}
             </span>
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-              +8.4% vs S-1
+            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+              Temps réel
             </span>
           </div>
           <p className="text-[11px] text-on-surface-variant mt-2">
@@ -137,17 +152,25 @@ export const AdminDashboardPage: React.FC = () => {
             <span className="material-symbols-outlined text-secondary text-xl">timer</span>
           </div>
           <div className="flex items-baseline gap-1 font-mono">
-            <span className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight">
-              4
-            </span>
-            <span className="text-lg font-bold text-on-surface-variant">min</span>
-            <span className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight ml-1">
-              15
-            </span>
-            <span className="text-lg font-bold text-on-surface-variant">s</span>
+            {stats.avgAttributionMinutes !== null ? (
+              <>
+                <span className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight">
+                  {Math.floor(stats.avgAttributionMinutes)}
+                </span>
+                <span className="text-lg font-bold text-on-surface-variant">min</span>
+                <span className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight ml-1">
+                  {Math.round((stats.avgAttributionMinutes % 1) * 60)}
+                </span>
+                <span className="text-lg font-bold text-on-surface-variant">s</span>
+              </>
+            ) : (
+              <span className="text-2xl font-extrabold text-slate-400">
+                -- min
+              </span>
+            )}
           </div>
           <p className="text-[11px] text-on-surface-variant mt-2">
-            Objectif ARS &lt; 8 min (Conforme BPEC 972)
+            {stats.avgAttributionMinutes !== null ? 'Calculé sur les attributions récentes' : 'Données d\'attribution en attente'}
           </p>
         </div>
 
@@ -178,10 +201,10 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl sm:text-4xl font-extrabold text-error font-mono tracking-tight">
-              0{stats.urgentAlertsCount}
+              {stats.urgentAlertsCount}
             </span>
-            <span className="text-xs font-bold text-error bg-error/10 px-2 py-0.5 rounded-md">
-              Action requise
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${stats.urgentAlertsCount > 0 ? 'text-error bg-error/10' : 'text-emerald-700 bg-emerald-50'}`}>
+              {stats.urgentAlertsCount > 0 ? 'Action requise' : 'Aucune urgence'}
             </span>
           </div>
           <p className="text-[11px] text-on-surface-variant mt-2">
@@ -355,25 +378,55 @@ export const AdminDashboardPage: React.FC = () => {
 
             <div className="space-y-3">
               {[
-                { name: 'Bassin Centre', desc: 'Fort-de-France, Lamentin, Schœlcher, Ducos', fleets: 18, status: 'FLUIDE', color: 'text-emerald-700 bg-emerald-50' },
-                { name: 'Bassin Sud', desc: 'Le Marin, Sainte-Luce, Rivière-Salée, Diamant', fleets: 9, status: 'FLUIDE', color: 'text-emerald-700 bg-emerald-50' },
-                { name: 'Bassin Nord Atlantique', desc: 'La Trinité, Ste-Marie, Le Robert, Lorrain', fleets: 7, status: 'TENSION', color: 'text-amber-700 bg-amber-50' },
-                { name: 'Bassin Nord Caraïbe', desc: 'Saint-Pierre, Case-Pilote, Morne-Rouge', fleets: 4, status: 'VIGILANCE', color: 'text-amber-700 bg-amber-50' }
-              ].map((zone, idx) => (
-                <div key={idx} className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-on-surface">{zone.name}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${zone.color}`}>
-                      {zone.status}
-                    </span>
+                { 
+                  name: 'Bassin Centre', 
+                  desc: 'Fort-de-France, Lamentin, Schœlcher, Ducos', 
+                  cities: ['fort-de-france', 'lamentin', 'le lamentin', 'schoelcher', 'schœlcher', 'ducos', 'saint-joseph'] 
+                },
+                { 
+                  name: 'Bassin Sud', 
+                  desc: 'Le Marin, Sainte-Luce, Rivière-Salée, Diamant', 
+                  cities: ['marin', 'le marin', 'sainte-luce', 'riviere-salee', 'rivière-salée', 'diamant', 'le diamant', 'sainte-anne', 'trois-ilets', 'les trois-îlets', 'anses-d\'arlet', 'riviere-pilote', 'vauclin', 'le vauclin'] 
+                },
+                { 
+                  name: 'Bassin Nord Atlantique', 
+                  desc: 'La Trinité, Ste-Marie, Le Robert, Lorrain', 
+                  cities: ['trinite', 'la trinité', 'sainte-marie', 'robert', 'le robert', 'lorrain', 'le lorrain', 'marigot', 'gros-morne'] 
+                },
+                { 
+                  name: 'Bassin Nord Caraïbe', 
+                  desc: 'Saint-Pierre, Case-Pilote, Morne-Rouge', 
+                  cities: ['saint-pierre', 'case-pilote', 'morne-rouge', 'le morne-rouge', 'carbet', 'le carbet', 'bellefontaine', 'precheur', 'le prêcheur'] 
+                }
+              ].map((zone, idx) => {
+                const zoneTransporters = transporters.filter(t => {
+                  const c = (t.city || '').toLowerCase();
+                  return zone.cities.some(z => c.includes(z));
+                });
+                const vehicleCount = zoneTransporters.reduce((sum, t) => {
+                  const count = (t.fleetAmbulances || 0) + (t.fleetVsl || 0) + (t.fleetTaxis || 0);
+                  return sum + (count > 0 ? count : (t.vehicles?.length || 1));
+                }, 0);
+                const isFluid = vehicleCount > 0;
+
+                return (
+                  <div key={idx} className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-on-surface">{zone.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isFluid ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-slate-100'}`}>
+                        {isFluid ? `${zoneTransporters.length} société(s)` : 'Aucun transporteur'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-on-surface-variant truncate mb-2">{zone.desc}</p>
+                    <div className="flex items-center justify-between text-xs font-semibold text-primary">
+                      <span>{vehicleCount} véhicule(s) référencé(s)</span>
+                      <span className="text-[11px] text-on-surface-variant">
+                        {isFluid ? 'Zone couverte' : 'En attente d\'adhésion'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-on-surface-variant truncate mb-2">{zone.desc}</p>
-                  <div className="flex items-center justify-between text-xs font-semibold text-primary">
-                    <span>{zone.fleets} véhicules en veille</span>
-                    <span className="text-[11px] text-on-surface-variant">ETA moy. 12 min</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -381,36 +434,34 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-xs">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-on-surface">
-                Traces Régulation & Audit ARS
+                Traces Régulation & Événements
               </h3>
               <span className="material-symbols-outlined text-sm text-on-surface-variant">history</span>
             </div>
 
-            <div className="space-y-3 font-mono text-[11px]">
-              <div className="border-l-2 border-primary pl-2.5 py-0.5">
-                <span className="text-outline text-[10px]">08:14:22</span>
-                <p className="text-on-surface font-sans font-semibold">Course MT-972-8821 assignée</p>
-                <p className="text-on-surface-variant text-[10px]">Ambulances Madinina Secours (J-L. Bernabé)</p>
+            {rides.length === 0 ? (
+              <div className="py-6 text-center text-on-surface-variant text-xs">
+                <span className="material-symbols-outlined text-2xl text-slate-400 mb-1">history_toggle_off</span>
+                <p className="font-semibold">Aucun événement récent</p>
+                <p className="text-[10px] text-slate-500">Les nouvelles demandes apparaîtront ici.</p>
               </div>
-
-              <div className="border-l-2 border-emerald-500 pl-2.5 py-0.5">
-                <span className="text-outline text-[10px]">08:02:11</span>
-                <p className="text-on-surface font-sans font-semibold">Télétransmission CGSS certifiée</p>
-                <p className="text-on-surface-variant text-[10px]">Accord préalable ALD 30 validé (100%)</p>
+            ) : (
+              <div className="space-y-3 font-mono text-[11px]">
+                {rides.slice(0, 4).map((ride) => (
+                  <div key={ride.id} className="border-l-2 border-primary pl-2.5 py-0.5">
+                    <span className="text-outline text-[10px]">
+                      {ride.createdAt ? new Date(ride.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                    </span>
+                    <p className="text-on-surface font-sans font-semibold truncate">
+                      Course {ride.reference} — {ride.status}
+                    </p>
+                    <p className="text-on-surface-variant text-[10px] truncate">
+                      {ride.assignedTransporter ? `${ride.assignedTransporter.companyName} (${ride.assignedTransporter.driverName || 'Chauffeur'})` : `${ride.pickupCity} ➔ ${ride.dropoffCity}`}
+                    </p>
+                  </div>
+                ))}
               </div>
-
-              <div className="border-l-2 border-secondary pl-2.5 py-0.5">
-                <span className="text-outline text-[10px]">07:49:05</span>
-                <p className="text-on-surface font-sans font-semibold">Sortie Néphrologie CHU Zobda</p>
-                <p className="text-on-surface-variant text-[10px]">Dossier MT-972-4912 transmis aux flottes</p>
-              </div>
-
-              <div className="border-l-2 border-amber-500 pl-2.5 py-0.5">
-                <span className="text-outline text-[10px]">07:31:40</span>
-                <p className="text-on-surface font-sans font-semibold">Alerte temps d'approche</p>
-                <p className="text-on-surface-variant text-[10px]">Secteur Nord Caraïbe : renfort VSL suggéré</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
