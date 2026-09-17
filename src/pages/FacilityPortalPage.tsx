@@ -457,10 +457,10 @@ export const FacilityPortalPage: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-2 mt-3">
                   <span className="text-3xl font-black text-slate-900">{rides.length}</span>
-                  <span className="text-xs text-slate-500">patients programmés</span>
+                  <span className="text-xs text-slate-500">patient(s) programmé(s)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className="bg-teal-600 h-full w-[100%] rounded-full"></div>
+                  <div className="bg-teal-600 h-full rounded-full transition-all duration-500" style={{ width: `${rides.length > 0 ? 100 : 0}%` }}></div>
                 </div>
                 <span className="text-[11px] text-slate-400 mt-2">Synchronisation directe réseau 972</span>
               </div>
@@ -472,10 +472,10 @@ export const FacilityPortalPage: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-2 mt-3">
                   <span className="text-3xl font-black text-teal-700">{assignedCount}</span>
-                  <span className="text-xs text-slate-500">transporteurs confirmés</span>
+                  <span className="text-xs text-slate-500">transporteur(s) confirmé(s)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className="bg-teal-600 h-full w-[100%] rounded-full"></div>
+                  <div className="bg-teal-600 h-full rounded-full transition-all duration-500" style={{ width: `${rides.length > 0 ? Math.min(100, Math.round((assignedCount / rides.length) * 100)) : 0}%` }}></div>
                 </div>
                 <span className="text-[11px] text-slate-400 mt-2">Rotations sécurisées</span>
               </div>
@@ -483,14 +483,14 @@ export const FacilityPortalPage: React.FC = () => {
               <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all card-silky-subtle flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase tracking-wider text-amber-600 font-bold">En cours de dispatch</span>
-                  <span className="material-symbols-outlined text-amber-600 text-[22px] animate-spin">sync</span>
+                  <span className={`material-symbols-outlined text-amber-600 text-[22px] ${pendingCount > 0 ? 'animate-spin' : ''}`}>sync</span>
                 </div>
                 <div className="flex items-baseline gap-2 mt-3">
                   <span className="text-3xl font-black text-amber-600">{pendingCount}</span>
-                  <span className="text-xs text-slate-500">recherches actives</span>
+                  <span className="text-xs text-slate-500">recherche(s) active(s)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className="bg-amber-500 h-full w-[100%] rounded-full"></div>
+                  <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${rides.length > 0 ? Math.min(100, Math.round((pendingCount / rides.length) * 100)) : 0}%` }}></div>
                 </div>
                 <span className="text-[11px] text-slate-400 mt-2">File d'attente automatisée 972</span>
               </div>
@@ -502,12 +502,12 @@ export const FacilityPortalPage: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-2 mt-3">
                   <span className="text-3xl font-black text-slate-900">
-                    {rides.length > 0 ? Math.round((assignedCount / rides.length) * 100) : 100}%
+                    {rides.length > 0 ? `${Math.round((assignedCount / rides.length) * 100)}%` : '—'}
                   </span>
                   <span className="text-xs text-slate-500 font-medium">missions assurées</span>
                 </div>
                 <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className="bg-teal-600 h-full w-[100%] rounded-full"></div>
+                  <div className="bg-teal-600 h-full rounded-full transition-all duration-500" style={{ width: `${rides.length > 0 ? Math.min(100, Math.round((assignedCount / rides.length) * 100)) : 0}%` }}></div>
                 </div>
                 <span className="text-[11px] text-slate-400 mt-2">Régulation territoriale en temps réel</span>
               </div>

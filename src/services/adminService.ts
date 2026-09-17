@@ -1,5 +1,5 @@
 import { ClientRecord, Facility, Transporter, UserProfile, UserRole, Ride, SystemSettings, AuditLog } from '../types';
-import { rideService } from './rideService';
+import { rideService, isPrototypeRide } from './rideService';
 import { AuthService, REALISTIC_PROFILES } from './authService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -12,6 +12,94 @@ const STORAGE_KEY_DELETED_CLIENTS = 'medictrans_deleted_clients_972';
 
 // Fiches clients initiales (zéro mock en production)
 const INITIAL_CLIENTS: ClientRecord[] = [];
+
+/**
+ * Filtre strict éliminant tout client prototype, client de test ou identité factice
+ */
+export const isPrototypeClient = (c: Partial<ClientRecord>): boolean => {
+  if (!c) return true;
+  const id = (c.id || '').toLowerCase().trim();
+  const email = (c.email || '').toLowerCase().trim();
+  const first = (c.firstName || '').toLowerCase().trim();
+  const last = (c.lastName || '').toLowerCase().trim();
+  const full = `${first} ${last}`.trim();
+  const nir = (c.nir || '').replace(/\s/g, '');
+
+  if (
+    id.includes('demo') ||
+    id.startsWith('client-ride-ride-') ||
+    id.startsWith('client-user-test-') ||
+    id.match(/^client-[0-9]+$/) ||
+    id.startsWith('client-ride-mt-972-') ||
+    id.startsWith('client-ride-verif-') ||
+    id.startsWith('client-ride-test-') ||
+    id.startsWith('client-ride-purged-')
+  ) {
+    return true;
+  }
+
+  const PROTOTYPE_EMAILS = [
+    'maryse.brival', 'eliane.bernard', 'c.marieluce', 'sophie.laurent', 'marie.leroy',
+    'jacqueline.evariste', 'samuel.cincinnatus', 'gerard.theodore', 'mc.fontaine',
+    'b.giraud', 'sophie.lefebvre', 'orange.re', 'dom.re', 'guyane-sante', 'outremer.mq',
+    'wanadoo.fr', 'testclient', 'emptynir', 'purged@test.local', 'eliane@chu-martinique.fr'
+  ];
+  if (PROTOTYPE_EMAILS.some(pe => email.includes(pe))) return true;
+
+  const PROTOTYPE_NAMES = [
+    'maryse brival', 'eliane bernard', 'éliane bernard', 'christian marie-luce',
+    'victor marie-luce', 'jessica beuse', 'eliane moutoussamy', 'éliane moutoussamy',
+    'aimé glissant', 'aime glissant', 'sophie laurent', 'sophie lefebvre',
+    'marie-claude fontaine', 'bernard giraud', 'gérard théodore', 'gerard theodore',
+    'marie leroy', 'jacqueline evariste', 'samuel cincinnatus', 'jean dupont',
+    'testclient', 'emptynir', 'dimitry p25', 'élianaimé', 'bernarcesaire', 'bernarddubois'
+  ];
+  if (PROTOTYPE_NAMES.some(pn => full.includes(pn) || (first && pn.includes(first) && last && pn.includes(last)))) return true;
+
+  const PROTOTYPE_NIRS = [
+    '268099720511955', '268099720511946', '256079721438219', '256079721438269',
+    '154119720877172', '290086904412345', '275033155543210', '262119710532154',
+    '170059730265421', '147039721266381', '182129720144528', '185047511234588',
+    '286119720908679'
+  ];
+  if (PROTOTYPE_NIRS.includes(nir)) return true;
+
+  return false;
+};
+
+/**
+ * Filtre strict éliminant tout utilisateur prototype
+ */
+export const isPrototypeUser = (u: Partial<UserProfile>): boolean => {
+  if (!u) return true;
+  const id = (u.id || '').toLowerCase().trim();
+  const email = (u.email || '').toLowerCase().trim();
+  const first = (u.firstName || '').toLowerCase().trim();
+  const last = (u.lastName || '').toLowerCase().trim();
+  const full = `${first} ${last}`.trim();
+
+  if (id.startsWith('user-client-') || id.startsWith('user-test-')) return true;
+
+  const PROTOTYPE_EMAILS = [
+    'maryse.brival', 'eliane.bernard', 'c.marieluce', 'sophie.laurent', 'marie.leroy',
+    'jacqueline.evariste', 'samuel.cincinnatus', 'gerard.theodore', 'mc.fontaine',
+    'b.giraud', 'sophie.lefebvre', 'orange.re', 'dom.re', 'guyane-sante', 'outremer.mq',
+    'wanadoo.fr', 'testclient', 'emptynir', 'purged@test.local', 'eliane@chu-martinique.fr'
+  ];
+  if (PROTOTYPE_EMAILS.some(pe => email.includes(pe))) return true;
+
+  const PROTOTYPE_NAMES = [
+    'maryse brival', 'eliane bernard', 'éliane bernard', 'christian marie-luce',
+    'victor marie-luce', 'jessica beuse', 'eliane moutoussamy', 'éliane moutoussamy',
+    'aimé glissant', 'aime glissant', 'sophie laurent', 'sophie lefebvre',
+    'marie-claude fontaine', 'bernard giraud', 'gérard théodore', 'gerard theodore',
+    'marie leroy', 'jacqueline evariste', 'samuel cincinnatus', 'jean dupont',
+    'testclient', 'emptynir', 'dimitry p25', 'élianaimé', 'bernarcesaire', 'bernarddubois'
+  ];
+  if (PROTOTYPE_NAMES.some(pn => full.includes(pn) || (first && pn.includes(first) && last && pn.includes(last)))) return true;
+
+  return false;
+};
 
 // Paramètres par défaut de la plateforme
 const DEFAULT_SETTINGS: SystemSettings = {
@@ -48,17 +136,7 @@ export class AdminService {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          clients = parsed.filter(c => 
-            !c.id.includes('demo') && 
-            !c.id.startsWith('client-ride-ride-') && 
-            !c.id.startsWith('client-user-test-') &&
-            !c.id.match(/^client-[0-9]+$/) &&
-            !c.email?.toLowerCase().includes('orange.re') &&
-            !c.email?.toLowerCase().includes('dom.re') &&
-            !c.email?.toLowerCase().includes('guyane-sante') &&
-            !c.email?.toLowerCase().includes('b.giraud') &&
-            !c.email?.toLowerCase().includes('sophie.lefebvre')
-          );
+          clients = parsed.filter(c => !isPrototypeClient(c));
         }
       } catch { clients = []; }
     }
@@ -71,8 +149,7 @@ export class AdminService {
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           for (const serverClient of json.data) {
             if (deletedIds.includes(serverClient.id)) continue;
-            if (serverClient.id.includes('demo') || serverClient.id.startsWith('client-ride-ride-') || serverClient.id.startsWith('client-user-test-') || serverClient.id.match(/^client-[0-9]+$/)) continue;
-            if (serverClient.email && (serverClient.email.includes('b.giraud') || serverClient.email.includes('sophie.lefebvre') || serverClient.email.includes('orange.re') || serverClient.email.includes('dom.re') || serverClient.email.includes('guyane-sante'))) continue;
+            if (isPrototypeClient(serverClient)) continue;
             const idx = clients.findIndex(c => c.id === serverClient.id || (serverClient.email && c.email.toLowerCase() === serverClient.email.toLowerCase()));
             if (idx >= 0) {
               clients[idx] = { ...clients[idx], ...serverClient };
@@ -89,42 +166,46 @@ export class AdminService {
     // 2. Fusionner les fiches de référence initiales Nationales & DOM
     for (const initClient of INITIAL_CLIENTS) {
       if (deletedIds.includes(initClient.id)) continue;
+      if (isPrototypeClient(initClient)) continue;
       if (!clients.some(c => c.email.toLowerCase() === initClient.email.toLowerCase() || c.id === initClient.id)) {
         clients.push(initClient);
       }
     }
 
-    // 3. Synchroniser automatiquement avec tous les utilisateurs inscrits ayant le rôle PATIENT
+    // 3. Synchroniser automatiquement avec les utilisateurs réels ayant le rôle PATIENT et un profil renseigné
     try {
       const allUsers = await this.getAllUsers();
-      const patientUsers = allUsers.filter(u => u.role === 'PATIENT');
+      const patientUsers = allUsers.filter(u => u.role === 'PATIENT' && !isPrototypeUser(u));
 
       for (const p of patientUsers) {
         if (deletedIds.includes(`client-${p.id}`) || (p.email && deletedIds.includes(p.email))) continue;
-        const exists = clients.some(c => c.email.toLowerCase() === p.email.toLowerCase());
+        // On ne synchronise que les patients qui ont fourni une identité minimale (NIR ou téléphone réel)
+        if (!p.nir && !p.phone) continue;
+
+        const exists = clients.some(c => c.email.toLowerCase() === p.email.toLowerCase() || (p.nir && c.nir === p.nir));
         if (!exists) {
           const dept = p.phone?.startsWith('0696') || p.phone?.startsWith('0596') ? '97200' :
                        p.phone?.startsWith('0690') || p.phone?.startsWith('0590') ? '97100' :
                        p.phone?.startsWith('0694') || p.phone?.startsWith('0594') ? '97300' :
-                       p.phone?.startsWith('0692') || p.phone?.startsWith('0262') ? '97400' : '75000';
+                       p.phone?.startsWith('0692') || p.phone?.startsWith('0262') ? '97400' : '97200';
           const cityName = dept === '97200' ? 'Fort-de-France' :
                             dept === '97100' ? 'Pointe-à-Pitre' :
                             dept === '97300' ? 'Cayenne' :
-                            dept === '97400' ? 'Saint-Denis' : 'Paris';
+                            dept === '97400' ? 'Saint-Denis' : 'Fort-de-France';
 
           const newPatientClient: ClientRecord = {
             id: `client-${p.id}`,
             firstName: p.firstName || 'Patient',
             lastName: p.lastName || '',
-            birthDate: '1980-01-01',
+            birthDate: '',
             nir: p.nir || '',
             phone: p.phone || '',
             email: p.email,
-            address: 'Adresse déclarée à l’inscription',
+            address: '',
             city: cityName,
             postalCode: dept,
             isAld: false,
-            hasPmt: true,
+            hasPmt: false,
             mobility: {
               wheelchair: false,
               stretcher: false,
@@ -134,30 +215,23 @@ export class AdminService {
             },
             status: 'ACTIVE',
             createdAt: p.createdAt || new Date().toISOString(),
-            notes: 'Inscription en ligne sur Clinigo.fr'
+            notes: 'Compte patient inscrit sur Clinigo'
           };
 
-          clients.unshift(newPatientClient);
-
-          // Persister sur l'API serveur
-          try {
-            fetch('/api/clients', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(newPatientClient)
-            }).catch(() => {});
-          } catch {}
+          if (!isPrototypeClient(newPatientClient)) {
+            clients.unshift(newPatientClient);
+          }
         }
       }
     } catch (err) {
       console.warn('Sync clients depuis utilisateurs non-bloquante:', err);
     }
 
-    // 4. Synchroniser automatiquement avec TOUTES les réservations de transport (Supervisions / Courses)
+    // 4. Synchroniser automatiquement avec TOUTES les réservations réelles de transport
     try {
       const allRides = await rideService.getAllRides();
       for (const r of allRides) {
-        if (!r.patient) continue;
+        if (!r.patient || isPrototypeRide(r)) continue;
         const p = r.patient;
         const pEmail = (p.email || '').trim().toLowerCase();
         const pNir = (p.nir || '').replace(/\s/g, '');
@@ -165,11 +239,7 @@ export class AdminService {
         const pLast = (p.lastName || '').trim().toLowerCase();
         const pPhone = (p.phone || '').replace(/\s/g, '');
 
-        // Ignorer les courses de test / dummy "Aimé GLISSANT" ou sans identité ou références de test
-        if (pFirst === 'aimé' && pLast === 'glissant') continue;
         if (!pFirst && !pLast && !pEmail && !pPhone) continue;
-        if (r.reference.toUpperCase().startsWith('VERIF-') || r.reference.toUpperCase().startsWith('TEST-')) continue;
-        if (pEmail && (pEmail.includes('b.giraud') || pEmail.includes('sophie.lefebvre') || pEmail.includes('orange.re') || pEmail.includes('dom.re') || pEmail.includes('guyane-sante'))) continue;
 
         const rideClientId = `client-ride-${r.id || r.reference}`;
         if (deletedIds.includes(rideClientId)) continue;
@@ -222,16 +292,9 @@ export class AdminService {
             notes: `Patient issu de la réservation ${r.reference} (${r.transportType || 'VSL'})`
           };
 
-          clients.unshift(clientFromRide);
-
-          // Persister sur l'API serveur
-          try {
-            fetch('/api/clients', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(clientFromRide)
-            }).catch(() => {});
-          } catch {}
+          if (!isPrototypeClient(clientFromRide)) {
+            clients.unshift(clientFromRide);
+          }
         } else {
           // Enrichir la fiche existante si elle manquait d'informations
           const existing = clients[existingIdx];
@@ -260,9 +323,12 @@ export class AdminService {
       console.warn('[AdminService] Synchro clients depuis courses non-bloquante:', errRides);
     }
 
-    // Filtrer les éventuels clients supprimés
-    const finalClients = clients.filter(c => !deletedIds.includes(c.id));
-    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(finalClients));
+    // Filtrer strictement tout client prototype et enregistrer la liste propre
+    const finalClients = clients.filter(c => !isPrototypeClient(c) && !deletedIds.includes(c.id));
+    try {
+      localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(finalClients));
+    } catch {}
+
     return finalClients;
   }
 
@@ -682,16 +748,7 @@ export class AdminService {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          users = parsed.filter(u => 
-            !u.id.startsWith('user-client-') && 
-            !u.id.startsWith('user-test-') &&
-            !u.email.includes('outremer.mq') &&
-            !u.email.includes('wanadoo.fr') &&
-            !u.email.includes('eliane.bernard') &&
-            !u.email.includes('c.marieluce') &&
-            !u.email.includes('maryse.brival') &&
-            !u.email.includes('gerard.theodore')
-          );
+          users = parsed.filter(u => !isPrototypeUser(u));
         }
       } catch { users = []; }
     }
@@ -703,8 +760,7 @@ export class AdminService {
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           for (const serverUser of json.data) {
-            if (serverUser.id.startsWith('user-client-') || serverUser.id.startsWith('user-test-')) continue;
-            if (serverUser.email && (serverUser.email.includes('outremer.mq') || serverUser.email.includes('wanadoo.fr') || serverUser.email.includes('eliane.bernard') || serverUser.email.includes('c.marieluce') || serverUser.email.includes('maryse.brival') || serverUser.email.includes('gerard.theodore'))) continue;
+            if (isPrototypeUser(serverUser)) continue;
             const idx = users.findIndex(u => u.id === serverUser.id || (serverUser.email && u.email.toLowerCase() === serverUser.email.toLowerCase()));
             if (idx >= 0) {
               users[idx] = { ...users[idx], ...serverUser };
@@ -718,9 +774,10 @@ export class AdminService {
       console.warn('[AdminService] Récupération API users non-bloquante:', apiErr);
     }
 
-    // 1. Fusionner avec tous les comptes réalistes nationaux & DOM
+    // 1. Fusionner avec tous les comptes réalistes configurés
     const realisticList = Object.values(REALISTIC_PROFILES);
     for (const rUser of realisticList) {
+      if (isPrototypeUser(rUser)) continue;
       const idx = users.findIndex(u => u.email.toLowerCase() === rUser.email.toLowerCase());
       if (idx === -1) {
         users.push(rUser);
@@ -733,7 +790,6 @@ export class AdminService {
         const { data: sbProfiles } = await supabase.from('profiles').select('*');
         if (sbProfiles && sbProfiles.length > 0) {
           for (const sp of sbProfiles) {
-            const idx = users.findIndex(u => u.email.toLowerCase() === (sp.email || '').toLowerCase() || u.id === sp.id);
             const mappedUser: UserProfile = {
               id: sp.id,
               email: sp.email || '',
@@ -744,6 +800,8 @@ export class AdminService {
               avatarUrl: sp.avatar_url || '/assets/headshot.png',
               createdAt: sp.created_at || new Date().toISOString()
             };
+            if (isPrototypeUser(mappedUser)) continue;
+            const idx = users.findIndex(u => u.email.toLowerCase() === (sp.email || '').toLowerCase() || u.id === sp.id);
             if (idx >= 0) {
               users[idx] = { ...users[idx], ...mappedUser };
             } else {
@@ -756,7 +814,10 @@ export class AdminService {
       }
     }
 
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    users = users.filter(u => !isPrototypeUser(u));
+    try {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    } catch {}
     return users;
   }
 

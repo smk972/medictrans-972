@@ -66,100 +66,71 @@ export function getTransporterDepartment(t: Transporter): string {
 }
 
 /**
- * Génère une structure de flotte pour un transporteur réel s'il n'a pas encore saisi sa flotte dans le portail
+ * Flotte et chauffeurs déclarés par le transporteur (zéro génération artificielle de données)
  */
-export function generateDefaultFleetAndDrivers(t: Transporter): { vehicles: TransporterVehicle[]; drivers: TransporterDriver[] } {
-  const dept = getTransporterDepartment(t);
-  const vehicles: TransporterVehicle[] = [];
-  const drivers: TransporterDriver[] = [];
-
-  const countAmb = Math.max(0, t.fleetAmbulances || 0);
-  const countVsl = Math.max(0, t.fleetVsl || 0);
-  const countTaxi = Math.max(0, t.fleetTaxis || 0);
-
-  let vIndex = 1;
-  let dIndex = 1;
-
-  for (let i = 1; i <= countAmb; i++) {
-    const plate = `AB-${dept.padStart(2, '0')}${i}-FR`;
-    vehicles.push({
-      id: `${t.id}-vh-${vIndex++}`,
-      name: `Ambulance ASSU #${i}`,
-      type: 'AMBULANCE',
-      plate,
-      driver: `Équipage Ambulance #${i}`,
-      phone: t.phone || '',
-      status: 'DISPONIBLE'
-    });
-    drivers.push({
-      id: `${t.id}-dr-${dIndex++}`,
-      firstName: `Équipage`,
-      lastName: `Ambulance ${i}`,
-      role: 'Ambulancier DEA Diplômé',
-      phone: t.phone || '',
-      status: 'DISPONIBLE',
-      assignedVehiclePlate: plate
-    });
-  }
-
-  for (let i = 1; i <= countVsl; i++) {
-    const plate = `VS-${dept.padStart(2, '0')}${i}-FR`;
-    vehicles.push({
-      id: `${t.id}-vh-${vIndex++}`,
-      name: `VSL #${i}`,
-      type: 'VSL',
-      plate,
-      driver: `Conducteur VSL #${i}`,
-      phone: t.phone || '',
-      status: 'DISPONIBLE'
-    });
-    drivers.push({
-      id: `${t.id}-dr-${dIndex++}`,
-      firstName: `Conducteur`,
-      lastName: `VSL ${i}`,
-      role: 'Ambulancier Auxiliaire',
-      phone: t.phone || '',
-      status: 'DISPONIBLE',
-      assignedVehiclePlate: plate
-    });
-  }
-
-  for (let i = 1; i <= countTaxi; i++) {
-    const plate = `TX-${dept.padStart(2, '0')}${i}-FR`;
-    vehicles.push({
-      id: `${t.id}-vh-${vIndex++}`,
-      name: `Taxi Conventionné #${i}`,
-      type: 'TAXI_CONVENTIONNE',
-      plate,
-      driver: `Chauffeur Taxi #${i}`,
-      phone: t.phone || '',
-      status: 'DISPONIBLE'
-    });
-    drivers.push({
-      id: `${t.id}-dr-${dIndex++}`,
-      firstName: `Chauffeur`,
-      lastName: `Taxi ${i}`,
-      role: 'Chauffeur Taxi Conventionné CPAM',
-      phone: t.phone || '',
-      status: 'DISPONIBLE',
-      assignedVehiclePlate: plate
-    });
-  }
-
-  return { vehicles, drivers };
-}
-
 export function ensureTransporterFleetAndDrivers(t: Transporter): Transporter {
-  if (t.vehicles && t.vehicles.length > 0 && t.drivers && t.drivers.length > 0) {
-    return t;
-  }
-  const generated = generateDefaultFleetAndDrivers(t);
   return {
     ...t,
-    vehicles: t.vehicles && t.vehicles.length > 0 ? t.vehicles : generated.vehicles,
-    drivers: t.drivers && t.drivers.length > 0 ? t.drivers : generated.drivers
+    vehicles: t.vehicles || [],
+    drivers: t.drivers || []
   };
 }
+
+/**
+ * Filtre strict éliminant toute course prototype, course de test ou fausse identité
+ */
+export const isPrototypeRide = (row: any): boolean => {
+  if (!row) return true;
+  const ref = (row.reference || '').toUpperCase().trim();
+  if (!ref) return true;
+  if (
+    ref.startsWith('VERIF-') ||
+    ref.startsWith('TEST-') ||
+    ref.startsWith('DEMO-') ||
+    ref.startsWith('MOCK-') ||
+    ref.startsWith('PURGED-')
+  ) {
+    return true;
+  }
+
+  const PROTOTYPE_REFS = new Set([
+    'MT-972-7325', 'MT-972-7452', 'MT-972-6576', 'MT-972-4108', 'MT-972-5892',
+    'MT-972-1849', 'MT-972-9825', 'MT-972-8053', 'MT-972-7447', 'MT-972-9390',
+    'MT-972-5424', 'MT-972-3848', 'MT-972-3306', 'MT-972-2297', 'MT-972-3012',
+    'MT-972-5359', 'MT-972-7785', 'MT-972-7045', 'MT-972-2857', 'MT-972-1316',
+    'MT-972-3013', 'MT-972-6020', 'MT-972-2361', 'MT-13-9034', 'MT-974-6078'
+  ]);
+  if (PROTOTYPE_REFS.has(ref)) return true;
+
+  const pFirst = (row.patient_first_name || row.patient?.firstName || '').toLowerCase().trim();
+  const pLast = (row.patient_last_name || row.patient?.lastName || '').toLowerCase().trim();
+  const pEmail = (row.patient_email || row.patient?.email || '').toLowerCase().trim();
+  const full = `${pFirst} ${pLast}`.trim();
+
+  const PROTOTYPE_PATIENTS = [
+    'maryse brival', 'eliane bernard', 'éliane bernard', 'christian marie-luce',
+    'victor marie-luce', 'jessica beuse', 'eliane moutoussamy', 'éliane moutoussamy',
+    'aimé glissant', 'aime glissant', 'sophie laurent', 'sophie lefebvre',
+    'marie-claude fontaine', 'bernard giraud', 'gérard théodore', 'gerard theodore',
+    'marie leroy', 'jacqueline evariste', 'samuel cincinnatus', 'jean dupont',
+    'testclient', 'emptynir', 'dimitry p25', 'élianaimé', 'bernarcesaire', 'bernarddubois'
+  ];
+  if (PROTOTYPE_PATIENTS.some(name => full.includes(name) || (pFirst && name.includes(pFirst) && pLast && name.includes(pLast)))) {
+    return true;
+  }
+
+  const PROTOTYPE_EMAILS = [
+    'maryse.brival', 'eliane.bernard', 'c.marieluce', 'sophie.laurent', 'marie.leroy',
+    'jacqueline.evariste', 'samuel.cincinnatus', 'gerard.theodore', 'mc.fontaine',
+    'b.giraud', 'sophie.lefebvre', 'orange.re', 'dom.re', 'guyane-sante', 'outremer.mq',
+    'wanadoo.fr', 'testclient', 'emptynir', 'purged@test.local', 'eliane@chu-martinique.fr'
+  ];
+  if (PROTOTYPE_EMAILS.some(pe => pEmail.includes(pe))) {
+    return true;
+  }
+
+  return false;
+};
 
 export const INITIAL_FACILITIES: Facility[] = [
   {
@@ -203,19 +174,20 @@ export const rideService = {
           .order('created_at', { ascending: false });
         if (!error && data) {
           const fetchedRides = data
-            .filter((row: any) => {
-              const ref = (row.reference || '').toUpperCase();
-              if (ref.startsWith('VERIF-') || ref.startsWith('TEST-')) return false;
-              const pFirst = (row.patient_first_name || '').toLowerCase().trim();
-              const pLast = (row.patient_last_name || '').toLowerCase().trim();
-              if (pFirst === 'aimé' && pLast === 'glissant') return false;
-              if (pFirst.includes('élianaimé') || pLast.includes('bernarcesaire')) return false;
-              if (pLast.includes('bernarddubois')) return false;
-              if (pLast.includes('testclient') || pFirst.includes('test empty')) return false;
-              if (pFirst === 'dimitry' && pLast === 'p25') return false;
-              return true;
-            })
+            .filter((row: any) => !isPrototypeRide(row))
             .map(this.mapSupabaseToRide);
+
+          // Nettoyer également le localStorage de toute course prototype résiduelle
+          try {
+            const rawStored = localStorage.getItem(STORAGE_KEY_RIDES);
+            if (rawStored) {
+              const p = JSON.parse(rawStored);
+              if (Array.isArray(p)) {
+                localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(p.filter(r => !isPrototypeRide(r))));
+              }
+            }
+          } catch {}
+
           return this.processDirectRequestsLifecycle(fetchedRides);
         }
         if (error) {
@@ -231,17 +203,8 @@ export const rideService = {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter((r: Ride) => {
-            const ref = (r.reference || '').toUpperCase();
-            if (ref.startsWith('VERIF-') || ref.startsWith('TEST-')) return false;
-            const pFirst = (r.patient?.firstName || '').toLowerCase().trim();
-            const pLast = (r.patient?.lastName || '').toLowerCase().trim();
-            if (pFirst === 'aimé' && pLast === 'glissant') return false;
-            if (pFirst.includes('élianaimé') || pLast.includes('bernarcesaire')) return false;
-            if (pLast.includes('bernarddubois')) return false;
-            if (pFirst === 'dimitry' && pLast === 'p25') return false;
-            return true;
-          });
+          const cleaned = parsed.filter((r: Ride) => !isPrototypeRide(r));
+          localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(cleaned));
           return this.processDirectRequestsLifecycle(cleaned);
         }
       } catch {}
@@ -287,7 +250,7 @@ export const rideService = {
   // Récupérer une course par sa référence (ex: MT-972-8821)
   async getRideByReference(reference: string): Promise<Ride | null> {
     const cleanRef = reference.trim().toUpperCase();
-    if (cleanRef.startsWith('VERIF-') || cleanRef.startsWith('TEST-')) {
+    if (isPrototypeRide({ reference: cleanRef })) {
       return null;
     }
     if (isSupabaseConfigured() && supabase) {
@@ -298,6 +261,7 @@ export const rideService = {
           .eq('reference', cleanRef)
           .single();
         if (!error && data) {
+          if (isPrototypeRide(data)) return null;
           return this.mapSupabaseToRide(data);
         }
       } catch (err) {

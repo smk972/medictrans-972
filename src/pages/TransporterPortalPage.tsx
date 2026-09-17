@@ -106,7 +106,12 @@ export const TransporterPortalPage: React.FC = () => {
   const [fleet, setFleet] = useState<VehicleFleet[]>(() => {
     try {
       const saved = localStorage.getItem(FLEET_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(v => !v.name?.includes('#') && !v.driver?.includes('#'));
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -116,7 +121,12 @@ export const TransporterPortalPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>(() => {
     try {
       const saved = localStorage.getItem(DRIVERS_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(d => !d.firstName?.includes('Équipage') && !d.lastName?.includes('VSL') && !d.lastName?.includes('Taxi'));
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -284,8 +294,8 @@ export const TransporterPortalPage: React.FC = () => {
   };
 
   // Form affectation véhicule
-  const [selectedDriver, setSelectedDriver] = useState<string>(DEFAULT_FLEET[0].driver);
-  const [selectedPlate, setSelectedPlate] = useState<string>(DEFAULT_FLEET[0].plate);
+  const [selectedDriver, setSelectedDriver] = useState<string>(DEFAULT_FLEET[0]?.driver || '');
+  const [selectedPlate, setSelectedPlate] = useState<string>(DEFAULT_FLEET[0]?.plate || '');
   const [selectedEta, setSelectedEta] = useState<number>(15);
 
   // Form réaffectation chauffeur après validation
