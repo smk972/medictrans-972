@@ -112,8 +112,21 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   const polygonInstanceRef = useRef<any>(null);
   const extendedCircleRef = useRef<any>(null);
   const vertexMarkersRef = useRef<any[]>([]);
+  const midpointMarkersRef = useRef<any[]>([]);
   const drawingMarkersRef = useRef<any[]>([]);
   const mapClickListenerRef = useRef<any>(null);
+
+  // Communes proches pour ancrage rapide
+  const nearbyCommunes = React.useMemo(() => {
+    if (!communesList.length) return [];
+    return communesList
+      .map((c) => ({
+        ...c,
+        distKm: calculateHaversineDistanceKm(baseCoords.lat, baseCoords.lng, c.lat, c.lng),
+      }))
+      .sort((a, b) => a.distKm - b.distKm)
+      .slice(0, 8);
+  }, [communesList, baseCoords]);
 
   // Sauvegarde dans l'historique d'annulation
   const pushHistory = useCallback((newCoords: GeoPoint[]) => {
@@ -282,32 +295,76 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
       polygonInstanceRef.current.setPaths(polygonCoords);
     }
 
-    // Nettoyage des anciens marqueurs de sommets
+    // Nettoyage des anciens marqueurs
     vertexMarkersRef.current.forEach((m) => m.setMap(null));
     vertexMarkersRef.current = [];
+    midpointMarkersRef.current.forEach((m) => m.setMap(null));
+    midpointMarkersRef.current = [];
+    drawingMarkersRef.current.forEach((m) => m.setMap(null));
+    drawingMarkersRef.current = [];
 
-    // Affichage des sommets interactifs si mode édition actif
-    if (editMode === 'EDITING_VERTICES' || editMode === 'DELETE_VERTEX') {
+    // 1. Affichage des repères numérotés en mode dessin
+    if (editMode === 'DRAWING') {
+      polygonCoords.forEach((pt, idx) => {
+        const marker = new google.maps.Marker({
+          position: pt,
+          map: mapInstanceRef.current,
+          label: {
+            text: String(idx + 1),
+            color: '#ffffff',
+            fontSize: '11px',
+            fontWeight: 'bold',
+          },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 11,
+            fillColor: '#2563eb',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+          },
+          title: `Point d'ancrage #${idx + 1}`,
+        });
+        drawingMarkersRef.current.push(marker);
+      });
+      return;
+    }
+
+    // 2. Affichage des sommets interactifs (Points d'ancrage principaux)
+    if (editMode === 'EDITING_VERTICES' || editMode === 'DELETE_VERTEX' || editMode === 'ADD_VERTEX') {
       const markers = polygonCoords.map((pt, idx) => {
         const isSelected = selectedVertexIdx === idx;
         const marker = new google.maps.Marker({
           position: pt,
           map: mapInstanceRef.current,
           draggable: editMode === 'EDITING_VERTICES',
-          zIndex: 50 + idx,
-          cursor: editMode === 'DELETE_VERTEX' ? 'not-allowed' : 'move',
+          zIndex: 60 + idx,
+          cursor: editMode === 'DELETE_VERTEX' ? 'not-allowed' : 'grab',
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: isSelected ? 9 : 7,
-            fillColor: editMode === 'DELETE_VERTEX' ? '#ef4444' : isSelected ? '#e11d48' : '#0284c7',
+            scale: isSelected ? 10 : 7.5,
+            fillColor: editMode === 'DELETE_VERTEX' ? '#ef4444' : isSelected ? '#e11d48' : '#2563eb',
             fillOpacity: 1,
             strokeColor: '#ffffff',
-            strokeWeight: 2.5,
+            strokeWeight: isSelected ? 3 : 2,
           },
-          title: `Sommet ${idx + 1}${editMode === 'DELETE_VERTEX' ? ' (Cliquer pour supprimer)' : ' (Glisser pour modifier)'}`,
+          title: `Point d'ancrage #${idx + 1}${
+            editMode === 'DELETE_VERTEX'
+              ? ' (Cliquer pour supprimer)'
+              : ' (Glisser pour modifier, cliquer pour sélectionner)'
+          }`,
         });
 
-        // Déplacement du sommet
+        // Déplacement en temps réel pour fluidité maximale
+        marker.addListener('drag', (e: any) => {
+          if (e.latLng && polygonInstanceRef.current) {
+            const liveCoords = [...polygonCoords];
+            liveCoords[idx] = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+            polygonInstanceRef.current.setPaths(liveCoords);
+          }
+        });
+
+        // Fin du déplacement du sommet
         marker.addListener('dragend', (e: any) => {
           if (e.latLng) {
             const nextCoords = [...polygonCoords];
@@ -316,7 +373,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           }
         });
 
-        // Clic sur le sommet (pour sélection ou suppression)
+        // Clic sur le sommet (sélection ou suppression)
         marker.addListener('click', () => {
           if (editMode === 'DELETE_VERTEX') {
             if (polygonCoords.length <= 3) {
@@ -327,7 +384,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             pushHistory(nextCoords);
             setSelectedVertexIdx(null);
           } else {
-            setSelectedVertexIdx(idx);
+            setSelectedVertexIdx(isSelected ? null : idx);
           }
         });
 
@@ -335,6 +392,67 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
       });
 
       vertexMarkersRef.current = markers;
+
+      // 3. Points d'ancrage intermédiaires (Midpoints) pour étirer ou insérer un sommet
+      if (editMode === 'EDITING_VERTICES' && polygonCoords.length >= 3) {
+        const midMarkers: any[] = [];
+        for (let i = 0; i < polygonCoords.length; i++) {
+          const p1 = polygonCoords[i];
+          const p2 = polygonCoords[(i + 1) % polygonCoords.length];
+          const midPt = {
+            lat: Number(((p1.lat + p2.lat) / 2).toFixed(6)),
+            lng: Number(((p1.lng + p2.lng) / 2).toFixed(6)),
+          };
+
+          const midMarker = new google.maps.Marker({
+            position: midPt,
+            map: mapInstanceRef.current,
+            draggable: true,
+            zIndex: 40 + i,
+            cursor: 'crosshair',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 5.5,
+              fillColor: '#06b6d4', // Cyan éclatant
+              fillOpacity: 0.95,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            },
+            title: `Point d'ancrage intermédiaire (Glissez pour étirer la zone ou cliquez pour insérer un sommet)`,
+          });
+
+          // Aperçu fluide au drag
+          midMarker.addListener('drag', (e: any) => {
+            if (e.latLng && polygonInstanceRef.current) {
+              const liveCoords = [...polygonCoords];
+              liveCoords.splice(i + 1, 0, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+              polygonInstanceRef.current.setPaths(liveCoords);
+            }
+          });
+
+          // Insertion finale au lâcher
+          midMarker.addListener('dragend', (e: any) => {
+            if (e.latLng) {
+              const newPt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+              const nextCoords = [...polygonCoords];
+              nextCoords.splice(i + 1, 0, newPt);
+              pushHistory(nextCoords);
+              setSelectedVertexIdx(i + 1);
+            }
+          });
+
+          // Insertion simple au clic
+          midMarker.addListener('click', () => {
+            const nextCoords = [...polygonCoords];
+            nextCoords.splice(i + 1, 0, midPt);
+            pushHistory(nextCoords);
+            setSelectedVertexIdx(i + 1);
+          });
+
+          midMarkers.push(midMarker);
+        }
+        midpointMarkersRef.current = midMarkers;
+      }
     }
   }, [polygonCoords, editMode, selectedVertexIdx, pushHistory]);
 
@@ -531,8 +649,73 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   // EFFACER LA ZONE
   const handleResetZone = () => {
     pushHistory(polygonCoords);
-    setPolygonCoords(generateInitialPolygon(baseCoords, 15));
+    setPolygonCoords(generateInitialPolygon(baseCoords, 15, 8));
     setEditMode('EDITING_VERTICES');
+    setSelectedVertexIdx(null);
+  };
+
+  // PRÉRÉGLAGE DU NOMBRE DE POINTS D'ANCRAGE (4, 6, 8, 12 SOMMETS)
+  const handleSetPresetVertices = (count: number, radiusKm: number = 15) => {
+    pushHistory(polygonCoords);
+    const newCoords = generateInitialPolygon(baseCoords, radiusKm, count);
+    setPolygonCoords(newCoords);
+    setEditMode('EDITING_VERTICES');
+    setSelectedVertexIdx(null);
+  };
+
+  // MULTIPLIER / DOUBLER LES POINTS D'ANCRAGE (DOUBLER LA DENSITÉ DES ANCRES)
+  const handleSubdivideVertices = () => {
+    if (polygonCoords.length < 3) return;
+    const newCoords: GeoPoint[] = [];
+    for (let i = 0; i < polygonCoords.length; i++) {
+      const p1 = polygonCoords[i];
+      const p2 = polygonCoords[(i + 1) % polygonCoords.length];
+      newCoords.push(p1);
+      newCoords.push({
+        lat: Number(((p1.lat + p2.lat) / 2).toFixed(6)),
+        lng: Number(((p1.lng + p2.lng) / 2).toFixed(6)),
+      });
+    }
+    pushHistory(newCoords);
+    setEditMode('EDITING_VERTICES');
+    setSelectedVertexIdx(null);
+  };
+
+  // AJOUTER UNE COMMUNE PROCHE COMME POINT D'ANCRAGE DANS LA ZONE
+  const handleAddCommuneAnchor = (commune: RegionCommune) => {
+    const communePt: GeoPoint = { lat: commune.lat, lng: commune.lng };
+
+    if (polygonCoords.length < 3) {
+      pushHistory([...polygonCoords, communePt]);
+      return;
+    }
+
+    // Trouver le segment le plus proche pour insérer le point d'ancrage harmonieusement
+    let minDistance = Infinity;
+    let insertIndex = polygonCoords.length;
+
+    for (let i = 0; i < polygonCoords.length; i++) {
+      const p1 = polygonCoords[i];
+      const p2 = polygonCoords[(i + 1) % polygonCoords.length];
+      const d =
+        calculateHaversineDistanceKm(p1.lat, p1.lng, communePt.lat, communePt.lng) +
+        calculateHaversineDistanceKm(p2.lat, p2.lng, communePt.lat, communePt.lng);
+
+      if (d < minDistance) {
+        minDistance = d;
+        insertIndex = i + 1;
+      }
+    }
+
+    const next = [...polygonCoords];
+    next.splice(insertIndex, 0, communePt);
+    pushHistory(next);
+    setSelectedVertexIdx(insertIndex);
+    setEditMode('EDITING_VERTICES');
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo(communePt);
+    }
   };
 
   // SAUVEGARDE DANS SUPABASE
@@ -771,10 +954,17 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             <div>
               <h3 className="text-xs sm:text-sm font-black text-on-surface uppercase tracking-wider flex items-center gap-2">
                 <span className="text-primary text-base">🗺️</span>
-                <span>MA ZONE D'ACTION</span>
+                <span>MA ZONE D'ACTION INTERACTIVE</span>
               </h3>
-              <p className="text-[11px] text-on-surface-variant">
-                Polygone personnalisé avec sommets éditables ({polygonCoords.length} points définis)
+              <p className="text-[11px] text-on-surface-variant flex items-center gap-2 mt-0.5">
+                <span className="inline-flex items-center gap-1 font-semibold text-primary">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  {polygonCoords.length} points d'ancrage actifs
+                </span>
+                <span>•</span>
+                <span className="text-cyan-600 dark:text-cyan-400 font-semibold">
+                  {polygonCoords.length} ancres intermédiaires étirables
+                </span>
               </p>
             </div>
 
@@ -784,62 +974,63 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                 <button
                   type="button"
                   onClick={handleFinishDrawing}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                 >
-                  ✓ Terminer le tracé ({polygonCoords.length} points)
+                  <span>✓</span>
+                  <span>Terminer le tracé ({polygonCoords.length} points)</span>
                 </button>
               ) : (
                 <>
                   <button
                     type="button"
                     onClick={handleStartDrawing}
-                    className="px-2.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-xs transition-all active:scale-95"
+                    className="px-2.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-xs transition-all active:scale-95 cursor-pointer"
                     title="Redessiner un polygone complet clic par clic"
                   >
-                    ✏️ Dessiner ma zone
+                    ✏️ Nouveau tracé
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setEditMode(editMode === 'EDITING_VERTICES' ? 'IDLE' : 'EDITING_VERTICES')}
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border ${
+                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border cursor-pointer ${
                       editMode === 'EDITING_VERTICES'
                         ? 'bg-primary text-white border-primary shadow-xs'
                         : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
                     }`}
                   >
-                    Modifier les sommets
+                    {editMode === 'EDITING_VERTICES' ? '✓ Mode ancrage actif' : '🎯 Ajuster les ancres'}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setEditMode(editMode === 'ADD_VERTEX' ? 'EDITING_VERTICES' : 'ADD_VERTEX')}
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border ${
+                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border cursor-pointer ${
                       editMode === 'ADD_VERTEX'
                         ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
                         : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
                     }`}
                   >
-                    ➕ Ajouter un point
+                    ➕ Clic ajouter
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setEditMode(editMode === 'DELETE_VERTEX' ? 'EDITING_VERTICES' : 'DELETE_VERTEX')}
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border ${
+                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border cursor-pointer ${
                       editMode === 'DELETE_VERTEX'
                         ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
                         : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
                     }`}
                   >
-                    🗑️ Supprimer un point
+                    🗑️ Supprimer
                   </button>
 
                   {historyStack.length > 0 && (
                     <button
                       type="button"
                       onClick={handleUndo}
-                      className="px-2.5 py-1.5 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-xs transition-all"
+                      className="px-2.5 py-1.5 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-xs transition-all cursor-pointer"
                       title="Annuler la dernière modification"
                     >
                       ↩️ Annuler
@@ -849,7 +1040,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                   <button
                     type="button"
                     onClick={handleResetZone}
-                    className="px-2.5 py-1.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-xs transition-all"
+                    className="px-2.5 py-1.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-xs transition-all cursor-pointer"
                     title="Réinitialiser la zone avec un cercle régulier"
                   >
                     Effacer
@@ -859,35 +1050,162 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             </div>
           </div>
 
+          {/* DENSITÉ DES POINTS D'ANCRAGE & FORMES PRÉCONFIGURÉES */}
+          {editMode !== 'DRAWING' && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-outline-variant/20">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                  Points d'ancrage :
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSetPresetVertices(4)}
+                  className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-primary/15 text-[11px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
+                  title="Zone carrée à 4 points"
+                >
+                  4 ancres
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetPresetVertices(6)}
+                  className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-primary/15 text-[11px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
+                  title="Zone hexagonale à 6 points"
+                >
+                  6 ancres
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetPresetVertices(8)}
+                  className="px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[11px] font-black border border-primary/30 transition-colors cursor-pointer"
+                  title="Octogone régulier (Recommandé pour un périmètre équilibré)"
+                >
+                  ★ 8 ancres (Idéal)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetPresetVertices(12)}
+                  className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-primary/15 text-[11px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
+                  title="Zone détaillée à 12 points pour épouser précisément les axes routiers"
+                >
+                  12 ancres
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubdivideVertices}
+                  className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 text-[11px] font-black border border-cyan-500/30 transition-colors cursor-pointer"
+                  title="Insérer automatiquement un point d'ancrage au milieu de chaque segment existant"
+                >
+                  ➕ Doubler les ancres (x2)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                  Rayon :
+                </span>
+                {[10, 15, 25, 40].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => handleSetPresetVertices(polygonCoords.length || 8, r)}
+                    className="px-2 py-0.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-primary text-[10px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
+                  >
+                    {r} km
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* INSTRUCTION SELON LE MODE */}
-          <div className="text-[11px] bg-surface-container px-3 py-1.5 rounded-xl border border-outline-variant/20 text-on-surface-variant">
+          <div className="text-[11px] bg-surface-container px-3.5 py-2 rounded-xl border border-outline-variant/20 text-on-surface-variant flex items-center justify-between gap-2 flex-wrap">
             {editMode === 'DRAWING' && (
               <span className="text-primary font-bold">
                 🎯 Mode tracé : Cliquez sur la carte pour poser chaque sommet, puis cliquez sur "Terminer le tracé".
               </span>
             )}
             {editMode === 'EDITING_VERTICES' && (
-              <span>
-                👉 Déplacez chaque sommet bleu au doigt ou à la souris pour ajuster précisément votre périmètre.
+              <span className="flex items-center gap-1.5 flex-wrap">
+                <span>💡 <strong>Astuce :</strong> Glissez les</span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold">
+                  🔵 sommets bleus
+                </span>
+                <span>pour déplacer les angles, et tirez les</span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 font-bold">
+                  🟢 points cyan
+                </span>
+                <span>pour étirer les segments et créer de nouvelles ancres !</span>
               </span>
             )}
             {editMode === 'ADD_VERTEX' && (
               <span className="text-amber-600 font-bold">
-                ➕ Mode ajout : Cliquez sur la carte à l'endroit où vous voulez insérer un nouveau sommet.
+                ➕ Mode ajout : Cliquez sur la carte à l'endroit exact où vous voulez insérer une nouvelle ancre.
               </span>
             )}
             {editMode === 'DELETE_VERTEX' && (
               <span className="text-rose-600 font-bold">
-                🗑️ Mode suppression : Cliquez sur le sommet que vous souhaitez retirer.
+                🗑️ Mode suppression : Cliquez sur le point d'ancrage que vous souhaitez retirer.
               </span>
             )}
-            {editMode === 'IDLE' && <span>Zone verrouillée. Cliquez sur "Modifier les sommets" pour ajuster.</span>}
+            {editMode === 'IDLE' && <span>Zone verrouillée. Cliquez sur "Ajuster les ancres" pour modifier.</span>}
           </div>
 
           {/* CONTENEUR DE CARTE GOOGLE MAPS */}
           <div className="relative w-full h-[420px] sm:h-[480px] rounded-2xl overflow-hidden border border-outline-variant/40 shadow-inner">
             <div ref={mapContainerRef} className="w-full h-full" />
           </div>
+
+          {/* LÉGENDE INTERACTIVE DES POINTS D'ANCRAGE */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-semibold text-on-surface-variant">
+            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
+              <span className="w-3 h-3 rounded-full bg-blue-600 border border-white shrink-0 shadow-xs" />
+              <span>Sommet d'ancrage (glisser)</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 border border-white shrink-0 shadow-xs" />
+              <span>Ancre intermédiaire (étirer)</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
+              <span className="w-3 h-3 rounded-full bg-red-600 border border-white shrink-0 shadow-xs" />
+              <span>Base départ (déplaçable)</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
+              <span className="w-3 h-3 rounded-full border border-dashed border-amber-500 bg-amber-500/20 shrink-0" />
+              <span>Rayon étendu +30 km</span>
+            </div>
+          </div>
+
+          {/* ANCRAGE RAPIDE SUR LES COMMUNES LIMITROPHES */}
+          {nearbyCommunes.length > 0 && (
+            <div className="pt-2 border-t border-outline-variant/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>Ancrer rapidement une commune limitrophe dans votre zone :</span>
+                </span>
+                <span className="text-[10px] text-on-surface-variant">
+                  Cliquer pour attacher la commune au contour
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {nearbyCommunes.map((c) => (
+                  <button
+                    key={c.insee}
+                    type="button"
+                    onClick={() => handleAddCommuneAnchor(c)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-surface-container hover:bg-primary/15 hover:text-primary text-[11px] font-bold border border-outline-variant/30 hover:border-primary/40 transition-all cursor-pointer shadow-xs active:scale-95"
+                    title={`Ajouter ${c.name} (${c.distKm.toFixed(1)} km) comme point d'ancrage dans la zone`}
+                  >
+                    <span className="text-primary font-black">+</span>
+                    <span>{c.name}</span>
+                    <span className="text-[10px] text-on-surface-variant opacity-80 font-normal">
+                      ({c.distKm.toFixed(0)} km)
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ========================================================================= */}

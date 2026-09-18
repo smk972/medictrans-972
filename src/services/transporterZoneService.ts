@@ -289,14 +289,14 @@ export function isRideCoveredByZone(
  * Génère un polygone initial circulaire régulier (8 sommets) autour d'un point central
  * Permet au transporteur d'avoir immédiatement une base de départ modifiable sommet par sommet
  */
-export function generateInitialPolygon(center: GeoPoint, radiusKm: number = 15): GeoPoint[] {
+export function generateInitialPolygon(center: GeoPoint, radiusKm: number = 15, numVertices: number = 8): GeoPoint[] {
   const points: GeoPoint[] = [];
-  const numVertices = 8;
+  const verticesCount = Math.max(3, numVertices);
   const latDelta = radiusKm / 111.32; // ~111.32 km par degré de latitude
   const lngDelta = radiusKm / (111.32 * Math.cos((center.lat * Math.PI) / 180));
 
-  for (let i = 0; i < numVertices; i++) {
-    const angle = (i * 2 * Math.PI) / numVertices;
+  for (let i = 0; i < verticesCount; i++) {
+    const angle = (i * 2 * Math.PI) / verticesCount;
     points.push({
       lat: Number((center.lat + latDelta * Math.sin(angle)).toFixed(6)),
       lng: Number((center.lng + lngDelta * Math.cos(angle)).toFixed(6)),
