@@ -78,11 +78,27 @@ export const TrackingPage: React.FC = () => {
         return;
       }
 
+      if (isAuthenticated && user) {
+        // Nettoyer tout brouillon ou course anonyme d'une session antérieure qui n'appartient pas au compte connecté
+        try {
+          const raw = localStorage.getItem('medictrans_last_booking');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const matchesEmail = parsed.email && user.email && parsed.email.toLowerCase() === user.email.toLowerCase();
+            const matchesPhone = parsed.phone && user.phone && parsed.phone.replace(/\D/g, '') === user.phone.replace(/\D/g, '');
+            const matchesNir = parsed.nir && user.nir && parsed.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
+            if (!matchesEmail && !matchesPhone && !matchesNir) {
+              localStorage.removeItem('medictrans_last_booking');
+              if (!urlRef) lastBookingRef = null;
+            }
+          }
+        } catch {}
+      }
+
       let relevantRides: Ride[] = [];
 
       if (user.role === 'ADMIN') {
         // Mode Consultation Admin sur la page de suivi patient :
-        // Ne jamais déverser toutes les courses d'un coup sur cette vue dédiée au suivi unitaire.
         if (lastBookingRef) {
           const cleanRef = lastBookingRef.trim().toUpperCase();
           relevantRides = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
@@ -99,14 +115,32 @@ export const TrackingPage: React.FC = () => {
           Boolean(r.assignedTransporter?.companyName && user.transporterName && r.assignedTransporter.companyName.toLowerCase().includes(user.transporterName.toLowerCase()))
         );
       } else {
-        // Rôle PATIENT (ou compte particulier) : filtrer ses propres courses
+        // Rôle PATIENT (ou compte particulier) : filtrer strictement ses propres courses
         relevantRides = allRides.filter((r) => {
-          const matchesEmail = user.email && r.patient?.email?.toLowerCase() === user.email.toLowerCase();
-          const matchesNir = user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
-          const matchesPhone = user.phone && r.patient?.phone && r.patient.phone.replace(/\s/g, '') === user.phone.replace(/\s/g, '');
-          const matchesLastName = user.lastName && r.patient?.lastName && r.patient.lastName.toLowerCase().trim() === user.lastName.toLowerCase().trim();
-          const matchesLastBooking = lastBookingRef && r.reference.toUpperCase() === lastBookingRef.toUpperCase();
-          return matchesEmail || matchesNir || matchesPhone || matchesLastName || matchesLastBooking;
+          // 1. Appartenance directe par identifiant de compte
+          if (r.userId && user.id && r.userId === user.id) return true;
+
+          // 2. Correspondance exacte par email du compte
+          if (user.email && r.patient?.email && r.patient.email.trim().toLowerCase() === user.email.trim().toLowerCase()) return true;
+
+          // 3. Correspondance exacte par Numéro de Sécurité Sociale (NIR)
+          if (user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '')) return true;
+
+          // 4. Correspondance exacte par téléphone (au moins 9 chiffres identiques)
+          if (user.phone && r.patient?.phone) {
+            const cleanUserPhone = user.phone.replace(/\D/g, '');
+            const cleanRidePhone = r.patient.phone.replace(/\D/g, '');
+            if (cleanUserPhone.length >= 9 && cleanUserPhone === cleanRidePhone) return true;
+          }
+
+          // 5. Demande enregistrée dans la session immédiate UNIQUEMENT si l'email ou le téléphone concorde
+          if (lastBookingRef && r.reference.toUpperCase() === lastBookingRef.toUpperCase()) {
+            const matchesSessionEmail = user.email && r.patient?.email && r.patient.email.trim().toLowerCase() === user.email.trim().toLowerCase();
+            const matchesSessionPhone = user.phone && r.patient?.phone && user.phone.replace(/\D/g, '') === r.patient.phone.replace(/\D/g, '');
+            if (matchesSessionEmail || matchesSessionPhone) return true;
+          }
+
+          return false;
         });
       }
 

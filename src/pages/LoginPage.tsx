@@ -112,7 +112,7 @@ export const LoginPage: React.FC = () => {
     setFinessMatches([]);
   };
 
-  const getUserDashboardPath = (role?: UserRole): string => {
+  const getUserDashboardPath = (role?: UserRole, isRegister?: boolean): string => {
     switch (role) {
       case 'ADMIN':
         return '/admin';
@@ -122,11 +122,11 @@ export const LoginPage: React.FC = () => {
         return '/portal-transporteur';
       case 'PATIENT':
       default:
-        return '/suivi';
+        return isRegister ? '/reserver' : '/suivi';
     }
   };
 
-  const redirectAfterAuth = (role: UserRole) => {
+  const redirectAfterAuth = (role: UserRole, isRegister?: boolean) => {
     const qRedirect = searchParams.get('redirect');
     const stateFrom = locationState?.from?.pathname;
     const target = qRedirect || stateFrom;
@@ -144,7 +144,7 @@ export const LoginPage: React.FC = () => {
       }
     }
 
-    navigate(getUserDashboardPath(role), { replace: true });
+    navigate(getUserDashboardPath(role, isRegister), { replace: true });
   };
 
   // Contenus et métadonnées adaptés strictement à la catégorie cliquée
@@ -202,9 +202,9 @@ export const LoginPage: React.FC = () => {
   // Redirection immédiate si déjà connecté
   useEffect(() => {
     if (isAuthenticated && user) {
-      redirectAfterAuth(user.role);
+      redirectAfterAuth(user.role, mode === 'REGISTER');
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, mode]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,8 +251,8 @@ export const LoginPage: React.FC = () => {
       });
 
       if (res.success) {
-        // Redirection instantanée
-        redirectAfterAuth(selectedRole);
+        // Redirection instantanée vers la commande / l'espace
+        redirectAfterAuth(selectedRole, true);
       } else {
         setFormError(res.error || "Une erreur est survenue lors de la création du compte.");
       }
