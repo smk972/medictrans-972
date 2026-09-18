@@ -17,6 +17,7 @@ export interface AddressSearchOptions {
   includeFacilities?: boolean;
   categoryFilter?: string;
   referenceAddress?: string;
+  referenceDepartment?: string;
 }
 
 // Coordonnées de référence par département ou territoire pour centrer les recherches
@@ -84,19 +85,64 @@ export function extractDepartmentFromAddress(address: string): string | null {
     return code.startsWith('97') ? code : code.toUpperCase();
   }
 
-  // 2. Détection par nom de commune ou zone majeure
+  // 2. Détection par nom de commune ou pôle médical
   const norm = normalizeStr(str);
-  if (norm.includes('toulouse') || norm.includes('blagnac') || norm.includes('purpan') || norm.includes('colomiers') || norm.includes('rangueil')) return '31';
-  if (norm.includes('paris') || norm.includes('salpetriere') || norm.includes('necker') || norm.includes('hegp') || norm.includes('bichat')) return '75';
-  if (norm.includes('lyon') || norm.includes('villeurbanne') || norm.includes('herriot')) return '69';
-  if (norm.includes('marseille') || norm.includes('timone') || norm.includes('aix')) return '13';
-  if (norm.includes('bordeaux') || norm.includes('pellegrin') || norm.includes('merignac')) return '33';
-  if (norm.includes('nantes')) return '44';
-  if (norm.includes('lille')) return '59';
+  
+  // Haute-Garonne / Bassin Toulousain (31)
+  if (
+    norm.includes('toulouse') ||
+    norm.includes('blagnac') ||
+    norm.includes('purpan') ||
+    norm.includes('colomiers') ||
+    norm.includes('tournefeuille') ||
+    norm.includes('muret') ||
+    norm.includes('cugnaux') ||
+    norm.includes('balma') ||
+    norm.includes('cornebarrieu') ||
+    norm.includes('beauzelle') ||
+    norm.includes('plaisance') ||
+    norm.includes('ramonville') ||
+    norm.includes('castanet') ||
+    norm.includes('union') ||
+    norm.includes('saint orens') ||
+    norm.includes('labege') ||
+    norm.includes('grenade') ||
+    norm.includes('aussonne') ||
+    norm.includes('saint gaudens') ||
+    norm.includes('rangueil') ||
+    norm.includes('oncopole') ||
+    norm.includes('fonsegrives')
+  ) return '31';
+
+  // Paris & Île-de-France (75, 92, 93, 94...)
+  if (
+    norm.includes('paris') ||
+    norm.includes('salpetriere') ||
+    norm.includes('necker') ||
+    norm.includes('hegp') ||
+    norm.includes('bichat') ||
+    norm.includes('boulogne') ||
+    norm.includes('saint denis') ||
+    norm.includes('creteil') ||
+    norm.includes('versailles') ||
+    norm.includes('argenteuil')
+  ) return '75';
+
+  // Rhône / Lyon (69)
+  if (norm.includes('lyon') || norm.includes('villeurbanne') || norm.includes('herriot') || norm.includes('venissieux') || norm.includes('bron') || norm.includes('caluire')) return '69';
+
+  // Bouches-du-Rhône / Marseille (13)
+  if (norm.includes('marseille') || norm.includes('timone') || norm.includes('aix') || norm.includes('aubagne') || norm.includes('marignane') || norm.includes('la ciotat')) return '13';
+
+  // Gironde / Bordeaux (33)
+  if (norm.includes('bordeaux') || norm.includes('pellegrin') || norm.includes('merignac') || norm.includes('pessac') || norm.includes('talence') || norm.includes('begles')) return '33';
+
+  if (norm.includes('nantes') || norm.includes('saint herblain')) return '44';
+  if (norm.includes('lille') || norm.includes('roubaix') || norm.includes('tourcoing')) return '59';
   if (norm.includes('strasbourg') || norm.includes('hautepierre')) return '67';
   if (norm.includes('rennes') || norm.includes('pontchaillou')) return '35';
   if (norm.includes('montpellier') || norm.includes('lapeyronie')) return '34';
-  if (norm.includes('nice') || norm.includes('pasteur')) return '06';
+  if (norm.includes('nice') || norm.includes('pasteur') || norm.includes('antibes') || norm.includes('cannes')) return '06';
 
   // DOM
   if (norm.includes('martinique') || norm.includes('fort de france') || norm.includes('lamentin') || norm.includes('schoelcher') || norm.includes('zobda') || norm.includes('trinite') || norm.includes('marin')) return '972';
@@ -130,7 +176,7 @@ export const addressService = {
       facilities = facilities.filter(f => f.category === opts.categoryFilter);
     }
 
-    const refDept = extractDepartmentFromAddress(opts.referenceAddress || '');
+    const refDept = opts.referenceDepartment || extractDepartmentFromAddress(opts.referenceAddress || '') || '31';
 
     // Si aucune saisie, retourner les établissements concordants avec le lieu du départ (ou grands CHU nationaux)
     if (!q) {
@@ -146,7 +192,7 @@ export const addressService = {
         return 0;
       });
 
-      return sorted.slice(0, 10).map(f => {
+      return sorted.slice(0, 15).map(f => {
         const dept = f.postalCode.startsWith('97') ? f.postalCode.slice(0, 3) : f.postalCode.slice(0, 2);
         return {
           id: `fac-${f.id}`,

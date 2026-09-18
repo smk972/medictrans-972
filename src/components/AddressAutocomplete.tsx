@@ -21,6 +21,7 @@ export interface AddressAutocompleteProps {
   showQuickCommunes?: boolean;
   defaultFilter?: string;
   referenceAddress?: string;
+  referenceDepartment?: string;
   onSelectSuggestion?: (suggestion: AddressSuggestion) => void;
 }
 
@@ -42,6 +43,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   showQuickCommunes = false,
   defaultFilter,
   referenceAddress,
+  referenceDepartment,
   onSelectSuggestion,
 }) => {
   const [inputValue, setInputValue] = useState(value);
@@ -56,8 +58,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   // Détection territoriale dynamique du département
   const refDept = useMemo(() => {
-    return extractDepartmentFromAddress(referenceAddress || inputValue || '');
-  }, [referenceAddress, inputValue]);
+    return referenceDepartment || extractDepartmentFromAddress(referenceAddress || inputValue || '') || '31';
+  }, [referenceDepartment, referenceAddress, inputValue]);
 
   // Communes d'accès rapide adaptées au secteur géographique
   const quickCommunesList = useMemo(() => {
@@ -107,15 +109,29 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch suggestions with debounce (only when at least 2 characters are typed)
+  // Fetch suggestions
   useEffect(() => {
     if (!isOpen) return;
 
-    if (!inputValue || inputValue.trim().length < 2) {
+    // Pour le point de départ : pas d'établissements spontanés si champ vide
+    if (!isDestination && (!inputValue || inputValue.trim().length < 2)) {
       setSuggestions([]);
       return;
     }
 
+    // Pour la destination de soins : proposer immédiatement les hôpitaux et cliniques proches du point de départ
+    if (isDestination && (!inputValue || inputValue.trim().length < 2)) {
+      const facilities = addressService.searchFacilities('', {
+        includeFacilities: true,
+        categoryFilter: activeCategory !== 'ALL' ? activeCategory : undefined,
+        referenceAddress,
+        referenceDepartment: refDept,
+      });
+      setSuggestions(facilities);
+      return;
+    }
+
+    // Saisie active d'une adresse ou établissement (>= 2 caractères)
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
@@ -123,6 +139,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           includeFacilities: true,
           categoryFilter: activeCategory !== 'ALL' ? activeCategory : undefined,
           referenceAddress,
+          referenceDepartment: refDept,
         });
         setSuggestions(results);
       } catch (err) {
@@ -133,7 +150,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     }, 180);
 
     return () => clearTimeout(timer);
-  }, [inputValue, activeCategory, isOpen, referenceAddress]);
+  }, [inputValue, activeCategory, isOpen, isDestination, referenceAddress, refDept]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nextVal = e.target.value;
@@ -221,7 +238,30 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             }, 200);
           }}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            setIsOpen(true);
+            if (isDestination && (!inputValue || inputValue.trim().length < 2)) {
+              const facilities = addressService.searchFacilities('', {
+                includeFacilities: true,
+                categoryFilter: activeCategory !== 'ALL' ? activeCategory : undefined,
+                referenceAddress,
+                referenceDepartment: refDept,
+              });
+              setSuggestions(facilities);
+            }
+          }}
+          onClick={() => {
+            setIsOpen(true);
+            if (isDestination && (!inputValue || inputValue.trim().length < 2)) {
+              const facilities = addressService.searchFacilities('', {
+                includeFacilities: true,
+                categoryFilter: activeCategory !== 'ALL' ? activeCategory : undefined,
+                referenceAddress,
+                referenceDepartment: refDept,
+              });
+              setSuggestions(facilities);
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           ref={inputRef}
@@ -337,6 +377,21 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               </div>
               <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary text-on-primary shrink-0">
                 Valider saisie
+              </span>
+            </div>
+          )}
+
+          {/* Encart titre Hôpitaux & Cliniques recommandés */}
+          {isDestination && (!inputValue || inputValue.trim().length < 2) && (
+            <div className="px-3 py-2 bg-primary/10 border-b border-outline-variant/20 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="material-symbols-outlined text-primary text-[17px] shrink-0">local_hospital</span>
+                <span className="font-bold text-xs text-primary truncate">
+                  Hôpitaux &amp; Cliniques proches de votre départ
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-primary/90 bg-surface-container-lowest px-2 py-0.5 rounded-full border border-primary/20 shrink-0">
+                {territoryFooterLabel}
               </span>
             </div>
           )}

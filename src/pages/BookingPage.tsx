@@ -248,7 +248,7 @@ export const BookingPage: React.FC = () => {
     }
     const fromDest = extractDepartmentFromAddress(destinationFacility);
     if (fromDest) return fromDest;
-    return '972';
+    return '31';
   }, [pickupAddress, user?.address, destinationFacility]);
 
   const deptLabel = useMemo(() => {
@@ -804,7 +804,7 @@ export const BookingPage: React.FC = () => {
                       showCategories={false}
                       showQuickCommunes={false}
                       referenceAddress={destinationFacility}
-                      onSelectSuggestion={(s) => setPickupAddress(s.label)}
+                      onSelectSuggestion={(s) => setPickupAddress(s.address || s.label)}
                     />
 
                     <AddressAutocomplete
@@ -817,13 +817,14 @@ export const BookingPage: React.FC = () => {
                       isDestination={true}
                       icon="domain"
                       defaultFilter="ALL"
-                      helperText="Hôpital, clinique ou adresse de destination"
+                      helperText="Hôpitaux & cliniques suggérés automatiquement selon votre départ"
                       allowManualEntry={true}
                       showCategories={false}
                       showQuickCommunes={false}
                       referenceAddress={pickupAddress}
+                      referenceDepartment={patientDept}
                       onSelectSuggestion={(s) => {
-                        setDestinationFacility(s.label);
+                        setDestinationFacility(s.address || s.label);
                         setIsEditingRoute(false);
                         setTimeout(() => scrollToBlock('block-datetime'), 350);
                       }}
