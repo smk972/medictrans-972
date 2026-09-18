@@ -799,10 +799,10 @@ export const BookingPage: React.FC = () => {
                       onChange={setPickupAddress}
                       required
                       icon="my_location"
-                      helperText="Écrivez une adresse ou sélectionnez une suggestion"
+                      helperText="Saisissez votre adresse de prise en charge"
                       allowManualEntry={true}
                       showCategories={false}
-                      showQuickCommunes={true}
+                      showQuickCommunes={false}
                       referenceAddress={destinationFacility}
                       onSelectSuggestion={(s) => setPickupAddress(s.label)}
                     />
@@ -814,11 +814,12 @@ export const BookingPage: React.FC = () => {
                       value={destinationFacility}
                       onChange={setDestinationFacility}
                       required
+                      isDestination={true}
                       icon="domain"
                       defaultFilter="ALL"
-                      helperText="Tous les CHU, hôpitaux, cliniques et centres de soins"
+                      helperText="Hôpital, clinique ou adresse de destination"
                       allowManualEntry={true}
-                      showCategories={true}
+                      showCategories={false}
                       showQuickCommunes={false}
                       referenceAddress={pickupAddress}
                       onSelectSuggestion={(s) => {
@@ -1150,18 +1151,21 @@ export const BookingPage: React.FC = () => {
                     className="md:col-span-2"
                   />
 
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                        Téléphone portable <span className="text-error">*</span>
-                      </span>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between h-5">
+                      <label
+                        htmlFor="patientPhone"
+                        className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center"
+                      >
+                        Téléphone portable <span className="text-error ml-1">*</span>
+                      </label>
                       {isPhoneVerified ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                           Vérifié par SMS
                         </span>
                       ) : (
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-slate-400 shrink-0 hidden sm:inline">
                           Validation SMS à l’étape finale
                         </span>
                       )}
@@ -1173,6 +1177,7 @@ export const BookingPage: React.FC = () => {
                       value={phone}
                       defaultDialCode="+33"
                       showValidation={false}
+                      className="!gap-0"
                       onChange={(full) => {
                         setPhone(full);
                         setIsPhoneVerified(false);
@@ -1181,12 +1186,14 @@ export const BookingPage: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="patientBirthDate"
-                      className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center h-5"
-                    >
-                      Date de naissance <span className="text-error ml-1">*</span>
-                    </label>
+                    <div className="flex items-center justify-between h-5">
+                      <label
+                        htmlFor="patientBirthDate"
+                        className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center"
+                      >
+                        Date de naissance <span className="text-error ml-1">*</span>
+                      </label>
+                    </div>
                     <input
                       id="patientBirthDate"
                       className="w-full h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant/40 focus:ring-2 focus:ring-primary outline-none transition-all shadow-xs"
@@ -1716,146 +1723,29 @@ export const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Bouton de passage fluide à l'étape suivante */}
-                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
+                {/* Bouton de confirmation de la réservation */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-outline-variant/15 mt-2">
                   <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
                     <span className="material-symbols-outlined text-sm text-secondary">description</span>
                     {hasPmt === 'already' ? 'Bon de transport Cerfa prêt' : 'PMT délivrée en consultation'}
                   </span>
                   <button
-                    type="button"
-                    onClick={() => scrollToBlock('block-transporter')}
-                    className="px-3.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center gap-1 border border-outline-variant/30 transition-all cursor-pointer shadow-2xs"
+                    type="submit"
+                    disabled={isSubmitting || isNirInvalid}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 text-white hover:from-teal-700 hover:to-sky-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
-                    <span>Étape suivante : Transporteur</span>
-                    <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                    {isSubmitting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span>Transmission en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Finaliser la réservation</span>
+                        <span className="material-symbols-outlined text-base">check_circle</span>
+                      </>
+                    )}
                   </button>
-                </div>
-              </div>
-
-              {/* Card 3 bis: Attribution du Transporteur & Continuité des Soins */}
-              <div id="block-transporter" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30 scroll-mt-28">
-                <div className="flex items-center justify-between border-b border-surface-container pb-space-sm">
-                  <div className="flex items-center gap-space-sm">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${priorityTransporter ? 'bg-amber-500/15 text-amber-800' : 'bg-primary/10 text-primary'}`}>
-                      <span className="material-symbols-outlined text-[24px]">
-                        {priorityTransporter ? 'volunteer_activism' : 'local_shipping'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-                          Attribution du Transporteur Sanitaire
-                        </h2>
-                        {priorityTransporter ? (
-                          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></span>
-                            Continuité des soins
-                          </span>
-                        ) : (
-                          <span className="bg-teal-100 text-teal-900 border border-teal-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
-                            Réseau conventionné
-                          </span>
-                        )}
-                        <span className="bg-secondary/10 text-secondary text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border border-secondary/20">
-                          <span className="material-symbols-outlined text-xs">location_on</span>
-                          <span>Secteur {deptLabel}</span>
-                        </span>
-                      </div>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        {priorityTransporter
-                          ? 'Attribution prioritaire automatique basée sur votre historique de soins'
-                          : 'Attribution automatique équitable auprès du réseau sanitaire local'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-space-sm pt-space-xs">
-                  {isLoadingPreferred ? (
-                    <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs flex items-center gap-3 text-on-surface-variant">
-                      <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
-                      <span>Vérification de la continuité des soins et de votre historique de transport...</span>
-                    </div>
-                  ) : priorityTransporter ? (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 text-xs flex flex-col gap-3 animate-fadeIn shadow-xs">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 font-bold text-amber-950 text-sm">
-                          <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-xl text-amber-700">local_fire_department</span>
-                          </div>
-                          <div>
-                            <span className="block text-[11px] font-semibold text-amber-800 uppercase tracking-wider">
-                              Demande adressée en priorité à votre transporteur habituel :
-                            </span>
-                            <span className="text-base font-extrabold text-amber-950">
-                              {priorityTransporter.transporterName}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="bg-amber-200/80 text-amber-950 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-amber-400/60 shrink-0">
-                          Délai prioritaire 24h
-                        </span>
-                      </div>
-
-                      <p className="text-[12px] text-amber-950/90 leading-relaxed">
-                        Ce transporteur conventionné a <strong>déjà assuré votre prise en charge</strong> ({priorityTransporter.totalCompletedRides} course{priorityTransporter.totalCompletedRides > 1 ? 's' : ''} à votre actif). Conformément aux règles de continuité des soins, votre nouvelle réservation lui est <strong>automatiquement transmise en priorité exclusive pendant 24h00</strong>.
-                      </p>
-
-                      <div className="flex items-start gap-2 text-[11px] text-amber-950 bg-white/90 p-3 rounded-xl font-medium border border-amber-200/80">
-                        <span className="material-symbols-outlined text-sm text-amber-700 shrink-0 mt-0.5">sync_alt</span>
-                        <span>
-                          <strong>Garantie absolue de prise en charge :</strong> Si {priorityTransporter.transporterName} n'est pas disponible ou ne valide pas sous 24h, votre demande sera immédiatement et automatiquement réorientée vers le <em>pot commun</em> du secteur <strong>{deptLabel}</strong> pour être prise en charge par le premier véhicule conventionné disponible, sans que vous n'ayez rien à faire.
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/80 border border-teal-200 text-teal-950 text-xs flex flex-col gap-2.5 animate-fadeIn shadow-xs">
-                      <div className="flex items-center gap-2 font-bold text-teal-900 text-sm">
-                        <span className="material-symbols-outlined text-teal-700 text-xl">hub</span>
-                        <span>Attribution automatique au premier disponible ({deptLabel})</span>
-                      </div>
-                      <p className="text-[12px] text-teal-900/90 leading-relaxed">
-                        Votre demande sera transmise instantanément à l'ensemble des compagnies de transport sanitaire agréées ({departmentTransporters.length} sociétés conventionnées ARS & CPAM) de votre secteur. Le premier véhicule sanitaire disponible confirmera votre prise en charge.
-                      </p>
-                      <div className="flex items-start gap-2 text-[11px] text-teal-800 bg-white/80 p-2.5 rounded-lg border border-teal-200/60">
-                        <span className="material-symbols-outlined text-sm text-teal-600 shrink-0 mt-0.5">verified</span>
-                        <span>
-                          <strong>Continuité future :</strong> Dès ce premier trajet validé, ce transporteur deviendra automatiquement votre transporteur référent et sera prioritaire pour vos futures réservations Clinigo.
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bouton de confirmation de la réservation */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-outline-variant/15 mt-2">
-                    <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
-                      <span className="material-symbols-outlined text-sm text-secondary">local_shipping</span>
-                      {priorityTransporter ? (
-                        <span>Priorité habituelle : <strong className="text-amber-900">{priorityTransporter.transporterName}</strong></span>
-                      ) : (
-                        <span>Diffusion au réseau conventionné ({deptLabel})</span>
-                      )}
-                    </span>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting || isNirInvalid}
-                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 text-white hover:from-teal-700 hover:to-sky-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                          <span>Transmission en cours...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{priorityTransporter ? `Confirmer & Proposer en priorité à ${priorityTransporter.transporterName}` : 'Finaliser la réservation'}</span>
-                          <span className="material-symbols-outlined text-base">check_circle</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1953,26 +1843,6 @@ export const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Transporteur ciblé / Attribution */}
-                <div className="p-space-sm bg-surface-container-low rounded-xl flex items-center justify-between border border-outline-variant/30 text-xs">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant text-xs flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px] text-primary">local_shipping</span>
-                    <span>Attribution :</span>
-                  </span>
-                  <div className="text-right">
-                    {priorityTransporter ? (
-                      <span className="font-bold text-amber-700 flex items-center gap-1 text-xs">
-                        <span className="material-symbols-outlined text-xs">local_fire_department</span>
-                        <span>Priorité {priorityTransporter.transporterName} (24h)</span>
-                      </span>
-                    ) : (
-                      <span className="font-bold text-secondary flex items-center gap-1 text-xs">
-                        <span className="material-symbols-outlined text-xs">public</span>
-                        <span>Bourse conventionnée ({deptLabel})</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
 
                 {/* Official CPAM Tariffs & Tiers Payant breakdown */}
                 <div className="p-space-md rounded-2xl bg-surface-container-low/80 flex flex-col gap-space-xs border border-outline-variant/30 text-xs shadow-xs">

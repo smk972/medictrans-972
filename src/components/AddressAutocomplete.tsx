@@ -107,9 +107,14 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch suggestions with debounce
+  // Fetch suggestions with debounce (only when at least 2 characters are typed)
   useEffect(() => {
     if (!isOpen) return;
+
+    if (!inputValue || inputValue.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
 
     const timer = setTimeout(async () => {
       setIsLoading(true);

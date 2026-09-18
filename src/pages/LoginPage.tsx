@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { AuthService } from '../services/authService';
 import { UserRole } from '../types';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -43,16 +44,44 @@ export const LoginPage: React.FC = () => {
     return 'PATIENT';
   }, [searchParams, locationState]);
 
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>(
+  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'FORGOT_PASSWORD'>(
     locationState?.mode || 'LOGIN'
   );
   const [showPassword, setShowPassword] = useState(false);
+
+  // Forgot password state
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetSending, setIsResetSending] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   React.useEffect(() => {
     if (locationState?.mode) {
       setMode(locationState.mode);
     }
   }, [locationState?.mode]);
+
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetFeedback(null);
+    if (!resetEmail || !resetEmail.includes('@')) {
+      setResetFeedback({ type: 'error', message: 'Veuillez renseigner une adresse e-mail valide.' });
+      return;
+    }
+
+    setIsResetSending(true);
+    try {
+      const res = await AuthService.requestPasswordReset(resetEmail);
+      if (res.success) {
+        setResetFeedback({ type: 'success', message: res.message });
+      } else {
+        setResetFeedback({ type: 'error', message: res.error || "Impossible d'envoyer l'e-mail de réinitialisation." });
+      }
+    } catch (err: any) {
+      setResetFeedback({ type: 'error', message: err.message || "Erreur de connexion au service d'e-mail." });
+    } finally {
+      setIsResetSending(false);
+    }
+  };
 
   // Form states
   const [email, setEmail] = useState('');
@@ -333,339 +362,435 @@ export const LoginPage: React.FC = () => {
             {categoryConfig.subtitle}
           </p>
 
-          {/* Bascule Créer un compte / Se connecter */}
-          <div className="flex rounded-2xl bg-slate-100 p-1.5 mb-6 border border-slate-200/60">
-            <button
-              id="tab-mode-login"
-              type="button"
-              onClick={() => { setMode('LOGIN'); setFormError(null); }}
-              className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                mode === 'LOGIN'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 font-medium'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">login</span>
-              <span>Se connecter</span>
-            </button>
-            <button
-              id="tab-mode-register"
-              type="button"
-              onClick={() => { setMode('REGISTER'); setFormError(null); }}
-              className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                mode === 'REGISTER'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 font-medium'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">person_add</span>
-              <span>Créer un compte</span>
-            </button>
-          </div>
-
-
-          {/* Formulaire de saisie */}
-          <form onSubmit={handleEmailSubmit} className="space-y-4 text-left">
-            {/* Raccourcis Comptes Démo rapides en mode connexion */}
-            {mode === 'LOGIN' && (
-              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-base text-teal-600">play_circle</span>
-                    Comptes Démo (Accès en 1 clic)
-                  </span>
-                  <span className="text-[10px] bg-teal-100/80 text-teal-800 font-bold px-2 py-0.5 rounded-full">
-                    Test immédiat
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('PATIENT')}
-                    className="p-2.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs"
-                  >
-                    <span className="flex items-center gap-1 font-bold text-xs text-teal-700">
-                      <span className="material-symbols-outlined text-sm">person</span>
-                      Démo Client / Patient
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      client.demo@clinigo.fr
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoLogin('TRANSPORTER')}
-                    className="p-2.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs"
-                  >
-                    <span className="flex items-center gap-1 font-bold text-xs text-teal-700">
-                      <span className="material-symbols-outlined text-sm">ambulance</span>
-                      Démo Transporteur
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      transporteur.demo@clinigo.fr
-                    </span>
-                  </button>
+          {mode === 'FORGOT_PASSWORD' ? (
+            <div className="space-y-5 text-left animate-fadeIn">
+              <div className="p-4 bg-teal-50 border border-teal-200/80 rounded-2xl text-xs text-teal-950 flex items-start gap-3">
+                <span className="material-symbols-outlined text-teal-700 text-xl shrink-0 mt-0.5">mark_email_read</span>
+                <div className="space-y-1">
+                  <strong className="font-bold text-teal-900 block text-sm">Récupération de mot de passe sécurisée</strong>
+                  <p className="text-[12px] text-teal-800 leading-relaxed">
+                    Saisissez l'adresse e-mail de votre compte. Vous recevrez instantanément un <strong>lien unique</strong> et un <strong>code de sécurité à 6 chiffres</strong> pour définir un nouveau mot de passe.
+                  </p>
                 </div>
               </div>
-            )}
 
-            {formError && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
-                <span className="material-symbols-outlined text-base text-rose-600">error</span>
-                <span>{formError}</span>
-              </div>
-            )}
+              {resetFeedback && (
+                <div className={`p-4 rounded-xl text-xs flex items-start gap-2.5 ${
+                  resetFeedback.type === 'success'
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border border-rose-200 text-rose-900'
+                }`}>
+                  <span className="material-symbols-outlined text-base shrink-0 mt-0.5">
+                    {resetFeedback.type === 'success' ? 'check_circle' : 'error'}
+                  </span>
+                  <div className="flex-1 space-y-2">
+                    <span>{resetFeedback.message}</span>
+                    {resetFeedback.type === 'success' && (
+                      <div className="pt-2">
+                        <Link
+                          to={`/reinitialisation-mot-de-passe?email=${encodeURIComponent(resetEmail)}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition-colors shadow-xs"
+                        >
+                          <span>Saisir mon nouveau mot de passe maintenant</span>
+                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-            {successMessage && (
-              <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center gap-2 animate-fadeIn">
-                <span className="material-symbols-outlined text-base text-teal-600">check_circle</span>
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            {mode === 'REGISTER' && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Prénom <span className="text-rose-600">*</span>
-                    </label>
+              <form onSubmit={handleResetRequest} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Adresse e-mail du compte <span className="text-rose-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
+                      mail
+                    </span>
                     <input
-                      type="text"
+                      type="email"
                       required
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Jean"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="nom.prenom@exemple.fr"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Nom de famille <span className="text-rose-600">*</span>
-                    </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isResetSending}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-700 to-sky-800 hover:from-teal-800 hover:to-sky-900 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
+                >
+                  {isResetSending ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Envoi du lien en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Recevoir le lien unique par e-mail</span>
+                      <span className="material-symbols-outlined text-base">send</span>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="text-center pt-3 border-t border-slate-200/60">
+                <button
+                  type="button"
+                  onClick={() => { setMode('LOGIN'); setResetFeedback(null); }}
+                  className="text-xs text-slate-500 hover:text-teal-700 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                  <span>Revenir à l'écran de connexion</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Bascule Créer un compte / Se connecter */}
+              <div className="flex rounded-2xl bg-slate-100 p-1.5 mb-6 border border-slate-200/60">
+                <button
+                  id="tab-mode-login"
+                  type="button"
+                  onClick={() => { setMode('LOGIN'); setFormError(null); }}
+                  className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mode === 'LOGIN'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 font-medium'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">login</span>
+                  <span>Se connecter</span>
+                </button>
+                <button
+                  id="tab-mode-register"
+                  type="button"
+                  onClick={() => { setMode('REGISTER'); setFormError(null); }}
+                  className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mode === 'REGISTER'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 font-medium'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">person_add</span>
+                  <span>Créer un compte</span>
+                </button>
+              </div>
+
+
+              {/* Formulaire de saisie */}
+              <form onSubmit={handleEmailSubmit} className="space-y-4 text-left">
+                {/* Raccourcis Comptes Démo rapides en mode connexion */}
+                {mode === 'LOGIN' && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-base text-teal-600">play_circle</span>
+                        Comptes Démo (Accès en 1 clic)
+                      </span>
+                      <span className="text-[10px] bg-teal-100/80 text-teal-800 font-bold px-2 py-0.5 rounded-full">
+                        Test immédiat
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickDemoLogin('PATIENT')}
+                        className="p-2.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs"
+                      >
+                        <span className="flex items-center gap-1 font-bold text-xs text-teal-700">
+                          <span className="material-symbols-outlined text-sm">person</span>
+                          Démo Client / Patient
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          client.demo@clinigo.fr
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleQuickDemoLogin('TRANSPORTER')}
+                        className="p-2.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs"
+                      >
+                        <span className="flex items-center gap-1 font-bold text-xs text-teal-700">
+                          <span className="material-symbols-outlined text-sm">ambulance</span>
+                          Démo Transporteur
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          transporteur.demo@clinigo.fr
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {formError && (
+                  <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
+                    <span className="material-symbols-outlined text-base text-rose-600">error</span>
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center gap-2 animate-fadeIn">
+                    <span className="material-symbols-outlined text-base text-teal-600">check_circle</span>
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
+                {mode === 'REGISTER' && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Prénom <span className="text-rose-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="Jean"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Nom de famille <span className="text-rose-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Césaire"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Numéro de portable
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="06 XX XX XX XX"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                      />
+                    </div>
+
+
+
+                    {selectedRole === 'FACILITY' && (
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-semibold text-slate-700">
+                              Numéro FINESS (9 chiffres) <span className="text-rose-600">*</span>
+                            </label>
+                            <span className="text-[10px] text-teal-700 font-medium">Recherche automatique nationale (France & DOM)</span>
+                          </div>
+                          <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-lg">
+                              badge
+                            </span>
+                            <input
+                              type="text"
+                              required
+                              value={finess}
+                              onChange={(e) => handleFinessChange(e.target.value)}
+                              placeholder="Ex: 750100018, 970211145... (9 chiffres)"
+                              maxLength={9}
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Structure trouvée automatiquement */}
+                        {matchedFacility && (
+                          <div className="p-3 bg-teal-50/90 border border-teal-200/80 rounded-2xl flex items-center justify-between gap-2.5 text-xs text-teal-900 animate-fadeIn shadow-xs">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-base">domain_verification</span>
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-900 block leading-tight">{matchedFacility.name}</span>
+                                <span className="text-[11px] text-teal-700 block mt-0.5">
+                                  {matchedFacility.city} ({matchedFacility.postalCode}) • {matchedFacility.categoryLabel}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold shrink-0">
+                              Identifié
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Choix du site si plusieurs partagent le même FINESS */}
+                        {finessMatches.length > 1 && (
+                          <div className="space-y-1.5 animate-fadeIn">
+                            <span className="text-[11px] text-slate-500 font-medium block">
+                              Plusieurs sites rattachés à ce FINESS. Précisez votre site :
+                            </span>
+                            <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
+                              {finessMatches.map((fac) => (
+                                <button
+                                  key={fac.id}
+                                  type="button"
+                                  onClick={() => selectFacility(fac)}
+                                  className={`p-2 rounded-xl text-left text-xs transition-all border flex items-center justify-between gap-2 cursor-pointer ${
+                                    matchedFacility?.id === fac.id
+                                      ? 'bg-teal-50 border-teal-300 font-bold text-teal-950 shadow-xs'
+                                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  <span className="truncate">{fac.name}</span>
+                                  <span className="text-[10px] text-slate-400 shrink-0">{fac.city}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Nom de l'établissement de santé <span className="text-rose-600">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={facilityName}
+                            onChange={(e) => setFacilityName(e.target.value)}
+                            placeholder="Ex: CHU, Centre Hospitalier, Clinique, Dialyse..."
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedRole === 'TRANSPORTER' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Raison sociale de votre entreprise <span className="text-rose-600">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={transporterName}
+                            onChange={(e) => setTransporterName(e.target.value)}
+                            placeholder={categoryConfig.placeholderCompany}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Numéro d'agrément ARS / Préfectoral <span className="text-rose-600">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={arsLicense}
+                            onChange={(e) => setArsLicense(e.target.value)}
+                            placeholder="Ex: AMB-2024-01 ou N° Arrêté Préfectoral"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all font-mono"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Adresse e-mail professionnelle / personnelle <span className="text-rose-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
+                      mail
+                    </span>
                     <input
-                      type="text"
+                      type="email"
                       required
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Césaire"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="contact@exemple.fr"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Numéro de portable
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="06 XX XX XX XX"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Mot de passe <span className="text-rose-600">*</span>
+                    </label>
+                    {mode === 'LOGIN' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResetEmail(email || '');
+                          setResetFeedback(null);
+                          setMode('FORGOT_PASSWORD');
+                        }}
+                        className="text-xs text-teal-700 hover:text-teal-900 font-semibold cursor-pointer"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
+                      lock
+                    </span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                    >
+                      <span className="material-symbols-outlined text-xl">
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
-
-
-                {selectedRole === 'FACILITY' && (
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-semibold text-slate-700">
-                          Numéro FINESS (9 chiffres) <span className="text-rose-600">*</span>
-                        </label>
-                        <span className="text-[10px] text-teal-700 font-medium">Recherche automatique nationale (France & DOM)</span>
-                      </div>
-                      <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-lg">
-                          badge
-                        </span>
-                        <input
-                          type="text"
-                          required
-                          value={finess}
-                          onChange={(e) => handleFinessChange(e.target.value)}
-                          placeholder="Ex: 750100018, 970211145... (9 chiffres)"
-                          maxLength={9}
-                          className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Structure trouvée automatiquement */}
-                    {matchedFacility && (
-                      <div className="p-3 bg-teal-50/90 border border-teal-200/80 rounded-2xl flex items-center justify-between gap-2.5 text-xs text-teal-900 animate-fadeIn shadow-xs">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-base">domain_verification</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block leading-tight">{matchedFacility.name}</span>
-                            <span className="text-[11px] text-teal-700 block mt-0.5">
-                              {matchedFacility.city} ({matchedFacility.postalCode}) • {matchedFacility.categoryLabel}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold shrink-0">
-                          Identifié
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Choix du site si plusieurs partagent le même FINESS */}
-                    {finessMatches.length > 1 && (
-                      <div className="space-y-1.5 animate-fadeIn">
-                        <span className="text-[11px] text-slate-500 font-medium block">
-                          Plusieurs sites rattachés à ce FINESS. Précisez votre site :
-                        </span>
-                        <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
-                          {finessMatches.map((fac) => (
-                            <button
-                              key={fac.id}
-                              type="button"
-                              onClick={() => selectFacility(fac)}
-                              className={`p-2 rounded-xl text-left text-xs transition-all border flex items-center justify-between gap-2 cursor-pointer ${
-                                matchedFacility?.id === fac.id
-                                  ? 'bg-teal-50 border-teal-300 font-bold text-teal-950 shadow-xs'
-                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="truncate">{fac.name}</span>
-                              <span className="text-[10px] text-slate-400 shrink-0">{fac.city}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Nom de l'établissement de santé <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={facilityName}
-                        onChange={(e) => setFacilityName(e.target.value)}
-                        placeholder="Ex: CHU, Centre Hospitalier, Clinique, Dialyse..."
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {selectedRole === 'TRANSPORTER' && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Raison sociale de votre entreprise <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={transporterName}
-                        onChange={(e) => setTransporterName(e.target.value)}
-                        placeholder={categoryConfig.placeholderCompany}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Numéro d'agrément ARS / Préfectoral <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={arsLicense}
-                        onChange={(e) => setArsLicense(e.target.value)}
-                        placeholder="Ex: AMB-2024-01 ou N° Arrêté Préfectoral"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Adresse e-mail professionnelle / personnelle <span className="text-rose-600">*</span>
-              </label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
-                  mail
-                </span>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="contact@exemple.fr"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Mot de passe <span className="text-rose-600">*</span>
-                </label>
-                {mode === 'LOGIN' && (
+                {/* Bouton Principal de Soumission */}
+                <div className="pt-2">
                   <button
-                    type="button"
-                    onClick={() => alert("Pour réinitialiser votre mot de passe, contactez l'assistance Clinigo en ligne ou votre coordinateur de secteur.")}
-                    className="text-xs text-teal-700 hover:text-teal-900 font-semibold cursor-pointer"
+                    type="submit"
+                    id="btn-submit-auth"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white font-bold text-sm shadow-md shadow-teal-950/20 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Mot de passe oublié ?
+                    <span className="material-symbols-outlined text-lg">
+                      {mode === 'LOGIN' ? 'login' : 'person_add'}
+                    </span>
+                    <span>
+                      {mode === 'LOGIN' ? 'Accéder à mon espace sécurisé' : 'Créer mon compte'}
+                    </span>
                   </button>
-                )}
-              </div>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-xl">
-                  lock
-                </span>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200/80 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 text-sm bg-slate-50 focus:bg-white text-slate-900 outline-none transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  aria-label={showPassword ? 'Masquer' : 'Afficher'}
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Bouton Principal de Soumission */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                id="btn-submit-auth"
-                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white font-bold text-sm shadow-md shadow-teal-950/20 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-lg">
-                  {mode === 'LOGIN' ? 'login' : 'person_add'}
-                </span>
-                <span>
-                  {mode === 'LOGIN' ? 'Accéder à mon espace sécurisé' : 'Créer mon compte'}
-                </span>
-              </button>
-            </div>
-          </form>
+                </div>
+              </form>
+            </>
+          )}
 
           {/* Garanties et Rassurance ARS / CPAM (comme sur /suivi) */}
           {categoryConfig.features && categoryConfig.features.length > 0 ? (

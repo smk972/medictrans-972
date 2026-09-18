@@ -15,6 +15,7 @@ import { TransporterPortalPage } from './pages/TransporterPortalPage';
 import { RegisterTransporterPage } from './pages/RegisterTransporterPage';
 import { RegisterFacilityPage } from './pages/RegisterFacilityPage';
 import { LoginPage } from './pages/LoginPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminSupervisionPage } from './pages/AdminSupervisionPage';
@@ -68,6 +69,8 @@ export const App: React.FC = () => {
           <Route path="/preview" element={<HomePageDemo />} />
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reinitialisation-mot-de-passe" element={<ResetPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/reserver" element={<BookingPage />} />
           <Route path="/confirmation/:ref" element={<ConfirmationPage />} />

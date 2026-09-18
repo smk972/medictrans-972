@@ -912,4 +912,113 @@ export class AuthService {
       console.error('Erreur écriture local user:', e);
     }
   }
+
+  /**
+   * Envoi d'un lien unique de réinitialisation de mot de passe par email
+   */
+  public static async requestPasswordReset(email: string): Promise<{ success: boolean; message: string; error?: string }> {
+    if (!email || !email.includes('@')) {
+      return { success: false, message: '', error: 'Veuillez saisir une adresse email valide.' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const token = 'rst_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 3600 * 1000; // 1 heure
+
+    // Enregistrement du token de réinitialisation
+    try {
+      const raw = localStorage.getItem('medictrans_reset_tokens');
+      const tokens = raw ? JSON.parse(raw) : {};
+      tokens[cleanEmail] = { token, code, expiresAt };
+      localStorage.setItem('medictrans_reset_tokens', JSON.stringify(tokens));
+    } catch {}
+
+    const resetUrl = `${window.location.origin}/reinitialisation-mot-de-passe?token=${token}&email=${encodeURIComponent(cleanEmail)}`;
+
+    // 1. Tenter avec Supabase si configuré
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: resetUrl,
+        });
+      } catch (sbErr) {
+        console.warn('Supabase resetPasswordForEmail warning:', sbErr);
+      }
+    }
+
+    // 2. Envoyer par email transactionnel via EmailService
+    try {
+      await EmailService.sendPasswordResetEmail({
+        email: cleanEmail,
+        resetUrl,
+        resetCode: code,
+      });
+    } catch (e) {
+      console.warn('Erreur envoi email réinitialisation:', e);
+    }
+
+    return {
+      success: true,
+      message: 'Un e-mail contenant votre lien unique et votre code de sécurité a été envoyé.'
+    };
+  }
+
+  /**
+   * Validation du code ou token et mise à jour du nouveau mot de passe
+   */
+  public static async confirmPasswordReset(params: {
+    email: string;
+    tokenOrCode: string;
+    newPassword: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    const { email, tokenOrCode, newPassword } = params;
+    if (!email || !tokenOrCode || !newPassword) {
+      return { success: false, error: 'Informations incomplètes.' };
+    }
+    if (newPassword.length < 6) {
+      return { success: false, error: 'Le mot de passe doit comporter au moins 6 caractères.' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanTokenOrCode = tokenOrCode.trim();
+
+    // 1. Si session Supabase ou token Supabase
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (!error) {
+          return { success: true };
+        }
+      } catch (err) {
+        console.warn('Supabase password update fallback:', err);
+      }
+    }
+
+    // 2. Vérification locale (tokens et démo)
+    try {
+      const raw = localStorage.getItem('medictrans_reset_tokens');
+      const tokens = raw ? JSON.parse(raw) : {};
+      const record = tokens[cleanEmail];
+
+      if (record) {
+        const isValid = (record.token === cleanTokenOrCode || record.code === cleanTokenOrCode) && Date.now() < record.expiresAt;
+        if (!isValid) {
+          return { success: false, error: 'Le lien ou le code de réinitialisation est invalide ou a expiré.' };
+        }
+        delete tokens[cleanEmail];
+        localStorage.setItem('medictrans_reset_tokens', JSON.stringify(tokens));
+      }
+    } catch {}
+
+    // Enregistrer le nouveau mot de passe localement
+    try {
+      const pRaw = localStorage.getItem('medictrans_registered_passwords');
+      const pMap = pRaw ? JSON.parse(pRaw) : {};
+      pMap[cleanEmail] = newPassword;
+      localStorage.setItem('medictrans_registered_passwords', JSON.stringify(pMap));
+    } catch {}
+
+    return { success: true };
+  }
 }

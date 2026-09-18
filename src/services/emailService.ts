@@ -172,5 +172,48 @@ export class EmailService {
       return { success: false, error: err.message };
     }
   }
+
+  /**
+   * Envoie l'email de réinitialisation de mot de passe avec lien unique et code sécurisé
+   */
+  static async sendPasswordResetEmail(params: {
+    email: string;
+    resetUrl: string;
+    resetCode?: string;
+    firstName?: string;
+  }): Promise<SendEmailResult> {
+    const { email, resetUrl, resetCode, firstName } = params;
+
+    if (!email || !email.includes('@')) {
+      return { success: false, error: 'Email invalide' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      console.log(`[EmailService] Envoi email réinitialisation mot de passe à ${cleanEmail}...`);
+      const response = await fetch('/api/email/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          resetUrl,
+          resetCode,
+          firstName,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, resendId: result.resendId };
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        return { success: false, error: errData.error || 'Échec envoi réinitialisation' };
+      }
+    } catch (err: any) {
+      console.error('[EmailService] Erreur réseau lors de la réinitialisation mot de passe:', err);
+      return { success: false, error: err.message };
+    }
+  }
 }
 
