@@ -84,16 +84,17 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
 
-  // 3. POLYGONE & OUTILS D'ÉDITION
+  // 3. ZONE D'ACTION : STRICTEMENT 8 POINTS D'ANCRAGE
   const [polygonCoords, setPolygonCoords] = useState<GeoPoint[]>(() => {
-    if (initialZone?.polygonCoordinates && initialZone.polygonCoordinates.length >= 3) {
+    if (initialZone?.polygonCoordinates && initialZone.polygonCoordinates.length === 8) {
       return initialZone.polygonCoordinates;
     }
-    return generateInitialPolygon({ lat: 43.4608, lng: 1.3267 }, 15);
+    const base = (initialZone?.baseLat && initialZone?.baseLng)
+      ? { lat: initialZone.baseLat, lng: initialZone.baseLng }
+      : { lat: 43.4608, lng: 1.3267 };
+    return generateInitialPolygon(base, 15, 8);
   });
   const [historyStack, setHistoryStack] = useState<GeoPoint[][]>([]);
-  const [editMode, setEditMode] = useState<'IDLE' | 'DRAWING' | 'EDITING_VERTICES' | 'ADD_VERTEX' | 'DELETE_VERTEX'>('EDITING_VERTICES');
-  const [selectedVertexIdx, setSelectedVertexIdx] = useState<number | null>(null);
 
   // 4. OFFRES ÉTENDUES (+30 KM DEPUIS LA BASE)
   const [allowExtendedRadius, setAllowExtendedRadius] = useState<boolean>(
@@ -112,11 +113,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   const polygonInstanceRef = useRef<any>(null);
   const extendedCircleRef = useRef<any>(null);
   const vertexMarkersRef = useRef<any[]>([]);
-  const midpointMarkersRef = useRef<any[]>([]);
-  const drawingMarkersRef = useRef<any[]>([]);
-  const mapClickListenerRef = useRef<any>(null);
-  const pathListenersRef = useRef<any[]>([]);
-  const isInternalUpdateRef = useRef<boolean>(false);
+  const isInternalDragRef = useRef<boolean>(false);
 
   // Communes proches pour ancrage rapide
   const nearbyCommunes = React.useMemo(() => {
@@ -258,7 +255,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         });
         extendedCircleRef.current = extendedCircle;
 
-        // 3. POLYGONE DE LA ZONE D'ACTION (ÉDITABLE AVEC PINS NATIVEMENT DÉPLAÇABLES)
+        // 3. POLYGONE DE LA ZONE D'ACTION (ÉDITÉ STRICTEMENT VIA LES 8 ANCRES DÉPLAÇABLES)
         const poly = new google.maps.Polygon({
           paths: polygonCoords,
           map: map,
@@ -266,37 +263,14 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           strokeOpacity: 0.95,
           strokeWeight: 3,
           fillColor: '#0ea5e9',
-          fillOpacity: 0.25,
-          clickable: true,
-          editable: true, // Active les poignées et pins déplaçables natifs de Google Maps
-          draggable: false, // L'utilisateur déplace les pins individuellement, pas toute la carte
+          fillOpacity: 0.22,
+          clickable: false,
+          editable: false, // Strictement 8 ancres : désactive les poignées intermédiaires parasites de Google Maps
+          draggable: false,
           zIndex: 10,
         });
 
-        // Clic sur un pin pour le supprimer si mode suppression actif
-        poly.addListener('click', (e: any) => {
-          if (e.vertex !== undefined) {
-            if (poly.getPath().getLength() <= 3) {
-              setErrorMessage('Un polygone doit conserver au minimum 3 sommets.');
-              return;
-            }
-            poly.getPath().removeAt(e.vertex);
-          }
-        });
-
-        // Clic droit sur un pin pour le supprimer rapidement
-        poly.addListener('rightclick', (e: any) => {
-          if (e.vertex !== undefined) {
-            if (poly.getPath().getLength() <= 3) {
-              setErrorMessage('Un polygone doit conserver au minimum 3 sommets.');
-              return;
-            }
-            poly.getPath().removeAt(e.vertex);
-          }
-        });
-
         polygonInstanceRef.current = poly;
-        attachPolygonListeners(poly);
       }
     });
 
@@ -304,35 +278,6 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
       isMounted = false;
     };
   }, []);
-
-  // Écouteur des déplacements de pins directement sur la carte
-  const attachPolygonListeners = useCallback((poly: any) => {
-    if (!poly) return;
-    pathListenersRef.current.forEach((l) => google.maps.event.removeListener(l));
-    pathListenersRef.current = [];
-
-    const path = poly.getPath();
-    if (!path) return;
-
-    const handlePathChange = () => {
-      const newCoords: GeoPoint[] = [];
-      for (let i = 0; i < path.getLength(); i++) {
-        const p = path.getAt(i);
-        newCoords.push({
-          lat: Number(p.lat().toFixed(6)),
-          lng: Number(p.lng().toFixed(6)),
-        });
-      }
-      isInternalUpdateRef.current = true;
-      pushHistory(newCoords);
-    };
-
-    const setL = google.maps.event.addListener(path, 'set_at', handlePathChange);
-    const insL = google.maps.event.addListener(path, 'insert_at', handlePathChange);
-    const remL = google.maps.event.addListener(path, 'remove_at', handlePathChange);
-
-    pathListenersRef.current = [setL, insL, remL];
-  }, [pushHistory]);
 
   // Mise à jour de la position de la base sur la carte
   useEffect(() => {
@@ -345,115 +290,94 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
     }
   }, [baseCoords, allowExtendedRadius]);
 
-  // Synchronisation du polygone et de l'état éditable
-  useEffect(() => {
-    if (!polygonInstanceRef.current) return;
-
-    const isDrawing = editMode === 'DRAWING';
-    polygonInstanceRef.current.setEditable(!isDrawing);
-
-    // Nettoyage des anciens marqueurs de tracé en cours
-    drawingMarkersRef.current.forEach((m) => m.setMap(null));
-    drawingMarkersRef.current = [];
-
-    // 1. Affichage des repères numérotés en mode tracé
-    if (isDrawing) {
-      polygonCoords.forEach((pt, idx) => {
-        const marker = new google.maps.Marker({
-          position: pt,
-          map: mapInstanceRef.current,
-          optimized: false,
-          label: {
-            text: String(idx + 1),
-            color: '#ffffff',
-            fontSize: '11px',
-            fontWeight: 'bold',
-          },
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 12,
-            fillColor: '#2563eb',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-          title: `Point d'ancrage #${idx + 1}`,
-        });
-        drawingMarkersRef.current.push(marker);
-      });
-      polygonInstanceRef.current.setPaths(polygonCoords);
-      return;
-    }
-
-    // 2. Si la mise à jour vient du glisser-déposer d'un pin sur la carte : ne pas appeler setPaths
-    if (isInternalUpdateRef.current) {
-      isInternalUpdateRef.current = false;
-      return;
-    }
-
-    // 3. Mise à jour externe (préréglages, communes, undo, reset, etc.)
-    polygonInstanceRef.current.setPaths(polygonCoords);
-    attachPolygonListeners(polygonInstanceRef.current);
-  }, [polygonCoords, editMode, attachPolygonListeners]);
-
-  // Gestion des clics sur la carte selon le mode actif
+  // Synchronisation des 8 marqueurs d'ancrage déplaçables et du tracé du polygone
   useEffect(() => {
     if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
 
-    if (mapClickListenerRef.current) {
-      google.maps.event.removeListener(mapClickListenerRef.current);
-      mapClickListenerRef.current = null;
+    // S'assurer de manipuler strictement 8 points
+    let points = polygonCoords;
+    if (points.length !== 8) {
+      points = generateInitialPolygon(baseCoords, 15, 8);
+      setPolygonCoords(points);
+      return;
     }
 
-    if (editMode === 'DRAWING') {
-      mapClickListenerRef.current = mapInstanceRef.current.addListener(
-        'click',
-        (e: any) => {
-          if (e.latLng) {
-            const newPt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-            setPolygonCoords((prev) => [...prev, newPt]);
-          }
-        }
-      );
-    } else if (editMode === 'ADD_VERTEX') {
-      mapClickListenerRef.current = mapInstanceRef.current.addListener(
-        'click',
-        (e: any) => {
-          if (e.latLng && polygonCoords.length >= 2) {
-            const clickPt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-
-            // Trouver le segment le plus proche pour insérer le sommet
-            let minDistance = Infinity;
-            let insertIndex = polygonCoords.length;
-
-            for (let i = 0; i < polygonCoords.length; i++) {
-              const p1 = polygonCoords[i];
-              const p2 = polygonCoords[(i + 1) % polygonCoords.length];
-              const d =
-                calculateHaversineDistanceKm(p1.lat, p1.lng, clickPt.lat, clickPt.lng) +
-                calculateHaversineDistanceKm(p2.lat, p2.lng, clickPt.lat, clickPt.lng);
-
-              if (d < minDistance) {
-                minDistance = d;
-                insertIndex = i + 1;
-              }
-            }
-
-            const next = [...polygonCoords];
-            next.splice(insertIndex, 0, clickPt);
-            pushHistory(next);
-            setEditMode('EDITING_VERTICES');
-          }
-        }
-      );
+    // Mise à jour du polygone s'il n'est pas en cours de glissement direct
+    if (polygonInstanceRef.current && !isInternalDragRef.current) {
+      polygonInstanceRef.current.setPaths(points);
     }
 
-    return () => {
-      if (mapClickListenerRef.current) {
-        google.maps.event.removeListener(mapClickListenerRef.current);
+    // Création initiale des 8 marqueurs d'ancrage
+    if (vertexMarkersRef.current.length !== 8) {
+      vertexMarkersRef.current.forEach((m) => m.setMap(null));
+      vertexMarkersRef.current = [];
+
+      points.forEach((pt, idx) => {
+        const marker = new google.maps.Marker({
+          position: pt,
+          map: map,
+          draggable: true,
+          optimized: false,
+          zIndex: 2000 + idx,
+          cursor: 'grab',
+          title: `Point d'ancrage #${idx + 1} (glisser pour délimiter)`,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 9,
+            fillColor: '#2563eb', // Bleu royal éclatant
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2.5,
+          },
+        });
+
+        // Mise à jour fluide du tracé en temps réel pendant le glissement de l'ancre
+        marker.addListener('drag', (e: any) => {
+          if (!e.latLng || !polygonInstanceRef.current) return;
+          isInternalDragRef.current = true;
+          const currentPath = polygonInstanceRef.current.getPath();
+          currentPath.setAt(idx, e.latLng);
+        });
+
+        // Enregistrement de la position finale au relâchement
+        marker.addListener('dragend', (e: any) => {
+          isInternalDragRef.current = false;
+          if (!e.latLng) return;
+          const newPt: GeoPoint = {
+            lat: Number(e.latLng.lat().toFixed(6)),
+            lng: Number(e.latLng.lng().toFixed(6)),
+          };
+          setPolygonCoords((prev) => {
+            const next = [...prev];
+            next[idx] = newPt;
+            setHistoryStack((old) => [...old.slice(-15), prev]);
+            return next;
+          });
+        });
+
+        vertexMarkersRef.current.push(marker);
+      });
+    } else {
+      // Les 8 marqueurs existent déjà : synchroniser leurs positions si pas de drag en cours
+      if (!isInternalDragRef.current) {
+        points.forEach((pt, idx) => {
+          const m = vertexMarkersRef.current[idx];
+          if (m) {
+            m.setPosition(pt);
+          }
+        });
       }
+    }
+  }, [polygonCoords, baseCoords]);
+
+  // Nettoyage des 8 marqueurs lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      vertexMarkersRef.current.forEach((m) => m.setMap(null));
+      vertexMarkersRef.current = [];
     };
-  }, [editMode, polygonCoords, pushHistory]);
+  }, []);
 
   // GÉOLOCALISATION GPS DU TRANSPORTEUR
   const handleGeolocate = () => {
@@ -553,28 +477,10 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         mapInstanceRef.current.panTo(newBase);
         mapInstanceRef.current.setZoom(12);
       }
-      if (polygonCoords.length < 3) {
-        setPolygonCoords(generateInitialPolygon(newBase, 15));
+      if (polygonCoords.length !== 8) {
+        setPolygonCoords(generateInitialPolygon(newBase, 15, 8));
       }
     }
-  };
-
-  // DÉMARRER LE DESSIN DE LA ZONE
-  const handleStartDrawing = () => {
-    pushHistory(polygonCoords);
-    setPolygonCoords([]);
-    setEditMode('DRAWING');
-    setErrorMessage(null);
-  };
-
-  // FERMER LE DESSIN
-  const handleFinishDrawing = () => {
-    if (polygonCoords.length < 3) {
-      setErrorMessage('Veuillez cliquer au moins 3 fois sur la carte pour délimiter un polygone fermé.');
-      return;
-    }
-    setEditMode('EDITING_VERTICES');
-    setErrorMessage(null);
   };
 
   // ANNULER (UNDO)
@@ -586,73 +492,36 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
     }
   };
 
-  // EFFACER LA ZONE
+  // EFFACER LA ZONE / RÉINITIALISER LES 8 ANCRES
   const handleResetZone = () => {
     pushHistory(polygonCoords);
     setPolygonCoords(generateInitialPolygon(baseCoords, 15, 8));
-    setEditMode('EDITING_VERTICES');
-    setSelectedVertexIdx(null);
   };
 
-  // PRÉRÉGLAGE DU NOMBRE DE POINTS D'ANCRAGE (4, 6, 8, 12 SOMMETS)
-  const handleSetPresetVertices = (count: number, radiusKm: number = 15) => {
+  // PRÉRÉGLER LE RAYON DES 8 ANCRES (10, 15, 25, 40 KM)
+  const handleSetRadius = (radiusKm: number) => {
     pushHistory(polygonCoords);
-    const newCoords = generateInitialPolygon(baseCoords, radiusKm, count);
+    const newCoords = generateInitialPolygon(baseCoords, radiusKm, 8);
     setPolygonCoords(newCoords);
-    setEditMode('EDITING_VERTICES');
-    setSelectedVertexIdx(null);
   };
 
-  // MULTIPLIER / DOUBLER LES POINTS D'ANCRAGE (DOUBLER LA DENSITÉ DES ANCRES)
-  const handleSubdivideVertices = () => {
-    if (polygonCoords.length < 3) return;
-    const newCoords: GeoPoint[] = [];
-    for (let i = 0; i < polygonCoords.length; i++) {
-      const p1 = polygonCoords[i];
-      const p2 = polygonCoords[(i + 1) % polygonCoords.length];
-      newCoords.push(p1);
-      newCoords.push({
-        lat: Number(((p1.lat + p2.lat) / 2).toFixed(6)),
-        lng: Number(((p1.lng + p2.lng) / 2).toFixed(6)),
-      });
-    }
-    pushHistory(newCoords);
-    setEditMode('EDITING_VERTICES');
-    setSelectedVertexIdx(null);
-  };
-
-  // AJOUTER UNE COMMUNE PROCHE COMME POINT D'ANCRAGE DANS LA ZONE
-  const handleAddCommuneAnchor = (commune: RegionCommune) => {
+  // ANCRER UNE COMMUNE PROCHE SUR L'ANCRE LA PLUS PROCHE (MAINTIENT STRICTEMENT 8 ANCRES)
+  const handleSnapClosestAnchorToCommune = (commune: RegionCommune) => {
     const communePt: GeoPoint = { lat: commune.lat, lng: commune.lng };
-
-    if (polygonCoords.length < 3) {
-      pushHistory([...polygonCoords, communePt]);
-      return;
-    }
-
-    // Trouver le segment le plus proche pour insérer le point d'ancrage harmonieusement
+    let closestIdx = 0;
     let minDistance = Infinity;
-    let insertIndex = polygonCoords.length;
 
-    for (let i = 0; i < polygonCoords.length; i++) {
-      const p1 = polygonCoords[i];
-      const p2 = polygonCoords[(i + 1) % polygonCoords.length];
-      const d =
-        calculateHaversineDistanceKm(p1.lat, p1.lng, communePt.lat, communePt.lng) +
-        calculateHaversineDistanceKm(p2.lat, p2.lng, communePt.lat, communePt.lng);
-
+    polygonCoords.forEach((pt, idx) => {
+      const d = calculateHaversineDistanceKm(pt.lat, pt.lng, communePt.lat, communePt.lng);
       if (d < minDistance) {
         minDistance = d;
-        insertIndex = i + 1;
+        closestIdx = idx;
       }
-    }
+    });
 
     const next = [...polygonCoords];
-    next.splice(insertIndex, 0, communePt);
+    next[closestIdx] = communePt;
     pushHistory(next);
-    setSelectedVertexIdx(insertIndex);
-    setEditMode('EDITING_VERTICES');
-
     if (mapInstanceRef.current) {
       mapInstanceRef.current.panTo(communePt);
     }
@@ -878,7 +747,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 2 : 🗺️ CARTE ET ZONE D'ACTION COMPACTE                            */}
+        {/* SECTION 2 : 🗺️ CARTE ET ZONE D'ACTION (STRICTEMENT 8 ANCRES)               */}
         {/* ========================================================================= */}
         <div className="bg-surface-container-low/80 p-2.5 sm:p-3 rounded-xl border border-outline-variant/30 space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -890,144 +759,65 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
               <p className="text-[10px] text-on-surface-variant flex items-center gap-1.5 mt-0.5">
                 <span className="inline-flex items-center gap-1 font-semibold text-primary">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  {polygonCoords.length} points d'ancrage
+                  8 points d'ancrage déplaçables
                 </span>
                 <span>•</span>
-                <span className="text-cyan-600 dark:text-cyan-400 font-semibold">
-                  {polygonCoords.length} ancres étirables
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                  8 ancres étirables
                 </span>
               </p>
             </div>
 
-            {/* BOÎTE À OUTILS */}
-            <div className="flex flex-wrap items-center gap-1">
-              {editMode === 'DRAWING' ? (
+            {/* BOÎTE D'ACTIONS */}
+            <div className="flex items-center gap-1.5">
+              {historyStack.length > 0 && (
                 <button
                   type="button"
-                  onClick={handleFinishDrawing}
-                  className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95 cursor-pointer"
+                  onClick={handleUndo}
+                  className="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                  title="Annuler le dernier déplacement"
                 >
-                  ✓ Terminer ({polygonCoords.length} pts)
+                  <span>↩️</span>
+                  <span>Annuler</span>
                 </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleStartDrawing}
-                    className="px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-[11px] transition-all active:scale-95 cursor-pointer"
-                  >
-                    ✏️ Tracé libre
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEditMode(editMode === 'EDITING_VERTICES' ? 'IDLE' : 'EDITING_VERTICES')}
-                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all active:scale-95 border cursor-pointer ${
-                      editMode === 'EDITING_VERTICES'
-                        ? 'bg-primary text-white border-primary shadow-xs'
-                        : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
-                    }`}
-                  >
-                    {editMode === 'EDITING_VERTICES' ? '✓ Mode ancrage' : '🎯 Ajuster'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEditMode(editMode === 'ADD_VERTEX' ? 'EDITING_VERTICES' : 'ADD_VERTEX')}
-                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all active:scale-95 border cursor-pointer ${
-                      editMode === 'ADD_VERTEX'
-                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                        : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
-                    }`}
-                  >
-                    ➕ Ajouter
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEditMode(editMode === 'DELETE_VERTEX' ? 'EDITING_VERTICES' : 'DELETE_VERTEX')}
-                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all active:scale-95 border cursor-pointer ${
-                      editMode === 'DELETE_VERTEX'
-                        ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
-                        : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
-                    }`}
-                  >
-                    🗑️ Retirer
-                  </button>
-
-                  {historyStack.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleUndo}
-                      className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer"
-                      title="Annuler"
-                    >
-                      ↩️
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleResetZone}
-                    className="px-2 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer"
-                    title="Réinitialiser"
-                  >
-                    Effacer
-                  </button>
-                </>
               )}
+
+              <button
+                type="button"
+                onClick={handleResetZone}
+                className="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                title="Recentrer les 8 ancres à 15km autour de votre base"
+              >
+                <span>🔄</span>
+                <span>Réinitialiser</span>
+              </button>
             </div>
           </div>
 
-          {/* DENSITÉ DES POINTS D'ANCRAGE & FORMES */}
-          {editMode !== 'DRAWING' && (
-            <div className="flex flex-wrap items-center justify-between gap-1.5 py-1 border-t border-b border-outline-variant/20 text-[10px]">
-              <div className="flex flex-wrap items-center gap-1">
-                <span className="font-bold text-on-surface-variant">Ancres :</span>
-                {[
-                  { count: 4, label: '4' },
-                  { count: 6, label: '6' },
-                  { count: 8, label: '8 (Idéal)' },
-                  { count: 12, label: '12' },
-                ].map((p) => (
-                  <button
-                    key={p.count}
-                    type="button"
-                    onClick={() => handleSetPresetVertices(p.count)}
-                    className={`px-1.5 py-0.5 rounded font-bold border transition-colors cursor-pointer ${
-                      polygonCoords.length === p.count
-                        ? 'bg-primary/20 text-primary border-primary/40 font-black'
-                        : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-primary/10'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleSubdivideVertices}
-                  className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 font-black border border-cyan-500/30 transition-colors cursor-pointer"
-                  title="Doubler le nombre d'ancres"
-                >
-                  ➕ x2
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <span className="font-bold text-on-surface-variant">Rayon :</span>
-                {[10, 15, 25, 40].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => handleSetPresetVertices(polygonCoords.length || 8, r)}
-                    className="px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant hover:text-primary font-bold border border-outline-variant/30 transition-colors cursor-pointer"
-                  >
-                    {r}km
-                  </button>
-                ))}
-              </div>
+          {/* SÉLECTEUR DE RAYON INITIAL DES 8 ANCRES */}
+          <div className="flex items-center justify-between gap-1.5 py-1 border-t border-b border-outline-variant/20 text-[10px]">
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-on-surface-variant">Zone :</span>
+              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-black border border-primary/20">
+                8 ancres
+              </span>
             </div>
-          )}
+
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-on-surface-variant">Rayon d'action :</span>
+              {[10, 15, 25, 40].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => handleSetRadius(r)}
+                  className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary/40 font-bold border border-outline-variant/30 transition-colors cursor-pointer"
+                  title={`Formater les 8 ancres sur un cercle de ${r} km`}
+                >
+                  {r}km
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* CONTENEUR DE CARTE GOOGLE MAPS : HAUTEUR COMPACTE ET OPTIMISÉE */}
           <div className="relative w-full h-[220px] sm:h-[260px] md:h-[275px] rounded-xl overflow-hidden border border-outline-variant/40 shadow-inner">
@@ -1036,18 +826,18 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
 
           {/* LÉGENDE RAPIDE & COMMUNES LIMITROPHES */}
           <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] text-on-surface-variant">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1 font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-white border-2 border-blue-600 shrink-0 shadow-xs" />
-                <span>Pins aux sommets (glisser)</span>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="inline-flex items-center gap-1 font-semibold text-blue-700 dark:text-blue-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white shrink-0 shadow-xs" />
+                <span>8 ancres (glisser pour délimiter la zone)</span>
               </span>
-              <span className="inline-flex items-center gap-1 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-cyan-400/80 border border-white shrink-0 shadow-xs" />
-                <span>Points intermédiaires (étirer)</span>
-              </span>
-              <span className="inline-flex items-center gap-1 font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-white shrink-0 shadow-xs" />
+              <span className="inline-flex items-center gap-1 font-semibold text-red-700 dark:text-red-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 border-2 border-white shrink-0 shadow-xs" />
                 <span>Base départ (déplaçable)</span>
+              </span>
+              <span className="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-amber-600 shrink-0 shadow-xs" />
+                <span>Rayon +30km</span>
               </span>
             </div>
 
@@ -1058,9 +848,9 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                   <button
                     key={c.insee}
                     type="button"
-                    onClick={() => handleAddCommuneAnchor(c)}
+                    onClick={() => handleSnapClosestAnchorToCommune(c)}
                     className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-surface-container hover:bg-primary/15 hover:text-primary text-[10px] font-bold border border-outline-variant/30 transition-all cursor-pointer"
-                    title={`Ajouter ${c.name} (${c.distKm.toFixed(0)} km)`}
+                    title={`Ajuster l'ancre la plus proche sur ${c.name} (${c.distKm.toFixed(0)} km)`}
                   >
                     <span className="text-primary font-bold">+</span>
                     <span>{c.name}</span>
