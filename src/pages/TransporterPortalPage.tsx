@@ -17,6 +17,7 @@ import { TransporterSubscriptionTab } from '../components/TransporterSubscriptio
 import { StripeSubscriptionService } from '../services/stripeSubscriptionService';
 import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 import { reverseGeocode } from '../services/nationalGeoDatabase';
+import { TransporterManualRideModal } from '../components/TransporterManualRideModal';
 
 export interface Driver {
   id: string;
@@ -44,8 +45,17 @@ export const RADIUS_STORAGE_KEY = 'medictrans_transporter_radius_km';
 export const OUTSIDE_RADIUS_STORAGE_KEY = 'medictrans_transporter_include_outside';
 export const BASE_COMMUNE_STORAGE_KEY = 'medictrans_transporter_base_commune';
 
-export const DEFAULT_DRIVERS: Driver[] = [];
-export const DEFAULT_FLEET: VehicleFleet[] = [];
+export const DEFAULT_DRIVERS: Driver[] = [
+  { id: 'drv-1', firstName: 'Jean-Marc', lastName: 'Alphonse', role: "Ambulancier Diplômé d'État (ADE)", phone: '06 96 12 34 56', status: 'DISPONIBLE', assignedVehiclePlate: 'GF-452-LK' },
+  { id: 'drv-2', firstName: 'Sarah', lastName: 'Montrose', role: 'Auxiliaire Ambulancier', phone: '06 96 23 45 67', status: 'DISPONIBLE', assignedVehiclePlate: 'HX-891-TR' },
+  { id: 'drv-3', firstName: 'Patrick', lastName: 'Calixte', role: 'Chauffeur Taxi Conventionné', phone: '06 96 34 56 78', status: 'DISPONIBLE', assignedVehiclePlate: 'EK-304-QZ' }
+];
+
+export const DEFAULT_FLEET: VehicleFleet[] = [
+  { id: 'veh-1', name: 'Ambulance Type A #01', type: 'AMBULANCE', plate: 'GF-452-LK', driver: 'Jean-Marc Alphonse', phone: '06 96 12 34 56', status: 'DISPONIBLE' },
+  { id: 'veh-2', name: 'VSL Médical #02', type: 'VSL', plate: 'HX-891-TR', driver: 'Sarah Montrose', phone: '06 96 23 45 67', status: 'DISPONIBLE' },
+  { id: 'veh-3', name: 'Taxi Conventionné #03', type: 'TAXI_CONVENTIONNE', plate: 'EK-304-QZ', driver: 'Patrick Calixte', phone: '06 96 34 56 78', status: 'DISPONIBLE' }
+];
 
 /**
  * Règle de protection du secret médical (RGPD & Déontologie Santé) :
@@ -98,6 +108,10 @@ export const TransporterPortalPage: React.FC = () => {
   const [selectedPlanningDate, setSelectedPlanningDate] = useState<string | null>(null);
   const [planningStatusFilter, setPlanningStatusFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
   const [planningSearch, setPlanningSearch] = useState('');
+  const [isManualRideModalOpen, setIsManualRideModalOpen] = useState<boolean>(false);
+  const [planningViewMode, setPlanningViewMode] = useState<'CHRONO' | 'DISPATCH_DRIVERS'>('CHRONO');
+  const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('ALL');
+
   const [selectedMissionForRecap, setSelectedMissionForRecap] = useState<Ride | null>(null);
   const [missionToAccept, setMissionToAccept] = useState<Ride | null>(null);
   const [transporterPickupTimeInput, setTransporterPickupTimeInput] = useState<string>('08:30');
@@ -112,7 +126,8 @@ export const TransporterPortalPage: React.FC = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(v => !v.name?.includes('#') && !v.driver?.includes('#'));
+          const cleaned = parsed.filter(v => !v.name?.includes('#') && !v.driver?.includes('#'));
+          if (cleaned.length > 0) return cleaned;
         }
       }
     } catch (e) {
@@ -127,7 +142,8 @@ export const TransporterPortalPage: React.FC = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(d => !d.firstName?.includes('Équipage') && !d.lastName?.includes('VSL') && !d.lastName?.includes('Taxi'));
+          const cleaned = parsed.filter(d => !d.firstName?.includes('Équipage') && !d.lastName?.includes('VSL') && !d.lastName?.includes('Taxi'));
+          if (cleaned.length > 0) return cleaned;
         }
       }
     } catch (e) {
@@ -712,6 +728,21 @@ export const TransporterPortalPage: React.FC = () => {
       if (planningStatusFilter === 'ASSIGNED' && !mission.assignedTransporter?.driverName) return false;
       if (planningStatusFilter === 'UNASSIGNED' && !!mission.assignedTransporter?.driverName) return false;
 
+      // Filtre spécifique par chauffeur individuel
+      if (selectedDriverFilter !== 'ALL') {
+        if (selectedDriverFilter === 'UNASSIGNED') {
+          if (mission.assignedTransporter?.driverName) return false;
+        } else {
+          const targetDriver = drivers.find((d) => d.id === selectedDriverFilter);
+          if (targetDriver) {
+            const assigned = (mission.assignedTransporter?.driverName || '').toLowerCase();
+            const fName = targetDriver.firstName.toLowerCase();
+            const lName = targetDriver.lastName.toLowerCase();
+            if (!assigned.includes(fName) && !assigned.includes(lName)) return false;
+          }
+        }
+      }
+
       // Recherche textuelle
       if (!planningSearch.trim()) return true;
       const q = planningSearch.toLowerCase();
@@ -727,7 +758,7 @@ export const TransporterPortalPage: React.FC = () => {
         (mission.mobility.notes && mission.mobility.notes.toLowerCase().includes(q))
       );
     });
-  }, [plannedMissions, planningHorizon, selectedPlanningDate, planningStatusFilter, planningSearch]);
+  }, [plannedMissions, planningHorizon, selectedPlanningDate, planningStatusFilter, planningSearch, selectedDriverFilter, drivers]);
 
   // Groupement des courses du planning par jour
   const planningGroupedByDay = useMemo(() => {
@@ -1313,6 +1344,43 @@ export const TransporterPortalPage: React.FC = () => {
     }
   };
 
+  // Affectation rapide en 1 clic d'un chauffeur depuis le tableau de dispatching
+  const handleQuickAssignDriver = async (mission: Ride, driverId: string) => {
+    if (!driverId) return;
+    const targetDriver = drivers.find((d) => d.id === driverId);
+    if (!targetDriver) return;
+
+    const targetPlate = targetDriver.assignedVehiclePlate || fleet.find((v) => v.driver?.includes(targetDriver.lastName))?.plate || 'DISPO-972';
+
+    const newAssignment = {
+      companyName: mission.assignedTransporter?.companyName || transporterName,
+      driverName: `${targetDriver.firstName} ${targetDriver.lastName}`,
+      driverPhone: targetDriver.phone,
+      vehiclePlate: targetPlate,
+      etaMinutes: 15
+    };
+
+    setRides((prev) =>
+      prev.map((r) =>
+        r.reference.toUpperCase() === mission.reference.toUpperCase()
+          ? { ...r, assignedTransporter: newAssignment }
+          : r
+      )
+    );
+
+    setToastMessage({
+      title: 'Chauffeur affecté !',
+      desc: `La course #${mission.reference} est désormais confiée à ${targetDriver.firstName} ${targetDriver.lastName}.`,
+      type: 'success'
+    });
+
+    try {
+      await rideService.reassignRide(mission.reference, newAssignment, mission.status);
+    } catch (err) {
+      console.error('Erreur affectation rapide chauffeur:', err);
+    }
+  };
+
   // Ouvrir le modal d'annulation / désistement et republication
   const openReleaseModal = (mission: Ride) => {
     setMissionToRelease(mission);
@@ -1621,12 +1689,22 @@ export const TransporterPortalPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsManualRideModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-primary hover:from-teal-700 hover:to-primary/90 text-white text-xs font-bold shadow-xs hover:shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Saisir manuellement une course directe reçue de votre côté (client privé ou appel téléphonique)"
+            >
+              <span className="material-symbols-outlined text-base">add_circle</span>
+              <span className="font-extrabold">+ Course Directe</span>
+            </button>
+
             <button
               type="button"
               onClick={loadMissions}
               disabled={isLoading}
-              className="px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs flex items-center gap-1.5 transition-all"
+              className="px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <span className={`material-symbols-outlined text-base ${isLoading ? 'animate-spin' : ''}`}>
                 refresh
@@ -2733,7 +2811,17 @@ export const TransporterPortalPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsManualRideModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-primary text-white hover:opacity-95 text-xs font-black transition-all shadow-xs hover:shadow-md cursor-pointer"
+                    title="Ajouter manuellement une course directe reçue par téléphone ou client privé"
+                  >
+                    <span className="material-symbols-outlined text-base">add_circle</span>
+                    <span>+ Saisir Course Directe</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleExportPlanningExcel}
@@ -3007,8 +3095,78 @@ export const TransporterPortalPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. Bandeau des journées individuelles (Défilement horizontal) & Filtre d'affectation chauffeur */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                {/* 2. Mode d'affichage (Agenda vs Dispatching Chauffeurs) & Filtres Chauffeurs */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1 border-t border-outline-variant/15">
+                  {/* Toggle Vue Agenda vs Dispatching Chauffeurs */}
+                  <div className="flex items-center gap-1 bg-surface-container-high/60 p-1 rounded-2xl w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setPlanningViewMode('CHRONO')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        planningViewMode === 'CHRONO'
+                          ? 'bg-white text-slate-950 shadow-xs font-black'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">view_agenda</span>
+                      <span>Vue Agenda</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlanningViewMode('DISPATCH_DRIVERS')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        planningViewMode === 'DISPATCH_DRIVERS'
+                          ? 'bg-blue-600 text-white shadow-xs font-black'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm">badge</span>
+                      <span>Planning Chauffeurs ({drivers.length})</span>
+                    </button>
+                  </div>
+
+                  {/* Filtres d'affectation globale */}
+                  <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('ALL')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                        planningStatusFilter === 'ALL'
+                          ? 'bg-surface-container-high text-on-surface shadow-2xs font-extrabold'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Toutes ({plannedMissions.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('ASSIGNED')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        planningStatusFilter === 'ASSIGNED'
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'text-blue-800 hover:bg-blue-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      <span>Chauffeur affecté ({plannedMissions.filter((m) => !!m.assignedTransporter?.driverName).length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPlanningStatusFilter('UNASSIGNED')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        planningStatusFilter === 'UNASSIGNED'
+                          ? 'bg-amber-600 text-white shadow-2xs'
+                          : 'text-amber-800 hover:bg-amber-50'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      <span>À affecter ({plannedMissions.filter((m) => !m.assignedTransporter?.driverName).length})</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Bandeau des journées individuelles (Défilement horizontal) & Filtre individuel par Chauffeur */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-outline-variant/15">
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
                     <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Par jour :</span>
                     {planningDaysSummary.map((day) => {
@@ -3035,48 +3193,349 @@ export const TransporterPortalPage: React.FC = () => {
                     })}
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                  {/* Filtre par chauffeur individuel */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Chauffeur :</span>
                     <button
                       type="button"
-                      onClick={() => setPlanningStatusFilter('ALL')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                        planningStatusFilter === 'ALL'
-                          ? 'bg-surface-container-high text-on-surface shadow-2xs font-extrabold'
-                          : 'text-on-surface-variant hover:text-on-surface'
+                      onClick={() => setSelectedDriverFilter('ALL')}
+                      className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
+                        selectedDriverFilter === 'ALL'
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
                       }`}
                     >
-                      Toutes ({plannedMissions.length})
+                      Tous
                     </button>
+                    {drivers.map((d) => {
+                      const count = plannedMissions.filter(
+                        (m) =>
+                          m.assignedTransporter?.driverName &&
+                          (m.assignedTransporter.driverName.toLowerCase().includes(d.firstName.toLowerCase()) ||
+                            m.assignedTransporter.driverName.toLowerCase().includes(d.lastName.toLowerCase()))
+                      ).length;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setSelectedDriverFilter(selectedDriverFilter === d.id ? 'ALL' : d.id)}
+                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
+                            selectedDriverFilter === d.id
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
+                          }`}
+                        >
+                          <span>👨‍✈️ {d.firstName}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                              selectedDriverFilter === d.id ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
                     <button
                       type="button"
-                      onClick={() => setPlanningStatusFilter('ASSIGNED')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                        planningStatusFilter === 'ASSIGNED'
-                          ? 'bg-blue-600 text-white shadow-2xs'
-                          : 'text-blue-800 hover:bg-blue-50'
+                      onClick={() => setSelectedDriverFilter(selectedDriverFilter === 'UNASSIGNED' ? 'ALL' : 'UNASSIGNED')}
+                      className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
+                        selectedDriverFilter === 'UNASSIGNED'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-surface-container-lowest hover:bg-surface-container text-amber-800 border border-amber-300/50'
                       }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                      <span>Chauffeur affecté ({plannedMissions.filter(m => !!m.assignedTransporter?.driverName).length})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPlanningStatusFilter('UNASSIGNED')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                        planningStatusFilter === 'UNASSIGNED'
-                          ? 'bg-amber-600 text-white shadow-2xs'
-                          : 'text-amber-800 hover:bg-amber-50'
-                      }`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      <span>À affecter ({plannedMissions.filter(m => !m.assignedTransporter?.driverName).length})</span>
+                      <span>⚠️ Sans chauffeur</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          selectedDriverFilter === 'UNASSIGNED' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
+                        }`}
+                      >
+                        {plannedMissions.filter((m) => !m.assignedTransporter?.driverName).length}
+                      </span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Contenu : Affichage chronologique groupé par journée */}
-              {planningGroupedByDay.length === 0 ? (
+              {/* Contenu Planning : soit Vue Dispatching Chauffeurs, soit Vue Chronologique groupée par journée */}
+              {planningViewMode === 'DISPATCH_DRIVERS' ? (
+                <div className="flex flex-col gap-6 animate-fadeIn">
+                  {/* Bandeau d'en-tête Dispatching */}
+                  <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-950/20 via-slate-900/10 to-indigo-950/20 border border-blue-300/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <span className="material-symbols-outlined text-2xl">badge</span>
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-extrabold text-sm sm:text-base text-on-surface">
+                            Dispatching &amp; Planning des Chauffeurs
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-mono text-xs font-bold">
+                            {drivers.length} équipages
+                          </span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          Visualisez le planning individuel de chaque chauffeur pour la période sélectionnée et réaffectez les courses en 1 clic.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsManualRideModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-xs cursor-pointer shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-sm">add_circle</span>
+                      <span>+ Saisir Course Directe</span>
+                    </button>
+                  </div>
+
+                  {/* Grille des colonnes : À affecter + Chaque Chauffeur */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+                    {/* Colonne 1 : Courses non assignées à un chauffeur */}
+                    <div className="rounded-3xl border-2 border-dashed border-amber-400 bg-amber-50/50 p-4 flex flex-col gap-3 shadow-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm">
+                            <span className="material-symbols-outlined text-base">person_alert</span>
+                          </span>
+                          <div>
+                            <div className="font-extrabold text-xs text-amber-950">À Affecter</div>
+                            <div className="text-[10px] text-amber-800">Chauffeur non désigné</div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 font-mono text-xs font-extrabold">
+                          {filteredPlanningMissions.filter((m) => !m.assignedTransporter?.driverName).length}
+                        </span>
+                      </div>
+
+                      {filteredPlanningMissions.filter((m) => !m.assignedTransporter?.driverName).length === 0 ? (
+                        <div className="p-6 text-center text-xs text-amber-900/70 flex flex-col items-center gap-2">
+                          <span className="material-symbols-outlined text-2xl text-emerald-600">check_circle</span>
+                          <span className="font-bold text-slate-800">Tous les chauffeurs sont désignés</span>
+                          <span>Aucune course en attente d'affectation pour cette sélection.</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {filteredPlanningMissions
+                            .filter((m) => !m.assignedTransporter?.driverName)
+                            .map((mission) => {
+                              const timeStr = new Date(mission.pickupDateTime).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              });
+                              const isDirect = mission.source === 'TRANSPORTER_DIRECT';
+
+                              return (
+                                <div
+                                  key={mission.id}
+                                  className="p-3.5 rounded-2xl bg-white border border-amber-300 shadow-xs flex flex-col gap-2.5"
+                                >
+                                  <div className="flex items-center justify-between gap-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="px-2 py-0.5 rounded-md bg-amber-600 text-white font-mono text-xs font-black">
+                                        {timeStr}
+                                      </span>
+                                      <span className="font-mono text-xs font-bold text-primary">#{mission.reference}</span>
+                                    </div>
+                                    {isDirect ? (
+                                      <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-purple-100 text-purple-950 border border-purple-300">
+                                        Directe
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-teal-50 text-teal-900 border border-teal-200">
+                                        Clinigo
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="text-xs space-y-1">
+                                    <div className="font-bold text-slate-900">{getPatientDisplayName(mission.patient, true)}</div>
+                                    <div className="text-[11px] text-slate-600 truncate">
+                                      📍 {mission.pickupCity} ➔ {mission.facilityName || mission.dropoffCity}
+                                    </div>
+                                    <div className="text-[10px] text-slate-500">
+                                      {mission.transportType === 'AMBULANCE' ? '🚑 Ambulance' : mission.transportType === 'VSL' ? '🚐 VSL' : '🚗 Taxi Conv.'}
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2 border-t border-slate-100 flex flex-col gap-1">
+                                    <label className="text-[10px] font-bold text-amber-900">Affecter en 1 clic à :</label>
+                                    <select
+                                      defaultValue=""
+                                      onChange={(e) => {
+                                        handleQuickAssignDriver(mission, e.target.value);
+                                        e.target.value = '';
+                                      }}
+                                      className="w-full px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-bold text-amber-950 focus:outline-hidden focus:border-amber-600 cursor-pointer"
+                                    >
+                                      <option value="" disabled>-- Choisir un chauffeur --</option>
+                                      {drivers.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                          👨‍✈️ {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Sans véhicule'})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Colonnes individuelles pour chaque Chauffeur */}
+                    {drivers.map((driver) => {
+                      const driverMissions = filteredPlanningMissions.filter(
+                        (m) =>
+                          m.assignedTransporter?.driverName &&
+                          (m.assignedTransporter.driverName.toLowerCase().includes(driver.firstName.toLowerCase()) ||
+                            m.assignedTransporter.driverName.toLowerCase().includes(driver.lastName.toLowerCase()))
+                      );
+
+                      return (
+                        <div
+                          key={driver.id}
+                          className="rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-4 flex flex-col gap-3 shadow-xs hover:border-primary/40 transition-colors"
+                        >
+                          {/* En-tête du chauffeur */}
+                          <div className="pb-3 border-b border-outline-variant/15 flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-800 font-extrabold flex items-center justify-center text-sm border border-blue-200 shrink-0">
+                                {driver.firstName[0]}
+                                {driver.lastName[0]}
+                              </div>
+                              <div>
+                                <div className="font-extrabold text-xs text-on-surface flex items-center gap-1.5">
+                                  <span>
+                                    {driver.firstName} {driver.lastName}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-on-surface-variant leading-tight truncate max-w-[140px]">
+                                  {driver.role}
+                                </div>
+                                <a
+                                  href={`tel:${driver.phone}`}
+                                  className="text-[10px] text-primary font-bold hover:underline flex items-center gap-0.5 mt-0.5"
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">phone</span>
+                                  <span>{driver.phone}</span>
+                                </a>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 font-mono text-xs font-extrabold">
+                                {driverMissions.length}
+                              </span>
+                              {driver.assignedVehiclePlate && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-bold">
+                                  {driver.assignedVehiclePlate}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Liste des courses confiées à ce chauffeur */}
+                          {driverMissions.length === 0 ? (
+                            <div className="p-6 text-center text-xs text-on-surface-variant flex flex-col items-center gap-2">
+                              <span className="material-symbols-outlined text-2xl opacity-40">schedule</span>
+                              <span className="font-semibold text-[11px]">Aucune course programmée</span>
+                              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Disponible
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {driverMissions.map((mission) => {
+                                const timeStr = new Date(mission.pickupDateTime).toLocaleTimeString('fr-FR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                });
+                                const isDirect = mission.source === 'TRANSPORTER_DIRECT';
+
+                                return (
+                                  <div
+                                    key={mission.id}
+                                    onClick={() => setSelectedMissionForRecap(mission)}
+                                    className="p-3.5 rounded-2xl bg-surface-container-low/60 hover:bg-surface-container-low border border-outline-variant/20 hover:border-primary/40 transition-all cursor-pointer flex flex-col gap-2 group"
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="px-2 py-0.5 rounded-lg bg-primary text-white font-mono text-xs font-black shadow-2xs">
+                                          {timeStr}
+                                        </span>
+                                        <span className="font-mono text-[11px] text-primary font-bold">
+                                          #{mission.reference}
+                                        </span>
+                                      </div>
+
+                                      {isDirect ? (
+                                        <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-purple-100 text-purple-950 border border-purple-300 flex items-center gap-0.5">
+                                          <span className="material-symbols-outlined text-[10px] text-purple-700">call</span>
+                                          <span>Directe</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-teal-50 text-teal-900 border border-teal-200 flex items-center gap-0.5">
+                                          <span className="material-symbols-outlined text-[10px] text-teal-700">language</span>
+                                          <span>Clinigo</span>
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="text-xs space-y-1">
+                                      <div className="font-bold text-on-surface group-hover:text-primary transition-colors flex items-center justify-between">
+                                        <span>{getPatientDisplayName(mission.patient, true)}</span>
+                                        <span className="text-[10px] font-mono text-on-surface-variant font-normal">
+                                          {mission.transportType === 'AMBULANCE' ? '🚑' : mission.transportType === 'VSL' ? '🚐' : '🚗'}
+                                        </span>
+                                      </div>
+
+                                      <div className="p-2 rounded-xl bg-surface-container-lowest text-[11px] space-y-0.5 border border-outline-variant/15">
+                                        <div className="truncate text-on-surface-variant">
+                                          📍 <span className="font-medium text-on-surface">{mission.pickupCity}</span>
+                                        </div>
+                                        <div className="truncate text-on-surface-variant">
+                                          🏥 <span className="font-bold text-primary">{mission.facilityName || mission.dropoffCity}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div
+                                      className="pt-2 border-t border-outline-variant/15 flex items-center justify-between text-[11px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => openReassignModal(mission)}
+                                        className="text-[10px] font-bold text-blue-700 hover:text-blue-900 flex items-center gap-0.5 cursor-pointer"
+                                      >
+                                        <span className="material-symbols-outlined text-xs">sync_alt</span>
+                                        <span>Changer</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedMissionForRecap(mission)}
+                                        className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
+                                      >
+                                        <span>Fiche</span>
+                                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : planningGroupedByDay.length === 0 ? (
                 <div className="p-12 text-center rounded-3xl bg-surface-container-lowest border border-outline-variant/20 flex flex-col items-center justify-center gap-3 text-on-surface-variant">
                   <span className="material-symbols-outlined text-5xl opacity-40">event_busy</span>
                   <div className="font-bold text-sm text-on-surface">Aucune course acceptée dans le planning</div>
@@ -3170,10 +3629,24 @@ export const TransporterPortalPage: React.FC = () => {
                                       </div>
                                     </div>
 
-                                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold flex items-center gap-1 border border-blue-200">
-                                      <span className="material-symbols-outlined text-xs">verified</span>
-                                      {mission.status === 'EN_ROUTE' ? 'En route' : mission.status === 'PICKED_UP' ? 'Prise en charge' : 'Confirmée'}
-                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      {mission.source === 'TRANSPORTER_DIRECT' ? (
+                                        <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-950 border border-purple-300 text-[10px] font-black flex items-center gap-1 shadow-2xs">
+                                          <span className="material-symbols-outlined text-[12px] text-purple-700">call</span>
+                                          <span>Course Directe</span>
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-900 border border-teal-200 text-[10px] font-bold flex items-center gap-1">
+                                          <span className="material-symbols-outlined text-[12px] text-teal-700">language</span>
+                                          <span>Clinigo</span>
+                                        </span>
+                                      )}
+
+                                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold flex items-center gap-1 border border-blue-200">
+                                        <span className="material-symbols-outlined text-xs">verified</span>
+                                        {mission.status === 'EN_ROUTE' ? 'En route' : mission.status === 'PICKED_UP' ? 'Prise en charge' : 'Confirmée'}
+                                      </span>
+                                    </div>
                                   </div>
 
                                   {/* Patient & Trajet */}
@@ -5499,6 +5972,28 @@ export const TransporterPortalPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE SAISIE MANUELLE DE COURSE DIRECTE / CLIENT PRIVÉ                  */}
+      {/* ========================================================================= */}
+      <TransporterManualRideModal
+        isOpen={isManualRideModalOpen}
+        onClose={() => setIsManualRideModalOpen(false)}
+        onSuccess={(newRide) => {
+          setRides((prev) => [newRide, ...prev]);
+          setToastMessage({
+            title: 'Course directe ajoutée au planning !',
+            desc: `La course #${newRide.reference} (${newRide.patient.firstName} ${newRide.patient.lastName}) est désormais intégrée à votre planning.`,
+            type: 'success'
+          });
+          setActiveTab('PLANNING');
+        }}
+        drivers={drivers}
+        fleet={fleet}
+        transporterName={transporterName}
+        defaultCity={baseCommune}
+        defaultTerritory={baseTerritory}
+      />
 
       {/* ========================================================================= */}
       {/* NOTIFICATION TOAST                                                        */}

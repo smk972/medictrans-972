@@ -66,7 +66,7 @@ export interface Ride {
   patient: PatientInfo;
   mobility: MobilityNeeds;
   assignedTransporter?: AssignedTransporter;
-  source: 'PATIENT' | 'FACILITY';
+  source: 'PATIENT' | 'FACILITY' | 'TRANSPORTER_DIRECT';
   facilityDepartment?: string;
   bedDischargeNumber?: string;
   facilityFloor?: string;
