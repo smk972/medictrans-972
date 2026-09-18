@@ -279,50 +279,58 @@ export const HomePage: React.FC = () => {
                 Service conçu pour les patients, proches aidants et équipes soignantes.
               </p>
 
-              {/* BOUTON CTA ET TAMPON ROUGE SUR LE CÔTÉ (SANS AUCUN RECOUVREMENT) */}
+              {/* BOUTON CTA AVEC TAMPON ROUGE QUI RECOUVRE LE BOUTON SUR LE CÔTÉ (Z-INDEX AU-DESSUS) */}
               <div className="flex flex-col items-center justify-center mt-7 sm:mt-9">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-                  {/* BOUTON PRINCIPAL ANIMÉ */}
-                  <div className="relative inline-block group">
-                    {/* Halo lumineux subtil pulsant en arrière-plan */}
-                    <div 
-                      aria-hidden="true" 
-                      className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-teal-500/30 via-emerald-500/30 to-sky-500/30 blur-md opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none animate-pulse" 
-                    />
-
-                    <Link
-                      to="/reserver"
-                      className="relative inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-black bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/20 text-base hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer overflow-hidden select-none"
-                    >
-                      {/* Vague de brillance animée (shimmer) traversant le bouton périodiquement */}
-                      <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
-                        <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-btn-shimmer pointer-events-none" />
-                      </div>
-
-                      <Play className="w-4 h-4 fill-current group-hover:scale-125 transition-transform duration-300 relative z-10" />
-                      <span className="relative z-10 tracking-wide">Réserver un transport en ligne</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300 relative z-10" />
-                    </Link>
-                  </div>
-
-                  {/* TAMPON ROUGE "100% GRATUIT" POSITIONNÉ SUR LE CÔTÉ */}
+                <div className="relative inline-block group">
+                  {/* Halo lumineux subtil pulsant en arrière-plan */}
                   <div 
-                    className="shrink-0 transform -rotate-12 hover:rotate-0 transition-transform duration-300 select-none cursor-default"
+                    aria-hidden="true" 
+                    className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-teal-500/30 via-emerald-500/30 to-sky-500/30 blur-md opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none animate-pulse" 
+                  />
+
+                  {/* BOUTON PRINCIPAL */}
+                  <Link
+                    to="/reserver"
+                    className="relative z-10 inline-flex items-center justify-center gap-2.5 px-8 sm:px-9 py-4 rounded-xl font-black bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/20 text-base hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer overflow-hidden select-none"
+                  >
+                    {/* Vague de brillance animée (shimmer) traversant le bouton périodiquement */}
+                    <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                      <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-btn-shimmer pointer-events-none" />
+                    </div>
+
+                    <Play className="w-4 h-4 fill-current group-hover:scale-125 transition-transform duration-300 relative z-10" />
+                    <span className="relative z-10 tracking-wide">Réserver un transport en ligne</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300 relative z-10" />
+                  </Link>
+
+                  {/* TAMPON ROUGE "100% GRATUIT" QUI RECOUVRE LE BOUTON SUR LE CÔTÉ (Z-INDEX 30 AU-DESSUS DU BOUTON) */}
+                  <div 
+                    className="absolute -right-6 sm:-right-9 top-1/2 -translate-y-1/2 z-30 pointer-events-none select-none transform -rotate-12 group-hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
                     title="Service 100% Gratuit pour les patients"
                   >
                     <svg
-                      width="80"
-                      height="80"
+                      width="88"
+                      height="88"
                       viewBox="0 0 100 100"
-                      className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-md"
+                      className="w-18 h-18 sm:w-22 sm:h-22"
                       aria-label="Tampon 100% Gratuit"
                     >
+                      {/* Fond circulaire blanc/ivoire opaque pour un recouvrement net par-dessus le bouton */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="47"
+                        fill="#ffffff"
+                        stroke="#dc2626"
+                        strokeWidth="1"
+                      />
+
                       {/* Cercle extérieur cranté façon tampon encreur rouge */}
                       <circle
                         cx="50"
                         cy="50"
-                        r="46"
-                        fill="#fff5f5"
+                        r="45"
+                        fill="none"
                         stroke="#dc2626"
                         strokeWidth="3.2"
                         strokeDasharray="16 2 10 1.5 20 2"
@@ -332,7 +340,7 @@ export const HomePage: React.FC = () => {
                       <circle
                         cx="50"
                         cy="50"
-                        r="40"
+                        r="39"
                         fill="none"
                         stroke="#dc2626"
                         strokeWidth="1.4"
