@@ -279,108 +279,90 @@ export const HomePage: React.FC = () => {
                 Service conçu pour les patients, proches aidants et équipes soignantes.
               </p>
 
-              {/* BOUTON CTA UNIQUE (STYLE DU BOUTON DU DESSOUS) AVEC TAMPON ROUGE "100% GRATUIT" */}
+              {/* BOUTON CTA IDENTIQUE AU BOUTON DU DESSOUS AVEC TAMPON ROUGE "100% GRATUIT" */}
               <div className="flex flex-col items-center justify-center mt-7 sm:mt-9">
                 <div className="relative inline-block">
                   <Link
                     to="/reserver"
-                    className="inline-flex items-center justify-center gap-3 px-8 sm:px-10 py-4 sm:py-4.5 rounded-xl font-bold bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/25 text-base sm:text-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+                    className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-black bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/20 text-base hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
                   >
                     <Play className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
                     <span>Réserver un transport en ligne</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
 
-                  {/* TAMPON ROUGE "100% GRATUIT" STYLE TAMPON ENCREUR 123RF (APPROVED STAMP AVEC ÉTOILES ET DOUBLE CERCLE) */}
+                  {/* TAMPON ROUGE "100% GRATUIT" STYLE TAMPON ENCREUR 123RF */}
                   <div 
-                    className="absolute -top-7 -right-5 sm:-top-8 sm:-right-8 z-30 pointer-events-none select-none transform -rotate-12 transition-transform duration-300 drop-shadow-md"
+                    className="absolute -top-4 -right-3 sm:-top-5 sm:-right-4 z-20 pointer-events-none select-none transform -rotate-12 drop-shadow-md"
                     title="100% Gratuit"
                   >
                     <svg 
-                      width="100" 
-                      height="100" 
-                      viewBox="0 0 140 140" 
-                      className="w-20 h-20 sm:w-24 sm:h-24 filter drop-shadow-sm"
+                      width="72" 
+                      height="72" 
+                      viewBox="0 0 100 100" 
+                      className="w-14 h-14 sm:w-16 sm:h-16"
                       aria-label="Tampon 100% Gratuit"
                     >
-                      <defs>
-                        {/* Filtre grunge pour reproduire l'encre de tampon vintage */}
-                        <filter id="stamp-grunge-hero" x="-20%" y="-20%" width="140%" height="140%">
-                          <feTurbulence type="fractalNoise" baseFrequency="0.055" numOctaves="3" result="noise" />
-                          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
-                        </filter>
-                      </defs>
+                      {/* Fond circulaire blanc/ivoire propre pour faire ressortir l'encre rouge sans être assombri par le bleu */}
+                      <circle cx="50" cy="50" r="47" fill="#ffffff" stroke="#dc2626" strokeWidth="1" />
 
-                      <g filter="url(#stamp-grunge-hero)" stroke="#dc2626" fill="#dc2626">
-                        {/* Cercle extérieur cranté/usé */}
-                        <circle 
-                          cx="70" 
-                          cy="70" 
-                          r="62" 
-                          fill="none" 
-                          strokeWidth="4.5" 
-                          strokeDasharray="24 2 16 1.5 32 2" 
-                          opacity="0.95" 
-                        />
-                        
-                        {/* Cercle intérieur fin */}
-                        <circle 
-                          cx="70" 
-                          cy="70" 
-                          r="54" 
-                          fill="none" 
-                          strokeWidth="2" 
-                          opacity="0.9" 
-                        />
+                      {/* Cercle extérieur cranté façon tampon encreur */}
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="45" 
+                        fill="none" 
+                        stroke="#dc2626" 
+                        strokeWidth="3.2" 
+                        strokeDasharray="16 1.5 10 1.2 20 1.5" 
+                      />
+                      
+                      {/* Cercle intérieur fin */}
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="39" 
+                        fill="none" 
+                        stroke="#dc2626" 
+                        strokeWidth="1.4" 
+                      />
 
-                        {/* Cercle pointillé intermédiaire */}
-                        <circle 
-                          cx="70" 
-                          cy="70" 
-                          r="47" 
-                          fill="none" 
-                          strokeWidth="1.2" 
-                          strokeDasharray="3 3" 
-                          opacity="0.75" 
-                        />
+                      {/* Étoiles du haut (5 étoiles) */}
+                      <g fill="#dc2626" stroke="none">
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(30, 26) scale(0.85) rotate(-25)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(39, 21) scale(0.95) rotate(-12)" />
+                        <polygon points="0,-3 1,-1 3.2,-1 1.5,0.5 2.1,2.5 0,1.2 -2.1,2.5 -1.5,0.5 -3.2,-1 -1,-1" transform="translate(50, 19) scale(1.1)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(61, 21) scale(0.95) rotate(12)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(70, 26) scale(0.85) rotate(25)" />
+                      </g>
 
-                        {/* Arc d'étoiles supérieures (5 étoiles comme sur le tampon 123rf) */}
-                        <g fill="#dc2626" stroke="none">
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(42, 34) scale(0.9) rotate(-30)" />
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(55, 27) scale(1) rotate(-15)" />
-                          <polygon points="0,-4.5 1.4,-1.4 4.8,-1.4 2,0.8 3,3.8 0,1.8 -3,3.8 -2,0.8 -4.8,-1.4 -1.4,-1.4" transform="translate(70, 24) scale(1.15)" />
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(85, 27) scale(1) rotate(15)" />
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(98, 34) scale(0.9) rotate(30)" />
-                        </g>
+                      {/* Barres horizontales encadrant le texte */}
+                      <line x1="10" y1="37" x2="90" y2="37" strokeWidth="2" stroke="#dc2626" />
+                      <line x1="10" y1="63" x2="90" y2="63" strokeWidth="2" stroke="#dc2626" />
 
-                        {/* Barres horizontales encadrant le texte */}
-                        <line x1="14" y1="52" x2="126" y2="52" strokeWidth="2.8" stroke="#dc2626" />
-                        <line x1="14" y1="88" x2="126" y2="88" strokeWidth="2.8" stroke="#dc2626" />
+                      {/* Texte central estampé "100% GRATUIT" */}
+                      <text
+                        x="50"
+                        y="51"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill="#dc2626"
+                        stroke="none"
+                        fontFamily="'Impact', 'Arial Black', sans-serif"
+                        fontSize="11"
+                        fontWeight="900"
+                        letterSpacing="0.4"
+                      >
+                        100% GRATUIT
+                      </text>
 
-                        {/* Texte central estampé "100% GRATUIT" */}
-                        <text
-                          x="70"
-                          y="75"
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fill="#dc2626"
-                          stroke="none"
-                          fontFamily="'Impact', 'Arial Black', sans-serif"
-                          fontSize="15"
-                          fontWeight="900"
-                          letterSpacing="0.8"
-                        >
-                          100% GRATUIT
-                        </text>
-
-                        {/* Arc d'étoiles inférieures (5 étoiles symétriques) */}
-                        <g fill="#dc2626" stroke="none">
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(42, 106) scale(0.9) rotate(30)" />
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(55, 113) scale(1) rotate(15)" />
-                          <polygon points="0,-4.5 1.4,-1.4 4.8,-1.4 2,0.8 3,3.8 0,1.8 -3,3.8 -2,0.8 -4.8,-1.4 -1.4,-1.4" transform="translate(70, 116) scale(1.15)" />
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(85, 113) scale(1) rotate(-15)" />
-                          <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(98, 106) scale(0.9) rotate(-30)" />
-                        </g>
+                      {/* Étoiles du bas (5 étoiles) */}
+                      <g fill="#dc2626" stroke="none">
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(30, 74) scale(0.85) rotate(25)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(39, 79) scale(0.95) rotate(12)" />
+                        <polygon points="0,-3 1,-1 3.2,-1 1.5,0.5 2.1,2.5 0,1.2 -2.1,2.5 -1.5,0.5 -3.2,-1 -1,-1" transform="translate(50, 81) scale(1.1)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(61, 79) scale(0.95) rotate(-12)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(70, 74) scale(0.85) rotate(-25)" />
                       </g>
                     </svg>
                   </div>
