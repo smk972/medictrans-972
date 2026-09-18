@@ -304,12 +304,12 @@ export const HomePage: React.FC = () => {
                   </Link>
                 </div>
 
-                {/* Réassurance sous le bouton avec 100% GRATUIT en vert et gras */}
+                {/* Réassurance sous le bouton : ✓ 100% GRATUIT • Aucun frais à avancer */}
                 <p className="text-xs sm:text-sm text-slate-600 font-medium mt-4 flex items-center justify-center gap-1.5 text-center flex-wrap">
-                  <span className="text-emerald-600 font-bold text-sm">✓</span>
-                  <span>
-                    <strong className="font-black text-emerald-600 tracking-wide">100% GRATUIT</strong> • Prise en charge Sécurité Sociale & Mutuelle • Aucun frais à avancer
-                  </span>
+                  <span className="text-emerald-600 font-bold text-sm sm:text-base">✓</span>
+                  <strong className="font-black text-emerald-600 tracking-wide text-sm sm:text-base">100% GRATUIT</strong>
+                  <span className="text-slate-400">•</span>
+                  <span className="font-semibold text-slate-700">Aucun frais à avancer</span>
                 </p>
               </div>
             </div>
