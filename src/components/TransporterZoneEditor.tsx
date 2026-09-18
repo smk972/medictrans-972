@@ -762,23 +762,23 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   };
 
   return (
-    <div className="bg-surface rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden flex flex-col max-w-5xl mx-auto my-4 transition-all">
-      {/* HEADER OFFICIEL */}
-      <div className="px-5 py-4 border-b border-outline-variant/20 bg-surface-container-low flex items-center justify-between">
+    <div className="bg-surface rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden flex flex-col max-w-5xl mx-auto my-auto transition-all">
+      {/* HEADER OFFICIEL COMPACT */}
+      <div className="px-4 py-2.5 border-b border-outline-variant/20 bg-surface-container-low flex items-center justify-between">
         <div>
-          <h2 className="text-base sm:text-lg font-black text-on-surface flex items-center gap-2">
-            <span className="text-primary text-xl">🗺️</span>
+          <h2 className="text-sm sm:text-base font-black text-on-surface flex items-center gap-2">
+            <span className="text-primary text-base sm:text-lg">🗺️</span>
             <span>MES ZONES D'INTERVENTION</span>
           </h2>
-          <p className="text-xs text-on-surface-variant mt-0.5">
-            Définissez votre zone d'action et choisissez si vous souhaitez recevoir des offres à proximité de votre base.
+          <p className="text-[11px] text-on-surface-variant">
+            Ajustez votre base et façonnez votre zone d'action interactivement.
           </p>
         </div>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
             title="Fermer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -788,11 +788,11 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         )}
       </div>
 
-      <div className="p-4 sm:p-6 space-y-6 overflow-y-auto max-h-[85vh]">
+      <div className="p-3 sm:p-4 space-y-2.5 overflow-y-auto max-h-[88vh]">
         {/* MESSAGES D'ALERTE / SUCCÈS */}
         {saveSuccessMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-2 animate-fadeIn">
-            <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-2 animate-fadeIn">
+            <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
             </svg>
             <span>{saveSuccessMessage}</span>
@@ -800,8 +800,8 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         )}
 
         {errorMessage && (
-          <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-800 dark:text-rose-300 font-bold text-xs sm:text-sm flex items-center gap-2 animate-shake">
-            <svg className="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-800 dark:text-rose-300 font-bold text-xs flex items-center gap-2 animate-shake">
+            <svg className="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{errorMessage}</span>
@@ -809,35 +809,35 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* SECTION 1 : 📍 MA BASE D'INTERVENTION                                    */}
+        {/* SECTION 1 : 📍 MA BASE D'INTERVENTION (Ligne compacte)                   */}
         {/* ========================================================================= */}
-        <div className="bg-surface-container-low/70 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+        <div className="bg-surface-container-low/80 p-2.5 sm:p-3 rounded-xl border border-outline-variant/30 space-y-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-xs sm:text-sm font-black text-on-surface uppercase tracking-wider flex items-center gap-2">
-              <span className="text-red-500 text-base">📍</span>
-              <span>MA BASE D'INTERVENTION</span>
+            <h3 className="text-xs font-black text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-red-500 text-sm">📍</span>
+              <span>1. MA BASE D'INTERVENTION</span>
             </h3>
             <button
               type="button"
               onClick={handleGeolocate}
               disabled={isGeolocating}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-[11px] transition-all cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              <svg className={`w-4 h-4 ${isGeolocating ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className={`w-3.5 h-3.5 ${isGeolocating ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="22" y1="12" x2="18" y2="12" />
                 <line x1="6" y1="12" x2="2" y2="12" />
                 <line x1="12" y1="6" x2="12" y2="2" />
                 <line x1="12" y1="22" x2="12" y2="18" />
               </svg>
-              <span>{isGeolocating ? 'Localisation en cours...' : '📍 Me géolocaliser'}</span>
+              <span>{isGeolocating ? 'Localisation...' : '📍 Me géolocaliser'}</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* SÉLECTEUR DE RÉGION (18 Régions avec identifiants INSEE officiels) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            {/* Région */}
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-on-surface-variant mb-1.5">
+              <label className="block text-[10px] font-black uppercase tracking-wider text-on-surface-variant mb-0.5">
                 Région administrative
               </label>
               <select
@@ -853,7 +853,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                     }
                   }
                 }}
-                className="w-full bg-surface-container rounded-xl border border-outline-variant/40 px-3.5 py-2.5 text-xs font-bold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+                className="w-full bg-surface-container rounded-lg border border-outline-variant/40 px-2.5 py-1.5 text-xs font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
               >
                 <optgroup label="France Métropolitaine (13)">
                   {FRENCH_REGIONS.filter((r) => !r.isDrom).map((r) => (
@@ -862,7 +862,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="DROM (Outre-Mer - 5)">
+                <optgroup label="DROM (5)">
                   {FRENCH_REGIONS.filter((r) => r.isDrom).map((r) => (
                     <option key={r.code} value={r.code}>
                       {r.name}
@@ -872,17 +872,17 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
               </select>
             </div>
 
-            {/* SÉLECTEUR DE VILLE (Filtré par région) */}
+            {/* Ville */}
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-on-surface-variant mb-1.5">
-                Ville / Commune de stationnement
+              <label className="block text-[10px] font-black uppercase tracking-wider text-on-surface-variant mb-0.5">
+                Ville de rattachement
               </label>
               <select
                 id="select-city"
                 value={selectedCity}
                 onChange={(e) => handleCityChange(e.target.value)}
                 disabled={isLoadingCommunes}
-                className="w-full bg-surface-container rounded-xl border border-outline-variant/40 px-3.5 py-2.5 text-xs font-bold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer disabled:opacity-50"
+                className="w-full bg-surface-container rounded-lg border border-outline-variant/40 px-2.5 py-1.5 text-xs font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer disabled:opacity-50"
               >
                 {isLoadingCommunes ? (
                   <option>Chargement des communes...</option>
@@ -900,148 +900,137 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                 )}
               </select>
             </div>
-          </div>
 
-          {/* ADRESSE CONFIRMÉE DE LA BASE AVEC AUTOCOMPLÉTION */}
-          <div className="relative">
-            <label className="block text-[11px] font-black uppercase tracking-wider text-on-surface-variant mb-1.5">
-              Position de ma base (Adresse ou repère)
-            </label>
-            <div className="flex items-center gap-2">
+            {/* Adresse / GPS */}
+            <div className="relative">
+              <label className="block text-[10px] font-black uppercase tracking-wider text-on-surface-variant mb-0.5">
+                Adresse ou repère précis
+              </label>
               <input
                 id="input-base-address"
                 type="text"
                 value={addressQuery || baseAddress}
                 onChange={(e) => handleAddressSearch(e.target.value)}
-                placeholder="Rechercher une adresse précise, une rue..."
-                className="flex-1 bg-surface-container rounded-xl border border-outline-variant/40 px-3.5 py-2 text-xs font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/40"
+                placeholder="Rechercher une adresse, rue..."
+                className="w-full bg-surface-container rounded-lg border border-outline-variant/40 px-2.5 py-1.5 text-xs font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <span className="text-[11px] text-on-surface-variant shrink-0 bg-surface-container px-2.5 py-1.5 rounded-lg border border-outline-variant/30 font-mono">
-                {baseCoords.lat.toFixed(4)}, {baseCoords.lng.toFixed(4)}
-              </span>
-            </div>
 
-            {/* Suggestions d'adresses */}
-            {addressSuggestions.length > 0 && (
-              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-container-high rounded-xl border border-outline-variant/40 shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                {addressSuggestions.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectAddressSuggestion(item)}
-                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-primary/10 transition-colors border-b border-outline-variant/20 last:border-0"
-                  >
-                    <div className="font-bold text-on-surface">{item.name}</div>
-                    {item.departmentName && (
-                      <div className="text-[10px] text-on-surface-variant">{item.departmentName}</div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-            <p className="text-[11px] text-on-surface-variant mt-1.5 flex items-center gap-1">
-              <span>💡</span>
-              <span>Vous pouvez déplacer directement le repère rouge au doigt ou à la souris sur la carte.</span>
-            </p>
+              {/* Suggestions d'adresses */}
+              {addressSuggestions.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-container-high rounded-xl border border-outline-variant/40 shadow-xl overflow-hidden max-h-40 overflow-y-auto">
+                  {addressSuggestions.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectAddressSuggestion(item)}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors border-b border-outline-variant/20 last:border-0"
+                    >
+                      <div className="font-bold text-on-surface">{item.name}</div>
+                      {item.departmentName && (
+                        <div className="text-[10px] text-on-surface-variant">{item.departmentName}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 2 : 🗺️ MA ZONE D'ACTION (Polygone interactif Google Maps)         */}
+        {/* SECTION 2 : 🗺️ CARTE ET ZONE D'ACTION COMPACTE                            */}
         {/* ========================================================================= */}
-        <div className="bg-surface-container-low/70 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="bg-surface-container-low/80 p-2.5 sm:p-3 rounded-xl border border-outline-variant/30 space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-xs sm:text-sm font-black text-on-surface uppercase tracking-wider flex items-center gap-2">
-                <span className="text-primary text-base">🗺️</span>
-                <span>MA ZONE D'ACTION INTERACTIVE</span>
+              <h3 className="text-xs font-black text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-primary text-sm">🗺️</span>
+                <span>2. MA ZONE D'ACTION INTERACTIVE</span>
               </h3>
-              <p className="text-[11px] text-on-surface-variant flex items-center gap-2 mt-0.5">
+              <p className="text-[10px] text-on-surface-variant flex items-center gap-1.5 mt-0.5">
                 <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  {polygonCoords.length} points d'ancrage actifs
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  {polygonCoords.length} points d'ancrage
                 </span>
                 <span>•</span>
                 <span className="text-cyan-600 dark:text-cyan-400 font-semibold">
-                  {polygonCoords.length} ancres intermédiaires étirables
+                  {polygonCoords.length} ancres étirables
                 </span>
               </p>
             </div>
 
-            {/* BOÎTE À OUTILS D'ÉDITION DE POLYGONE */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            {/* BOÎTE À OUTILS */}
+            <div className="flex flex-wrap items-center gap-1">
               {editMode === 'DRAWING' ? (
                 <button
                   type="button"
                   onClick={handleFinishDrawing}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95 cursor-pointer"
                 >
-                  <span>✓</span>
-                  <span>Terminer le tracé ({polygonCoords.length} points)</span>
+                  ✓ Terminer ({polygonCoords.length} pts)
                 </button>
               ) : (
                 <>
                   <button
                     type="button"
                     onClick={handleStartDrawing}
-                    className="px-2.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-xs transition-all active:scale-95 cursor-pointer"
-                    title="Redessiner un polygone complet clic par clic"
+                    className="px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-[11px] transition-all active:scale-95 cursor-pointer"
                   >
-                    ✏️ Nouveau tracé
+                    ✏️ Tracé libre
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setEditMode(editMode === 'EDITING_VERTICES' ? 'IDLE' : 'EDITING_VERTICES')}
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border cursor-pointer ${
+                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all active:scale-95 border cursor-pointer ${
                       editMode === 'EDITING_VERTICES'
                         ? 'bg-primary text-white border-primary shadow-xs'
                         : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
                     }`}
                   >
-                    {editMode === 'EDITING_VERTICES' ? '✓ Mode ancrage actif' : '🎯 Ajuster les ancres'}
+                    {editMode === 'EDITING_VERTICES' ? '✓ Mode ancrage' : '🎯 Ajuster'}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setEditMode(editMode === 'ADD_VERTEX' ? 'EDITING_VERTICES' : 'ADD_VERTEX')}
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border cursor-pointer ${
+                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all active:scale-95 border cursor-pointer ${
                       editMode === 'ADD_VERTEX'
                         ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
                         : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
                     }`}
                   >
-                    ➕ Clic ajouter
+                    ➕ Ajouter
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setEditMode(editMode === 'DELETE_VERTEX' ? 'EDITING_VERTICES' : 'DELETE_VERTEX')}
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 border cursor-pointer ${
+                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all active:scale-95 border cursor-pointer ${
                       editMode === 'DELETE_VERTEX'
                         ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
                         : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-surface-container-high'
                     }`}
                   >
-                    🗑️ Supprimer
+                    🗑️ Retirer
                   </button>
 
                   {historyStack.length > 0 && (
                     <button
                       type="button"
                       onClick={handleUndo}
-                      className="px-2.5 py-1.5 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-xs transition-all cursor-pointer"
-                      title="Annuler la dernière modification"
+                      className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer"
+                      title="Annuler"
                     >
-                      ↩️ Annuler
+                      ↩️
                     </button>
                   )}
 
                   <button
                     type="button"
                     onClick={handleResetZone}
-                    className="px-2.5 py-1.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-xs transition-all cursor-pointer"
-                    title="Réinitialiser la zone avec un cercle régulier"
+                    className="px-2 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer"
+                    title="Réinitialiser"
                   >
                     Effacer
                   </button>
@@ -1050,201 +1039,131 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             </div>
           </div>
 
-          {/* DENSITÉ DES POINTS D'ANCRAGE & FORMES PRÉCONFIGURÉES */}
+          {/* DENSITÉ DES POINTS D'ANCRAGE & FORMES */}
           {editMode !== 'DRAWING' && (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-outline-variant/20">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                  Points d'ancrage :
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleSetPresetVertices(4)}
-                  className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-primary/15 text-[11px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
-                  title="Zone carrée à 4 points"
-                >
-                  4 ancres
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetPresetVertices(6)}
-                  className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-primary/15 text-[11px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
-                  title="Zone hexagonale à 6 points"
-                >
-                  6 ancres
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetPresetVertices(8)}
-                  className="px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[11px] font-black border border-primary/30 transition-colors cursor-pointer"
-                  title="Octogone régulier (Recommandé pour un périmètre équilibré)"
-                >
-                  ★ 8 ancres (Idéal)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetPresetVertices(12)}
-                  className="px-2 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-primary/15 text-[11px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
-                  title="Zone détaillée à 12 points pour épouser précisément les axes routiers"
-                >
-                  12 ancres
-                </button>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 py-1 border-t border-b border-outline-variant/20 text-[10px]">
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="font-bold text-on-surface-variant">Ancres :</span>
+                {[
+                  { count: 4, label: '4' },
+                  { count: 6, label: '6' },
+                  { count: 8, label: '8 (Idéal)' },
+                  { count: 12, label: '12' },
+                ].map((p) => (
+                  <button
+                    key={p.count}
+                    type="button"
+                    onClick={() => handleSetPresetVertices(p.count)}
+                    className={`px-1.5 py-0.5 rounded font-bold border transition-colors cursor-pointer ${
+                      polygonCoords.length === p.count
+                        ? 'bg-primary/20 text-primary border-primary/40 font-black'
+                        : 'bg-surface-container text-on-surface border-outline-variant/30 hover:bg-primary/10'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
                 <button
                   type="button"
                   onClick={handleSubdivideVertices}
-                  className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 text-[11px] font-black border border-cyan-500/30 transition-colors cursor-pointer"
-                  title="Insérer automatiquement un point d'ancrage au milieu de chaque segment existant"
+                  className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/20 font-black border border-cyan-500/30 transition-colors cursor-pointer"
+                  title="Doubler le nombre d'ancres"
                 >
-                  ➕ Doubler les ancres (x2)
+                  ➕ x2
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                  Rayon :
-                </span>
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-on-surface-variant">Rayon :</span>
                 {[10, 15, 25, 40].map((r) => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => handleSetPresetVertices(polygonCoords.length || 8, r)}
-                    className="px-2 py-0.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-primary text-[10px] font-bold border border-outline-variant/30 transition-colors cursor-pointer"
+                    className="px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant hover:text-primary font-bold border border-outline-variant/30 transition-colors cursor-pointer"
                   >
-                    {r} km
+                    {r}km
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* INSTRUCTION SELON LE MODE */}
-          <div className="text-[11px] bg-surface-container px-3.5 py-2 rounded-xl border border-outline-variant/20 text-on-surface-variant flex items-center justify-between gap-2 flex-wrap">
-            {editMode === 'DRAWING' && (
-              <span className="text-primary font-bold">
-                🎯 Mode tracé : Cliquez sur la carte pour poser chaque sommet, puis cliquez sur "Terminer le tracé".
-              </span>
-            )}
-            {editMode === 'EDITING_VERTICES' && (
-              <span className="flex items-center gap-1.5 flex-wrap">
-                <span>💡 <strong>Astuce :</strong> Glissez les</span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold">
-                  🔵 sommets bleus
-                </span>
-                <span>pour déplacer les angles, et tirez les</span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 font-bold">
-                  🟢 points cyan
-                </span>
-                <span>pour étirer les segments et créer de nouvelles ancres !</span>
-              </span>
-            )}
-            {editMode === 'ADD_VERTEX' && (
-              <span className="text-amber-600 font-bold">
-                ➕ Mode ajout : Cliquez sur la carte à l'endroit exact où vous voulez insérer une nouvelle ancre.
-              </span>
-            )}
-            {editMode === 'DELETE_VERTEX' && (
-              <span className="text-rose-600 font-bold">
-                🗑️ Mode suppression : Cliquez sur le point d'ancrage que vous souhaitez retirer.
-              </span>
-            )}
-            {editMode === 'IDLE' && <span>Zone verrouillée. Cliquez sur "Ajuster les ancres" pour modifier.</span>}
-          </div>
-
-          {/* CONTENEUR DE CARTE GOOGLE MAPS */}
-          <div className="relative w-full h-[420px] sm:h-[480px] rounded-2xl overflow-hidden border border-outline-variant/40 shadow-inner">
+          {/* CONTENEUR DE CARTE GOOGLE MAPS : HAUTEUR COMPACTE ET OPTIMISÉE */}
+          <div className="relative w-full h-[220px] sm:h-[260px] md:h-[275px] rounded-xl overflow-hidden border border-outline-variant/40 shadow-inner">
             <div ref={mapContainerRef} className="w-full h-full" />
           </div>
 
-          {/* LÉGENDE INTERACTIVE DES POINTS D'ANCRAGE */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-semibold text-on-surface-variant">
-            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
-              <span className="w-3 h-3 rounded-full bg-blue-600 border border-white shrink-0 shadow-xs" />
-              <span>Sommet d'ancrage (glisser)</span>
+          {/* LÉGENDE RAPIDE & COMMUNES LIMITROPHES */}
+          <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] text-on-surface-variant">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 border border-white shrink-0" />
+                <span>Sommets bleus (glisser)</span>
+              </span>
+              <span className="inline-flex items-center gap-1 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-cyan-500 border border-white shrink-0" />
+                <span>Points cyan (étirer)</span>
+              </span>
+              <span className="inline-flex items-center gap-1 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-white shrink-0" />
+                <span>Base départ (déplaçable)</span>
+              </span>
             </div>
-            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 border border-white shrink-0 shadow-xs" />
-              <span>Ancre intermédiaire (étirer)</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
-              <span className="w-3 h-3 rounded-full bg-red-600 border border-white shrink-0 shadow-xs" />
-              <span>Base départ (déplaçable)</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-surface-container/60 px-2.5 py-1.5 rounded-lg border border-outline-variant/20">
-              <span className="w-3 h-3 rounded-full border border-dashed border-amber-500 bg-amber-500/20 shrink-0" />
-              <span>Rayon étendu +30 km</span>
-            </div>
-          </div>
 
-          {/* ANCRAGE RAPIDE SUR LES COMMUNES LIMITROPHES */}
-          {nearbyCommunes.length > 0 && (
-            <div className="pt-2 border-t border-outline-variant/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                  <span>📍</span>
-                  <span>Ancrer rapidement une commune limitrophe dans votre zone :</span>
-                </span>
-                <span className="text-[10px] text-on-surface-variant">
-                  Cliquer pour attacher la commune au contour
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {nearbyCommunes.map((c) => (
+            {nearbyCommunes.length > 0 && (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-bold text-on-surface-variant">Ancrer commune :</span>
+                {nearbyCommunes.slice(0, 4).map((c) => (
                   <button
                     key={c.insee}
                     type="button"
                     onClick={() => handleAddCommuneAnchor(c)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-surface-container hover:bg-primary/15 hover:text-primary text-[11px] font-bold border border-outline-variant/30 hover:border-primary/40 transition-all cursor-pointer shadow-xs active:scale-95"
-                    title={`Ajouter ${c.name} (${c.distKm.toFixed(1)} km) comme point d'ancrage dans la zone`}
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-surface-container hover:bg-primary/15 hover:text-primary text-[10px] font-bold border border-outline-variant/30 transition-all cursor-pointer"
+                    title={`Ajouter ${c.name} (${c.distKm.toFixed(0)} km)`}
                   >
-                    <span className="text-primary font-black">+</span>
+                    <span className="text-primary font-bold">+</span>
                     <span>{c.name}</span>
-                    <span className="text-[10px] text-on-surface-variant opacity-80 font-normal">
-                      ({c.distKm.toFixed(0)} km)
-                    </span>
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 3 : 📢 OFFRES AU-DELÀ DE MA ZONE (30 KM FIXE DEPUIS LA BASE)      */}
+        {/* SECTION 3 : 📢 OFFRES AU-DELÀ DE MA ZONE (Ligne compacte)                 */}
         {/* ========================================================================= */}
-        <div className="bg-surface-container-low/70 p-4 sm:p-5 rounded-2xl border border-outline-variant/30">
-          <label htmlFor="checkbox-extended-radius" className="flex items-start gap-3.5 cursor-pointer select-none group">
+        <div className="bg-surface-container-low/80 px-3 py-2 rounded-xl border border-outline-variant/30 flex items-center justify-between flex-wrap gap-2">
+          <label htmlFor="checkbox-extended-radius" className="flex items-center gap-2.5 cursor-pointer select-none">
             <input
               id="checkbox-extended-radius"
               type="checkbox"
               checked={allowExtendedRadius}
               onChange={(e) => setAllowExtendedRadius(e.target.checked)}
-              className="w-5 h-5 mt-0.5 rounded border-outline-variant/50 text-primary focus:ring-primary/20 accent-primary cursor-pointer transition-transform group-hover:scale-110"
+              className="w-4 h-4 rounded border-outline-variant/50 text-primary focus:ring-primary/20 accent-primary cursor-pointer"
             />
-            <div className="space-y-1">
-              <span className="text-xs sm:text-sm font-black text-on-surface group-hover:text-primary transition-colors flex items-center gap-2">
-                <span>📢</span>
-                <span>Recevoir des offres au-delà de ma zone</span>
+            <div className="text-xs">
+              <span className="font-bold text-on-surface">📢 Recevoir les offres au-delà de ma zone</span>
+              <span className="text-on-surface-variant text-[11px] ml-1.5 hidden sm:inline">
+                (Rayon étendu de 30 km autour de {selectedCity})
               </span>
-              <p className="text-xs text-on-surface-variant">
-                Vous pourrez recevoir des offres jusqu'à 30 km autour de votre base d'intervention.
-              </p>
-              <div className="inline-flex items-center gap-2 mt-2 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[11px] font-bold">
-                <span>Rayon supplémentaire fixe :</span>
-                <span className="font-mono">30 km (autour de {selectedCity})</span>
-              </div>
             </div>
           </label>
+          <div className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold">
+            Fixe : +30 km
+          </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* BOUTON D'ENREGISTREMENT OFFICIEL                                         */}
+        {/* BOUTONS D'ACTION                                                         */}
         {/* ========================================================================= */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3">
+        <div className="pt-1 flex items-center justify-end gap-2.5">
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-bold text-xs transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-bold text-xs transition-colors cursor-pointer"
             >
               Annuler
             </button>
@@ -1255,7 +1174,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isSaving ? (
               <>
@@ -1263,7 +1182,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                   <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
                   <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <span>Enregistrement dans Supabase...</span>
+                <span>Enregistrement...</span>
               </>
             ) : (
               <>
