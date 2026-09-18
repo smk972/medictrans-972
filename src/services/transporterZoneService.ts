@@ -398,7 +398,10 @@ export async function saveTransporterZone(zone: InterventionZone): Promise<Inter
       .single();
 
     if (error) {
-      console.error('[transporterZoneService] Erreur sauvegarde Supabase:', error);
+      console.warn('[transporterZoneService] Erreur sauvegarde Supabase:', error);
+      if (error.message && error.message.includes('schema cache')) {
+        throw new Error("La table 'transporter_intervention_zones' n'existe pas encore dans Supabase. Veuillez exécuter le script SQL dans votre console Supabase.");
+      }
       throw new Error(`Erreur d'enregistrement de la zone dans Supabase: ${error.message}`);
     }
 
