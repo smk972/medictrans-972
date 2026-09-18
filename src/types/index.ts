@@ -96,6 +96,7 @@ export interface Ride {
   directRequestExpiresAt?: string; // Date ISO de fin du délai de 24h00 pour répondre
   isDirectRequestExpired?: boolean; // Vrai si le délai de 24h00 est expiré
   reassignedToPublicPool?: boolean; // Vrai si la course a été rebasculée dans le pot commun
+  reassignedReason?: string; // Raison du rebasculement au pot commun
 }
 
 export interface RidePricing {

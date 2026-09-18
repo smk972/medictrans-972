@@ -221,9 +221,15 @@ export const BookingPage: React.FC = () => {
     }
   };
   
-  // Attribution directe nominative (délai 24h) ou diffusion générale (pot commun)
+  // Continuité des soins : Détection automatique des transporteurs ayant déjà pris en charge ce patient
   const [transportersList, setTransportersList] = useState<Transporter[]>([]);
-  const [selectedTransporterId, setSelectedTransporterId] = useState<string>('');
+  const [preferredTransporters, setPreferredTransporters] = useState<{
+    transporterName: string;
+    transporterId?: string;
+    lastRideDate: string;
+    totalCompletedRides: number;
+  }[]>([]);
+  const [isLoadingPreferred, setIsLoadingPreferred] = useState<boolean>(false);
 
   useEffect(() => {
     rideService.getAllTransporters().then((list) => {
@@ -274,31 +280,60 @@ export const BookingPage: React.FC = () => {
     return names[patientDept] || `Secteur ${patientDept}`;
   }, [patientDept]);
 
-  // Filtrage strict des compagnies de transport conventionnées du département du patient
+  // Filtrage des compagnies conventionnées du département pour l'information du patient
   const departmentTransporters = useMemo(() => {
     const list = transportersList.filter((t) => getTransporterDepartment(t) === patientDept);
-    // Si aucun transporteur spécifique n'est encore enregistré pour ce département,
-    // on replie sur l'ensemble pour garantir le service tout en informant le patient
     if (list.length === 0) {
       return transportersList;
     }
     return list;
   }, [transportersList, patientDept]);
 
-  // Réinitialisation automatique du choix direct si le département de prise en charge change
+  // Détection automatique en arrière-plan du transporteur habituel du patient (continuité des soins)
   useEffect(() => {
-    if (selectedTransporterId) {
-      const isValidInDept = departmentTransporters.some((t) => t.id === selectedTransporterId);
-      if (!isValidInDept) {
-        setSelectedTransporterId('');
-      }
-    }
-  }, [patientDept, departmentTransporters, selectedTransporterId]);
+    let isMounted = true;
+    const fetchPreferred = async () => {
+      const cleanN = nir.trim();
+      const cleanP = phone.trim();
+      const cleanE = user?.email?.trim();
+      const uId = user?.id;
 
-  const selectedTransporter = useMemo(() => {
-    if (!selectedTransporterId) return null;
-    return departmentTransporters.find((t) => t.id === selectedTransporterId) || transportersList.find((t) => t.id === selectedTransporterId) || null;
-  }, [selectedTransporterId, departmentTransporters, transportersList]);
+      if (!uId && !cleanN && !cleanP && !cleanE) {
+        setPreferredTransporters([]);
+        return;
+      }
+
+      setIsLoadingPreferred(true);
+      try {
+        const found = await rideService.getPatientPreferredTransporters({
+          userId: uId,
+          nir: cleanN,
+          phone: cleanP,
+          email: cleanE,
+        });
+        if (isMounted) {
+          setPreferredTransporters(found);
+        }
+      } catch (e) {
+        console.warn('Erreur détection transporteur prioritaire:', e);
+      } finally {
+        if (isMounted) {
+          setIsLoadingPreferred(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(fetchPreferred, 300);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [user?.id, user?.email, nir, phone]);
+
+  // Le transporteur prioritaire est le premier transporteur historique ayant pris en charge le patient
+  const priorityTransporter = useMemo(() => {
+    return preferredTransporters.length > 0 ? preferredTransporters[0] : null;
+  }, [preferredTransporters]);
 
   // Consommation automatique d'un brouillon pré-rempli par Eva
   useEffect(() => {
@@ -481,9 +516,10 @@ export const BookingPage: React.FC = () => {
         isRecurring,
         recurringDates: isRecurring ? recurringDates : undefined,
         pricing: ridePricing,
-        isDirectRequest: !!selectedTransporter,
-        targetTransporterId: selectedTransporter?.id,
-        targetTransporterName: selectedTransporter?.companyName,
+        isDirectRequest: !!priorityTransporter,
+        targetTransporterId: priorityTransporter?.transporterId,
+        targetTransporterName: priorityTransporter?.transporterName,
+        directRequestExpiresAt: priorityTransporter ? new Date(Date.now() + 24 * 3600000).toISOString() : undefined,
       });
 
       const actualRef = createdRide?.reference || finalRef;
@@ -501,9 +537,10 @@ export const BookingPage: React.FC = () => {
         nir: currentNir,
         phone,
         uploadedPmtDoc,
-        isDirectRequest: !!selectedTransporter,
-        targetTransporterId: selectedTransporter?.id,
-        targetTransporterName: selectedTransporter?.companyName,
+        isDirectRequest: !!priorityTransporter,
+        targetTransporterId: priorityTransporter?.transporterId,
+        targetTransporterName: priorityTransporter?.transporterName,
+        directRequestExpiresAt: priorityTransporter ? new Date(Date.now() + 24 * 3600000).toISOString() : undefined,
       };
       try {
         localStorage.setItem('medictrans_last_booking', JSON.stringify(bookingRecord));
@@ -1696,97 +1733,110 @@ export const BookingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Card 3 bis: Choix du Transporteur Sanitaire (Demande nominative 24h ou Bourse publique) */}
+              {/* Card 3 bis: Attribution du Transporteur & Continuité des Soins */}
               <div id="block-transporter" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-md border border-outline-variant/30 scroll-mt-28">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between border-b border-surface-container pb-space-sm">
                   <div className="flex items-center gap-space-sm">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                      <span className="material-symbols-outlined text-[24px]">local_shipping</span>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${priorityTransporter ? 'bg-amber-500/15 text-amber-800' : 'bg-primary/10 text-primary'}`}>
+                      <span className="material-symbols-outlined text-[24px]">
+                        {priorityTransporter ? 'volunteer_activism' : 'local_shipping'}
+                      </span>
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-                          Choix du Transporteur Sanitaire
+                          Attribution du Transporteur Sanitaire
                         </h2>
-                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                          Attribution
-                        </span>
+                        {priorityTransporter ? (
+                          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></span>
+                            Continuité des soins
+                          </span>
+                        ) : (
+                          <span className="bg-teal-100 text-teal-900 border border-teal-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
+                            Réseau conventionné
+                          </span>
+                        )}
                         <span className="bg-secondary/10 text-secondary text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border border-secondary/20">
                           <span className="material-symbols-outlined text-xs">location_on</span>
                           <span>Secteur {deptLabel}</span>
                         </span>
                       </div>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                        Adressez directement votre demande à un transporteur agréé de votre département ou diffusez-la à l'ensemble du réseau local
+                        {priorityTransporter
+                          ? 'Attribution prioritaire automatique basée sur votre historique de soins'
+                          : 'Attribution automatique équitable auprès du réseau sanitaire local'}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-space-sm pt-space-xs">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="transporter-select" className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm text-primary">domain</span>
-                      <span>Transporteur conventionné du secteur ({departmentTransporters.length} disponibles) :</span>
-                    </label>
-                    <span className="text-[11px] text-on-surface-variant font-medium">
-                      Bassin : <strong className="text-on-surface">{deptLabel}</strong>
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      id="transporter-select"
-                      value={selectedTransporterId}
-                      onChange={(e) => {
-                        setSelectedTransporterId(e.target.value);
-                      }}
-                      className="w-full pl-3 pr-10 py-3 rounded-xl border border-outline-variant/50 bg-surface-container-low text-on-surface text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="">
-                        🌐 Diffusion générale (Bourse publique — {deptLabel} — Premier disponible)
-                      </option>
-                      {departmentTransporters.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.fleetAmbulances > 0 ? '🚑' : '🚖'} {t.companyName} ({t.city || deptLabel}) — Conventionné ARS & CPAM ({t.fleetAmbulances} amb., {t.fleetVsl} VSL)
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
-                      <span className="material-symbols-outlined">expand_more</span>
+                  {isLoadingPreferred ? (
+                    <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs flex items-center gap-3 text-on-surface-variant">
+                      <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                      <span>Vérification de la continuité des soins et de votre historique de transport...</span>
                     </div>
-                  </div>
-
-                  {selectedTransporter ? (
-                    <div className="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-950 text-xs flex flex-col gap-2.5 animate-fadeIn">
-                      <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
-                        <span className="material-symbols-outlined text-amber-600 text-xl">local_fire_department</span>
-                        <span>Demande directe nominative adressée à : {selectedTransporter.companyName} ({selectedTransporter.city || deptLabel})</span>
+                  ) : priorityTransporter ? (
+                    <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 text-xs flex flex-col gap-3 animate-fadeIn shadow-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 font-bold text-amber-950 text-sm">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-xl text-amber-700">local_fire_department</span>
+                          </div>
+                          <div>
+                            <span className="block text-[11px] font-semibold text-amber-800 uppercase tracking-wider">
+                              Demande adressée en priorité à votre transporteur habituel :
+                            </span>
+                            <span className="text-base font-extrabold text-amber-950">
+                              {priorityTransporter.transporterName}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="bg-amber-200/80 text-amber-950 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-amber-400/60 shrink-0">
+                          Délai prioritaire 24h
+                        </span>
                       </div>
+
                       <p className="text-[12px] text-amber-950/90 leading-relaxed">
-                        Cette demande apparaîtra <strong>en orange vif</strong> dans le terminal de gestion de <strong>{selectedTransporter.companyName}</strong> avec un <strong>délai prioritaire de 24h00</strong> pour accepter et confirmer la prise en charge.
+                        Ce transporteur conventionné a <strong>déjà assuré votre prise en charge</strong> ({priorityTransporter.totalCompletedRides} course{priorityTransporter.totalCompletedRides > 1 ? 's' : ''} à votre actif). Conformément aux règles de continuité des soins, votre nouvelle réservation lui est <strong>automatiquement transmise en priorité exclusive pendant 24h00</strong>.
                       </p>
-                      <div className="flex items-start gap-2 text-[11px] text-amber-900 bg-amber-500/15 p-2.5 rounded-lg font-medium border border-amber-500/20">
+
+                      <div className="flex items-start gap-2 text-[11px] text-amber-950 bg-white/90 p-3 rounded-xl font-medium border border-amber-200/80">
                         <span className="material-symbols-outlined text-sm text-amber-700 shrink-0 mt-0.5">sync_alt</span>
                         <span>
-                          <strong>Garantie de prise en charge :</strong> Si {selectedTransporter.companyName} ne répond pas dans ce délai de 24h00 (ou s'il décline), votre demande sera immédiatement rebasculée dans le <em>pot commun</em> du secteur <strong>{deptLabel}</strong> pour être prise par le premier véhicule conventionné disponible.
+                          <strong>Garantie absolue de prise en charge :</strong> Si {priorityTransporter.transporterName} n'est pas disponible ou ne valide pas sous 24h, votre demande sera immédiatement et automatiquement réorientée vers le <em>pot commun</em> du secteur <strong>{deptLabel}</strong> pour être prise en charge par le premier véhicule conventionné disponible, sans que vous n'ayez rien à faire.
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs flex items-start gap-2.5 text-on-surface-variant">
-                      <span className="material-symbols-outlined text-secondary text-base shrink-0 mt-0.5">hub</span>
-                      <div className="text-[11px] leading-relaxed">
-                        <strong>Diffusion générale optimale ({deptLabel}) :</strong> Votre demande sera transmise simultanément à l'ensemble des compagnies de transport sanitaire conventionnées ({departmentTransporters.length} sociétés agréées) de votre secteur pour une attribution instantanée au premier disponible.
+                    <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/80 border border-teal-200 text-teal-950 text-xs flex flex-col gap-2.5 animate-fadeIn shadow-xs">
+                      <div className="flex items-center gap-2 font-bold text-teal-900 text-sm">
+                        <span className="material-symbols-outlined text-teal-700 text-xl">hub</span>
+                        <span>Attribution automatique au premier disponible ({deptLabel})</span>
+                      </div>
+                      <p className="text-[12px] text-teal-900/90 leading-relaxed">
+                        Votre demande sera transmise instantanément à l'ensemble des compagnies de transport sanitaire agréées ({departmentTransporters.length} sociétés conventionnées ARS & CPAM) de votre secteur. Le premier véhicule sanitaire disponible confirmera votre prise en charge.
+                      </p>
+                      <div className="flex items-start gap-2 text-[11px] text-teal-800 bg-white/80 p-2.5 rounded-lg border border-teal-200/60">
+                        <span className="material-symbols-outlined text-sm text-teal-600 shrink-0 mt-0.5">verified</span>
+                        <span>
+                          <strong>Continuité future :</strong> Dès ce premier trajet validé, ce transporteur deviendra automatiquement votre transporteur référent et sera prioritaire pour vos futures réservations Clinigo.
+                        </span>
                       </div>
                     </div>
                   )}
 
-                  {/* Bouton de finalisation de la réservation */}
+                  {/* Bouton de confirmation de la réservation */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-outline-variant/15 mt-2">
                     <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
                       <span className="material-symbols-outlined text-sm text-secondary">local_shipping</span>
-                      {selectedTransporter ? selectedTransporter.companyName : 'Diffusion au réseau local conventionné'}
+                      {priorityTransporter ? (
+                        <span>Priorité habituelle : <strong className="text-amber-900">{priorityTransporter.transporterName}</strong></span>
+                      ) : (
+                        <span>Diffusion au réseau conventionné ({deptLabel})</span>
+                      )}
                     </span>
                     <button
                       type="submit"
@@ -1800,7 +1850,7 @@ export const BookingPage: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <span>{selectedTransporter ? `Confirmer & Envoyer à ${selectedTransporter.companyName}` : 'Finaliser la réservation'}</span>
+                          <span>{priorityTransporter ? `Confirmer & Proposer en priorité à ${priorityTransporter.transporterName}` : 'Finaliser la réservation'}</span>
                           <span className="material-symbols-outlined text-base">check_circle</span>
                         </>
                       )}
@@ -1910,15 +1960,15 @@ export const BookingPage: React.FC = () => {
                     <span>Attribution :</span>
                   </span>
                   <div className="text-right">
-                    {selectedTransporter ? (
+                    {priorityTransporter ? (
                       <span className="font-bold text-amber-700 flex items-center gap-1 text-xs">
                         <span className="material-symbols-outlined text-xs">local_fire_department</span>
-                        <span>{selectedTransporter.companyName} (24h)</span>
+                        <span>Priorité {priorityTransporter.transporterName} (24h)</span>
                       </span>
                     ) : (
                       <span className="font-bold text-secondary flex items-center gap-1 text-xs">
                         <span className="material-symbols-outlined text-xs">public</span>
-                        <span>Bourse publique ({deptLabel} — 1er dispo)</span>
+                        <span>Bourse conventionnée ({deptLabel})</span>
                       </span>
                     )}
                   </div>
@@ -2022,7 +2072,7 @@ export const BookingPage: React.FC = () => {
                     className={`w-full h-14 transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
                       isNirInvalid
                         ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
-                        : selectedTransporter
+                        : priorityTransporter
                         ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
                         : 'bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white active:scale-[0.99] shadow-lg shadow-teal-950/20 hover:scale-[1.01]'
                     }`}
@@ -2031,17 +2081,17 @@ export const BookingPage: React.FC = () => {
                     {isSubmitting ? (
                       <span className="flex items-center gap-2">
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                        {selectedTransporter ? 'Transmission directe en cours...' : 'Diffusion en cours...'}
+                        {priorityTransporter ? 'Transmission prioritaire en cours...' : 'Diffusion en cours...'}
                       </span>
                     ) : isNirInvalid ? (
                       <>
                         <span className="material-symbols-outlined text-[20px]">lock</span>
                         <span>NIR incomplet ou non valide</span>
                       </>
-                    ) : selectedTransporter ? (
+                    ) : priorityTransporter ? (
                       <>
                         <span className="material-symbols-outlined text-[24px]">send</span>
-                        <span className="truncate">Adresser la demande à {selectedTransporter.companyName}</span>
+                        <span className="truncate">Proposer en priorité à {priorityTransporter.transporterName}</span>
                       </>
                     ) : (
                       <>
@@ -2053,12 +2103,12 @@ export const BookingPage: React.FC = () => {
 
                   <div className="flex items-start gap-space-xs p-space-sm bg-surface-container-low rounded-xl border border-outline-variant/30">
                     <span className="material-symbols-outlined text-[18px] text-secondary shrink-0 mt-0.5">
-                      {selectedTransporter ? 'timer' : 'radar'}
+                      {priorityTransporter ? 'timer' : 'radar'}
                     </span>
                     <p className="font-label-sm text-label-sm text-on-surface-variant leading-relaxed text-xs">
-                      {selectedTransporter ? (
+                      {priorityTransporter ? (
                         <>
-                          <strong className="text-on-surface">Demande directe nominative :</strong> Transmise en priorité exclusive à <strong className="text-amber-900">{selectedTransporter.companyName}</strong> avec un délai de réponse de 24h00 avant rebasculement automatique au pot commun.
+                          <strong className="text-on-surface">Continuité des soins :</strong> Demande transmise en priorité exclusive à votre transporteur habituel <strong className="text-amber-900">{priorityTransporter.transporterName}</strong> avec un délai de réponse de 24h00 avant réorientation automatique au pot commun.
                         </>
                       ) : (
                         <>

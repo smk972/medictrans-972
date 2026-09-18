@@ -306,6 +306,114 @@ export const rideService = {
     return all.find(r => r.reference.toUpperCase() === cleanRef) || null;
   },
 
+  /**
+   * Recherche le ou les transporteurs ayant déjà pris en charge ce patient dans l'historique Clinigo
+   * Permet d'assurer la continuité des soins en adressant la commande en priorité 24h
+   */
+  async getPatientPreferredTransporters(patientInfo: {
+    userId?: string;
+    email?: string;
+    phone?: string;
+    nir?: string;
+  }): Promise<{
+    transporterName: string;
+    transporterId?: string;
+    lastRideDate: string;
+    totalCompletedRides: number;
+  }[]> {
+    if (!patientInfo) return [];
+
+    const cleanNir = (patientInfo.nir || '').replace(/\s+/g, '');
+    const rawPhone = (patientInfo.phone || '').replace(/\s+/g, '').replace(/^(?:\+33|\+596|\+590|\+594|\+262|0033|00596)/, '0');
+    const cleanEmail = (patientInfo.email || '').trim().toLowerCase();
+    const userId = patientInfo.userId?.trim();
+
+    if (!cleanNir && !rawPhone && !cleanEmail && !userId) {
+      return [];
+    }
+
+    const allRides = await this.getAllRides();
+
+    // Filtrer les courses passées du patient qui ont été prises en charge
+    const matchingRides = allRides.filter((r) => {
+      // 1. Concordance patient
+      let isSamePatient = false;
+      if (userId && r.userId && r.userId === userId) {
+        isSamePatient = true;
+      }
+      if (!isSamePatient && cleanNir && cleanNir.length >= 10 && r.patient?.nir) {
+        const rNir = r.patient.nir.replace(/\s+/g, '');
+        if (rNir === cleanNir) isSamePatient = true;
+      }
+      if (!isSamePatient && rawPhone && rawPhone.length >= 9 && r.patient?.phone) {
+        const rPhone = r.patient.phone.replace(/\s+/g, '').replace(/^(?:\+33|\+596|\+590|\+594|\+262|0033|00596)/, '0');
+        if (rPhone === rawPhone || (rPhone.length >= 9 && rawPhone.endsWith(rPhone.slice(-9)))) {
+          isSamePatient = true;
+        }
+      }
+      if (!isSamePatient && cleanEmail && cleanEmail.includes('@') && r.patient?.email) {
+        if (r.patient.email.trim().toLowerCase() === cleanEmail) {
+          isSamePatient = true;
+        }
+      }
+
+      if (!isSamePatient) return false;
+
+      // 2. Vérifier qu'un transporteur a effectivement pris en charge cette course
+      const hasAssigned = !!(r.assignedTransporter?.companyName || (r.targetTransporterName && (r.status === 'COMPLETED' || r.status === 'ACCEPTED')));
+      const validStatus = r.status === 'COMPLETED' || r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP';
+
+      return hasAssigned && validStatus;
+    });
+
+    if (matchingRides.length === 0) {
+      return [];
+    }
+
+    // Regrouper par société de transport
+    const map = new Map<string, {
+      transporterName: string;
+      transporterId?: string;
+      lastRideDate: string;
+      totalCompletedRides: number;
+    }>();
+
+    for (const r of matchingRides) {
+      const name = (r.assignedTransporter?.companyName || r.targetTransporterName || '').trim();
+      if (!name) continue;
+
+      const rideDate = r.pickupDateTime || r.createdAt || '';
+      const existing = map.get(name);
+      if (!existing) {
+        map.set(name, {
+          transporterName: name,
+          transporterId: r.targetTransporterId,
+          lastRideDate: rideDate,
+          totalCompletedRides: 1,
+        });
+      } else {
+        existing.totalCompletedRides += 1;
+        if (rideDate && (!existing.lastRideDate || new Date(rideDate).getTime() > new Date(existing.lastRideDate).getTime())) {
+          existing.lastRideDate = rideDate;
+        }
+        if (!existing.transporterId && r.targetTransporterId) {
+          existing.transporterId = r.targetTransporterId;
+        }
+      }
+    }
+
+    const list = Array.from(map.values());
+    // Trier par date de dernière course la plus récente, puis par nombre de courses
+    list.sort((a, b) => {
+      const timeA = a.lastRideDate ? new Date(a.lastRideDate).getTime() : 0;
+      const timeB = b.lastRideDate ? new Date(b.lastRideDate).getTime() : 0;
+      if (timeB !== timeA) return timeB - timeA;
+      return b.totalCompletedRides - a.totalCompletedRides;
+    });
+
+    return list;
+  },
+
   // Créer une nouvelle demande de transport
   async createRide(rideData: Partial<Ride>): Promise<Ride> {
     const reference = rideData.reference || `MT-972-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -406,6 +514,10 @@ export const rideService = {
         facility_department: newRide.facilityDepartment,
         bed_discharge_number: newRide.bedDischargeNumber,
         user_id: authUserId,
+        is_direct_request: newRide.isDirectRequest || false,
+        target_transporter_id: newRide.targetTransporterId || null,
+        target_transporter_name: newRide.targetTransporterName || null,
+        direct_request_expires_at: newRide.directRequestExpiresAt || null,
         created_at: newRide.createdAt,
         updated_at: newRide.createdAt
       }).select();
@@ -820,7 +932,14 @@ export const rideService = {
       userId: row.user_id || undefined,
       facilityId: row.facility_id || undefined,
       facilityDepartment: row.facility_department || undefined,
-      bedDischargeNumber: row.bed_discharge_number || undefined
+      bedDischargeNumber: row.bed_discharge_number || undefined,
+      isDirectRequest: Boolean(row.is_direct_request),
+      targetTransporterId: row.target_transporter_id || undefined,
+      targetTransporterName: row.target_transporter_name || undefined,
+      directRequestExpiresAt: row.direct_request_expires_at || undefined,
+      isDirectRequestExpired: Boolean(row.is_direct_request_expired),
+      reassignedToPublicPool: Boolean(row.reassigned_to_public_pool),
+      reassignedReason: row.reassigned_reason || undefined
     };
   },
 

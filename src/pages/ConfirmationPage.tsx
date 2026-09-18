@@ -234,12 +234,12 @@ export const ConfirmationPage: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold text-[10px]">
-                    {bookingData?.isDirectRequest ? 'Demande Directe Nominative (Priorité 24h)' : 'Réseau Sanitaire Opérationnel'}
+                    {bookingData?.isDirectRequest ? 'Continuité des Soins (Priorité 24h)' : 'Réseau Sanitaire Opérationnel'}
                   </span>
                   <p className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
                     {bookingData?.isDirectRequest ? (
                       <>
-                        Demande adressée à <span className="text-amber-700 font-bold">{bookingData.targetTransporterName || 'votre transporteur sélectionné'}</span>
+                        Demande adressée en priorité à <span className="text-amber-700 font-bold">{bookingData.targetTransporterName || 'votre transporteur habituel'}</span>
                       </>
                     ) : (
                       <>
@@ -249,7 +249,7 @@ export const ConfirmationPage: React.FC = () => {
                   </p>
                   <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
                     {bookingData?.isDirectRequest
-                      ? 'Délai d\'acceptation de 24h00 • Rebasculement automatique au pot commun garanti en cas d\'indisponibilité'
+                      ? 'Délai prioritaire de 24h00 pour votre transporteur habituel • Rebasculement automatique garanti au pot commun en cas d\'indisponibilité'
                       : 'Attribution automatique par proximité et disponibilité de flotte'}
                   </span>
                 </div>
