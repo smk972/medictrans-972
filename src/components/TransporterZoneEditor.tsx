@@ -10,7 +10,6 @@ import {
   calculateHaversineDistanceKm,
   generateInitialPolygon,
   saveTransporterZone,
-  loadTransporterZone,
 } from '../services/transporterZoneService';
 import { reverseGeocode, searchNationalDatabase } from '../services/nationalGeoDatabase';
 
@@ -92,9 +91,10 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
     const base = (initialZone?.baseLat && initialZone?.baseLng)
       ? { lat: initialZone.baseLat, lng: initialZone.baseLng }
       : { lat: 43.4608, lng: 1.3267 };
-    return generateInitialPolygon(base, 15, 8);
+    return generateInitialPolygon(base, 25, 8);
   });
   const [historyStack, setHistoryStack] = useState<GeoPoint[][]>([]);
+  const [selectedRadiusKm, setSelectedRadiusKm] = useState<number>(25);
 
   // 4. OFFRES ÉTENDUES (+30 KM DEPUIS LA BASE)
   const [allowExtendedRadius, setAllowExtendedRadius] = useState<boolean>(
@@ -189,34 +189,35 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           center: baseCoords,
           zoom: 12,
           mapTypeId: 'roadmap',
-          streetViewControl: false,
-          fullscreenControl: true,
-          mapTypeControl: false,
-          gestureHandling: 'greedy', // Très fluide sur tactile mobile
-          zoomControl: true,
+          disableDefaultUI: true, // Interface épurée, nous utilisons les contrôles personnalisés Stitch
+          gestureHandling: 'greedy', // Très fluide sur tactile et souris
           styles: [
             { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+            { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5f5e0' }] },
             { featureType: 'transit', stylers: [{ visibility: 'simplified' }] },
+            { featureType: 'road', elementType: 'geometry', stylers: [{ lightness: 100 }, { visibility: 'simplified' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#bae6fd' }] },
           ],
         });
 
         mapInstanceRef.current = map;
 
-        // 1. MARQUEUR DE LA BASE D'INTERVENTION (Déplaçable au doigt/souris)
+        // 1. MARQUEUR DE LA BASE D'INTERVENTION (Déplaçable)
         const baseMarker = new google.maps.Marker({
           position: baseCoords,
           map: map,
-          title: "Base d'intervention",
+          title: "Base d'intervention principale",
           draggable: true,
           optimized: false,
           zIndex: 9999,
           icon: {
-            path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-            scale: 7,
-            fillColor: '#dc2626',
+            path: 'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 16 8 16s8-10.75 8-16c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
+            fillColor: '#e11d48', // Rouge rose contrasté
             fillOpacity: 1,
             strokeColor: '#ffffff',
             strokeWeight: 2,
+            scale: 1.5,
+            anchor: new google.maps.Point(12, 24),
           },
         });
 
@@ -240,13 +241,13 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
 
         baseMarkerRef.current = baseMarker;
 
-        // 2. CERCLE POINTILLÉ DU RAYON SUPPLÉMENTAIRE (30 KM STRICTEMENT DEPUIS LA BASE)
+        // 2. CERCLE DU RAYON ÉTENDU (+30 KM STRICTEMENT DEPUIS LA BASE)
         const extendedCircle = new google.maps.Circle({
           center: baseCoords,
           radius: 30000, // 30 km en mètres
           map: allowExtendedRadius ? map : null,
-          strokeColor: '#f59e0b',
-          strokeOpacity: 0.8,
+          strokeColor: '#d97706',
+          strokeOpacity: 0.85,
           strokeWeight: 2,
           fillColor: '#fef3c7',
           fillOpacity: 0.12,
@@ -255,17 +256,17 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         });
         extendedCircleRef.current = extendedCircle;
 
-        // 3. POLYGONE DE LA ZONE D'ACTION (ÉDITÉ STRICTEMENT VIA LES 8 ANCRES DÉPLAÇABLES)
+        // 3. POLYGONE DE LA ZONE D'ACTION (ÉDITÉ VIA LES 8 ANCRES DÉPLAÇABLES)
         const poly = new google.maps.Polygon({
           paths: polygonCoords,
           map: map,
-          strokeColor: '#0284c7',
+          strokeColor: '#0369a1',
           strokeOpacity: 0.95,
-          strokeWeight: 3,
+          strokeWeight: 2.5,
           fillColor: '#0ea5e9',
-          fillOpacity: 0.22,
+          fillOpacity: 0.25,
           clickable: false,
-          editable: false, // Strictement 8 ancres : désactive les poignées intermédiaires parasites de Google Maps
+          editable: false, // 8 ancres personnalisées dédiées
           draggable: false,
           zIndex: 10,
         });
@@ -298,7 +299,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
     // S'assurer de manipuler strictement 8 points
     let points = polygonCoords;
     if (points.length !== 8) {
-      points = generateInitialPolygon(baseCoords, 15, 8);
+      points = generateInitialPolygon(baseCoords, selectedRadiusKm, 8);
       setPolygonCoords(points);
       return;
     }
@@ -321,11 +322,11 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           optimized: false,
           zIndex: 2000 + idx,
           cursor: 'grab',
-          title: `Point d'ancrage #${idx + 1} (glisser pour délimiter)`,
+          title: `Point d'ancrage #${idx + 1} (glisser pour remodeler la zone)`,
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 9,
-            fillColor: '#2563eb', // Bleu royal éclatant
+            scale: 8,
+            fillColor: '#0284c7', // Bleu sky-600 Stitch
             fillOpacity: 1,
             strokeColor: '#ffffff',
             strokeWeight: 2.5,
@@ -369,7 +370,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         });
       }
     }
-  }, [polygonCoords, baseCoords]);
+  }, [polygonCoords, baseCoords, selectedRadiusKm]);
 
   // Nettoyage des 8 marqueurs lors du démontage du composant
   useEffect(() => {
@@ -472,34 +473,48 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
       setBaseAddress(`${match.name} (${match.postalCode || selectedRegion.name})`);
       setBaseSource('MANUAL');
 
-      // Déplacer la carte et régénérer un polygone centré si vide
+      // Déplacer la carte et régénérer un polygone centré
       if (mapInstanceRef.current) {
         mapInstanceRef.current.panTo(newBase);
         mapInstanceRef.current.setZoom(12);
       }
-      if (polygonCoords.length !== 8) {
-        setPolygonCoords(generateInitialPolygon(newBase, 15, 8));
-      }
-    }
-  };
-
-  // ANNULER (UNDO)
-  const handleUndo = () => {
-    if (historyStack.length > 0) {
-      const prev = historyStack[historyStack.length - 1];
-      setHistoryStack((old) => old.slice(0, -1));
-      setPolygonCoords(prev);
+      setPolygonCoords(generateInitialPolygon(newBase, selectedRadiusKm, 8));
     }
   };
 
   // EFFACER LA ZONE / RÉINITIALISER LES 8 ANCRES
   const handleResetZone = () => {
     pushHistory(polygonCoords);
-    setPolygonCoords(generateInitialPolygon(baseCoords, 15, 8));
+    setPolygonCoords(generateInitialPolygon(baseCoords, selectedRadiusKm, 8));
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo(baseCoords);
+      mapInstanceRef.current.setZoom(12);
+    }
+  };
+
+  // CONTRÔLES ZOOM CARTE PERSONNALISÉS
+  const handleZoomIn = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setZoom((mapInstanceRef.current.getZoom() || 12) + 1);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setZoom((mapInstanceRef.current.getZoom() || 12) - 1);
+    }
+  };
+
+  const handleRecenter = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo(baseCoords);
+      mapInstanceRef.current.setZoom(12);
+    }
   };
 
   // PRÉRÉGLER LE RAYON DES 8 ANCRES (10, 15, 25, 40 KM)
   const handleSetRadius = (radiusKm: number) => {
+    setSelectedRadiusKm(radiusKm);
     pushHistory(polygonCoords);
     const newCoords = generateInitialPolygon(baseCoords, radiusKm, 8);
     setPolygonCoords(newCoords);
@@ -571,172 +586,210 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   };
 
   return (
-    <div className="bg-surface rounded-2xl shadow-2xl border border-outline-variant/30 overflow-hidden flex flex-col max-w-5xl mx-auto my-auto transition-all">
-      {/* HEADER OFFICIEL COMPACT */}
-      <div className="px-4 py-2.5 border-b border-outline-variant/20 bg-surface-container-low flex items-center justify-between">
-        <div>
-          <h2 className="text-sm sm:text-base font-black text-on-surface flex items-center gap-2">
-            <span className="text-primary text-base sm:text-lg">🗺️</span>
-            <span>MES ZONES D'INTERVENTION</span>
-          </h2>
-          <p className="text-[11px] text-on-surface-variant">
-            Ajustez votre base et façonnez votre zone d'action interactivement.
-          </p>
+    <main
+      className="relative z-10 w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-auto transition-all text-slate-900 font-sans"
+      data-purpose="intervention-zone-modal"
+    >
+      {/* ========================================================================= */}
+      {/* BEGIN: Modal Header (Reproduit fidèlement de Stitch)                     */}
+      {/* ========================================================================= */}
+      <header className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-sm shrink-0">
+            <svg className="w-5 h-5 stroke-current" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+              <path
+                d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Mes zones d'intervention</h1>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Actif en direct
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">
+              Définissez votre base opérationnelle et ajustez votre polygone d'activité pour recevoir les courses sanitaires adaptées.
+            </p>
+          </div>
         </div>
+
         {onClose && (
           <button
-            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
-            title="Fermer"
+            aria-label="Fermer la fenêtre"
+            className="group p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+            type="button"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <span className="text-xs font-semibold text-slate-500 hidden sm:inline-block">Fermer</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         )}
-      </div>
+      </header>
+      {/* END: Modal Header */}
 
-      <div className="p-3 sm:p-4 space-y-2.5 overflow-y-auto max-h-[88vh]">
-        {/* MESSAGES D'ALERTE / SUCCÈS */}
+      {/* ========================================================================= */}
+      {/* BEGIN: Modal Content                                                      */}
+      {/* ========================================================================= */}
+      <div className="px-6 py-4 space-y-3.5 overflow-y-auto max-h-[calc(100vh-160px)]">
+        {/* FEEDBACK NOTIFICATIONS */}
         {saveSuccessMessage && (
-          <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-2 animate-fadeIn">
-            <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 font-semibold text-xs flex items-center gap-2.5 animate-fadeIn shadow-xs">
+            <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             <span>{saveSuccessMessage}</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-800 dark:text-rose-300 font-bold text-xs flex items-center gap-2 animate-shake">
-            <svg className="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 font-semibold text-xs flex items-center gap-2.5 animate-shake shadow-xs">
+            <svg className="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* SECTION 1 : 📍 MA BASE D'INTERVENTION (Ligne compacte)                   */}
+        {/* BEGIN: Section 1 - Base d'opération                                       */}
         {/* ========================================================================= */}
-        <div className="bg-surface-container-low/80 p-2.5 sm:p-3 rounded-xl border border-outline-variant/30 space-y-2">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-xs font-black text-on-surface uppercase tracking-wider flex items-center gap-1.5">
-              <span className="text-red-500 text-sm">📍</span>
-              <span>1. MA BASE D'INTERVENTION</span>
-            </h3>
+        <section className="bg-slate-50 rounded-xl p-3.5 border border-slate-200" data-purpose="base-station-settings">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-sky-600 text-white font-bold text-[11px] flex items-center justify-center">1</span>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Ma base d'intervention principale</h2>
+            </div>
             <button
-              type="button"
               onClick={handleGeolocate}
               disabled={isGeolocating}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-[11px] transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-teal-800 bg-white hover:bg-emerald-50 border border-emerald-300 hover:border-emerald-400 rounded-lg transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+              type="button"
             >
-              <svg className={`w-3.5 h-3.5 ${isGeolocating ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="22" y1="12" x2="18" y2="12" />
-                <line x1="6" y1="12" x2="2" y2="12" />
-                <line x1="12" y1="6" x2="12" y2="2" />
-                <line x1="12" y1="22" x2="12" y2="18" />
+              <svg className={`w-3.5 h-3.5 text-emerald-600 ${isGeolocating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path d="M12 2v2m0 16v2m10-10h-2M4 10H2m15.07 7.07l-1.414-1.414M6.343 6.343L4.93 4.93m14.14 0l-1.414 1.414M6.343 17.657l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span>{isGeolocating ? 'Localisation...' : '📍 Me géolocaliser'}</span>
+              <span>{isGeolocating ? 'Localisation...' : 'Me géolocaliser'}</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            {/* Région */}
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-on-surface-variant mb-0.5">
-                Région administrative
-              </label>
-              <select
-                id="select-region"
-                value={selectedRegion.code}
-                onChange={(e) => {
-                  const reg = FRENCH_REGIONS.find((r) => r.code === e.target.value);
-                  if (reg) {
-                    setSelectedRegion(reg);
-                    if (mapInstanceRef.current) {
-                      mapInstanceRef.current.panTo(reg.defaultCenter);
-                      mapInstanceRef.current.setZoom(reg.defaultZoom);
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            {/* Région administrative */}
+            <div className="md:col-span-3">
+              <label htmlFor="select-region" className="block text-xs font-bold text-slate-700 mb-1">Région administrative</label>
+              <div className="relative">
+                <select
+                  id="select-region"
+                  value={selectedRegion.code}
+                  onChange={(e) => {
+                    const reg = FRENCH_REGIONS.find((r) => r.code === e.target.value);
+                    if (reg) {
+                      setSelectedRegion(reg);
+                      if (mapInstanceRef.current) {
+                        mapInstanceRef.current.panTo(reg.defaultCenter);
+                        mapInstanceRef.current.setZoom(reg.defaultZoom);
+                      }
                     }
-                  }
-                }}
-                className="w-full bg-surface-container rounded-lg border border-outline-variant/40 px-2.5 py-1.5 text-xs font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-              >
-                <optgroup label="France Métropolitaine (13)">
-                  {FRENCH_REGIONS.filter((r) => !r.isDrom).map((r) => (
-                    <option key={r.code} value={r.code}>
-                      {r.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="DROM (5)">
-                  {FRENCH_REGIONS.filter((r) => r.isDrom).map((r) => (
-                    <option key={r.code} value={r.code}>
-                      {r.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-
-            {/* Ville */}
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-on-surface-variant mb-0.5">
-                Ville de rattachement
-              </label>
-              <select
-                id="select-city"
-                value={selectedCity}
-                onChange={(e) => handleCityChange(e.target.value)}
-                disabled={isLoadingCommunes}
-                className="w-full bg-surface-container rounded-lg border border-outline-variant/40 px-2.5 py-1.5 text-xs font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer disabled:opacity-50"
-              >
-                {isLoadingCommunes ? (
-                  <option>Chargement des communes...</option>
-                ) : (
-                  <>
-                    {!communesList.some((c) => c.name.toLowerCase() === selectedCity.toLowerCase()) && (
-                      <option value={selectedCity}>📍 {selectedCity}</option>
-                    )}
-                    {communesList.map((c) => (
-                      <option key={c.insee} value={c.name}>
-                        {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
+                  }}
+                  className="w-full text-xs font-semibold bg-white border border-slate-300 rounded-lg px-3 py-2 appearance-none text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 shadow-xs pr-8 cursor-pointer"
+                >
+                  <optgroup label="France Métropolitaine">
+                    {FRENCH_REGIONS.filter((r) => !r.isDrom).map((r) => (
+                      <option key={r.code} value={r.code}>
+                        {r.name}
                       </option>
                     ))}
-                  </>
-                )}
-              </select>
+                  </optgroup>
+                  <optgroup label="DROM">
+                    {FRENCH_REGIONS.filter((r) => r.isDrom).map((r) => (
+                      <option key={r.code} value={r.code}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-500">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
-            {/* Adresse / GPS */}
-            <div className="relative">
-              <label className="block text-[10px] font-black uppercase tracking-wider text-on-surface-variant mb-0.5">
-                Adresse ou repère précis
-              </label>
-              <input
-                id="input-base-address"
-                type="text"
-                value={addressQuery || baseAddress}
-                onChange={(e) => handleAddressSearch(e.target.value)}
-                placeholder="Rechercher une adresse, rue..."
-                className="w-full bg-surface-container rounded-lg border border-outline-variant/40 px-2.5 py-1.5 text-xs font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            {/* Commune de rattachement */}
+            <div className="md:col-span-4">
+              <label htmlFor="select-city" className="block text-xs font-bold text-slate-700 mb-1">Commune de rattachement</label>
+              <div className="relative">
+                <select
+                  id="select-city"
+                  value={selectedCity}
+                  onChange={(e) => handleCityChange(e.target.value)}
+                  disabled={isLoadingCommunes}
+                  className="w-full text-xs font-semibold bg-white border border-slate-300 rounded-lg px-3 py-2 appearance-none text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 shadow-xs pr-8 cursor-pointer disabled:opacity-50"
+                >
+                  {isLoadingCommunes ? (
+                    <option>Chargement des communes...</option>
+                  ) : (
+                    <>
+                      {!communesList.some((c) => c.name.toLowerCase() === selectedCity.toLowerCase()) && (
+                        <option value={selectedCity}>📍 {selectedCity}</option>
+                      )}
+                      {communesList.map((c) => (
+                        <option key={c.insee} value={c.name}>
+                          {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-500">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
+                  </svg>
+                </div>
+              </div>
+            </div>
 
-              {/* Suggestions d'adresses */}
+            {/* Adresse ou repère précis */}
+            <div className="md:col-span-5 relative">
+              <label htmlFor="input-base-address" className="block text-xs font-bold text-slate-700 mb-1">
+                Adresse ou repère précis de stationnement
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-rose-600">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path clipRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fillRule="evenodd" />
+                  </svg>
+                </div>
+                <input
+                  id="input-base-address"
+                  type="text"
+                  value={addressQuery || baseAddress}
+                  onChange={(e) => handleAddressSearch(e.target.value)}
+                  placeholder="Numéro et nom de voie..."
+                  className="w-full text-xs font-semibold bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 shadow-xs"
+                />
+              </div>
+
+              {/* Suggestions d'adresses nationales */}
               {addressSuggestions.length > 0 && (
-                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-container-high rounded-xl border border-outline-variant/40 shadow-xl overflow-hidden max-h-40 overflow-y-auto">
+                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                   {addressSuggestions.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => selectAddressSuggestion(item)}
-                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors border-b border-outline-variant/20 last:border-0"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-sky-50 transition-colors border-b border-slate-100 last:border-0 cursor-pointer"
                     >
-                      <div className="font-bold text-on-surface">{item.name}</div>
+                      <div className="font-bold text-slate-900">{item.name}</div>
                       {item.departmentName && (
-                        <div className="text-[10px] text-on-surface-variant">{item.departmentName}</div>
+                        <div className="text-[11px] text-slate-500">{item.departmentName}</div>
                       )}
                     </button>
                   ))}
@@ -744,156 +797,210 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
               )}
             </div>
           </div>
-        </div>
+        </section>
+        {/* END: Section 1 */}
 
         {/* ========================================================================= */}
-        {/* SECTION 2 : 🗺️ CARTE ET ZONE D'ACTION (STRICTEMENT 8 ANCRES)               */}
+        {/* BEGIN: Section 2 - Interactive Map & Geometry                             */}
         {/* ========================================================================= */}
-        <div className="bg-surface-container-low/80 p-2.5 sm:p-3 rounded-xl border border-outline-variant/30 space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h3 className="text-xs font-black text-on-surface uppercase tracking-wider flex items-center gap-1.5">
-                <span className="text-primary text-sm">🗺️</span>
-                <span>2. MA ZONE D'ACTION INTERACTIVE</span>
-              </h3>
-              <p className="text-[10px] text-on-surface-variant flex items-center gap-1.5 mt-0.5">
-                <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  8 points d'ancrage déplaçables
+        <section className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-sm" data-purpose="interactive-map-zone">
+          {/* Subheader Toolbar */}
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-teal-600 text-white font-bold text-[11px] flex items-center justify-center">2</span>
+              <h2 className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                Zone d'action interactive
+                <span className="text-[11px] font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded border border-sky-200">
+                  Polygone 8 ancres ajustables
                 </span>
-                <span>•</span>
-                <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                  8 ancres étirables
-                </span>
-              </p>
+              </h2>
             </div>
 
-            {/* BOÎTE D'ACTIONS */}
-            <div className="flex items-center gap-1.5">
-              {historyStack.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleUndo}
-                  className="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer flex items-center gap-1 active:scale-95"
-                  title="Annuler le dernier déplacement"
-                >
-                  <span>↩️</span>
-                  <span>Annuler</span>
-                </button>
-              )}
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-600 font-semibold text-xs hidden md:inline">Rayon suggéré :</span>
+              {[10, 15, 25, 40].map((r) => {
+                const isActive = selectedRadiusKm === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => handleSetRadius(r)}
+                    className={
+                      isActive
+                        ? 'px-2.5 py-1 rounded border border-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-500/20 cursor-pointer transition-all'
+                        : 'px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors shadow-2xs cursor-pointer'
+                    }
+                    style={
+                      isActive
+                        ? { backgroundImage: 'linear-gradient(135deg, rgb(16, 185, 129) 0%, rgb(13, 148, 136) 100%)' }
+                        : undefined
+                    }
+                  >
+                    {r} km
+                  </button>
+                );
+              })}
+
+              <div className="h-4 w-px bg-slate-300 mx-1"></div>
 
               <button
                 type="button"
                 onClick={handleResetZone}
-                className="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-rose-600 hover:bg-rose-50 border border-outline-variant/30 font-bold text-[11px] transition-all cursor-pointer flex items-center gap-1 active:scale-95"
-                title="Recentrer les 8 ancres à 15km autour de votre base"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 font-semibold transition-colors text-xs cursor-pointer active:scale-95"
+                title="Réinitialiser les 8 ancres"
               >
-                <span>🔄</span>
+                <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 <span>Réinitialiser</span>
               </button>
             </div>
           </div>
 
-          {/* SÉLECTEUR DE RAYON INITIAL DES 8 ANCRES */}
-          <div className="flex items-center justify-between gap-1.5 py-1 border-t border-b border-outline-variant/20 text-[10px]">
-            <div className="flex items-center gap-1">
-              <span className="font-bold text-on-surface-variant">Zone :</span>
-              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-black border border-primary/20">
-                8 ancres
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="font-bold text-on-surface-variant">Rayon d'action :</span>
-              {[10, 15, 25, 40].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => handleSetRadius(r)}
-                  className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant hover:text-primary hover:border-primary/40 font-bold border border-outline-variant/30 transition-colors cursor-pointer"
-                  title={`Formater les 8 ancres sur un cercle de ${r} km`}
-                >
-                  {r}km
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* CONTENEUR DE CARTE GOOGLE MAPS : HAUTEUR COMPACTE ET OPTIMISÉE */}
-          <div className="relative w-full h-[220px] sm:h-[260px] md:h-[275px] rounded-xl overflow-hidden border border-outline-variant/40 shadow-inner">
+          {/* Interactive Map Canvas */}
+          <div className="relative w-full h-[280px] sm:h-[320px] md:h-[350px] bg-slate-100 overflow-hidden cursor-crosshair select-none" data-purpose="map-canvas-preview">
             <div ref={mapContainerRef} className="w-full h-full" />
+
+            {/* Custom Map Navigation Controls (Top Right) */}
+            <div className="absolute right-3 top-3 flex flex-col gap-1 bg-white p-1 rounded-lg shadow-md border border-slate-300 z-10">
+              <button
+                onClick={handleZoomIn}
+                className="p-1.5 text-slate-700 hover:text-sky-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                title="Zoom avant"
+                type="button"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                onClick={handleZoomOut}
+                className="p-1.5 text-slate-700 hover:text-sky-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                title="Zoom arrière"
+                type="button"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path d="M20 12H4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <div className="h-px bg-slate-200"></div>
+              <button
+                onClick={handleRecenter}
+                className="p-1.5 text-slate-700 hover:text-sky-600 hover:bg-slate-100 rounded transition cursor-pointer"
+                title="Recentrer sur la base"
+                type="button"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="M12 2v2m0 16v2m10-10h-2M4 12H2" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Bottom Map Info (Stitch Replica) */}
+            <div className="absolute left-3 bottom-3 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-md border border-slate-300 text-[11px] text-slate-700 font-semibold flex items-center gap-2 shadow-sm pointer-events-none z-10">
+              <span>© Google Maps • Clinigo Pro GeoEngine</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-sky-700 font-bold">Déplacez les 8 points d'ancrage pour remodeler la zone</span>
+            </div>
           </div>
 
-          {/* LÉGENDE RAPIDE & COMMUNES LIMITROPHES */}
-          <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] text-on-surface-variant">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1 font-semibold text-blue-700 dark:text-blue-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white shrink-0 shadow-xs" />
-                <span>8 ancres (glisser pour délimiter la zone)</span>
+          {/* Map Legend & Covered Towns Bar */}
+          <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-3.5 text-slate-700 text-xs font-semibold">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-rose-200"></span>
+                Base de départ
               </span>
-              <span className="inline-flex items-center gap-1 font-semibold text-red-700 dark:text-red-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600 border-2 border-white shrink-0 shadow-xs" />
-                <span>Base départ (déplaçable)</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-sky-500/25 border-2 border-sky-600"></span>
+                Zone d'intervention garantie
               </span>
-              <span className="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-amber-600 shrink-0 shadow-xs" />
-                <span>Rayon +30km</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-4 h-0.5 border-t-2 border-dashed border-amber-600"></span>
+                Rayon étendu opportunités (+30 km)
               </span>
             </div>
 
-            {nearbyCommunes.length > 0 && (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-bold text-on-surface-variant">Ancrer commune :</span>
-                {nearbyCommunes.slice(0, 4).map((c) => (
+            {/* Communes incluses / proches */}
+            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="text-slate-600 font-bold">Communes :</span>
+              {nearbyCommunes.length > 0 ? (
+                nearbyCommunes.slice(0, 5).map((c) => (
                   <button
                     key={c.insee}
                     type="button"
                     onClick={() => handleSnapClosestAnchorToCommune(c)}
-                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-surface-container hover:bg-primary/15 hover:text-primary text-[10px] font-bold border border-outline-variant/30 transition-all cursor-pointer"
+                    className="px-2 py-0.5 rounded bg-white border border-slate-300 hover:border-sky-500 hover:text-sky-700 text-slate-800 font-semibold shadow-2xs transition-colors cursor-pointer"
                     title={`Ajuster l'ancre la plus proche sur ${c.name} (${c.distKm.toFixed(0)} km)`}
                   >
-                    <span className="text-primary font-bold">+</span>
-                    <span>{c.name}</span>
+                    ✓ {c.name}
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* SECTION 3 : 📢 OFFRES AU-DELÀ DE MA ZONE (Ligne compacte)                 */}
-        {/* ========================================================================= */}
-        <div className="bg-surface-container-low/80 px-3 py-2 rounded-xl border border-outline-variant/30 flex items-center justify-between flex-wrap gap-2">
-          <label htmlFor="checkbox-extended-radius" className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              id="checkbox-extended-radius"
-              type="checkbox"
-              checked={allowExtendedRadius}
-              onChange={(e) => setAllowExtendedRadius(e.target.checked)}
-              className="w-4 h-4 rounded border-outline-variant/50 text-primary focus:ring-primary/20 accent-primary cursor-pointer"
-            />
-            <div className="text-xs">
-              <span className="font-bold text-on-surface">📢 Recevoir les offres au-delà de ma zone</span>
-              <span className="text-on-surface-variant text-[11px] ml-1.5 hidden sm:inline">
-                (Rayon étendu de 30 km autour de {selectedCity})
-              </span>
+                ))
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-800 font-semibold shadow-2xs">
+                  ✓ {selectedCity}
+                </span>
+              )}
             </div>
-          </label>
-          <div className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold">
-            Fixe : +30 km
           </div>
-        </div>
+        </section>
+        {/* END: Section 2 */}
 
         {/* ========================================================================= */}
-        {/* BOUTONS D'ACTION                                                         */}
+        {/* BEGIN: Section 3 - Expansion & Buffer Switch                              */}
         {/* ========================================================================= */}
-        <div className="pt-1 flex items-center justify-end gap-2.5">
+        <section className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" data-purpose="extended-zone-switch">
+          <div className="flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={allowExtendedRadius}
+                onChange={(e) => setAllowExtendedRadius(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+            </label>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900">Recevoir les opportunités au-delà de ma zone principale</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-100 border border-teal-300 px-2 py-0.5 rounded-full">
+                  Recommandé
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 font-medium">
+                Recevez les courses de liaison longue distance et retours à vide dans le cercle de tolérance orange (+30 km) autour de {selectedCity}.
+              </p>
+            </div>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-2">
+            <span className="px-2.5 py-1 text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded-lg shadow-2xs">
+              Rayon étendu : +30 km
+            </span>
+          </div>
+        </section>
+        {/* END: Section 3 */}
+      </div>
+      {/* END: Modal Content */}
+
+      {/* ========================================================================= */}
+      {/* BEGIN: Modal Footer (Reproduit fidèlement de Stitch)                     */}
+      {/* ========================================================================= */}
+      <footer className="px-6 py-3.5 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2 text-xs text-slate-700 font-medium">
+          <span className="text-slate-500">Base active :</span>
+          <span className="font-bold text-slate-900">{selectedCity} ({selectedRegion.name})</span>
+          <span className="text-slate-300">•</span>
+          <span className="text-sky-700 font-semibold">8 ancres actives</span>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
           {onClose && (
             <button
-              type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-bold text-xs transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-300 transition-colors shadow-2xs cursor-pointer"
+              type="button"
             >
               Annuler
             </button>
@@ -904,11 +1011,12 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-black text-xs sm:text-sm tracking-wider uppercase shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-lg shadow-md shadow-emerald-500/20 hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 border border-emerald-400/30 cursor-pointer disabled:opacity-50 active:scale-95"
+            style={{ backgroundImage: 'linear-gradient(135deg, rgb(16, 185, 129) 0%, rgb(13, 148, 136) 100%)' }}
           >
             {isSaving ? (
               <>
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
                   <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
@@ -916,13 +1024,16 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
               </>
             ) : (
               <>
-                <span>💾</span>
-                <span>ENREGISTRER MES ZONES</span>
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M4.5 12.75l6 6 9-13.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>Enregistrer mes zones</span>
               </>
             )}
           </button>
         </div>
-      </div>
-    </div>
+      </footer>
+      {/* END: Modal Footer */}
+    </main>
   );
 };
