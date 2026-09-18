@@ -115,6 +115,8 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
   const midpointMarkersRef = useRef<any[]>([]);
   const drawingMarkersRef = useRef<any[]>([]);
   const mapClickListenerRef = useRef<any>(null);
+  const pathListenersRef = useRef<any[]>([]);
+  const isInternalUpdateRef = useRef<boolean>(false);
 
   // Communes proches pour ancrage rapide
   const nearbyCommunes = React.useMemo(() => {
@@ -209,10 +211,11 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           map: map,
           title: "Base d'intervention",
           draggable: true,
-          zIndex: 999,
+          optimized: false,
+          zIndex: 9999,
           icon: {
             path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-            scale: 6,
+            scale: 7,
             fillColor: '#dc2626',
             fillOpacity: 1,
             strokeColor: '#ffffff',
@@ -255,7 +258,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         });
         extendedCircleRef.current = extendedCircle;
 
-        // 3. POLYGONE DE LA ZONE D'ACTION
+        // 3. POLYGONE DE LA ZONE D'ACTION (ÉDITABLE AVEC PINS NATIVEMENT DÉPLAÇABLES)
         const poly = new google.maps.Polygon({
           paths: polygonCoords,
           map: map,
@@ -265,9 +268,35 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           fillColor: '#0ea5e9',
           fillOpacity: 0.25,
           clickable: true,
+          editable: true, // Active les poignées et pins déplaçables natifs de Google Maps
+          draggable: false, // L'utilisateur déplace les pins individuellement, pas toute la carte
           zIndex: 10,
         });
+
+        // Clic sur un pin pour le supprimer si mode suppression actif
+        poly.addListener('click', (e: any) => {
+          if (e.vertex !== undefined) {
+            if (poly.getPath().getLength() <= 3) {
+              setErrorMessage('Un polygone doit conserver au minimum 3 sommets.');
+              return;
+            }
+            poly.getPath().removeAt(e.vertex);
+          }
+        });
+
+        // Clic droit sur un pin pour le supprimer rapidement
+        poly.addListener('rightclick', (e: any) => {
+          if (e.vertex !== undefined) {
+            if (poly.getPath().getLength() <= 3) {
+              setErrorMessage('Un polygone doit conserver au minimum 3 sommets.');
+              return;
+            }
+            poly.getPath().removeAt(e.vertex);
+          }
+        });
+
         polygonInstanceRef.current = poly;
+        attachPolygonListeners(poly);
       }
     });
 
@@ -275,6 +304,35 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
       isMounted = false;
     };
   }, []);
+
+  // Écouteur des déplacements de pins directement sur la carte
+  const attachPolygonListeners = useCallback((poly: any) => {
+    if (!poly) return;
+    pathListenersRef.current.forEach((l) => google.maps.event.removeListener(l));
+    pathListenersRef.current = [];
+
+    const path = poly.getPath();
+    if (!path) return;
+
+    const handlePathChange = () => {
+      const newCoords: GeoPoint[] = [];
+      for (let i = 0; i < path.getLength(); i++) {
+        const p = path.getAt(i);
+        newCoords.push({
+          lat: Number(p.lat().toFixed(6)),
+          lng: Number(p.lng().toFixed(6)),
+        });
+      }
+      isInternalUpdateRef.current = true;
+      pushHistory(newCoords);
+    };
+
+    const setL = google.maps.event.addListener(path, 'set_at', handlePathChange);
+    const insL = google.maps.event.addListener(path, 'insert_at', handlePathChange);
+    const remL = google.maps.event.addListener(path, 'remove_at', handlePathChange);
+
+    pathListenersRef.current = [setL, insL, remL];
+  }, [pushHistory]);
 
   // Mise à jour de la position de la base sur la carte
   useEffect(() => {
@@ -287,28 +345,24 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
     }
   }, [baseCoords, allowExtendedRadius]);
 
-  // Synchronisation du tracé du polygone et des marqueurs de sommets
+  // Synchronisation du polygone et de l'état éditable
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!polygonInstanceRef.current) return;
 
-    if (polygonInstanceRef.current) {
-      polygonInstanceRef.current.setPaths(polygonCoords);
-    }
+    const isDrawing = editMode === 'DRAWING';
+    polygonInstanceRef.current.setEditable(!isDrawing);
 
-    // Nettoyage des anciens marqueurs
-    vertexMarkersRef.current.forEach((m) => m.setMap(null));
-    vertexMarkersRef.current = [];
-    midpointMarkersRef.current.forEach((m) => m.setMap(null));
-    midpointMarkersRef.current = [];
+    // Nettoyage des anciens marqueurs de tracé en cours
     drawingMarkersRef.current.forEach((m) => m.setMap(null));
     drawingMarkersRef.current = [];
 
-    // 1. Affichage des repères numérotés en mode dessin
-    if (editMode === 'DRAWING') {
+    // 1. Affichage des repères numérotés en mode tracé
+    if (isDrawing) {
       polygonCoords.forEach((pt, idx) => {
         const marker = new google.maps.Marker({
           position: pt,
           map: mapInstanceRef.current,
+          optimized: false,
           label: {
             text: String(idx + 1),
             color: '#ffffff',
@@ -317,7 +371,7 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           },
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 11,
+            scale: 12,
             fillColor: '#2563eb',
             fillOpacity: 1,
             strokeColor: '#ffffff',
@@ -327,134 +381,20 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
         });
         drawingMarkersRef.current.push(marker);
       });
+      polygonInstanceRef.current.setPaths(polygonCoords);
       return;
     }
 
-    // 2. Affichage des sommets interactifs (Points d'ancrage principaux)
-    if (editMode === 'EDITING_VERTICES' || editMode === 'DELETE_VERTEX' || editMode === 'ADD_VERTEX') {
-      const markers = polygonCoords.map((pt, idx) => {
-        const isSelected = selectedVertexIdx === idx;
-        const marker = new google.maps.Marker({
-          position: pt,
-          map: mapInstanceRef.current,
-          draggable: editMode === 'EDITING_VERTICES',
-          zIndex: 60 + idx,
-          cursor: editMode === 'DELETE_VERTEX' ? 'not-allowed' : 'grab',
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: isSelected ? 10 : 7.5,
-            fillColor: editMode === 'DELETE_VERTEX' ? '#ef4444' : isSelected ? '#e11d48' : '#2563eb',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: isSelected ? 3 : 2,
-          },
-          title: `Point d'ancrage #${idx + 1}${
-            editMode === 'DELETE_VERTEX'
-              ? ' (Cliquer pour supprimer)'
-              : ' (Glisser pour modifier, cliquer pour sélectionner)'
-          }`,
-        });
-
-        // Déplacement en temps réel pour fluidité maximale
-        marker.addListener('drag', (e: any) => {
-          if (e.latLng && polygonInstanceRef.current) {
-            const liveCoords = [...polygonCoords];
-            liveCoords[idx] = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-            polygonInstanceRef.current.setPaths(liveCoords);
-          }
-        });
-
-        // Fin du déplacement du sommet
-        marker.addListener('dragend', (e: any) => {
-          if (e.latLng) {
-            const nextCoords = [...polygonCoords];
-            nextCoords[idx] = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-            pushHistory(nextCoords);
-          }
-        });
-
-        // Clic sur le sommet (sélection ou suppression)
-        marker.addListener('click', () => {
-          if (editMode === 'DELETE_VERTEX') {
-            if (polygonCoords.length <= 3) {
-              setErrorMessage('Un polygone doit conserver au minimum 3 sommets.');
-              return;
-            }
-            const nextCoords = polygonCoords.filter((_, i) => i !== idx);
-            pushHistory(nextCoords);
-            setSelectedVertexIdx(null);
-          } else {
-            setSelectedVertexIdx(isSelected ? null : idx);
-          }
-        });
-
-        return marker;
-      });
-
-      vertexMarkersRef.current = markers;
-
-      // 3. Points d'ancrage intermédiaires (Midpoints) pour étirer ou insérer un sommet
-      if (editMode === 'EDITING_VERTICES' && polygonCoords.length >= 3) {
-        const midMarkers: any[] = [];
-        for (let i = 0; i < polygonCoords.length; i++) {
-          const p1 = polygonCoords[i];
-          const p2 = polygonCoords[(i + 1) % polygonCoords.length];
-          const midPt = {
-            lat: Number(((p1.lat + p2.lat) / 2).toFixed(6)),
-            lng: Number(((p1.lng + p2.lng) / 2).toFixed(6)),
-          };
-
-          const midMarker = new google.maps.Marker({
-            position: midPt,
-            map: mapInstanceRef.current,
-            draggable: true,
-            zIndex: 40 + i,
-            cursor: 'crosshair',
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 5.5,
-              fillColor: '#06b6d4', // Cyan éclatant
-              fillOpacity: 0.95,
-              strokeColor: '#ffffff',
-              strokeWeight: 2,
-            },
-            title: `Point d'ancrage intermédiaire (Glissez pour étirer la zone ou cliquez pour insérer un sommet)`,
-          });
-
-          // Aperçu fluide au drag
-          midMarker.addListener('drag', (e: any) => {
-            if (e.latLng && polygonInstanceRef.current) {
-              const liveCoords = [...polygonCoords];
-              liveCoords.splice(i + 1, 0, { lat: e.latLng.lat(), lng: e.latLng.lng() });
-              polygonInstanceRef.current.setPaths(liveCoords);
-            }
-          });
-
-          // Insertion finale au lâcher
-          midMarker.addListener('dragend', (e: any) => {
-            if (e.latLng) {
-              const newPt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-              const nextCoords = [...polygonCoords];
-              nextCoords.splice(i + 1, 0, newPt);
-              pushHistory(nextCoords);
-              setSelectedVertexIdx(i + 1);
-            }
-          });
-
-          // Insertion simple au clic
-          midMarker.addListener('click', () => {
-            const nextCoords = [...polygonCoords];
-            nextCoords.splice(i + 1, 0, midPt);
-            pushHistory(nextCoords);
-            setSelectedVertexIdx(i + 1);
-          });
-
-          midMarkers.push(midMarker);
-        }
-        midpointMarkersRef.current = midMarkers;
-      }
+    // 2. Si la mise à jour vient du glisser-déposer d'un pin sur la carte : ne pas appeler setPaths
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
+      return;
     }
-  }, [polygonCoords, editMode, selectedVertexIdx, pushHistory]);
+
+    // 3. Mise à jour externe (préréglages, communes, undo, reset, etc.)
+    polygonInstanceRef.current.setPaths(polygonCoords);
+    attachPolygonListeners(polygonInstanceRef.current);
+  }, [polygonCoords, editMode, attachPolygonListeners]);
 
   // Gestion des clics sur la carte selon le mode actif
   useEffect(() => {
@@ -1098,15 +1038,15 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
           <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] text-on-surface-variant">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1 font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 border border-white shrink-0" />
-                <span>Sommets bleus (glisser)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-white border-2 border-blue-600 shrink-0 shadow-xs" />
+                <span>Pins aux sommets (glisser)</span>
               </span>
               <span className="inline-flex items-center gap-1 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-cyan-500 border border-white shrink-0" />
-                <span>Points cyan (étirer)</span>
+                <span className="w-2 h-2 rounded-full bg-cyan-400/80 border border-white shrink-0 shadow-xs" />
+                <span>Points intermédiaires (étirer)</span>
               </span>
               <span className="inline-flex items-center gap-1 font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-white shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-white shrink-0 shadow-xs" />
                 <span>Base départ (déplaçable)</span>
               </span>
             </div>
