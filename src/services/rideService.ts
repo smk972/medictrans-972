@@ -93,6 +93,11 @@ export const isPrototypeRide = (row: any): boolean => {
     return true;
   }
 
+  // Si c'est une course directe saisie par le transporteur, ne JAMAIS la filtrer
+  if (row.source === 'TRANSPORTER_DIRECT') {
+    return false;
+  }
+
   const PROTOTYPE_REFS = new Set([
     'MT-972-7325', 'MT-972-7452', 'MT-972-6576', 'MT-972-4108', 'MT-972-5892',
     'MT-972-1849', 'MT-972-9825', 'MT-972-8053', 'MT-972-7447', 'MT-972-9390',
@@ -113,9 +118,9 @@ export const isPrototypeRide = (row: any): boolean => {
     'aimé glissant', 'aime glissant', 'sophie laurent', 'sophie lefebvre',
     'marie-claude fontaine', 'bernard giraud', 'gérard théodore', 'gerard theodore',
     'marie leroy', 'jacqueline evariste', 'samuel cincinnatus', 'jean dupont',
-    'testclient', 'emptynir', 'dimitry p25', 'élianaimé', 'bernarcesaire', 'bernarddubois'
+    'emptynir', 'dimitry p25', 'élianaimé', 'bernarcesaire', 'bernarddubois'
   ];
-  if (PROTOTYPE_PATIENTS.some(name => full.includes(name) || (pFirst && name.includes(pFirst) && pLast && name.includes(pLast)))) {
+  if (PROTOTYPE_PATIENTS.some(name => full === name || (pFirst && pLast && `${pFirst} ${pLast}` === name))) {
     return true;
   }
 
@@ -123,7 +128,7 @@ export const isPrototypeRide = (row: any): boolean => {
     'maryse.brival', 'eliane.bernard', 'c.marieluce', 'sophie.laurent', 'marie.leroy',
     'jacqueline.evariste', 'samuel.cincinnatus', 'gerard.theodore', 'mc.fontaine',
     'b.giraud', 'sophie.lefebvre', 'orange.re', 'dom.re', 'guyane-sante', 'outremer.mq',
-    'wanadoo.fr', 'testclient', 'emptynir', 'purged@test.local', 'eliane@chu-martinique.fr'
+    'wanadoo.fr', 'emptynir', 'purged@test.local', 'eliane@chu-martinique.fr'
   ];
   if (PROTOTYPE_EMAILS.some(pe => pEmail.includes(pe))) {
     return true;
@@ -472,6 +477,9 @@ export const rideService = {
       directRequestExpiresAt: rideData.directRequestExpiresAt,
       facilityDepartment: rideData.facilityDepartment,
       bedDischargeNumber: rideData.bedDischargeNumber,
+      assignedTransporter: rideData.assignedTransporter,
+      estimatedDistanceKm: rideData.estimatedDistanceKm,
+      estimatedDurationMin: rideData.estimatedDurationMin,
     };
 
     if (isSupabaseConfigured() && supabase) {
@@ -519,6 +527,11 @@ export const rideService = {
         target_transporter_id: newRide.targetTransporterId || null,
         target_transporter_name: newRide.targetTransporterName || null,
         direct_request_expires_at: newRide.directRequestExpiresAt || null,
+        transporter_name: newRide.assignedTransporter?.companyName || null,
+        driver_name: newRide.assignedTransporter?.driverName || null,
+        driver_phone: newRide.assignedTransporter?.driverPhone || null,
+        vehicle_plate: newRide.assignedTransporter?.vehiclePlate || null,
+        eta_minutes: newRide.assignedTransporter?.etaMinutes || 15,
         created_at: newRide.createdAt,
         updated_at: newRide.createdAt
       }).select();

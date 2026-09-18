@@ -5980,7 +5980,16 @@ export const TransporterPortalPage: React.FC = () => {
         isOpen={isManualRideModalOpen}
         onClose={() => setIsManualRideModalOpen(false)}
         onSuccess={(newRide) => {
-          setRides((prev) => [newRide, ...prev]);
+          setRides((prev) => {
+            const filtered = prev.filter((r) => r.reference !== newRide.reference);
+            return [newRide, ...filtered];
+          });
+          // Réinitialisation immédiate des filtres pour affichage sans friction
+          setPlanningHorizon('ALL');
+          setSelectedPlanningDate(null);
+          setSelectedDriverFilter('ALL');
+          setPlanningStatusFilter('ALL');
+          setPlanningSearch('');
           setToastMessage({
             title: 'Course directe ajoutée au planning !',
             desc: `La course #${newRide.reference} (${newRide.patient.firstName} ${newRide.patient.lastName}) est désormais intégrée à votre planning.`,
