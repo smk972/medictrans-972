@@ -303,8 +303,79 @@ export const HomePage: React.FC = () => {
                   </Link>
                 </div>
 
+                {/* TAMPON ROUGE "100% GRATUIT" STYLE TAMPON ENCREUR 123RF SOUS LE BOUTON */}
+                <div className="mt-3.5 flex items-center justify-center">
+                  <div 
+                    className="transform -rotate-6 hover:rotate-0 transition-transform duration-300 select-none cursor-default"
+                    title="Service 100% Gratuit pour les patients"
+                  >
+                    <svg
+                      width="76"
+                      height="76"
+                      viewBox="0 0 100 100"
+                      className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-sm"
+                      aria-label="Tampon 100% Gratuit"
+                    >
+                      {/* Cercle extérieur cranté façon tampon encreur rouge */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="46"
+                        fill="#fff5f5"
+                        stroke="#dc2626"
+                        strokeWidth="3"
+                        strokeDasharray="16 2 10 1.5 20 2"
+                      />
+                      
+                      {/* Cercle intérieur fin */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="#dc2626"
+                        strokeWidth="1.3"
+                      />
+
+                      {/* Étoiles supérieures façon sceau officiel */}
+                      <g fill="#dc2626" stroke="none">
+                        <polygon points="0,-2.5 0.8,-0.8 2.5,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.5,-0.8 -0.8,-0.8" transform="translate(34, 25) scale(0.9) rotate(-20)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.2 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(50, 20) scale(1.15)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.5,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.5,-0.8 -0.8,-0.8" transform="translate(66, 25) scale(0.9) rotate(20)" />
+                      </g>
+
+                      {/* Barres horizontales de l'estampe */}
+                      <line x1="10" y1="37" x2="90" y2="37" strokeWidth="2.2" stroke="#dc2626" />
+                      <line x1="10" y1="63" x2="90" y2="63" strokeWidth="2.2" stroke="#dc2626" />
+
+                      {/* Texte central estampé "100% GRATUIT" */}
+                      <text
+                        x="50"
+                        y="51"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill="#dc2626"
+                        stroke="none"
+                        fontFamily="'Impact', 'Arial Black', sans-serif"
+                        fontSize="11"
+                        fontWeight="900"
+                        letterSpacing="0.6"
+                      >
+                        100% GRATUIT
+                      </text>
+
+                      {/* Étoiles inférieures symétriques */}
+                      <g fill="#dc2626" stroke="none">
+                        <polygon points="0,-2.5 0.8,-0.8 2.5,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.5,-0.8 -0.8,-0.8" transform="translate(34, 75) scale(0.9) rotate(20)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.2 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(50, 80) scale(1.15)" />
+                        <polygon points="0,-2.5 0.8,-0.8 2.5,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.5,-0.8 -0.8,-0.8" transform="translate(66, 75) scale(0.9) rotate(-20)" />
+                      </g>
+                    </svg>
+                  </div>
+                </div>
+
                 {/* Réassurance sous le bouton */}
-                <p className="text-xs text-slate-500 font-semibold mt-4 flex items-center gap-1.5">
+                <p className="text-xs text-slate-500 font-semibold mt-2.5 flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
                   <span>Prise en charge Sécurité Sociale & Mutuelle • Aucun frais à avancer</span>
                 </p>
