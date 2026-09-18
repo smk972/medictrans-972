@@ -847,12 +847,12 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
                 type="button"
                 onClick={handleResetZone}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-200 font-semibold transition-colors text-xs cursor-pointer active:scale-95"
-                title="Réinitialiser les 8 ancres"
+                title="Modifier la zone d'intervention"
               >
                 <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span>Réinitialiser</span>
+                <span>Modifier</span>
               </button>
             </div>
           </div>
@@ -919,43 +919,6 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
               <span className="w-4 h-0.5 border-t-2 border-dashed border-amber-600"></span>
               Rayon étendu opportunités (+30 km)
             </span>
-          </div>
-
-          {/* ENCART COMMUNES ENCADRÉ AVEC DÉGRADÉ DE COULEUR & ALIGNEMENT STRICT */}
-          <div className="px-4 py-2.5 border-t border-teal-200/80 bg-gradient-to-r from-sky-100/90 via-teal-50 to-emerald-100/90 flex items-center gap-3 overflow-hidden shadow-2xs">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0"></span>
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider whitespace-nowrap">
-                Communes couvertes :
-              </span>
-            </div>
-
-            {/* Communes strictement alignées sur une seule ligne horizontale (jamais les unes sous les autres) */}
-            <div
-              className="flex items-center gap-2 overflow-x-auto whitespace-nowrap min-w-0 flex-1 py-0.5"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {nearbyCommunes.length > 0 ? (
-                nearbyCommunes.map((c) => (
-                  <button
-                    key={c.insee}
-                    type="button"
-                    onClick={() => handleSnapClosestAnchorToCommune(c)}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/95 hover:bg-white text-slate-800 hover:text-teal-700 font-bold text-xs border border-teal-300 hover:border-teal-500 shadow-xs transition-all whitespace-nowrap cursor-pointer active:scale-95"
-                    title={`Ajuster l'ancre la plus proche sur ${c.name} (${c.distKm.toFixed(0)} km)`}
-                  >
-                    <span className="text-teal-600 font-extrabold">✓</span>
-                    <span>{c.name}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">({c.distKm.toFixed(0)} km)</span>
-                  </button>
-                ))
-              ) : (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/95 text-slate-800 font-bold text-xs border border-teal-300 shadow-xs whitespace-nowrap">
-                  <span className="text-teal-600 font-extrabold">✓</span>
-                  <span>{selectedCity}</span>
-                </span>
-              )}
-            </div>
           </div>
         </section>
         {/* END: Section 2 */}
