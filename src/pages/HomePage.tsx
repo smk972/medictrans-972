@@ -279,93 +279,28 @@ export const HomePage: React.FC = () => {
                 Service conçu pour les patients, proches aidants et équipes soignantes.
               </p>
 
-              {/* BOUTON CTA IDENTIQUE AU BOUTON DU DESSOUS AVEC TAMPON ROUGE "100% GRATUIT" */}
+              {/* BOUTON CTA IDENTIQUE AU BOUTON DU DESSOUS AVEC ANIMATION SHIMMER ET HALO LUMINEUX */}
               <div className="flex flex-col items-center justify-center mt-7 sm:mt-9">
-                <div className="relative inline-block">
+                <div className="relative inline-block group">
+                  {/* Halo lumineux subtil pulsant en arrière-plan */}
+                  <div 
+                    aria-hidden="true" 
+                    className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-teal-500/30 via-emerald-500/30 to-sky-500/30 blur-md opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none animate-pulse" 
+                  />
+
                   <Link
                     to="/reserver"
-                    className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-black bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/20 text-base hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+                    className="relative inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-black bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/20 text-base hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer overflow-hidden select-none"
                   >
-                    <Play className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
-                    <span>Réserver un transport en ligne</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    {/* Vague de brillance animée (shimmer) traversant le bouton périodiquement */}
+                    <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                      <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-btn-shimmer pointer-events-none" />
+                    </div>
+
+                    <Play className="w-4 h-4 fill-current group-hover:scale-125 transition-transform duration-300 relative z-10" />
+                    <span className="relative z-10 tracking-wide">Réserver un transport en ligne</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300 relative z-10" />
                   </Link>
-
-                  {/* TAMPON ROUGE "100% GRATUIT" STYLE TAMPON ENCREUR 123RF */}
-                  <div 
-                    className="absolute -top-4 -right-3 sm:-top-5 sm:-right-4 z-20 pointer-events-none select-none transform -rotate-12 drop-shadow-md"
-                    title="100% Gratuit"
-                  >
-                    <svg 
-                      width="72" 
-                      height="72" 
-                      viewBox="0 0 100 100" 
-                      className="w-14 h-14 sm:w-16 sm:h-16"
-                      aria-label="Tampon 100% Gratuit"
-                    >
-                      {/* Fond circulaire blanc/ivoire propre pour faire ressortir l'encre rouge sans être assombri par le bleu */}
-                      <circle cx="50" cy="50" r="47" fill="#ffffff" stroke="#dc2626" strokeWidth="1" />
-
-                      {/* Cercle extérieur cranté façon tampon encreur */}
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r="45" 
-                        fill="none" 
-                        stroke="#dc2626" 
-                        strokeWidth="3.2" 
-                        strokeDasharray="16 1.5 10 1.2 20 1.5" 
-                      />
-                      
-                      {/* Cercle intérieur fin */}
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r="39" 
-                        fill="none" 
-                        stroke="#dc2626" 
-                        strokeWidth="1.4" 
-                      />
-
-                      {/* Étoiles du haut (5 étoiles) */}
-                      <g fill="#dc2626" stroke="none">
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(30, 26) scale(0.85) rotate(-25)" />
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(39, 21) scale(0.95) rotate(-12)" />
-                        <polygon points="0,-3 1,-1 3.2,-1 1.5,0.5 2.1,2.5 0,1.2 -2.1,2.5 -1.5,0.5 -3.2,-1 -1,-1" transform="translate(50, 19) scale(1.1)" />
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(61, 21) scale(0.95) rotate(12)" />
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(70, 26) scale(0.85) rotate(25)" />
-                      </g>
-
-                      {/* Barres horizontales encadrant le texte */}
-                      <line x1="10" y1="37" x2="90" y2="37" strokeWidth="2" stroke="#dc2626" />
-                      <line x1="10" y1="63" x2="90" y2="63" strokeWidth="2" stroke="#dc2626" />
-
-                      {/* Texte central estampé "100% GRATUIT" */}
-                      <text
-                        x="50"
-                        y="51"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="#dc2626"
-                        stroke="none"
-                        fontFamily="'Impact', 'Arial Black', sans-serif"
-                        fontSize="11"
-                        fontWeight="900"
-                        letterSpacing="0.4"
-                      >
-                        100% GRATUIT
-                      </text>
-
-                      {/* Étoiles du bas (5 étoiles) */}
-                      <g fill="#dc2626" stroke="none">
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(30, 74) scale(0.85) rotate(25)" />
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(39, 79) scale(0.95) rotate(12)" />
-                        <polygon points="0,-3 1,-1 3.2,-1 1.5,0.5 2.1,2.5 0,1.2 -2.1,2.5 -1.5,0.5 -3.2,-1 -1,-1" transform="translate(50, 81) scale(1.1)" />
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(61, 79) scale(0.95) rotate(-12)" />
-                        <polygon points="0,-2.5 0.8,-0.8 2.6,-0.8 1.2,0.4 1.7,2.1 0,1 -1.7,2.1 -1.2,0.4 -2.6,-0.8 -0.8,-0.8" transform="translate(70, 74) scale(0.85) rotate(-25)" />
-                      </g>
-                    </svg>
-                  </div>
                 </div>
 
                 {/* Réassurance sous le bouton */}
