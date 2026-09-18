@@ -503,6 +503,7 @@ export const rideService = {
         patient_is_ald: newRide.patient.isAld,
         patient_has_pmt: newRide.patient.hasPmt,
         pmt_prescriber_doctor: newRide.patient.pmtPrescriberDoctor,
+        pmt_file_url: newRide.patient.pmtFileUrl || null,
         mobility_wheelchair: newRide.mobility.wheelchair,
         mobility_stretcher: newRide.mobility.stretcher,
         mobility_oxygen: newRide.mobility.oxygen,
