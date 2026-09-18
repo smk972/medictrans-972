@@ -3,6 +3,12 @@ import react from '@vitejs/plugin-react'
 import { handleAiChatMiddleware, handleAiSeoMiddleware, handleBlogMiddleware, handleClientsMiddleware, handleUsersMiddleware } from './src/server/aiDevMiddleware.ts'
 import { handleWelcomeEmailMiddleware, handleRideAcceptedEmailMiddleware } from './src/server/emailDevMiddleware.ts'
 import { handleOtpSendMiddleware, handleOtpVerifyMiddleware } from './src/server/otpDevMiddleware.ts'
+import { 
+  handleStripeCheckoutSessionMiddleware, 
+  handleStripePortalSessionMiddleware, 
+  handleStripeWebhookMiddleware, 
+  handleStripeSubscriptionStatusMiddleware 
+} from './src/server/stripeDevMiddleware.ts'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -75,6 +81,30 @@ export default defineConfig(({ mode }) => {
             if (req.url?.startsWith('/api/users')) {
               handleUsersMiddleware(req, res)
               return
+            }
+            if (req.url === '/api/stripe/create-checkout-session' && (req.method === 'POST' || req.method === 'OPTIONS')) {
+              handleStripeCheckoutSessionMiddleware(req, res)
+              return
+            }
+            if (req.url === '/api/stripe/create-portal-session' && (req.method === 'POST' || req.method === 'OPTIONS')) {
+              handleStripePortalSessionMiddleware(req, res)
+              return
+            }
+            if (req.url === '/api/stripe/webhook' && req.method === 'POST') {
+              handleStripeWebhookMiddleware(req, res)
+              return
+            }
+            if (req.url?.startsWith('/api/stripe/subscription')) {
+              const parsed = new URL(req.url, 'http://localhost:3000');
+              handleStripeSubscriptionStatusMiddleware(req, res, parsed);
+              return;
+            }
+            if (req.url === '/api/config/maps-key' && (req.method === 'GET' || req.method === 'HEAD')) {
+              const key = (env.VITE_GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '').trim();
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Cache-Control', 'no-store');
+              res.end(JSON.stringify({ key }));
+              return;
             }
             next()
           })

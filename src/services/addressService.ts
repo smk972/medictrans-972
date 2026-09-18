@@ -1,4 +1,3 @@
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { HealthcareFacility, MARTINIQUE_HEALTHCARE_FACILITIES, FRENCH_HEALTHCARE_FACILITIES } from '../data/facilities';
 
 export interface AddressSuggestion {
@@ -109,28 +108,9 @@ export function extractDepartmentFromAddress(address: string): string | null {
   return null;
 }
 
-let googleMapsConfigured = false;
+import { getGoogleMapsApi } from './googleMapsLoader';
 
-function initGoogleMapsConfig(): boolean {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') {
-    return false;
-  }
-  if (!googleMapsConfigured) {
-    try {
-      setOptions({
-        key: apiKey,
-        v: 'weekly',
-        language: 'fr',
-        region: 'FR',
-      });
-      googleMapsConfigured = true;
-    } catch {
-      return false;
-    }
-  }
-  return true;
-}
+// Source: Google Maps Platform Code Assist
 
 export const addressService = {
   /**
@@ -313,24 +293,24 @@ export const addressService = {
    * Recherche via Google Maps Platform (Places Autocomplete)
    */
   async searchGoogleMaps(query: string, referenceAddress?: string): Promise<AddressSuggestion[]> {
-    if (!initGoogleMapsConfig() || !query || query.trim().length < 2) return [];
+    if (!query || query.trim().length < 2) return [];
 
     try {
-      const placesLib = (await importLibrary('places')) as any;
-      const coreLib = (await importLibrary('core')) as any;
+      const googleMaps = await getGoogleMapsApi();
+      if (!googleMaps || !googleMaps.places?.AutocompleteService) return [];
 
       const refDept = extractDepartmentFromAddress(referenceAddress || '');
       const refCoords = refDept ? DEPARTMENT_COORDINATES[refDept] : undefined;
 
       return new Promise<AddressSuggestion[]>((resolve) => {
-        const service = new placesLib.AutocompleteService();
+        const service = new googleMaps.places.AutocompleteService();
         const requestOptions: any = {
           input: query,
           componentRestrictions: { country: ['fr', 'mq', 'gp', 'gf', 're', 'yt'] },
         };
 
         if (refCoords) {
-          requestOptions.locationBias = new coreLib.LatLng(refCoords.lat, refCoords.lng);
+          requestOptions.locationBias = new googleMaps.LatLng(refCoords.lat, refCoords.lng);
         }
 
         service.getPlacePredictions(
@@ -385,10 +365,8 @@ export const addressService = {
       promises.push(Promise.resolve(this.searchFacilities(trimmed, options)));
     }
 
-    // 2. Google Maps Places (si API configurée)
-    if (initGoogleMapsConfig()) {
-      promises.push(this.searchGoogleMaps(trimmed, options.referenceAddress));
-    }
+    // 2. Google Maps Places (autocomplétion dynamique)
+    promises.push(this.searchGoogleMaps(trimmed, options.referenceAddress));
 
     // 3. Base Adresse Nationale (couverture 100% France Métropolitaine & DOM)
     promises.push(this.searchBanAddresses(trimmed, options.referenceAddress));

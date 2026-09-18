@@ -801,14 +801,24 @@ export const AdminTransportersPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-bold text-slate-900">
-                            Abonnement : {selectedTransporter.subscription?.status === 'TRIAL' ? 'Essai gratuit actif' : selectedTransporter.subscription?.status === 'ACTIVE' ? 'Abonnement Mensuel Pro' : 'Non abonné / Essai disponible'}
+                            Abonnement : {
+                              selectedTransporter.subscription?.status === 'active' || selectedTransporter.subscription?.status === 'ACTIVE'
+                                ? 'Abonnement Mensuel Pro Stripe (Actif)'
+                                : selectedTransporter.subscription?.status === 'past_due'
+                                ? 'Stripe : Paiement en attente'
+                                : selectedTransporter.subscription?.status === 'canceled'
+                                ? 'Stripe : Résilié'
+                                : selectedTransporter.subscription?.status === 'TRIAL'
+                                ? 'Essai gratuit actif'
+                                : 'Non abonné / En attente'
+                            }
                           </span>
                           <span className="text-[10px] font-mono font-bold bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300">
                             {selectedTransporter.subscription?.trialDaysRemaining ?? 30} jours de gratuité
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-600 mt-0.5">
-                          {selectedTransporter.subscription?.whatsappVerified ? 'Numéro WhatsApp vérifié' : 'Numéro WhatsApp non encore vérifié'} • Formule Pro Sanitaire (49 € HT / mois)
+                          {selectedTransporter.subscription?.whatsappVerified ? 'Numéro WhatsApp vérifié' : 'Numéro WhatsApp non encore vérifié'} • Formule Pro Sanitaire (19,90 € HT / mois)
                         </p>
                       </div>
                     </div>

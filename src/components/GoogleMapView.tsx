@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { 
   resolveCoordinates, 
   calculateNationalRoadDistance, 
   HEALTHCARE_FACILITY_COORDINATES 
 } from '../services/pricingService';
 import { detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
+import { getGoogleMapsApi } from '../services/googleMapsLoader';
+
+// Source: Google Maps Platform Code Assist
 
 export interface GoogleMapViewProps {
   mode?: 'route' | 'tracking' | 'fleet' | 'facility';
@@ -22,29 +24,6 @@ export interface GoogleMapViewProps {
   driverLat?: number;
   driverLng?: number;
   onRouteComputed?: (distKm: number, durMin: number) => void;
-}
-
-let gmpConfigured = false;
-
-function setupGmpLoader(): boolean {
-  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  if (!key || key === 'YOUR_GOOGLE_MAPS_API_KEY') {
-    return false;
-  }
-  if (!gmpConfigured) {
-    try {
-      setOptions({
-        key,
-        v: 'weekly',
-        language: 'fr',
-        region: 'MQ',
-      });
-      gmpConfigured = true;
-    } catch {
-      return false;
-    }
-  }
-  return true;
 }
 
 export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
@@ -64,8 +43,13 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
   onRouteComputed,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const polylineRef = useRef<any>(null);
+
   const [mapType, setMapType] = useState<'m' | 'k'>('m'); // 'm' = Roadmap, 'k' = Satellite
-  const [useJsApi, setUseJsApi] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Calcul des coordonnées GPS réelles et distance routière officielle
   const routeData = useMemo(() => {
@@ -100,21 +84,23 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
     }
   }, [routeData, onRouteComputed]);
 
-  // Initialisation du Google Maps JavaScript API si une clé est disponible
+  // Synchronisation dynamique du type de carte Google Maps (Plan vs Satellite)
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setMapTypeId(mapType === 'k' ? 'satellite' : 'roadmap');
+    }
+  }, [mapType]);
+
+  // Initialisation et actualisation de Google Maps JavaScript API
   useEffect(() => {
     let isMounted = true;
-    const hasKey = setupGmpLoader();
-
-    if (!hasKey || !mapContainerRef.current) {
-      setUseJsApi(false);
-      return;
-    }
 
     async function initMap() {
       try {
-        const mapsLib = (await importLibrary('maps')) as any;
-        const markerLib = (await importLibrary('marker')) as any;
+        setIsLoading(true);
+        setLoadError(null);
 
+        const googleMaps = await getGoogleMapsApi();
         if (!isMounted || !mapContainerRef.current) return;
 
         let center = { lat: 14.6415, lng: -61.0242 }; // Centre Martinique
@@ -135,48 +121,75 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
           zoom = 14;
         }
 
-        const map = new mapsLib.Map(mapContainerRef.current, {
-          center,
-          zoom,
-          mapId: 'DEMO_MAP_ID',
-          mapTypeId: mapType === 'k' ? 'satellite' : 'roadmap',
-          disableDefaultUI: !showControls,
-          zoomControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          // Attribut officiel de tracking Google Maps Platform
-          internalUsageAttributionIds: ['gmp_git_agentskills_v1'],
+        // Nettoyage des anciens marqueurs
+        markersRef.current.forEach(m => {
+          if (m && typeof m.setMap === 'function') m.setMap(null);
         });
+        markersRef.current = [];
+
+        if (polylineRef.current) {
+          polylineRef.current.setMap(null);
+          polylineRef.current = null;
+        }
+
+        let map = mapInstanceRef.current;
+        if (!map) {
+          map = new googleMaps.Map(mapContainerRef.current, {
+            center,
+            zoom,
+            mapTypeId: mapType === 'k' ? 'satellite' : 'roadmap',
+            disableDefaultUI: !showControls,
+            zoomControl: interactive && showControls,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: interactive && showControls,
+            gestureHandling: interactive ? 'greedy' : 'none',
+            // Attribut officiel de tracking Google Maps Platform
+            internalUsageAttributionIds: ['gmp_git_agentskills_v1'],
+          });
+          mapInstanceRef.current = map;
+        } else {
+          map.setCenter(center);
+          map.setZoom(zoom);
+          map.setMapTypeId(mapType === 'k' ? 'satellite' : 'roadmap');
+        }
 
         // Marqueurs selon le mode
         if (mode === 'route') {
-          // Marqueur Départ (Maison / Patient)
-          const startPin = document.createElement('div');
-          startPin.className = 'w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg border-2 border-white font-bold text-xs';
-          startPin.innerHTML = '<span class="material-symbols-outlined text-[18px]">home</span>';
-
-          new markerLib.AdvancedMarkerElement({
+          // Marqueur Départ (Prise en charge)
+          const startMarker = new googleMaps.Marker({
             map,
             position: routeData.originCoords,
             title: `Départ : ${origin}`,
-            content: startPin,
+            icon: {
+              path: googleMaps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#005b60',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            },
           });
+          markersRef.current.push(startMarker);
 
-          // Marqueur Destination (Hôpital)
-          const endPin = document.createElement('div');
-          endPin.className = 'w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center shadow-lg border-2 border-white font-bold text-xs';
-          endPin.innerHTML = '<span class="material-symbols-outlined text-[18px]">local_hospital</span>';
-
-          new markerLib.AdvancedMarkerElement({
+          // Marqueur Destination (Établissement de santé)
+          const endMarker = new googleMaps.Marker({
             map,
             position: routeData.destCoords,
             title: `Arrivée : ${destination}`,
-            content: endPin,
+            icon: {
+              path: googleMaps.SymbolPath.BACKWARD_CLOSED_ARROW,
+              scale: 6,
+              fillColor: '#dc2626',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            },
           });
+          markersRef.current.push(endMarker);
 
-          // Ligne de parcours
-          const routePath = new mapsLib.Polyline({
+          // Ligne de parcours Google Maps
+          const routePath = new googleMaps.Polyline({
             path: [routeData.originCoords, routeData.destCoords],
             geodesic: true,
             strokeColor: '#005b60',
@@ -184,40 +197,67 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
             strokeWeight: 4,
           });
           routePath.setMap(map);
+          polylineRef.current = routePath;
         } else if (mode === 'fleet') {
           // Marqueurs Hôpitaux
           Object.values(HEALTHCARE_FACILITY_COORDINATES).forEach((f) => {
-            const hPin = document.createElement('div');
-            hPin.className = 'w-6 h-6 rounded-full bg-secondary text-white flex items-center justify-center shadow-md border-2 border-white text-[12px]';
-            hPin.innerHTML = '<span class="material-symbols-outlined text-[14px]">local_hospital</span>';
-
-            new markerLib.AdvancedMarkerElement({
+            const hMarker = new googleMaps.Marker({
               map,
               position: { lat: f.lat, lng: f.lng },
               title: f.name,
-              content: hPin,
+              icon: {
+                path: googleMaps.SymbolPath.CIRCLE,
+                scale: 6,
+                fillColor: '#0284c7',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 1.5,
+              },
             });
+            markersRef.current.push(hMarker);
           });
 
-          // Marqueur Véhicule sanitaire en direct (si coordonnées GPS réelles transmises)
+          // Marqueur Véhicule sanitaire en direct (si coordonnées GPS réelles)
           if (driverLat && driverLng) {
-            const vPin = document.createElement('div');
-            vPin.className = 'w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg border-2 border-white animate-pulse';
-            vPin.innerHTML = '<span class="material-symbols-outlined text-[14px]">ambulance</span>';
-
-            new markerLib.AdvancedMarkerElement({
+            const vMarker = new googleMaps.Marker({
               map,
               position: { lat: driverLat, lng: driverLng },
               title: driverName || 'Véhicule sanitaire en mission',
-              content: vPin,
+              icon: {
+                path: googleMaps.SymbolPath.BACKWARD_CLOSED_ARROW,
+                scale: 7,
+                fillColor: '#059669',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+              },
             });
+            markersRef.current.push(vMarker);
           }
+        } else if (mode === 'tracking') {
+          const destMarker = new googleMaps.Marker({
+            map,
+            position: routeData.destCoords,
+            title: destination,
+            icon: {
+              path: googleMaps.SymbolPath.BACKWARD_CLOSED_ARROW,
+              scale: 6,
+              fillColor: '#dc2626',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            },
+          });
+          markersRef.current.push(destMarker);
         }
 
-        setUseJsApi(true);
-      } catch (err) {
-        console.warn('Google Maps JS API failed to initialize, using interactive Google Maps Embed:', err);
-        setUseJsApi(false);
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error('Erreur chargement Google Maps:', err);
+        if (isMounted) {
+          setLoadError('Connexion Google Maps indisponible.');
+          setIsLoading(false);
+        }
       }
     }
 
@@ -226,52 +266,41 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [mode, routeData, mapType, showControls, facilityName, origin, destination]);
-
-  // Construction de l'URL Google Maps Embed officiel pour le rendu interactif sans clé ou en fallback
-  const embedUrl = useMemo(() => {
-    const t = mapType; // 'm' = normal, 'k' = satellite
-    if (mode === 'route') {
-      const saddr = encodeURIComponent(`${origin}, Martinique`);
-      const daddr = encodeURIComponent(`${destination}, Martinique`);
-      return `https://maps.google.com/maps?saddr=${saddr}&daddr=${daddr}&hl=fr&t=${t}&z=12&output=embed`;
-    }
-
-    if (mode === 'tracking') {
-      const q = encodeURIComponent(`${routeData.destCoords.lat},${routeData.destCoords.lng}`);
-      return `https://maps.google.com/maps?q=${q}&hl=fr&t=${t}&z=14&output=embed`;
-    }
-
-    if (mode === 'facility' && facilityName) {
-      const q = encodeURIComponent(`${facilityName}, Martinique`);
-      return `https://maps.google.com/maps?q=${q}&hl=fr&t=${t}&z=15&output=embed`;
-    }
-
-    // Default 'fleet' : Vue globale Martinique centrée sur la baie de Fort-de-France / Lamentin
-    return `https://maps.google.com/maps?q=Fort-de-France,Martinique&hl=fr&t=${t}&z=11&output=embed`;
-  }, [mode, origin, destination, facilityName, mapType, routeData]);
+  }, [mode, origin, destination, facilityName, routeData, showControls, interactive, driverLat, driverLng, driverName]);
 
   return (
     <div
       className={`relative w-full rounded-2xl overflow-hidden shadow-sm border border-outline-variant/30 bg-surface-container-high ${className}`}
       style={{ height, minHeight: '160px' }}
     >
-      {/* Conteneur pour Google Maps JavaScript API (quand la clé est configurée) */}
+      {/* Conteneur principal Google Maps JavaScript API natif */}
       <div
         ref={mapContainerRef}
-        className={`w-full h-full ${useJsApi ? 'block' : 'hidden'}`}
+        className="w-full h-full"
       />
 
-      {/* Rendu interactif officiel Google Maps via Embed (sans clé ou en complément) */}
-      {!useJsApi && (
-        <div className="relative w-full h-full overflow-hidden bg-slate-100">
-          <iframe
-            title="Carte Google Maps Martinique 972"
-            src={embedUrl}
-            className="w-full h-full border-0 absolute inset-0 filter saturate-[1.05]"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+      {/* État de chargement Google Maps officiel */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-surface-container-low/80 backdrop-blur-xs flex items-center justify-center gap-2 z-20 text-xs font-bold text-primary animate-fadeIn">
+          <span className="w-3 h-3 rounded-full bg-primary animate-ping"></span>
+          <span>Chargement Google Maps...</span>
+        </div>
+      )}
+
+      {/* Erreur éventuelle avec bouton de rechargement direct */}
+      {loadError && !isLoading && (
+        <div className="absolute inset-0 bg-surface-container-lowest/90 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center z-20">
+          <span className="material-symbols-outlined text-amber-500 text-3xl mb-1">map</span>
+          <p className="text-xs font-bold text-on-surface">{loadError}</p>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(origin + ' ' + destination)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+          >
+            <span>Ouvrir dans Google Maps</span>
+            <span className="material-symbols-outlined text-sm">open_in_new</span>
+          </a>
         </div>
       )}
 
@@ -305,16 +334,16 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
         )}
       </div>
 
-      {/* Contrôles interactifs de carte (Satellite / Plan & Filtres) */}
+      {/* Contrôles interactifs de carte (Satellite / Plan & Accès Google Maps) */}
       {showControls && (
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
           <div className="bg-surface-container-lowest/95 backdrop-blur-md rounded-xl p-1 shadow-md border border-outline-variant/30 flex text-xs font-semibold">
             <button
               type="button"
               onClick={() => setMapType('m')}
-              className={`px-2.5 py-1 rounded-lg transition-colors text-xs ${
+              className={`px-2.5 py-1 rounded-lg transition-colors text-xs cursor-pointer ${
                 mapType === 'm'
-                  ? 'bg-primary text-white font-bold'
+                  ? 'bg-primary text-white font-bold shadow-xs'
                   : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
@@ -323,9 +352,9 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
             <button
               type="button"
               onClick={() => setMapType('k')}
-              className={`px-2.5 py-1 rounded-lg transition-colors text-xs ${
+              className={`px-2.5 py-1 rounded-lg transition-colors text-xs cursor-pointer ${
                 mapType === 'k'
-                  ? 'bg-primary text-white font-bold'
+                  ? 'bg-primary text-white font-bold shadow-xs'
                   : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
@@ -341,8 +370,8 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
             }
             target="_blank"
             rel="noopener noreferrer"
-            title="Ouvrir dans Google Maps"
-            className="w-8 h-8 rounded-xl bg-surface-container-lowest/95 backdrop-blur-md flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-md border border-outline-variant/30"
+            title="Ouvrir l'itinéraire dans Google Maps"
+            className="w-8 h-8 rounded-xl bg-surface-container-lowest/95 backdrop-blur-md flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-md border border-outline-variant/30 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">open_in_new</span>
           </a>

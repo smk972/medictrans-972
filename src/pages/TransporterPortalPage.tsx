@@ -10,8 +10,11 @@ import { calculateNationalRoadDistance, calculateMartiniqueRoadDistance, calcula
 import { Ride, RideStatus, TransportType, TransporterSubscription } from '../types';
 import { AuthService } from '../services/authService';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
-import { TransporterRadiusModal } from '../components/TransporterRadiusModal';
+import { TransporterZoneEditor } from '../components/TransporterZoneEditor';
+import { InterventionZone, loadTransporterZone, isRideCoveredByZone } from '../services/transporterZoneService';
+import { resolveCoordinates } from '../services/pricingService';
 import { TransporterSubscriptionTab } from '../components/TransporterSubscriptionTab';
+import { StripeSubscriptionService } from '../services/stripeSubscriptionService';
 import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 import { reverseGeocode } from '../services/nationalGeoDatabase';
 
@@ -197,7 +200,21 @@ export const TransporterPortalPage: React.FC = () => {
     }
   }, [user]);
 
+  // Zone d'intervention officielle personnalisée (Polygone + Offres étendues 30km)
+  const [activeZone, setActiveZone] = useState<InterventionZone | null>(null);
   const [isRadiusModalOpen, setIsRadiusModalOpen] = useState(false);
+
+  useEffect(() => {
+    const tId = user?.transporterId || user?.id;
+    if (tId) {
+      loadTransporterZone(tId).then((zone) => {
+        if (zone) {
+          setActiveZone(zone);
+          if (zone.cityName) setBaseCommune(zone.cityName);
+        }
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     try {
@@ -331,15 +348,31 @@ export const TransporterPortalPage: React.FC = () => {
     if (user?.subscription) {
       setSubscriptionState(user.subscription);
     }
-  }, [user?.subscription]);
+    // Synchronisation en temps réel avec Stripe / Supabase
+    if (transporterId) {
+      StripeSubscriptionService.getSubscriptionStatus(transporterId).then((res) => {
+        if (res.success && res.subscription) {
+          setSubscriptionState({
+            status: res.subscription.status,
+            planName: 'Formule Clinigo Pro (Illimitée)',
+            monthlyPrice: 19.9,
+            stripeCustomerId: res.subscription.stripe_customer_id,
+            stripeSubscriptionId: res.subscription.stripe_subscription_id,
+            stripePriceId: res.subscription.stripe_price_id,
+            currentPeriodStart: res.subscription.current_period_start,
+            currentPeriodEnd: res.subscription.current_period_end,
+            cancelAtPeriodEnd: res.subscription.cancel_at_period_end,
+            canceledAt: res.subscription.canceled_at
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [user?.subscription, transporterId]);
 
-  // Vérification stricte : essai gratuit validé (non expiré) ou abonnement actif
+  // Vérification stricte de l'accès : abonnement Stripe actif ou essai valide
   const activeSubscription = subscriptionState || user?.subscription;
   const isSubscriptionOrTrialValid = Boolean(
-    activeSubscription && (
-      activeSubscription.status === 'ACTIVE' ||
-      (activeSubscription.status === 'TRIAL' && activeSubscription.isTrialUnlocked && (activeSubscription.trialDaysRemaining ?? 0) > 0)
-    )
+    activeSubscription && StripeSubscriptionService.hasActiveSubscription(activeSubscription)
   );
 
 
@@ -472,7 +505,7 @@ export const TransporterPortalPage: React.FC = () => {
     });
   }, [rides, declinedRefs, isDirectTargetedToOther]);
 
-  // Filtrage des courses disponibles (Status PENDING et non déclinées, filtres véhicule, secteur et Rayon d'action)
+  // Filtrage des courses disponibles (Status PENDING et non déclinées, filtres véhicule, secteur et Zone d'intervention officielle)
   const availableMissions = useMemo(() => {
     return rides.filter((r) => {
       if (r.status !== 'PENDING') return false;
@@ -489,12 +522,15 @@ export const TransporterPortalPage: React.FC = () => {
       if (vehicleFilter === 'VSL' && r.transportType !== 'VSL') return false;
       if (vehicleFilter === 'TAXI' && r.transportType !== 'TAXI_CONVENTIONNE') return false;
 
-      // Filtrage par Rayon d'action (Cercle géographique en km)
-      const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
-      const isInside = dist <= actionRadiusKm;
-      if (!includeOutsideRadius && !isInside) {
-        // Selon leur rayon d'intervention ils ne reçoivent pas les demandes des clients hors zone si la case n'est pas cochée
-        return false;
+      // Filtrage par Zone d'intervention géographique officielle (Polygone + Offres étendues à 30 km de la base)
+      if (activeZone && activeZone.polygonCoordinates && activeZone.polygonCoordinates.length >= 3) {
+        const coords = (r as any).pickupCoordinates || resolveCoordinates(r.pickupCity || r.pickupAddress);
+        const match = isRideCoveredByZone(coords, activeZone);
+        if (!match.covered) return false;
+      } else {
+        const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
+        const isInside = dist <= actionRadiusKm;
+        if (!includeOutsideRadius && !isInside) return false;
       }
 
       return true;
@@ -505,15 +541,19 @@ export const TransporterPortalPage: React.FC = () => {
       if (aDirect !== bDirect) return bDirect - aDirect;
       return new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime();
     });
-  }, [rides, vehicleFilter, declinedRefs, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
+  }, [rides, vehicleFilter, declinedRefs, activeZone, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToOther, isDirectTargetedToMe]);
 
   // Compteurs de courses dans et hors zone d'action
   const pendingInRadiusCount = useMemo(() => {
     return allPendingMissions.filter((m) => {
+      if (activeZone && activeZone.polygonCoordinates && activeZone.polygonCoordinates.length >= 3) {
+        const coords = (m as any).pickupCoordinates || resolveCoordinates(m.pickupCity || m.pickupAddress);
+        return isRideCoveredByZone(coords, activeZone).covered;
+      }
       const dist = calculateNationalRoadDistance(baseCommune, m.pickupCity || m.pickupAddress, baseTerritory).distanceKm;
       return dist <= actionRadiusKm;
     }).length;
-  }, [allPendingMissions, baseCommune, baseTerritory, actionRadiusKm]);
+  }, [allPendingMissions, activeZone, baseCommune, baseTerritory, actionRadiusKm]);
 
   const pendingOutsideRadiusCount = useMemo(() => {
     return allPendingMissions.length - pendingInRadiusCount;
@@ -524,9 +564,15 @@ export const TransporterPortalPage: React.FC = () => {
     const counts = { ALL: 0, AMBULANCE: 0, VSL: 0, TAXI: 0 };
     allPendingMissions.forEach((r) => {
       const isDirectMe = isDirectTargetedToMe(r);
-      const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
-      const isInside = dist <= actionRadiusKm;
-      if (!includeOutsideRadius && !isInside && !isDirectMe) return;
+      let isCovered = true;
+      if (activeZone && activeZone.polygonCoordinates && activeZone.polygonCoordinates.length >= 3) {
+        const coords = (r as any).pickupCoordinates || resolveCoordinates(r.pickupCity || r.pickupAddress);
+        isCovered = isRideCoveredByZone(coords, activeZone).covered;
+      } else {
+        const dist = calculateNationalRoadDistance(baseCommune, r.pickupCity || r.pickupAddress, baseTerritory).distanceKm;
+        isCovered = includeOutsideRadius || dist <= actionRadiusKm;
+      }
+      if (!isCovered && !isDirectMe) return;
 
       counts.ALL++;
       if (r.transportType === 'AMBULANCE') counts.AMBULANCE++;
@@ -534,7 +580,7 @@ export const TransporterPortalPage: React.FC = () => {
       else if (r.transportType === 'TAXI_CONVENTIONNE') counts.TAXI++;
     });
     return counts;
-  }, [allPendingMissions, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToMe]);
+  }, [allPendingMissions, activeZone, baseCommune, baseTerritory, actionRadiusKm, includeOutsideRadius, isDirectTargetedToMe]);
 
   // Compteur des demandes directes prioritaires nominatives pour ce transporteur (délai 24h)
   const pendingDirectRequestsCount = useMemo(() => {
@@ -587,15 +633,19 @@ export const TransporterPortalPage: React.FC = () => {
       .sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime());
   }, [rides]);
 
-  // Courses disponibles non affectées pouvant correspondre au transporteur (dans son rayon d'action et non déclinées)
+  // Courses disponibles non affectées pouvant correspondre au transporteur (dans sa zone d'intervention officielle et non déclinées)
   const matchingAvailableMissions = useMemo(() => {
     return allPendingMissions
       .filter((m) => {
+        if (activeZone && activeZone.polygonCoordinates && activeZone.polygonCoordinates.length >= 3) {
+          const coords = (m as any).pickupCoordinates || resolveCoordinates(m.pickupCity || m.pickupAddress);
+          return isRideCoveredByZone(coords, activeZone).covered;
+        }
         const dist = calculateNationalRoadDistance(baseCommune, m.pickupCity || m.pickupAddress, baseTerritory).distanceKm;
         return dist <= actionRadiusKm;
       })
       .sort((a, b) => new Date(a.pickupDateTime).getTime() - new Date(b.pickupDateTime).getTime());
-  }, [allPendingMissions, baseCommune, baseTerritory, actionRadiusKm]);
+  }, [allPendingMissions, activeZone, baseCommune, baseTerritory, actionRadiusKm]);
 
   // Jours uniques avec décompte pour le sélecteur de dates rapide
   const planningDaysSummary = useMemo(() => {
@@ -1873,104 +1923,47 @@ export const TransporterPortalPage: React.FC = () => {
                   : ''
               }`}>
                 {/* ========================================================================= */}
-                {/* BARRE DE PARAMÉTRAGE DU RAYON D'ACTION & ZONE GÉOGRAPHIQUE (CERCLE KM)    */}
+                {/* BARRE DE GESTION OFFICIELLE DES ZONES D'INTERVENTION (POLYGONE + 30KM)     */}
                 {/* ========================================================================= */}
                 <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/20 shadow-xs overflow-hidden flex flex-col">
-                  {/* Zone principale : Base d'ancrage & Rayon d'action */}
                   <div className="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-                    {/* Bloc 1 : Base d'attache & Territoire */}
+                    {/* Bloc 1 : Base d'intervention & Région */}
                     <div className="flex items-start sm:items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-xs">
+                        <span className="text-xl">📍</span>
                       </div>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-black text-on-surface uppercase tracking-wider">
-                            Base d'attache & Territoire
+                            Zone d'intervention officielle
                           </span>
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
-                            Ancrage actif
+                          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                            <span>{activeZone?.polygonCoordinates?.length ? `${activeZone.polygonCoordinates.length} sommets actifs` : 'Polygone configuré'}</span>
                           </span>
+                          {activeZone?.allowExtendedRadius && (
+                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/30">
+                              📢 Offres étendues (+30 km de la base)
+                            </span>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Territoire */}
-                          <div className="relative inline-flex items-center bg-surface-container/70 hover:bg-surface-container rounded-xl border border-outline-variant/30 px-3 py-1.5 transition-colors">
-                            <span className="text-xs font-black text-primary mr-1.5 font-mono">
-                              {TERRITORIES_CONFIG[baseTerritory]?.code || '972'}
-                            </span>
-                            <select
-                              id="select-base-territory"
-                              value={baseTerritory}
-                              onChange={(e) => {
-                                const newTerritory = e.target.value as TerritoryId;
-                                setBaseTerritory(newTerritory);
-                                const cfg = TERRITORIES_CONFIG[newTerritory];
-                                if (cfg) setBaseCommune(cfg.defaultCommune);
-                              }}
-                              className="bg-transparent text-xs font-bold text-on-surface outline-none cursor-pointer pr-6 appearance-none"
-                              title="Sélectionner le territoire"
-                            >
-                              {Object.values(TERRITORIES_CONFIG).map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.shortName}
-                                </option>
-                              ))}
-                            </select>
-                            <svg className="w-3.5 h-3.5 text-on-surface-variant pointer-events-none absolute right-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </div>
-
-                          {/* Commune de base */}
-                          <div className="relative inline-flex items-center bg-surface-container/70 hover:bg-surface-container rounded-xl border border-outline-variant/30 px-3 py-1.5 transition-colors">
-                            <span className="text-xs font-bold text-on-surface-variant mr-1.5">Commune :</span>
-                            <select
-                              id="select-base-commune"
-                              value={baseCommune}
-                              onChange={(e) => setBaseCommune(e.target.value)}
-                              className="bg-transparent text-xs font-bold text-on-surface outline-none cursor-pointer pr-6 appearance-none max-w-[170px] truncate"
-                              title="Commune de stationnement"
-                            >
-                              {!TERRITORIES_CONFIG[baseTerritory]?.zones.some(
-                                (c) => c.name.toLowerCase() === baseCommune.toLowerCase()
-                              ) && (
-                                <option value={baseCommune}>
-                                  📍 {baseCommune}
-                                </option>
-                              )}
-                              {TERRITORIES_CONFIG[baseTerritory]?.zones.map((c) => (
-                                <option key={c.insee} value={c.name}>
-                                  {c.name} {c.postalCode ? `(${c.postalCode})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <svg className="w-3.5 h-3.5 text-on-surface-variant pointer-events-none absolute right-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </div>
-
-                          {/* Bouton GPS */}
-                          <button
-                            id="btn-dashboard-geolocate"
-                            type="button"
-                            onClick={handleDashboardGeolocate}
-                            disabled={isGeolocatingDashboard}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                            title="Détecter automatiquement ma position GPS"
-                          >
-                            <svg className={`w-3.5 h-3.5 text-primary ${isGeolocatingDashboard ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" />
-                              <line x1="22" y1="12" x2="18" y2="12" />
-                              <line x1="6" y1="12" x2="2" y2="12" />
-                              <line x1="12" y1="6" x2="12" y2="2" />
-                              <line x1="12" y1="22" x2="12" y2="18" />
-                            </svg>
-                            <span>{isGeolocatingDashboard ? 'Détection...' : 'Me géolocaliser'}</span>
-                          </button>
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="font-bold text-on-surface">
+                            Base : <span className="text-primary font-black">{activeZone?.cityName || baseCommune}</span>
+                          </span>
+                          <span className="text-on-surface-variant">•</span>
+                          <span className="text-on-surface-variant font-medium">
+                            Région : <strong className="text-on-surface font-bold">{activeZone?.regionName || 'France'}</strong>
+                          </span>
+                          {activeZone?.baseAddress && (
+                            <>
+                              <span className="text-on-surface-variant">•</span>
+                              <span className="text-on-surface-variant text-[11px] truncate max-w-[260px]" title={activeZone.baseAddress}>
+                                {activeZone.baseAddress}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1978,111 +1971,33 @@ export const TransporterPortalPage: React.FC = () => {
                     {/* Séparateur vertical pour grand écran */}
                     <div className="hidden xl:block w-px h-12 bg-outline-variant/20 self-center"></div>
 
-                    {/* Bloc 2 : Rayon d'action & Carte interactive */}
+                    {/* Bloc 2 : Télémétrie et Bouton d'accès au tracé */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between xl:justify-end gap-3.5">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-black text-on-surface uppercase tracking-wider flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
-                              <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" />
-                              <path d="M16.24 7.76A6 6 0 1 0 8.23 16.24" />
-                              <circle cx="12" cy="12" r="2" fill="currentColor" />
-                            </svg>
-                            <span>Rayon d'action :</span>
+                      <div className="flex items-center gap-2 text-xs font-bold">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                          <span>{pendingInRadiusCount} course{pendingInRadiusCount > 1 ? 's' : ''} dans la zone</span>
+                        </span>
+                        {pendingOutsideRadiusCount > 0 && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container text-on-surface-variant border border-outline-variant/30 text-[11px]">
+                            <span>{pendingOutsideRadiusCount} hors zone</span>
                           </span>
-                          <span className="text-xs font-black text-primary bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20 font-mono">
-                            {actionRadiusKm} km
-                          </span>
-                        </div>
-
-                        {/* Presets de rayon dans un segmented control */}
-                        <div className="inline-flex items-center bg-surface-container p-1 rounded-xl border border-outline-variant/30 gap-1">
-                          {TERRITORIES_CONFIG[baseTerritory]?.radiusPresets.slice(0, 5).map((km) => (
-                            <button
-                              key={km}
-                              type="button"
-                              onClick={() => setActionRadiusKm(km)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                actionRadiusKm === km
-                                  ? 'bg-primary text-white shadow-xs scale-105'
-                                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                              }`}
-                            >
-                              {km === TERRITORIES_CONFIG[baseTerritory]?.maxRadius ? 'Tout' : `${km} km`}
-                            </button>
-                          ))}
-                        </div>
+                        )}
                       </div>
 
-                      {/* Bouton Carte Interactive */}
                       <button
-                        id="btn-open-radius-modal"
+                        id="btn-open-zone-modal"
                         type="button"
                         onClick={() => setIsRadiusModalOpen(true)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-bold text-xs transition-all shadow-xs hover:shadow-md active:scale-95 cursor-pointer shrink-0 self-start sm:self-end"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-bold text-xs transition-all shadow-xs hover:shadow-md active:scale-95 cursor-pointer shrink-0"
                       >
-                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
                           <line x1="9" y1="3" x2="9" y2="18" />
                           <line x1="15" y1="6" x2="15" y2="21" />
                         </svg>
-                        <span>Carte interactive</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                        <span>✏️ Configurer ma zone d'action</span>
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Barre inférieure intégrée : Filtrage hors zone & Télémétrie */}
-                  <div className="bg-surface-container-low/60 px-4 sm:px-5 py-2.5 border-t border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <label htmlFor="checkbox-outside-radius" className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
-                      <input
-                        id="checkbox-outside-radius"
-                        type="checkbox"
-                        checked={includeOutsideRadius}
-                        onChange={(e) => setIncludeOutsideRadius(e.target.checked)}
-                        className="w-4 h-4 rounded border-outline-variant/40 text-primary focus:ring-primary/20 accent-primary cursor-pointer transition-transform group-hover:scale-110"
-                      />
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <span className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">
-                          Recevoir également les demandes en dehors du rayon ({actionRadiusKm} km)
-                        </span>
-                        <span className="text-[11px] text-on-surface-variant">
-                          ({includeOutsideRadius ? 'courses hors zone affichées' : 'courses hors zone masquées'})
-                        </span>
-                      </div>
-                    </label>
-
-                    {/* Télémétrie temps réel */}
-                    <div className="flex items-center gap-2 text-[11px] font-semibold shrink-0">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                        <span className="font-bold">{pendingInRadiusCount}</span>
-                        <span>dans la zone</span>
-                      </span>
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${
-                          includeOutsideRadius
-                            ? 'bg-amber-500/10 text-amber-700 border-amber-500/30'
-                            : 'bg-surface-container text-on-surface-variant border-outline-variant/30'
-                        }`}
-                      >
-                        {includeOutsideRadius ? (
-                          <svg className="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        ) : (
-                          <svg className="w-3.5 h-3.5 text-on-surface-variant" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                            <line x1="2" y1="2" x2="22" y2="22" />
-                          </svg>
-                        )}
-                        <span className="font-bold">{pendingOutsideRadiusCount}</span>
-                        <span>hors zone ({includeOutsideRadius ? 'visibles' : 'masquées'})</span>
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -2236,8 +2151,21 @@ export const TransporterPortalPage: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {availableMissions.map((mission) => {
                     const route = calculateNationalRoadDistance(mission.pickupCity, mission.dropoffCity, baseTerritory);
-                    const distFromBase = calculateNationalRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress, baseTerritory).distanceKm;
-                    const isInsideRadius = distFromBase <= actionRadiusKm;
+                    let distFromBase = 0;
+                    let isInsideZone = true;
+                    let zoneMatchReason: 'INSIDE_POLYGON' | 'EXTENDED_RADIUS' | 'NONE' = 'INSIDE_POLYGON';
+
+                    if (activeZone && activeZone.polygonCoordinates && activeZone.polygonCoordinates.length >= 3) {
+                      const coords = (mission as any).pickupCoordinates || resolveCoordinates(mission.pickupCity || mission.pickupAddress);
+                      const match = isRideCoveredByZone(coords, activeZone);
+                      distFromBase = match.distanceFromBaseKm;
+                      isInsideZone = match.covered;
+                      zoneMatchReason = match.reason;
+                    } else {
+                      distFromBase = calculateNationalRoadDistance(baseCommune, mission.pickupCity || mission.pickupAddress, baseTerritory).distanceKm;
+                      isInsideZone = distFromBase <= actionRadiusKm;
+                    }
+
                     const pricing = calculateMedicalRidePricing({
                       transportType: mission.transportType,
                       originAddress: mission.pickupAddress,
@@ -2310,23 +2238,31 @@ export const TransporterPortalPage: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* Badge Rayon d'action / Périmètre */}
+                            {/* Badge Zone d'intervention / 3 Cas de matching */}
                             <div className="flex items-center">
-                              {isInsideRadius ? (
+                              {zoneMatchReason === 'INSIDE_POLYGON' ? (
                                 <span
                                   className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-[11px] font-bold"
-                                  title={`Départ à ${distFromBase.toFixed(1)} km de votre base (${baseCommune})`}
+                                  title={`Prise en charge dans votre polygone d'action (à ${distFromBase.toFixed(1)} km de votre base)`}
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                  <span>🟢 À {distFromBase.toFixed(1)} km de base • Dans votre rayon ({actionRadiusKm} km)</span>
+                                  <span>🟢 Dans votre zone d'action ({distFromBase.toFixed(1)} km de votre base)</span>
+                                </span>
+                              ) : zoneMatchReason === 'EXTENDED_RADIUS' ? (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-900 text-[11px] font-bold"
+                                  title={`Offre située hors du polygone mais à moins de 30 km de votre base (${activeZone?.cityName || baseCommune})`}
+                                >
+                                  <span className="material-symbols-outlined text-[13px] text-amber-700">travel_explore</span>
+                                  <span>📢 Offre étendue (+30 km) • À {distFromBase.toFixed(1)} km de votre base</span>
                                 </span>
                               ) : (
                                 <span
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-900 text-[11px] font-bold"
-                                  title={`Départ à ${distFromBase.toFixed(1)} km de votre base (${baseCommune}), hors rayon de ${actionRadiusKm} km (+${(distFromBase - actionRadiusKm).toFixed(1)} km)`}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-500/15 border border-slate-500/30 text-slate-800 text-[11px] font-bold"
+                                  title={`Départ à ${distFromBase.toFixed(1)} km de votre base`}
                                 >
-                                  <span className="material-symbols-outlined text-[13px] text-amber-700">travel_explore</span>
-                                  <span>🟠 À {distFromBase.toFixed(1)} km de base • Hors zone d'intervention (+{(distFromBase - actionRadiusKm).toFixed(1)} km)</span>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                  <span>🟠 Hors zone d'action ({distFromBase.toFixed(1)} km de votre base)</span>
                                 </span>
                               )}
                             </div>
@@ -2841,11 +2777,11 @@ export const TransporterPortalPage: React.FC = () => {
                             Opportunités Bourse : {matchingAvailableMissions.length} course{matchingAvailableMissions.length > 1 ? 's' : ''} disponible{matchingAvailableMissions.length > 1 ? 's' : ''} non affectée{matchingAvailableMissions.length > 1 ? 's' : ''} pourrai{matchingAvailableMissions.length > 1 ? 'ent' : 't'} vous correspondre !
                           </h3>
                           <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono text-xs font-bold">
-                            Rayon ≤ {actionRadiusKm} km
+                            {activeZone?.polygonCoordinates?.length ? `${activeZone.polygonCoordinates.length} sommets • ${activeZone.cityName}` : `Zone ${baseCommune}`}
                           </span>
                         </div>
                         <p className="text-xs text-on-surface-variant mt-0.5">
-                          Demandes en attente situées dans votre zone d'intervention ({baseCommune} et alentours). Vous pouvez les accepter pour les intégrer directement à votre planning :
+                          Demandes en attente situées dans votre zone d'intervention officielle ({activeZone?.cityName || baseCommune} et alentours). Vous pouvez les accepter pour les intégrer directement à votre planning :
                         </p>
                       </div>
                     </div>
@@ -5539,25 +5475,30 @@ export const TransporterPortalPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 6 : CONFIGURATION DU RAYON D'ACTION & CERCLE GÉOGRAPHIQUE           */}
+      {/* MODAL 6 : CONFIGURATION OFFICIELLE DES ZONES D'INTERVENTION (NOUVEAU)     */}
       {/* ========================================================================= */}
-      <TransporterRadiusModal
-        isOpen={isRadiusModalOpen}
-        onClose={() => {
-          setIsRadiusModalOpen(false);
-          showNotification('success', "Zone d'intervention mise à jour", `Base : ${baseCommune} • Rayon : ${actionRadiusKm} km`);
-        }}
-        radiusKm={actionRadiusKm}
-        onRadiusChange={setActionRadiusKm}
-        includeOutsideRadius={includeOutsideRadius}
-        onToggleIncludeOutside={setIncludeOutsideRadius}
-        baseCommune={baseCommune}
-        onBaseCommuneChange={setBaseCommune}
-        allPendingMissions={allPendingMissions}
-        userAddress={user?.postalCode || user?.address || user?.city || ''}
-        activeTerritory={baseTerritory}
-        onTerritoryChange={setBaseTerritory}
-      />
+      {isRadiusModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-fadeIn">
+          <div className="w-full max-w-5xl my-auto">
+            <TransporterZoneEditor
+              transporterId={user?.transporterId || user?.id || 'demo-transporter'}
+              initialBaseAddress={activeZone?.baseAddress || user?.address || ''}
+              initialCity={activeZone?.cityName || user?.city || baseCommune}
+              initialZone={activeZone}
+              onSaved={(newZone) => {
+                setActiveZone(newZone);
+                setBaseCommune(newZone.cityName);
+                showNotification(
+                  'success',
+                  "Zone d'intervention enregistrée",
+                  `Base : ${newZone.cityName} (${newZone.regionName}) • ${newZone.polygonCoordinates.length} sommets • ${newZone.allowExtendedRadius ? 'Offres étendues +30km actives' : 'Offres étendues désactivées'}`
+                );
+              }}
+              onClose={() => setIsRadiusModalOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* NOTIFICATION TOAST                                                        */}

@@ -121,25 +121,74 @@ export interface TransporterInvoice {
   date: string;
   amount: number;
   description: string;
-  status: 'PAID' | 'TRIAL_FREE';
+  status: 'PAID' | 'TRIAL_FREE' | 'paid' | 'open' | 'void' | 'uncollectible';
   periodStart?: string;
   periodEnd?: string;
+  invoiceUrl?: string;
+  invoicePdf?: string;
 }
 
+export type SubscriptionStatus =
+  | 'TRIAL'
+  | 'ACTIVE'
+  | 'EXPIRED'
+  | 'NONE'
+  | 'active'
+  | 'past_due'
+  | 'unpaid'
+  | 'canceled'
+  | 'incomplete'
+  | 'trialing';
+
 export interface TransporterSubscription {
-  status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'NONE';
-  trialDaysTotal: number;
-  trialDaysRemaining: number;
+  status: SubscriptionStatus;
+  trialDaysTotal?: number;
+  trialDaysRemaining?: number;
   trialStartedAt?: string;
   trialExpiresAt?: string;
-  isTrialUnlocked: boolean;
+  isTrialUnlocked?: boolean;
   whatsappVerified?: boolean;
   whatsappPhone?: string;
   planName: string;
   monthlyPrice: number;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripePriceId?: string;
+  cancelAtPeriodEnd?: boolean;
+  canceledAt?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   invoices?: TransporterInvoice[];
+}
+
+export interface StripeSubscriptionRecord {
+  id: string;
+  transporter_id: string;
+  stripe_customer_id: string;
+  stripe_subscription_id: string;
+  stripe_price_id: string;
+  status: 'active' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete' | 'trialing';
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+  canceled_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StripeInvoiceRecord {
+  id: string;
+  transporter_id: string;
+  stripe_customer_id: string;
+  stripe_invoice_id: string;
+  amount: number;
+  currency: string;
+  status: 'paid' | 'open' | 'void' | 'uncollectible';
+  invoice_url?: string;
+  invoice_pdf?: string;
+  paid_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface TransporterDriver {

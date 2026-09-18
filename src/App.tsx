@@ -24,6 +24,9 @@ import { AdminTransportersPage } from './pages/AdminTransportersPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { TransporterSalesPage } from './pages/TransporterSalesPage';
+import { SubscriptionPage } from './pages/SubscriptionPage';
+import { SubscriptionSuccessPage } from './pages/SubscriptionSuccessPage';
+import { SubscriptionCancelPage } from './pages/SubscriptionCancelPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -115,6 +118,11 @@ export const App: React.FC = () => {
           <Route path="/offre-pro" element={<TransporterSalesPage />} />
           <Route path="/abonnement-pro" element={<TransporterSalesPage />} />
           <Route path="/tarifs-transporteurs" element={<TransporterSalesPage />} />
+          
+          {/* Abonnement Professionnel Stripe (19,90 € / mois) */}
+          <Route path="/abonnement" element={<SubscriptionPage />} />
+          <Route path="/abonnement/succes" element={<SubscriptionSuccessPage />} />
+          <Route path="/abonnement/annule" element={<SubscriptionCancelPage />} />
 
           {/* Console Dispatch & Régulation (Accès Protégé Transporteur Connecté) */}
           <Route 

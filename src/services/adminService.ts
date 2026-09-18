@@ -1091,7 +1091,7 @@ export class AdminService {
         targetTrans.subscription = {
           ...currentSub,
           status: days > 0 ? 'TRIAL' : 'EXPIRED',
-          trialDaysTotal: Math.max(currentSub.trialDaysTotal, days),
+          trialDaysTotal: Math.max(currentSub.trialDaysTotal ?? 30, days),
           trialDaysRemaining: days,
           isTrialUnlocked: days > 0,
           trialExpiresAt: new Date(Date.now() + days * 86400000).toISOString()
@@ -1122,7 +1122,7 @@ export class AdminService {
         user.subscription = {
           ...currentSub,
           status: days > 0 ? 'TRIAL' : 'EXPIRED',
-          trialDaysTotal: Math.max(currentSub.trialDaysTotal, days),
+          trialDaysTotal: Math.max(currentSub.trialDaysTotal ?? 30, days),
           trialDaysRemaining: days,
           isTrialUnlocked: days > 0,
           trialExpiresAt: new Date(Date.now() + days * 86400000).toISOString()

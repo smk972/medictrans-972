@@ -15,6 +15,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import querystring from 'node:querystring';
 import { fileURLToPath } from 'node:url';
+import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +66,17 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
+
+// Configuration Supabase Server
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://nrfxqgudknmiydmauirx.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseServer = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Configuration Stripe (Abonnement Pro 19,90 € / mois)
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+const STRIPE_PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || '';
+const stripeInstance = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' }) : null;
 
 // Stockage mémoire des codes OTP pour le mode SMS standard et mode test
 const memoryOtpStore = new Map();
@@ -1880,6 +1893,431 @@ function handleOtpVerify(req, res) {
   });
 }
 
+// ==============================================================================
+// HANDLERS STRIPE (ABONNEMENT PRO 19,90 € / MOIS)
+// ==============================================================================
+
+function getHttpRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', err => reject(err));
+  });
+}
+
+async function handleStripeCheckoutSession(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  try {
+    const rawBody = await getHttpRawBody(req);
+    const body = rawBody.length ? JSON.parse(rawBody.toString('utf-8')) : {};
+    const { transporterId, email, companyName, siret } = body;
+
+    if (!transporterId) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ success: false, error: 'transporterId requis.' }));
+      return;
+    }
+
+    if (!stripeInstance) {
+      res.writeHead(503);
+      res.end(JSON.stringify({ success: false, error: 'Stripe non configuré (STRIPE_SECRET_KEY manquante).' }));
+      return;
+    }
+
+    let transporter = null;
+    try {
+      const { data } = await supabaseServer.from('transporters').select('*').eq('id', transporterId).maybeSingle();
+      if (data) transporter = data;
+    } catch (e) {
+      console.warn('[Stripe Prod] Erreur lecture transporteur :', e);
+    }
+
+    const customerEmail = transporter?.email || email;
+    const customerName = transporter?.company_name || companyName || 'Transporteur Clinigo';
+    const customerSiret = transporter?.siret || siret || '';
+
+    let stripeCustomerId = transporter?.stripe_customer_id;
+    if (!stripeCustomerId) {
+      if (customerEmail) {
+        const existing = await stripeInstance.customers.list({ email: customerEmail, limit: 1 });
+        if (existing.data.length > 0) {
+          stripeCustomerId = existing.data[0].id;
+        }
+      }
+      if (!stripeCustomerId) {
+        const newCustomer = await stripeInstance.customers.create({
+          email: customerEmail || undefined,
+          name: customerName,
+          metadata: { transporter_id: transporterId, siret: customerSiret }
+        });
+        stripeCustomerId = newCustomer.id;
+      }
+
+      if (stripeCustomerId) {
+        try {
+          await supabaseServer.from('transporters').update({ stripe_customer_id: stripeCustomerId }).eq('id', transporterId);
+        } catch {}
+      }
+    }
+
+    const host = req.headers.host || 'clinigo.fr';
+    const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+    const origin = `${protocol}://${host}`;
+
+    const lineItem = STRIPE_PRO_PRICE_ID
+      ? { price: STRIPE_PRO_PRICE_ID, quantity: 1 }
+      : {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Clinigo Pro — Abonnement Transporteur Sanitaire',
+              description: 'Accès complet au réseau hospitalier, dispatching temps réel, courses illimitées et régulation prioritaire.'
+            },
+            unit_amount: 1990,
+            recurring: { interval: 'month' }
+          },
+          quantity: 1
+        };
+
+    const session = await stripeInstance.checkout.sessions.create({
+      customer: stripeCustomerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [lineItem],
+      success_url: `${origin}/abonnement/succes?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/abonnement/annule`,
+      billing_address_collection: 'required',
+      allow_promotion_codes: true,
+      metadata: { transporter_id: transporterId, source: 'clinigo_pro_subscription' },
+      subscription_data: { metadata: { transporter_id: transporterId } }
+    });
+
+    res.writeHead(200);
+    res.end(JSON.stringify({ success: true, url: session.url, sessionId: session.id }));
+  } catch (err) {
+    console.error('[Stripe Prod Checkout Error]', err);
+    res.writeHead(500);
+    res.end(JSON.stringify({ success: false, error: err.message || 'Erreur Checkout Stripe' }));
+  }
+}
+
+async function handleStripePortalSession(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  try {
+    const rawBody = await getHttpRawBody(req);
+    const body = rawBody.length ? JSON.parse(rawBody.toString('utf-8')) : {};
+    const { transporterId } = body;
+
+    if (!transporterId) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ success: false, error: 'transporterId requis.' }));
+      return;
+    }
+
+    if (!stripeInstance) {
+      res.writeHead(503);
+      res.end(JSON.stringify({ success: false, error: 'Stripe non configuré.' }));
+      return;
+    }
+
+    let stripeCustomerId = null;
+    try {
+      const { data: transporter } = await supabaseServer.from('transporters').select('stripe_customer_id').eq('id', transporterId).maybeSingle();
+      if (transporter?.stripe_customer_id) {
+        stripeCustomerId = transporter.stripe_customer_id;
+      } else {
+        const { data: sub } = await supabaseServer.from('subscriptions').select('stripe_customer_id').eq('transporter_id', transporterId).maybeSingle();
+        if (sub?.stripe_customer_id) stripeCustomerId = sub.stripe_customer_id;
+      }
+    } catch {}
+
+    if (!stripeCustomerId) {
+      res.writeHead(404);
+      res.end(JSON.stringify({ success: false, error: 'Aucun compte Stripe associé trouvé pour ce transporteur.' }));
+      return;
+    }
+
+    const host = req.headers.host || 'clinigo.fr';
+    const protocol = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+    const origin = `${protocol}://${host}`;
+
+    const portalSession = await stripeInstance.billingPortal.sessions.create({
+      customer: stripeCustomerId,
+      return_url: `${origin}/portal-transporteur`
+    });
+
+    res.writeHead(200);
+    res.end(JSON.stringify({ success: true, url: portalSession.url }));
+  } catch (err) {
+    console.error('[Stripe Prod Portal Error]', err);
+    res.writeHead(500);
+    res.end(JSON.stringify({ success: false, error: err.message || 'Erreur Customer Portal' }));
+  }
+}
+
+async function handleStripeWebhook(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+
+  if (!stripeInstance) {
+    res.writeHead(503);
+    res.end(JSON.stringify({ error: 'Stripe non configuré.' }));
+    return;
+  }
+
+  let rawBody;
+  try {
+    rawBody = await getHttpRawBody(req);
+  } catch {
+    res.writeHead(400);
+    res.end(JSON.stringify({ error: 'Lecture du corps impossible.' }));
+    return;
+  }
+
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    if (STRIPE_WEBHOOK_SECRET && sig) {
+      event = stripeInstance.webhooks.constructEvent(rawBody, sig, STRIPE_WEBHOOK_SECRET);
+    } else {
+      event = JSON.parse(rawBody.toString('utf-8'));
+      console.warn('[Stripe Prod Webhook] AVERTISSEMENT : signature non vérifiée (secret manquant).');
+    }
+  } catch (err) {
+    console.error(`[Stripe Prod Webhook Signature Error] ${err.message}`);
+    res.writeHead(400);
+    res.end(JSON.stringify({ error: `Webhook Error: ${err.message}` }));
+    return;
+  }
+
+  console.log(`[Stripe Prod Webhook] Type: ${event.type} | ID: ${event.id}`);
+
+  // Idempotence
+  try {
+    const { data: existingEvent } = await supabaseServer
+      .from('stripe_webhook_events')
+      .select('id, processed')
+      .eq('stripe_event_id', event.id)
+      .maybeSingle();
+
+    if (existingEvent && existingEvent.processed) {
+      res.writeHead(200);
+      res.end(JSON.stringify({ received: true, duplicate: true }));
+      return;
+    }
+
+    if (!existingEvent) {
+      await supabaseServer.from('stripe_webhook_events').insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        processed: false,
+        payload: event
+      });
+    }
+  } catch {}
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const transporterId = session.metadata?.transporter_id || session.client_reference_id;
+        const customerId = session.customer;
+        const subscriptionId = session.subscription;
+
+        if (transporterId && subscriptionId) {
+          const sub = await stripeInstance.subscriptions.retrieve(subscriptionId);
+          const priceId = sub.items.data[0]?.price?.id || '';
+          const periodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : new Date().toISOString();
+          const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString();
+
+          await supabaseServer.from('subscriptions').upsert({
+            transporter_id: transporterId,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            stripe_price_id: priceId,
+            status: sub.status,
+            current_period_start: periodStart,
+            current_period_end: periodEnd,
+            cancel_at_period_end: sub.cancel_at_period_end,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'transporter_id' });
+
+          await supabaseServer.from('transporters').update({ stripe_customer_id: customerId }).eq('id', transporterId);
+        }
+        break;
+      }
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const sub = event.data.object;
+        const customerId = sub.customer;
+        let transporterId = sub.metadata?.transporter_id;
+
+        if (!transporterId) {
+          const { data: transporter } = await supabaseServer.from('transporters').select('id').eq('stripe_customer_id', customerId).maybeSingle();
+          if (transporter) transporterId = transporter.id;
+        }
+
+        if (transporterId) {
+          const priceId = sub.items.data[0]?.price?.id || '';
+          const periodStart = sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null;
+          const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+
+          await supabaseServer.from('subscriptions').upsert({
+            transporter_id: transporterId,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: sub.id,
+            stripe_price_id: priceId,
+            status: sub.status,
+            current_period_start: periodStart,
+            current_period_end: periodEnd,
+            cancel_at_period_end: sub.cancel_at_period_end,
+            canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'transporter_id' });
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object;
+        await supabaseServer.from('subscriptions').update({
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('stripe_subscription_id', sub.id);
+        break;
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+
+        const { data: transporter } = await supabaseServer.from('transporters').select('id').eq('stripe_customer_id', customerId).maybeSingle();
+        if (transporter) {
+          const amount = (invoice.amount_paid || 0) / 100;
+          const paidAt = invoice.status_transitions?.paid_at ? new Date(invoice.status_transitions.paid_at * 1000).toISOString() : new Date().toISOString();
+
+          await supabaseServer.from('invoices').upsert({
+            transporter_id: transporter.id,
+            stripe_customer_id: customerId,
+            stripe_invoice_id: invoice.id,
+            amount,
+            currency: invoice.currency || 'eur',
+            status: 'paid',
+            invoice_url: invoice.hosted_invoice_url || null,
+            invoice_pdf: invoice.invoice_pdf || null,
+            paid_at: paidAt,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'stripe_invoice_id' });
+
+          await supabaseServer.from('subscriptions').update({ status: 'active', updated_at: new Date().toISOString() }).eq('transporter_id', transporter.id);
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const customerId = invoice.customer;
+
+        const { data: transporter } = await supabaseServer.from('transporters').select('id').eq('stripe_customer_id', customerId).maybeSingle();
+        if (transporter) {
+          const amount = (invoice.amount_due || 0) / 100;
+          await supabaseServer.from('invoices').upsert({
+            transporter_id: transporter.id,
+            stripe_customer_id: customerId,
+            stripe_invoice_id: invoice.id,
+            amount,
+            currency: invoice.currency || 'eur',
+            status: 'open',
+            invoice_url: invoice.hosted_invoice_url || null,
+            invoice_pdf: invoice.invoice_pdf || null,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'stripe_invoice_id' });
+
+          await supabaseServer.from('subscriptions').update({ status: 'past_due', updated_at: new Date().toISOString() }).eq('transporter_id', transporter.id);
+        }
+        break;
+      }
+    }
+
+    await supabaseServer.from('stripe_webhook_events').update({
+      processed: true,
+      processed_at: new Date().toISOString()
+    }).eq('stripe_event_id', event.id);
+
+    res.writeHead(200);
+    res.end(JSON.stringify({ received: true }));
+  } catch (err) {
+    console.error('[Stripe Prod Webhook Processing Error]', err);
+    await supabaseServer.from('stripe_webhook_events').update({
+      error_message: err.message || 'Erreur',
+      processed: false
+    }).eq('stripe_event_id', event.id);
+
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: 'Erreur traitement webhook' }));
+  }
+}
+
+async function handleStripeSubscriptionStatus(req, res, parsedUrl) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  const transporterId = parsedUrl.searchParams.get('transporterId');
+  if (!transporterId) {
+    res.writeHead(400);
+    res.end(JSON.stringify({ success: false, error: 'transporterId requis.' }));
+    return;
+  }
+
+  try {
+    const { data: subscription } = await supabaseServer.from('subscriptions').select('*').eq('transporter_id', transporterId).maybeSingle();
+    const { data: invoices } = await supabaseServer.from('invoices').select('*').eq('transporter_id', transporterId).order('created_at', { ascending: false });
+
+    const isActuallyActive = subscription ? (subscription.status === 'active' || subscription.status === 'trialing') : false;
+
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      success: true,
+      hasActiveSubscription: isActuallyActive,
+      subscription: subscription || null,
+      invoices: invoices || []
+    }));
+  } catch (err) {
+    res.writeHead(500);
+    res.end(JSON.stringify({ success: false, error: err.message || 'Erreur serveur.' }));
+  }
+}
+
 // Création du serveur HTTP
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -1889,6 +2327,17 @@ const server = http.createServer((req, res) => {
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() }));
+    return;
+  }
+
+  // 1b. Configuration dynamique sécurisée pour Google Maps Platform (sans exposition statique dans le bundle)
+  if (pathname === '/api/config/maps-key' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const key = (process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '').trim();
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private'
+    });
+    res.end(JSON.stringify({ key }));
     return;
   }
 
@@ -1941,6 +2390,24 @@ const server = http.createServer((req, res) => {
   // 7. Endpoints API Utilisateurs & Comptes
   if (pathname.startsWith('/api/users')) {
     handleUsersApi(req, res, parsedUrl);
+    return;
+  }
+
+  // 8. Endpoints API Stripe (Abonnement Pro 19,90 € / mois)
+  if (pathname === '/api/stripe/create-checkout-session' && (req.method === 'POST' || req.method === 'OPTIONS')) {
+    handleStripeCheckoutSession(req, res);
+    return;
+  }
+  if (pathname === '/api/stripe/create-portal-session' && (req.method === 'POST' || req.method === 'OPTIONS')) {
+    handleStripePortalSession(req, res);
+    return;
+  }
+  if (pathname === '/api/stripe/webhook' && req.method === 'POST') {
+    handleStripeWebhook(req, res);
+    return;
+  }
+  if (pathname.startsWith('/api/stripe/subscription')) {
+    handleStripeSubscriptionStatus(req, res, parsedUrl);
     return;
   }
 
