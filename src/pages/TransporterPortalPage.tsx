@@ -1483,6 +1483,14 @@ export const TransporterPortalPage: React.FC = () => {
     }
   };
 
+  // Mise à jour du statut en temps réel directement depuis la Fiche Récapitulative de Mission
+  const handleUpdateStatusFromRecap = async (nextStatus: RideStatus) => {
+    if (!selectedMissionForRecap) return;
+    const target = selectedMissionForRecap;
+    setSelectedMissionForRecap({ ...target, status: nextStatus });
+    await handleUpdateActiveStatus(target, nextStatus);
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-teal-50/70 to-sky-100/60 text-slate-900 font-sans antialiased relative selection:bg-teal-600 selection:text-white">
@@ -3472,17 +3480,33 @@ export const TransporterPortalPage: React.FC = () => {
                                         </span>
                                       </div>
 
-                                      {isDirect ? (
-                                        <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-purple-100 text-purple-950 border border-purple-300 flex items-center gap-0.5">
-                                          <span className="material-symbols-outlined text-[10px] text-purple-700">call</span>
-                                          <span>Directe</span>
-                                        </span>
-                                      ) : (
-                                        <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-teal-50 text-teal-900 border border-teal-200 flex items-center gap-0.5">
-                                          <span className="material-symbols-outlined text-[10px] text-teal-700">language</span>
-                                          <span>Clinigo</span>
-                                        </span>
-                                      )}
+                                      <div className="flex items-center gap-1">
+                                        {isDirect ? (
+                                          <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-purple-100 text-purple-950 border border-purple-300 flex items-center gap-0.5">
+                                            <span className="material-symbols-outlined text-[10px] text-purple-700">call</span>
+                                            <span>Directe</span>
+                                          </span>
+                                        ) : (
+                                          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-teal-50 text-teal-900 border border-teal-200 flex items-center gap-0.5">
+                                            <span className="material-symbols-outlined text-[10px] text-teal-700">language</span>
+                                            <span>Clinigo</span>
+                                          </span>
+                                        )}
+
+                                        {mission.status === 'EN_ROUTE' && (
+                                          <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-0.5 animate-pulse shadow-2xs">
+                                            <span className="material-symbols-outlined text-[10px] text-amber-700">near_me</span>
+                                            <span>En route</span>
+                                          </span>
+                                        )}
+
+                                        {mission.status === 'PICKED_UP' && (
+                                          <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-emerald-100 text-emerald-950 border border-emerald-300 flex items-center gap-0.5 shadow-2xs">
+                                            <span className="material-symbols-outlined text-[10px] text-emerald-700">airline_seat_recline_normal</span>
+                                            <span>À bord</span>
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
 
                                     <div className="text-xs space-y-1">
@@ -3642,10 +3666,27 @@ export const TransporterPortalPage: React.FC = () => {
                                         </span>
                                       )}
 
-                                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 text-[10px] font-extrabold flex items-center gap-1 border border-blue-200">
-                                        <span className="material-symbols-outlined text-xs">verified</span>
-                                        {mission.status === 'EN_ROUTE' ? 'En route' : mission.status === 'PICKED_UP' ? 'Prise en charge' : 'Confirmée'}
-                                      </span>
+                                      {mission.status === 'EN_ROUTE' ? (
+                                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-black flex items-center gap-1 border border-amber-300 shadow-2xs animate-pulse">
+                                          <span className="material-symbols-outlined text-xs text-amber-700">near_me</span>
+                                          <span>En route</span>
+                                        </span>
+                                      ) : mission.status === 'PICKED_UP' ? (
+                                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-950 text-[10px] font-black flex items-center gap-1 border border-emerald-300 shadow-2xs">
+                                          <span className="material-symbols-outlined text-xs text-emerald-700">airline_seat_recline_normal</span>
+                                          <span>Patient à bord</span>
+                                        </span>
+                                      ) : mission.status === 'COMPLETED' ? (
+                                        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold flex items-center gap-1 border border-slate-300">
+                                          <span className="material-symbols-outlined text-xs text-slate-600">task_alt</span>
+                                          <span>Terminée</span>
+                                        </span>
+                                      ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 text-[10px] font-bold flex items-center gap-1 border border-blue-200">
+                                          <span className="material-symbols-outlined text-xs text-blue-600">calendar_month</span>
+                                          <span>Confirmée</span>
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
 
@@ -5158,34 +5199,295 @@ export const TransporterPortalPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-start gap-3">
-                <span className="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">verified</span>
-                <div className="flex-1">
-                  <div className="font-bold text-blue-900 text-sm">Course confirmée dans votre planning</div>
-                  <p className="text-blue-800 text-[11px] mt-0.5 leading-relaxed">
-                    Assignée à : <strong>{selectedMissionForRecap.assignedTransporter?.driverName || transporterName}</strong> ({selectedMissionForRecap.assignedTransporter?.vehiclePlate || 'Véhicule flotte'}).
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold font-mono">
-                      RDV : {selectedMissionForRecap.appointmentTime || new Date(selectedMissionForRecap.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              <div className="rounded-3xl border border-outline-variant/30 bg-gradient-to-b from-surface-container-lowest via-surface-container-lowest to-surface-container-low/60 p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+                {/* En-tête du Module Télématique */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-outline-variant/15">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-9 h-9 rounded-2xl bg-teal-500/15 text-teal-700 border border-teal-500/20 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-xl">sensors</span>
                     </span>
-                    {selectedMissionForRecap.transporterPickupTime && (
-                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold font-mono">
-                        Prise en charge : {selectedMissionForRecap.transporterPickupTime}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-xs sm:text-sm text-on-surface uppercase tracking-wider">
+                          État de la Prise en Charge en Temps Réel
+                        </h4>
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant">
+                        Liaison active avec l'application mobile chauffeur • Suivi télématique et régulation
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Badge de connectivité application */}
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    {selectedMissionForRecap.status === 'EN_ROUTE' ? (
+                      <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-950 border border-amber-300 text-[11px] font-black flex items-center gap-1.5 shadow-2xs animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                        <span>Chauffeur en approche (GPS actif)</span>
                       </span>
-                    )}
-                    {selectedMissionForRecap.estimatedArrivalTime && (
-                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold font-mono">
-                        Arrivée estimée : {selectedMissionForRecap.estimatedArrivalTime}
+                    ) : selectedMissionForRecap.status === 'PICKED_UP' ? (
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-950 border border-emerald-300 text-[11px] font-black flex items-center gap-1.5 shadow-2xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Patient à bord (En transit)</span>
                       </span>
-                    )}
-                    {selectedMissionForRecap.isRecurring && (
-                      <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-bold">
-                        Récurrent ({selectedMissionForRecap.recurringDates?.length} dates)
+                    ) : selectedMissionForRecap.status === 'COMPLETED' ? (
+                      <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300 text-[11px] font-bold flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-emerald-600">check_circle</span>
+                        <span>Mission terminée • Dépose effectuée</span>
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200 text-[11px] font-bold flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm text-blue-600">schedule</span>
+                        <span>Programmé • En attente de départ</span>
                       </span>
                     )}
                   </div>
                 </div>
+
+                {/* Stepper à 4 étapes visuel & interactif */}
+                {(() => {
+                  const s = selectedMissionForRecap.status;
+                  const stepIdx = s === 'COMPLETED' ? 4 : s === 'PICKED_UP' ? 3 : s === 'EN_ROUTE' ? 2 : 1;
+
+                  return (
+                    <div className="py-2 px-1">
+                      <div className="relative flex items-center justify-between">
+                        {/* Ligne de fond */}
+                        <div className="absolute left-8 right-8 top-4 h-1 bg-slate-200 -z-0"></div>
+                        {/* Ligne de progression dynamique */}
+                        <div
+                          className="absolute left-8 top-4 h-1 bg-gradient-to-r from-teal-500 via-amber-500 to-emerald-500 transition-all duration-500 -z-0"
+                          style={{
+                            width: stepIdx === 1 ? '0%' : stepIdx === 2 ? '33%' : stepIdx === 3 ? '66%' : '100%'
+                          }}
+                        ></div>
+
+                        {/* Étape 1 : Confirmée */}
+                        <div className="flex flex-col items-center text-center z-10 w-24">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-all ${
+                              stepIdx >= 1
+                                ? 'bg-teal-700 text-white ring-4 ring-teal-100'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-sm">calendar_month</span>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-on-surface mt-1.5 leading-tight">
+                            1. Confirmée
+                          </span>
+                          <span className="text-[9px] text-on-surface-variant font-medium">Au planning</span>
+                        </div>
+
+                        {/* Étape 2 : En route */}
+                        <div className="flex flex-col items-center text-center z-10 w-24">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-all ${
+                              stepIdx >= 2
+                                ? stepIdx === 2
+                                  ? 'bg-amber-500 text-white ring-4 ring-amber-200 animate-pulse'
+                                  : 'bg-emerald-600 text-white ring-4 ring-emerald-100'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-sm">near_me</span>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-on-surface mt-1.5 leading-tight">
+                            2. En route
+                          </span>
+                          <span className="text-[9px] text-on-surface-variant font-medium">Approche patient</span>
+                        </div>
+
+                        {/* Étape 3 : Patient à bord */}
+                        <div className="flex flex-col items-center text-center z-10 w-24">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-all ${
+                              stepIdx >= 3
+                                ? stepIdx === 3
+                                  ? 'bg-emerald-600 text-white ring-4 ring-emerald-200 animate-pulse'
+                                  : 'bg-emerald-600 text-white ring-4 ring-emerald-100'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-sm">airline_seat_recline_normal</span>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-on-surface mt-1.5 leading-tight">
+                            3. À bord
+                          </span>
+                          <span className="text-[9px] text-on-surface-variant font-medium">Prise en charge</span>
+                        </div>
+
+                        {/* Étape 4 : Déposé / Clôturée */}
+                        <div className="flex flex-col items-center text-center z-10 w-24">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition-all ${
+                              stepIdx >= 4
+                                ? 'bg-emerald-700 text-white ring-4 ring-emerald-200'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-sm">task_alt</span>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-on-surface mt-1.5 leading-tight">
+                            4. Déposé
+                          </span>
+                          <span className="text-[9px] text-on-surface-variant font-medium">Mission clôturée</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Panneau Télémétrie : Équipage actif, Téléphone, Horaires & Capteurs GPS */}
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 text-xs space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-outline-variant/15">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-base">person</span>
+                      </span>
+                      <div>
+                        <div className="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                          <span>{selectedMissionForRecap.assignedTransporter?.driverName || 'Chauffeur non affecté'}</span>
+                          <span className="text-[10px] px-2 py-0.2 rounded-full bg-blue-100 text-blue-900 font-semibold">
+                            Équipage titulaire
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-on-surface-variant mt-0.5">
+                          Véhicule : <strong className="font-mono text-on-surface">{selectedMissionForRecap.assignedTransporter?.vehiclePlate || 'Véhicule flotte'}</strong>
+                          {selectedMissionForRecap.assignedTransporter?.vehicleModel && ` • ${selectedMissionForRecap.assignedTransporter.vehicleModel}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Boutons d'appel direct régulateur ➔ Chauffeur / Patient */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {selectedMissionForRecap.assignedTransporter?.driverPhone && (
+                        <a
+                          href={`tel:${selectedMissionForRecap.assignedTransporter.driverPhone}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs transition-colors"
+                          title="Appeler directement le chauffeur sur son smartphone"
+                        >
+                          <span className="material-symbols-outlined text-xs">call</span>
+                          <span>Appeler Chauffeur</span>
+                        </a>
+                      )}
+                      {selectedMissionForRecap.patient.phone && (
+                        <a
+                          href={`tel:${selectedMissionForRecap.patient.phone}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-medium text-[11px] border border-outline-variant/30 transition-colors"
+                          title="Appeler le patient"
+                        >
+                          <span className="material-symbols-outlined text-xs">phone_in_talk</span>
+                          <span>Patient</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Détail des Horodatages & ETA */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/15">
+                      <div className="text-[10px] text-on-surface-variant font-medium">Heure RDV Médical</div>
+                      <div className="font-mono font-black text-primary text-xs mt-0.5">
+                        {selectedMissionForRecap.appointmentTime ||
+                          new Date(selectedMissionForRecap.pickupDateTime).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/15">
+                      <div className="text-[10px] text-on-surface-variant font-medium">Prise en charge prévue</div>
+                      <div className="font-mono font-bold text-on-surface text-xs mt-0.5">
+                        {selectedMissionForRecap.transporterPickupTime ||
+                          new Date(selectedMissionForRecap.pickupDateTime).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/15">
+                      <div className="text-[10px] text-on-surface-variant font-medium">Arrivée estimée (ETA)</div>
+                      <div className="font-mono font-bold text-emerald-800 text-xs mt-0.5">
+                        {selectedMissionForRecap.estimatedArrivalTime ||
+                          new Date(
+                            new Date(selectedMissionForRecap.pickupDateTime).getTime() +
+                              (selectedMissionForRecap.estimatedDurationMin || 25) * 60000
+                          ).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/15">
+                      <div className="text-[10px] text-on-surface-variant font-medium">Position GPS Flotte</div>
+                      <div className="font-bold text-teal-800 text-[11px] mt-0.5 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-teal-600">navigation</span>
+                        <span>Signal actif</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Barre d'action Dispatch / Contrôle Gestionnaire en 1 Clic */}
+                {selectedMissionForRecap.status !== 'COMPLETED' && selectedMissionForRecap.status !== 'CANCELLED' && (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-900/5 via-primary/5 to-slate-900/5 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-base">alt_route</span>
+                      <div>
+                        <span className="font-bold text-on-surface">Pilotage Régulateur : </span>
+                        <span className="text-on-surface-variant text-[11px]">
+                          Faites évoluer l'état de la course en direct (synchronisé avec l'application mobile)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {selectedMissionForRecap.status === 'ACCEPTED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatusFromRecap('EN_ROUTE')}
+                          className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all hover:scale-[1.02]"
+                          title="Signale que le chauffeur démarre vers le domicile du patient"
+                        >
+                          <span className="material-symbols-outlined text-sm">near_me</span>
+                          <span>Démarrer ➔ En Route</span>
+                        </button>
+                      )}
+
+                      {selectedMissionForRecap.status === 'EN_ROUTE' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatusFromRecap('PICKED_UP')}
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all hover:scale-[1.02]"
+                          title="Confirme que le patient est monté dans le véhicule"
+                        >
+                          <span className="material-symbols-outlined text-sm">airline_seat_recline_normal</span>
+                          <span>Valider ➔ Patient à bord</span>
+                        </button>
+                      )}
+
+                      {selectedMissionForRecap.status === 'PICKED_UP' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatusFromRecap('COMPLETED')}
+                          className="px-3.5 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-black text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all hover:scale-[1.02]"
+                          title="Confirme que le patient a été déposé à destination et clôture la course"
+                        >
+                          <span className="material-symbols-outlined text-sm">task_alt</span>
+                          <span>Clôturer ➔ Patient déposé</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
