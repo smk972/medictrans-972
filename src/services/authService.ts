@@ -6,7 +6,75 @@ const STORAGE_KEY_AUTH_USER = 'medictrans_auth_user_972';
 
 // Zéro mock en production : les profils sont gérés par Supabase Auth
 export const REALISTIC_PROFILES: Record<string, UserProfile> = {};
-export const DEMO_PROFILES: Partial<Record<UserRole, UserProfile>> = {};
+export const DEMO_PROFILES: Record<'PATIENT' | 'TRANSPORTER' | 'FACILITY' | 'ADMIN', UserProfile> = {
+  PATIENT: {
+    id: 'user-demo-patient-972',
+    email: 'client.demo@clinigo.fr',
+    role: 'PATIENT',
+    firstName: 'Patrick',
+    lastName: 'SAINT-AIMÉ',
+    phone: '0696 11 22 33',
+    nir: '1 85 06 97 212 345 67',
+    avatarUrl: '/assets/headshot.png',
+    createdAt: '2026-01-15T08:00:00.000Z'
+  },
+  TRANSPORTER: {
+    id: 'user-demo-transporter-972',
+    email: 'transporteur.demo@clinigo.fr',
+    role: 'TRANSPORTER',
+    firstName: 'Alain',
+    lastName: 'MARIE-LUCE',
+    phone: '0696 44 55 66',
+    transporterName: 'Ambulances Madinina Secours',
+    transporterLicense: 'ARS-972-2024-001',
+    subscription: {
+      status: 'TRIAL',
+      trialDaysTotal: 30,
+      trialDaysRemaining: 28,
+      isTrialUnlocked: true,
+      trialExpiresAt: new Date(Date.now() + 28 * 86400000).toISOString(),
+      planName: 'Formule Pro Sanitaire (Illimitée)',
+      monthlyPrice: 19.9,
+      invoices: [
+        {
+          id: 'inv-demo-1',
+          invoiceNumber: 'FACT-2026-9720',
+          date: new Date().toISOString().slice(0, 10),
+          amount: 0,
+          description: 'Période d’essai gratuit 30 jours offerte à l’inscription',
+          status: 'TRIAL_FREE',
+          periodStart: new Date().toISOString().slice(0, 10),
+          periodEnd: new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10)
+        }
+      ]
+    },
+    avatarUrl: '/assets/headshot.png',
+    createdAt: '2026-01-10T09:00:00.000Z'
+  },
+  FACILITY: {
+    id: 'user-demo-facility-972',
+    email: 'etablissement.demo@clinigo.fr',
+    role: 'FACILITY',
+    firstName: 'Dr. Valérie',
+    lastName: 'MONLOUIS',
+    phone: '0596 59 00 00',
+    facilityName: 'CHU de Martinique - Hôpital Pierre Zobda-Quitman',
+    facilityFiness: '970200021',
+    facilityAccessStatus: 'APPROVED',
+    avatarUrl: '/assets/headshot.png',
+    createdAt: '2026-01-05T07:00:00.000Z'
+  },
+  ADMIN: {
+    id: 'user-demo-admin-972',
+    email: 'admin.demo@clinigo.fr',
+    role: 'ADMIN',
+    firstName: 'Régulation',
+    lastName: 'ARS 972',
+    phone: '0596 72 00 97',
+    avatarUrl: '/assets/headshot.png',
+    createdAt: '2026-01-01T00:00:00.000Z'
+  }
+};
 
 export class AuthService {
   /**
@@ -184,6 +252,228 @@ export class AuthService {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // 0. Interception instantanée des comptes Démo pour tests & présentations
+    if (cleanEmail === 'client.demo@clinigo.fr' || cleanEmail === 'patient.demo@clinigo.fr') {
+      const demoUser = DEMO_PROFILES.PATIENT;
+      this.setLocalUser(demoUser);
+      // Garantir la présence d'une course de démonstration active pour le suivi
+      try {
+        const storedRidesRaw = localStorage.getItem('medictrans_rides_972');
+        const storedRides = storedRidesRaw ? JSON.parse(storedRidesRaw) : [];
+        const hasPatientRide = storedRides.some((r: any) => r.patient?.email === demoUser.email || r.userId === demoUser.id);
+        if (!hasPatientRide) {
+          const sampleRide = {
+            id: 'ride-demo-patient-972',
+            reference: 'MT-972-8820',
+            source: 'PATIENT',
+            userId: demoUser.id,
+            patient: {
+              firstName: demoUser.firstName,
+              lastName: demoUser.lastName,
+              birthDate: '1985-06-12',
+              nir: demoUser.nir,
+              phone: demoUser.phone,
+              email: demoUser.email,
+              address: '12 Rue des Flamboyants, Cluny',
+              city: 'Schoelcher',
+              postalCode: '97233',
+              isAld: true,
+              hasPmt: true,
+            },
+            pickupAddress: '12 Rue des Flamboyants, Cluny, Schoelcher',
+            dropoffAddress: 'CHU Pierre Zobda-Quitman - Pôle Oncologie, Fort-de-France',
+            pickupDateTime: new Date(Date.now() + 3600000).toISOString(),
+            status: 'ACCEPTED',
+            transportType: 'VSL',
+            isRoundTrip: true,
+            assignedTransporter: {
+              companyName: 'Ambulances Madinina Secours',
+              vehiclePlate: 'CD-972-MQ',
+              driverName: 'Chauffeur disponible',
+              phone: '0696 11 22 33'
+            },
+            pricing: {
+              basePrice: 58.5,
+              distanceKm: 9.4,
+              durationMinutes: 18,
+              totalPatientShare: 0,
+              coverageRate: 100
+            },
+            createdAt: new Date().toISOString()
+          };
+          storedRides.unshift(sampleRide);
+          localStorage.setItem('medictrans_rides_972', JSON.stringify(storedRides));
+        }
+      } catch {}
+      return { user: demoUser, error: null };
+    }
+
+    if (cleanEmail === 'transporteur.demo@clinigo.fr' || cleanEmail === 'transporter.demo@clinigo.fr') {
+      const demoUser = DEMO_PROFILES.TRANSPORTER;
+      this.setLocalUser(demoUser);
+
+      // Initialisation de la flotte, chauffeurs et courses de démo
+      try {
+        const fleetRaw = localStorage.getItem('medictrans_transporter_fleet_v2');
+        if (!fleetRaw || JSON.parse(fleetRaw).length === 0) {
+          const sampleFleet = [
+            {
+              id: 'veh-demo-1',
+              name: 'Ambulance Type A - Madinina 1',
+              type: 'AMBULANCE',
+              plate: 'CD-972-MQ',
+              driver: 'Alain MARIE-LUCE',
+              phone: '0696 44 55 66',
+              status: 'DISPONIBLE'
+            },
+            {
+              id: 'veh-demo-2',
+              name: 'VSL Sanitaire - Madinina 2',
+              type: 'VSL',
+              plate: 'EF-972-MQ',
+              driver: 'Marc ROCHE',
+              phone: '0696 22 33 44',
+              status: 'DISPONIBLE'
+            },
+            {
+              id: 'veh-demo-3',
+              name: 'Taxi Conventionné CPAM - Madinina 3',
+              type: 'TAXI',
+              plate: 'GH-972-MQ',
+              driver: 'Didier BÉROSE',
+              phone: '0696 77 88 99',
+              status: 'DISPONIBLE'
+            }
+          ];
+          localStorage.setItem('medictrans_transporter_fleet_v2', JSON.stringify(sampleFleet));
+        }
+
+        const driversRaw = localStorage.getItem('medictrans_transporter_drivers_v2');
+        if (!driversRaw || JSON.parse(driversRaw).length === 0) {
+          const sampleDrivers = [
+            {
+              id: 'drv-demo-1',
+              firstName: 'Alain',
+              lastName: 'MARIE-LUCE',
+              role: 'Ambulancier DEA (Chef de bord)',
+              phone: '0696 44 55 66',
+              status: 'DISPONIBLE',
+              assignedVehiclePlate: 'CD-972-MQ'
+            },
+            {
+              id: 'drv-demo-2',
+              firstName: 'Marc',
+              lastName: 'ROCHE',
+              role: 'Auxiliaire Ambulancier',
+              phone: '0696 22 33 44',
+              status: 'DISPONIBLE',
+              assignedVehiclePlate: 'EF-972-MQ'
+            },
+            {
+              id: 'drv-demo-3',
+              firstName: 'Didier',
+              lastName: 'BÉROSE',
+              role: 'Chauffeur Taxi Conventionné',
+              phone: '0696 77 88 99',
+              status: 'DISPONIBLE',
+              assignedVehiclePlate: 'GH-972-MQ'
+            }
+          ];
+          localStorage.setItem('medictrans_transporter_drivers_v2', JSON.stringify(sampleDrivers));
+        }
+
+        const storedRidesRaw = localStorage.getItem('medictrans_rides_972');
+        const storedRides = storedRidesRaw ? JSON.parse(storedRidesRaw) : [];
+
+        // 1 course disponible à accepter (pot commun Martinique)
+        const hasAvailableRide = storedRides.some((r: any) => r.status === 'PENDING');
+        if (!hasAvailableRide) {
+          const sampleAvailableRide = {
+            id: 'ride-demo-available-972',
+            reference: 'MT-972-9140',
+            source: 'PATIENT',
+            patient: {
+              firstName: 'Josette',
+              lastName: 'CELSE',
+              birthDate: '1962-04-18',
+              nir: '2 62 04 97 215 789 12',
+              phone: '0696 55 44 33',
+              email: 'josette.celse@orange.fr',
+              address: '5 Allée des Balisiers',
+              city: 'Le Lamentin',
+              postalCode: '97232',
+              isAld: true,
+              hasPmt: true
+            },
+            pickupAddress: '5 Allée des Balisiers, 97232 Le Lamentin',
+            dropoffAddress: 'CHU Pierre Zobda-Quitman - Pôle Hémodialyse, Fort-de-France',
+            pickupDateTime: new Date(Date.now() + 2 * 3600000).toISOString(),
+            status: 'PENDING',
+            transportType: 'VSL',
+            isRoundTrip: true,
+            pricing: {
+              basePrice: 52.0,
+              distanceKm: 8.5,
+              durationMinutes: 16,
+              totalPatientShare: 0,
+              coverageRate: 100
+            },
+            createdAt: new Date().toISOString()
+          };
+          storedRides.unshift(sampleAvailableRide);
+        }
+
+        // 1 course active déjà assignée à la société
+        const hasActiveRide = storedRides.some((r: any) => r.status === 'ACCEPTED' && r.assignedTransporter?.companyName === demoUser.transporterName);
+        if (!hasActiveRide) {
+          const sampleActiveRide = {
+            id: 'ride-demo-transporter-active',
+            reference: 'MT-972-8820',
+            source: 'PATIENT',
+            userId: 'user-demo-patient-972',
+            patient: {
+              firstName: 'Patrick',
+              lastName: 'SAINT-AIMÉ',
+              birthDate: '1985-06-12',
+              nir: '1 85 06 97 212 345 67',
+              phone: '0696 11 22 33',
+              email: 'client.demo@clinigo.fr',
+              address: '12 Rue des Flamboyants, Cluny',
+              city: 'Schoelcher',
+              postalCode: '97233',
+              isAld: true,
+              hasPmt: true,
+            },
+            pickupAddress: '12 Rue des Flamboyants, Cluny, Schoelcher',
+            dropoffAddress: 'CHU Pierre Zobda-Quitman - Pôle Oncologie, Fort-de-France',
+            pickupDateTime: new Date(Date.now() + 3600000).toISOString(),
+            status: 'ACCEPTED',
+            transportType: 'VSL',
+            isRoundTrip: true,
+            assignedTransporter: {
+              companyName: 'Ambulances Madinina Secours',
+              vehiclePlate: 'CD-972-MQ',
+              driverName: 'Alain MARIE-LUCE',
+              phone: '0696 44 55 66'
+            },
+            pricing: {
+              basePrice: 58.5,
+              distanceKm: 9.4,
+              durationMinutes: 18,
+              totalPatientShare: 0,
+              coverageRate: 100
+            },
+            createdAt: new Date().toISOString()
+          };
+          storedRides.unshift(sampleActiveRide);
+        }
+
+        localStorage.setItem('medictrans_rides_972', JSON.stringify(storedRides));
+      } catch {}
+
+      return { user: demoUser, error: null };
+    }
 
     // 1. Authentification officielle via Supabase Auth
     if (isSupabaseConfigured() && supabase) {
@@ -403,7 +693,7 @@ export class AuthService {
    * Connexion instantanée avec un profil Démo pré-rempli
    */
   static loginAsDemo(role: UserRole): UserProfile {
-    const fallback: UserProfile = {
+    const profile = (DEMO_PROFILES[role] as UserProfile) || {
       id: `demo-${role.toLowerCase()}`,
       email: `demo-${role.toLowerCase()}@clinigo.fr`,
       role,
@@ -411,7 +701,6 @@ export class AuthService {
       lastName: role,
       createdAt: new Date().toISOString()
     };
-    const profile = (DEMO_PROFILES[role] as UserProfile) || fallback;
     this.setLocalUser(profile);
     return profile;
   }

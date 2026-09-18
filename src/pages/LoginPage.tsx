@@ -206,6 +206,20 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, user, mode]);
 
+  const handleQuickDemoLogin = async (demoRole: 'PATIENT' | 'TRANSPORTER') => {
+    setFormError(null);
+    const demoEmail = demoRole === 'PATIENT' ? 'client.demo@clinigo.fr' : 'transporteur.demo@clinigo.fr';
+    const demoPass = 'demo972';
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    const res = await loginWithEmail(demoEmail, demoPass, demoRole);
+    if (res.success) {
+      redirectAfterAuth(demoRole);
+    } else {
+      setFormError(res.error || 'Erreur lors de la connexion démo.');
+    }
+  };
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -352,6 +366,50 @@ export const LoginPage: React.FC = () => {
 
           {/* Formulaire de saisie */}
           <form onSubmit={handleEmailSubmit} className="space-y-4 text-left">
+            {/* Raccourcis Comptes Démo rapides en mode connexion */}
+            {mode === 'LOGIN' && (
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base text-teal-600">play_circle</span>
+                    Comptes Démo (Accès en 1 clic)
+                  </span>
+                  <span className="text-[10px] bg-teal-100/80 text-teal-800 font-bold px-2 py-0.5 rounded-full">
+                    Test immédiat
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemoLogin('PATIENT')}
+                    className="p-2.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs"
+                  >
+                    <span className="flex items-center gap-1 font-bold text-xs text-teal-700">
+                      <span className="material-symbols-outlined text-sm">person</span>
+                      Démo Client / Patient
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      client.demo@clinigo.fr
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemoLogin('TRANSPORTER')}
+                    className="p-2.5 bg-white hover:bg-teal-50/50 border border-slate-200 hover:border-teal-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs"
+                  >
+                    <span className="flex items-center gap-1 font-bold text-xs text-teal-700">
+                      <span className="material-symbols-outlined text-sm">ambulance</span>
+                      Démo Transporteur
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      transporteur.demo@clinigo.fr
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {formError && (
               <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
                 <span className="material-symbols-outlined text-base text-rose-600">error</span>
