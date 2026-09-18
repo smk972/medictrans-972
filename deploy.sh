@@ -30,6 +30,7 @@ echo -e "${GREEN}✓ Build réussi dans le dossier dist/${NC}\n"
 
 # 2. PUSH GITHUB
 echo -e "${YELLOW}[2/2] Synchronisation vers GitHub (origin main)...${NC}"
+mkdir -p tmp && date > tmp/restart.txt
 git add .
 if git commit -m "deploy: mise a jour automatique pour serveur ionos"; then
     echo -e "${GREEN}✓ Commit créé.${NC}"
