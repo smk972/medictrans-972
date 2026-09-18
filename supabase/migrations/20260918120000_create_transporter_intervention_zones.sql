@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS public.transporter_intervention_zones (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  transporter_id UUID NOT NULL REFERENCES public.transporters(id) ON DELETE CASCADE,
+  transporter_id TEXT NOT NULL,
   region_code TEXT NOT NULL,
   region_name TEXT NOT NULL,
   city_name TEXT NOT NULL,
