@@ -278,6 +278,51 @@ export const HomePage: React.FC = () => {
               <p className="text-base sm:text-lg lg:text-xl text-slate-600 font-medium leading-relaxed max-w-3xl mx-auto">
                 Service conçu pour les patients, proches aidants et équipes soignantes.
               </p>
+
+              {/* BOUTON CTA "RÉSERVER UN TRANSPORT" AVEC TAMPON ROUGE "100% GRATUIT" & ANIMATION RENFORCÉE */}
+              <div className="flex flex-col items-center justify-center mt-7 sm:mt-9">
+                <div className="relative inline-block">
+                  <Link
+                    to="/reserver"
+                    className="group relative inline-flex items-center justify-center gap-3 px-8 sm:px-11 py-4 sm:py-5 rounded-full text-base sm:text-xl font-black text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-2xl shadow-teal-700/35 hover:shadow-teal-700/50 cursor-pointer select-none"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, #0d9488 0%, #059669 45%, #0284c7 100%)',
+                    }}
+                  >
+                    {/* Aura lumineuse pulsante en continu */}
+                    <div
+                      aria-hidden="true"
+                      className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-teal-400 via-emerald-400 to-sky-400 opacity-80 blur-lg group-hover:opacity-100 group-hover:blur-xl transition-all animate-cta-aura pointer-events-none"
+                    />
+
+                    {/* Vague de brillance animée (shimmer) traversant le bouton */}
+                    <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                      <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-btn-shimmer" />
+                    </div>
+
+                    {/* Contenu du bouton */}
+                    <div className="relative z-10 flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping shrink-0" />
+                      <span className="tracking-wide">Réserver un transport</span>
+                      <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1.5 transition-transform shrink-0" />
+                    </div>
+                  </Link>
+
+                  {/* TAMPON ROUGE "100% GRATUIT" BIEN VISIBLE */}
+                  <div className="absolute -top-3.5 -right-3 sm:-right-6 z-30 transform -rotate-12 group-hover:rotate-0 transition-transform duration-300 pointer-events-none">
+                    <div className="bg-red-600 text-white font-black text-[11px] sm:text-xs uppercase tracking-widest px-3 py-1 rounded-md shadow-xl border-2 border-dashed border-white flex items-center gap-1 ring-2 ring-red-600/50 animate-pulse">
+                      <span>★</span>
+                      <span>100% GRATUIT</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Réassurance sous le bouton */}
+                <p className="text-xs text-slate-500 font-semibold mt-3 flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Prise en charge Sécurité Sociale & Mutuelle • Aucun frais à avancer</span>
+                </p>
+              </div>
             </div>
 
             {/* =========================================================================
