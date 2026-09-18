@@ -279,46 +279,125 @@ export const HomePage: React.FC = () => {
                 Service conçu pour les patients, proches aidants et équipes soignantes.
               </p>
 
-              {/* BOUTON CTA "RÉSERVER UN TRANSPORT" AVEC TAMPON ROUGE "100% GRATUIT" & ANIMATION RENFORCÉE */}
+              {/* BOUTONS CTA (DESIGN IDENTIQUE AUX BOUTONS DU DESSOUS DU CARROUSEL) AVEC TAMPON ROUGE "100% GRATUIT" */}
               <div className="flex flex-col items-center justify-center mt-7 sm:mt-9">
-                <div className="relative inline-block">
-                  <Link
-                    to="/reserver"
-                    className="group relative inline-flex items-center justify-center gap-3 px-8 sm:px-11 py-4 sm:py-5 rounded-full text-base sm:text-xl font-black text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-2xl shadow-teal-700/35 hover:shadow-teal-700/50 cursor-pointer select-none"
-                    style={{
-                      backgroundImage: 'linear-gradient(135deg, #0d9488 0%, #059669 45%, #0284c7 100%)',
-                    }}
-                  >
-                    {/* Aura lumineuse pulsante en continu */}
-                    <div
-                      aria-hidden="true"
-                      className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-teal-400 via-emerald-400 to-sky-400 opacity-80 blur-lg group-hover:opacity-100 group-hover:blur-xl transition-all animate-cta-aura pointer-events-none"
-                    />
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                  <div className="relative inline-block">
+                    <Link
+                      to="/reserver"
+                      className="inline-flex items-center justify-center gap-2.5 px-8 sm:px-9 py-4 rounded-xl font-black bg-gradient-to-r from-teal-700 via-teal-600 to-sky-700 hover:from-teal-800 hover:to-sky-800 text-white shadow-xl shadow-teal-900/20 text-base sm:text-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+                    >
+                      <Play className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
+                      <span>Réserver un transport en ligne</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Link>
 
-                    {/* Vague de brillance animée (shimmer) traversant le bouton */}
-                    <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-                      <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-btn-shimmer" />
-                    </div>
+                    {/* TAMPON ROUGE "100% GRATUIT" STYLE TAMPON ENCREUR 123RF (APPROVED STAMP AVEC ÉTOILES ET DOUBLE CERCLE) */}
+                    <div 
+                      className="absolute -top-7 -right-5 sm:-top-8 sm:-right-8 z-30 pointer-events-none select-none transform -rotate-12 transition-transform duration-300 drop-shadow-md"
+                      title="100% Gratuit"
+                    >
+                      <svg 
+                        width="100" 
+                        height="100" 
+                        viewBox="0 0 140 140" 
+                        className="w-20 h-20 sm:w-24 sm:h-24 filter drop-shadow-sm"
+                        aria-label="Tampon 100% Gratuit"
+                      >
+                        <defs>
+                          {/* Filtre grunge pour reproduire l'encre de tampon vintage */}
+                          <filter id="stamp-grunge-hero" x="-20%" y="-20%" width="140%" height="140%">
+                            <feTurbulence type="fractalNoise" baseFrequency="0.055" numOctaves="3" result="noise" />
+                            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+                          </filter>
+                        </defs>
 
-                    {/* Contenu du bouton */}
-                    <div className="relative z-10 flex items-center gap-3">
-                      <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping shrink-0" />
-                      <span className="tracking-wide">Réserver un transport</span>
-                      <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1.5 transition-transform shrink-0" />
-                    </div>
-                  </Link>
+                        <g filter="url(#stamp-grunge-hero)" stroke="#dc2626" fill="#dc2626">
+                          {/* Cercle extérieur cranté/usé */}
+                          <circle 
+                            cx="70" 
+                            cy="70" 
+                            r="62" 
+                            fill="none" 
+                            strokeWidth="4.5" 
+                            strokeDasharray="24 2 16 1.5 32 2" 
+                            opacity="0.95" 
+                          />
+                          
+                          {/* Cercle intérieur fin */}
+                          <circle 
+                            cx="70" 
+                            cy="70" 
+                            r="54" 
+                            fill="none" 
+                            strokeWidth="2" 
+                            opacity="0.9" 
+                          />
 
-                  {/* TAMPON ROUGE "100% GRATUIT" BIEN VISIBLE */}
-                  <div className="absolute -top-3.5 -right-3 sm:-right-6 z-30 transform -rotate-12 group-hover:rotate-0 transition-transform duration-300 pointer-events-none">
-                    <div className="bg-red-600 text-white font-black text-[11px] sm:text-xs uppercase tracking-widest px-3 py-1 rounded-md shadow-xl border-2 border-dashed border-white flex items-center gap-1 ring-2 ring-red-600/50 animate-pulse">
-                      <span>★</span>
-                      <span>100% GRATUIT</span>
+                          {/* Cercle pointillé intermédiaire */}
+                          <circle 
+                            cx="70" 
+                            cy="70" 
+                            r="47" 
+                            fill="none" 
+                            strokeWidth="1.2" 
+                            strokeDasharray="3 3" 
+                            opacity="0.75" 
+                          />
+
+                          {/* Arc d'étoiles supérieures (5 étoiles comme sur le tampon 123rf) */}
+                          <g fill="#dc2626" stroke="none">
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(42, 34) scale(0.9) rotate(-30)" />
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(55, 27) scale(1) rotate(-15)" />
+                            <polygon points="0,-4.5 1.4,-1.4 4.8,-1.4 2,0.8 3,3.8 0,1.8 -3,3.8 -2,0.8 -4.8,-1.4 -1.4,-1.4" transform="translate(70, 24) scale(1.15)" />
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(85, 27) scale(1) rotate(15)" />
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(98, 34) scale(0.9) rotate(30)" />
+                          </g>
+
+                          {/* Barres horizontales encadrant le texte */}
+                          <line x1="14" y1="52" x2="126" y2="52" strokeWidth="2.8" stroke="#dc2626" />
+                          <line x1="14" y1="88" x2="126" y2="88" strokeWidth="2.8" stroke="#dc2626" />
+
+                          {/* Texte central estampé "100% GRATUIT" */}
+                          <text
+                            x="70"
+                            y="75"
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill="#dc2626"
+                            stroke="none"
+                            fontFamily="'Impact', 'Arial Black', sans-serif"
+                            fontSize="15"
+                            fontWeight="900"
+                            letterSpacing="0.8"
+                          >
+                            100% GRATUIT
+                          </text>
+
+                          {/* Arc d'étoiles inférieures (5 étoiles symétriques) */}
+                          <g fill="#dc2626" stroke="none">
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(42, 106) scale(0.9) rotate(30)" />
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(55, 113) scale(1) rotate(15)" />
+                            <polygon points="0,-4.5 1.4,-1.4 4.8,-1.4 2,0.8 3,3.8 0,1.8 -3,3.8 -2,0.8 -4.8,-1.4 -1.4,-1.4" transform="translate(70, 116) scale(1.15)" />
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(85, 113) scale(1) rotate(-15)" />
+                            <polygon points="0,-4 1.2,-1.2 4.2,-1.2 1.8,0.6 2.7,3.4 0,1.6 -2.7,3.4 -1.8,0.6 -4.2,-1.2 -1.2,-1.2" transform="translate(98, 106) scale(0.9) rotate(-30)" />
+                          </g>
+                        </g>
+                      </svg>
                     </div>
                   </div>
+
+                  <Link
+                    to="/transporteurs"
+                    className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-extrabold border border-slate-300/80 bg-white hover:bg-slate-50 text-slate-800 shadow-xs text-base hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    <span>Espace Ambulanciers & Taxis</span>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
+                  </Link>
                 </div>
 
                 {/* Réassurance sous le bouton */}
-                <p className="text-xs text-slate-500 font-semibold mt-3 flex items-center gap-1.5">
+                <p className="text-xs text-slate-500 font-semibold mt-4 flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
                   <span>Prise en charge Sécurité Sociale & Mutuelle • Aucun frais à avancer</span>
                 </p>
