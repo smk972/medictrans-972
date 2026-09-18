@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { handleAiChatMiddleware, handleAiSeoMiddleware, handleBlogMiddleware, handleClientsMiddleware, handleUsersMiddleware } from './src/server/aiDevMiddleware.ts'
 import { handleWelcomeEmailMiddleware, handleRideAcceptedEmailMiddleware } from './src/server/emailDevMiddleware.ts'
+import { handleOtpSendMiddleware, handleOtpVerifyMiddleware } from './src/server/otpDevMiddleware.ts'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -53,6 +54,14 @@ export default defineConfig(({ mode }) => {
             if (req.url === '/api/email/ride-accepted' && req.method === 'POST') {
               const resendApiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY
               handleRideAcceptedEmailMiddleware(req, res, resendApiKey)
+              return
+            }
+            if (req.url === '/api/otp/send' && req.method === 'POST') {
+              handleOtpSendMiddleware(req, res)
+              return
+            }
+            if (req.url === '/api/otp/verify' && req.method === 'POST') {
+              handleOtpVerifyMiddleware(req, res)
               return
             }
             if (req.url?.startsWith('/api/blog/')) {

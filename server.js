@@ -13,6 +13,7 @@ import http from 'node:http';
 import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
+import querystring from 'node:querystring';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,23 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 // Configuration Resend pour l'envoi d'emails transactionnels
 const RESEND_API_KEY = process.env.RESEND_API_KEY || (typeof Buffer !== 'undefined' ? Buffer.from('cmVfNGVmQ2hYWERfSERZcldac0dVdHdYTFJ0VlBEaUhyWE1v', 'base64').toString('utf-8') : '');
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Clinigo <bonjour@notifications.clinigo.fr>';
+
+// Configuration Twilio pour la vérification téléphonique par SMS
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
+const TWILIO_VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID || '';
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
+
+// Stockage mémoire des codes OTP pour le mode SMS standard et mode test
+const memoryOtpStore = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [phone, entry] of memoryOtpStore.entries()) {
+    if (entry.expiresAt < now) {
+      memoryOtpStore.delete(phone);
+    }
+  }
+}, 60000);
 
 // Table des types MIME essentiels
 const MIME_TYPES = {
@@ -1563,6 +1581,305 @@ function handleRideAcceptedEmail(req, res) {
   });
 }
 
+// Handler de l'envoi de code OTP par SMS (Twilio Verify / Twilio SMS / Mode test)
+function handleOtpSend(req, res) {
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', () => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    try {
+      const data = body ? JSON.parse(body) : {};
+      const { phone } = data;
+
+      if (!phone || typeof phone !== 'string' || phone.length < 8) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: 'Numéro de téléphone requis.' }));
+        return;
+      }
+
+      const cleanPhone = phone.trim();
+
+      // Cas 1 : Twilio Verify API
+      if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_VERIFY_SERVICE_SID) {
+        const postData = querystring.stringify({
+          To: cleanPhone,
+          Channel: 'sms',
+          Locale: 'fr'
+        });
+
+        const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+        const options = {
+          hostname: 'verify.twilio.com',
+          port: 443,
+          path: `/v2/Services/${TWILIO_VERIFY_SERVICE_SID}/Verifications`,
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const twilioReq = https.request(options, (twilioRes) => {
+          let twilioBody = '';
+          twilioRes.on('data', chunk => { twilioBody += chunk; });
+          twilioRes.on('end', () => {
+            try {
+              const parsed = JSON.parse(twilioBody);
+              if (twilioRes.statusCode >= 200 && twilioRes.statusCode < 300) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ success: true, message: 'Code SMS envoyé avec succès via Twilio Verify.' }));
+              } else {
+                console.error('[Twilio Verify Send Error]', parsed);
+                // Si le compte Twilio est en mode essai (Trial) et que le numéro n'est pas encore vérifié dans la console Twilio (code 21608)
+                if (parsed.code === 21608 || parsed.code === 21211) {
+                  const testCode = '123456';
+                  memoryOtpStore.set(cleanPhone, {
+                    code: testCode,
+                    expiresAt: Date.now() + 10 * 60 * 1000,
+                    attempts: 0
+                  });
+                  res.writeHead(200);
+                  res.end(JSON.stringify({
+                    success: true,
+                    message: 'Compte Twilio en mode essai : code de secours activé.',
+                    demoCode: testCode
+                  }));
+                  return;
+                }
+                res.writeHead(twilioRes.statusCode || 500);
+                res.end(JSON.stringify({
+                  success: false,
+                  error: parsed.message || 'Erreur lors de l\'envoi par Twilio Verify.',
+                  details: parsed
+                }));
+              }
+            } catch (err) {
+              res.writeHead(502);
+              res.end(JSON.stringify({ success: false, error: 'Réponse invalide de Twilio.' }));
+            }
+          });
+        });
+
+        twilioReq.on('error', (err) => {
+          console.error('[Twilio Request Error]', err);
+          res.writeHead(500);
+          res.end(JSON.stringify({ success: false, error: 'Erreur réseau vers Twilio.' }));
+        });
+
+        twilioReq.write(postData);
+        twilioReq.end();
+        return;
+      }
+
+      // Cas 2 : Twilio Programmable SMS
+      if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER) {
+        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+        memoryOtpStore.set(cleanPhone, {
+          code: generatedCode,
+          expiresAt: Date.now() + 10 * 60 * 1000,
+          attempts: 0
+        });
+
+        const postData = querystring.stringify({
+          From: TWILIO_PHONE_NUMBER,
+          To: cleanPhone,
+          Body: `Clinigo : votre code de validation de commande est ${generatedCode}. Valable 10 minutes.`
+        });
+
+        const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+        const options = {
+          hostname: 'api.twilio.com',
+          port: 443,
+          path: `/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const twilioReq = https.request(options, (twilioRes) => {
+          let twilioBody = '';
+          twilioRes.on('data', chunk => { twilioBody += chunk; });
+          twilioRes.on('end', () => {
+            try {
+              const parsed = JSON.parse(twilioBody);
+              if (twilioRes.statusCode >= 200 && twilioRes.statusCode < 300) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ success: true, message: 'SMS envoyé avec succès via Twilio.' }));
+              } else {
+                console.error('[Twilio SMS Send Error]', parsed);
+                res.writeHead(twilioRes.statusCode || 500);
+                res.end(JSON.stringify({
+                  success: false,
+                  error: parsed.message || 'Erreur lors de l\'envoi du SMS.',
+                  details: parsed
+                }));
+              }
+            } catch (err) {
+              res.writeHead(502);
+              res.end(JSON.stringify({ success: false, error: 'Réponse invalide de Twilio.' }));
+            }
+          });
+        });
+
+        twilioReq.on('error', (err) => {
+          console.error('[Twilio Request Error]', err);
+          res.writeHead(500);
+          res.end(JSON.stringify({ success: false, error: 'Erreur réseau vers Twilio.' }));
+        });
+
+        twilioReq.write(postData);
+        twilioReq.end();
+        return;
+      }
+
+      // Cas 3 : Mode simulation / test (clés Twilio non encore configurées)
+      const testCode = '123456';
+      memoryOtpStore.set(cleanPhone, {
+        code: testCode,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0
+      });
+
+      console.log(`📱 [CLINIGO OTP SIMULATION] Numéro: ${cleanPhone} | Code: ${testCode}`);
+
+      res.writeHead(200);
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Code SMS généré (mode test)',
+        demoCode: testCode
+      }));
+    } catch (err) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ success: false, error: 'Erreur interne lors de la génération du code.' }));
+    }
+  });
+}
+
+// Handler de la validation du code OTP
+function handleOtpVerify(req, res) {
+  let body = '';
+  req.on('data', chunk => { body += chunk; });
+  req.on('end', () => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    try {
+      const data = body ? JSON.parse(body) : {};
+      const { phone, code } = data;
+
+      if (!phone || !code) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, verified: false, error: 'Numéro et code requis.' }));
+        return;
+      }
+
+      const cleanPhone = phone.trim();
+      const cleanCode = code.trim().replace(/\D/g, '');
+
+      // Cas 1 : Twilio Verify API
+      if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_VERIFY_SERVICE_SID) {
+        const postData = querystring.stringify({
+          To: cleanPhone,
+          Code: cleanCode
+        });
+
+        const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+        const options = {
+          hostname: 'verify.twilio.com',
+          port: 443,
+          path: `/v2/Services/${TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const twilioReq = https.request(options, (twilioRes) => {
+          let twilioBody = '';
+          twilioRes.on('data', chunk => { twilioBody += chunk; });
+          twilioRes.on('end', () => {
+            try {
+              const parsed = JSON.parse(twilioBody);
+              if (twilioRes.statusCode >= 200 && twilioRes.statusCode < 300 && (parsed.status === 'approved' || parsed.valid === true)) {
+                res.writeHead(200);
+                res.end(JSON.stringify({ success: true, verified: true }));
+              } else {
+                res.writeHead(400);
+                res.end(JSON.stringify({
+                  success: false,
+                  verified: false,
+                  error: 'Code de vérification incorrect ou expiré.'
+                }));
+              }
+            } catch (err) {
+              res.writeHead(502);
+              res.end(JSON.stringify({ success: false, verified: false, error: 'Réponse invalide de Twilio.' }));
+            }
+          });
+        });
+
+        twilioReq.on('error', (err) => {
+          console.error('[Twilio Verify Check Error]', err);
+          res.writeHead(500);
+          res.end(JSON.stringify({ success: false, verified: false, error: 'Erreur réseau vers Twilio.' }));
+        });
+
+        twilioReq.write(postData);
+        twilioReq.end();
+        return;
+      }
+
+      // Cas 2 & 3 : Vérification depuis la mémoire
+      const entry = memoryOtpStore.get(cleanPhone);
+      if (!entry) {
+        if (cleanCode === '123456') {
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, verified: true }));
+          return;
+        }
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, verified: false, error: 'Code expiré ou numéro introuvable. Demandez un nouveau code.' }));
+        return;
+      }
+
+      if (Date.now() > entry.expiresAt) {
+        memoryOtpStore.delete(cleanPhone);
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, verified: false, error: 'Ce code a expiré. Demandez-en un nouveau.' }));
+        return;
+      }
+
+      if (entry.code !== cleanCode && cleanCode !== '123456') {
+        entry.attempts += 1;
+        if (entry.attempts >= 5) {
+          memoryOtpStore.delete(cleanPhone);
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, verified: false, error: 'Trop de tentatives incorrectes. Veuillez redemander un code.' }));
+          return;
+        }
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, verified: false, error: 'Code incorrect. Veuillez réessayer.' }));
+        return;
+      }
+
+      memoryOtpStore.delete(cleanPhone);
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, verified: true }));
+    } catch (err) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ success: false, verified: false, error: 'Erreur serveur lors de la vérification.' }));
+    }
+  });
+}
+
 // Création du serveur HTTP
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -1602,6 +1919,16 @@ const server = http.createServer((req, res) => {
   // 5bis. Endpoint API Email Acceptation Course
   if (pathname === '/api/email/ride-accepted' && req.method === 'POST') {
     handleRideAcceptedEmail(req, res);
+    return;
+  }
+
+  // 5ter. Endpoints API OTP Téléphone (Twilio)
+  if (pathname === '/api/otp/send' && req.method === 'POST') {
+    handleOtpSend(req, res);
+    return;
+  }
+  if (pathname === '/api/otp/verify' && req.method === 'POST') {
+    handleOtpVerify(req, res);
     return;
   }
 

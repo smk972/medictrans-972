@@ -16,6 +16,7 @@ import { NirInput } from '../components/NirInput';
 import { validateNir, autoFixNir } from '../utils/nirValidator';
 import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
 import { useAiChat, FormDraftData } from '../context/AiChatContext';
+import { PhoneVerificationModal } from '../components/PhoneVerificationModal';
 
 export const BookingPage: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -158,6 +159,8 @@ export const BookingPage: React.FC = () => {
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [phone, setPhone] = useState(user?.phone || '');
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [birthDate, setBirthDate] = useState('1980-01-01');
   const [isAld, setIsAld] = useState(true);
   const [mobility, setMobility] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
@@ -423,26 +426,7 @@ export const BookingPage: React.FC = () => {
     }
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Si un NIR est renseigné, validation de conformité
-    let currentNir = nir.trim();
-    if (currentNir) {
-      if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
-        currentNir = autoFixNir(currentNir);
-        setNir(currentNir);
-      } else if (!nirValidation.isValid) {
-        setNirSubmitAttempted(true);
-        const el = document.getElementById('patientNir');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          el.focus();
-        }
-        return;
-      }
-    }
-
+  const executeBookingSubmission = async (currentNir: string) => {
     setIsSubmitting(true);
     setBookingError(null);
 
@@ -537,6 +521,55 @@ export const BookingPage: React.FC = () => {
         err?.message || 'Une erreur est survenue lors de l\'enregistrement de votre demande. Veuillez vérifier votre connexion et réessayer.'
       );
     }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    // Si un NIR est renseigné, validation de conformité
+    let currentNir = nir.trim();
+    if (currentNir) {
+      if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
+        currentNir = autoFixNir(currentNir);
+        setNir(currentNir);
+      } else if (!nirValidation.isValid) {
+        setNirSubmitAttempted(true);
+        const el = document.getElementById('patientNir');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+        return;
+      }
+    }
+
+    // Validation du numéro de téléphone
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setBookingError("Veuillez renseigner un numéro de téléphone valide avant de finaliser votre commande.");
+      const el = document.getElementById('patientPhone') || document.querySelector('input[type="tel"]');
+      if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Vérification par SMS Twilio obligatoire avant validation finale
+    if (!isPhoneVerified) {
+      setIsPhoneModalOpen(true);
+      return;
+    }
+
+    await executeBookingSubmission(currentNir);
+  };
+
+  const handlePhoneVerificationSuccess = () => {
+    setIsPhoneVerified(true);
+    setIsPhoneModalOpen(false);
+    let currentNir = nir.trim();
+    if (currentNir && !nirValidation.isValid && nirValidation.canAutoCalculateKey) {
+      currentNir = autoFixNir(currentNir);
+      setNir(currentNir);
+    }
+    executeBookingSubmission(currentNir);
   };
 
   if (isLoading) {
@@ -1080,15 +1113,35 @@ export const BookingPage: React.FC = () => {
                     className="md:col-span-2"
                   />
 
-                  <PhoneInput
-                    id="patientPhone"
-                    label="Téléphone portable"
-                    required
-                    value={phone}
-                    defaultDialCode="+33"
-                    showValidation={false}
-                    onChange={(full) => setPhone(full)}
-                  />
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                        Téléphone portable <span className="text-error">*</span>
+                      </span>
+                      {isPhoneVerified ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Vérifié par SMS
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">
+                          Validation SMS à l’étape finale
+                        </span>
+                      )}
+                    </div>
+                    <PhoneInput
+                      id="patientPhone"
+                      label=""
+                      required
+                      value={phone}
+                      defaultDialCode="+33"
+                      showValidation={false}
+                      onChange={(full) => {
+                        setPhone(full);
+                        setIsPhoneVerified(false);
+                      }}
+                    />
+                  </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label
@@ -2022,6 +2075,17 @@ export const BookingPage: React.FC = () => {
           </form>
         </div>
       </main>
+
+      <PhoneVerificationModal
+        isOpen={isPhoneModalOpen}
+        phone={phone}
+        onClose={() => setIsPhoneModalOpen(false)}
+        onSuccess={handlePhoneVerificationSuccess}
+        onPhoneChange={(newPhone) => {
+          setPhone(newPhone);
+          setIsPhoneVerified(false);
+        }}
+      />
 
       <Footer />
     </div>
