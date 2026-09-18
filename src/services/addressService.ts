@@ -22,9 +22,14 @@ export interface AddressSearchOptions {
 
 // Coordonnées de référence par département ou territoire pour centrer les recherches
 const DEPARTMENT_COORDINATES: Record<string, { lat: number; lng: number; name: string }> = {
-  // Occitanie / Toulouse
+  // Occitanie
   '31': { lat: 43.6047, lng: 1.4442, name: 'Haute-Garonne (Toulouse)' },
   '34': { lat: 43.6108, lng: 3.8767, name: 'Hérault (Montpellier)' },
+  '30': { lat: 43.8367, lng: 4.3601, name: 'Gard (Nîmes)' },
+  '66': { lat: 42.6986, lng: 2.8956, name: 'Pyrénées-Orientales (Perpignan)' },
+  '81': { lat: 43.9284, lng: 2.1480, name: 'Tarn (Albi)' },
+  '82': { lat: 44.0177, lng: 1.3557, name: 'Tarn-et-Garonne (Montauban)' },
+  '65': { lat: 43.2329, lng: 0.0781, name: 'Hautes-Pyrénées (Tarbes)' },
   // Île-de-France / Paris
   '75': { lat: 48.8566, lng: 2.3522, name: 'Paris (75)' },
   '92': { lat: 48.8924, lng: 2.2153, name: 'Hauts-de-Seine (92)' },
@@ -34,23 +39,57 @@ const DEPARTMENT_COORDINATES: Record<string, { lat: number; lng: number; name: s
   '78': { lat: 48.8049, lng: 2.1204, name: 'Yvelines (78)' },
   '91': { lat: 48.5323, lng: 2.2562, name: 'Essonne (91)' },
   '95': { lat: 49.0722, lng: 2.1386, name: "Val-d'Oise (95)" },
-  // Auvergne-Rhône-Alpes / Lyon
+  // Auvergne-Rhône-Alpes
   '69': { lat: 45.7640, lng: 4.8357, name: 'Rhône (Lyon)' },
   '38': { lat: 45.1885, lng: 5.7245, name: 'Isère (Grenoble)' },
-  // PACA / Marseille / Nice
+  '42': { lat: 45.4397, lng: 4.3872, name: 'Loire (Saint-Étienne)' },
+  '63': { lat: 45.7772, lng: 3.0870, name: 'Puy-de-Dôme (Clermont-Ferrand)' },
+  '74': { lat: 45.8992, lng: 6.1294, name: 'Haute-Savoie (Annecy)' },
+  '73': { lat: 45.5646, lng: 5.9178, name: 'Savoie (Chambéry)' },
+  // PACA
   '13': { lat: 43.2965, lng: 5.3698, name: 'Bouches-du-Rhône (Marseille)' },
   '06': { lat: 43.7102, lng: 7.2620, name: 'Alpes-Maritimes (Nice)' },
-  // Nouvelle-Aquitaine / Bordeaux
+  '83': { lat: 43.1242, lng: 5.9280, name: 'Var (Toulon)' },
+  '84': { lat: 43.9493, lng: 4.8055, name: 'Vaucluse (Avignon)' },
+  // Nouvelle-Aquitaine
   '33': { lat: 44.8378, lng: -0.5792, name: 'Gironde (Bordeaux)' },
-  // Hauts-de-France / Lille
+  '64': { lat: 43.2951, lng: -0.3708, name: 'Pyrénées-Atlantiques (Pau / Bayonne)' },
+  '87': { lat: 45.8336, lng: 1.2611, name: 'Haute-Vienne (Limoges)' },
+  '86': { lat: 46.5802, lng: 0.3404, name: 'Vienne (Poitiers)' },
+  '17': { lat: 46.1603, lng: -1.1511, name: 'Charente-Maritime (La Rochelle)' },
+  // Hauts-de-France
   '59': { lat: 50.6292, lng: 3.0573, name: 'Nord (Lille)' },
-  '62': { lat: 50.5000, lng: 2.6000, name: 'Pas-de-Calais' },
-  // Pays de la Loire / Nantes
+  '62': { lat: 50.5000, lng: 2.6000, name: 'Pas-de-Calais (Lens / Arras)' },
+  '80': { lat: 49.8941, lng: 2.2957, name: 'Somme (Amiens)' },
+  // Pays de la Loire
   '44': { lat: 47.2184, lng: -1.5536, name: 'Loire-Atlantique (Nantes)' },
-  // Bretagne / Rennes
+  '49': { lat: 47.4784, lng: -0.5632, name: 'Maine-et-Loire (Angers)' },
+  '72': { lat: 48.0061, lng: 0.1996, name: 'Sarthe (Le Mans)' },
+  '85': { lat: 46.6705, lng: -1.4268, name: 'Vendée (La Roche-sur-Yon)' },
+  // Bretagne
   '35': { lat: 48.1173, lng: -1.6778, name: 'Ille-et-Vilaine (Rennes)' },
-  // Grand Est / Strasbourg
+  '29': { lat: 48.3904, lng: -4.4861, name: 'Finistère (Brest)' },
+  '56': { lat: 47.6582, lng: -2.7608, name: 'Morbihan (Vannes)' },
+  '22': { lat: 48.5142, lng: -2.7658, name: "Côtes-d'Armor (Saint-Brieuc)" },
+  // Normandie
+  '76': { lat: 49.4432, lng: 1.0999, name: 'Seine-Maritime (Rouen)' },
+  '14': { lat: 49.1829, lng: -0.3707, name: 'Calvados (Caen)' },
+  // Grand Est
   '67': { lat: 48.5734, lng: 7.7521, name: 'Bas-Rhin (Strasbourg)' },
+  '68': { lat: 47.7508, lng: 7.3359, name: 'Haut-Rhin (Mulhouse)' },
+  '54': { lat: 48.6921, lng: 6.1844, name: 'Meurthe-et-Moselle (Nancy)' },
+  '57': { lat: 49.1193, lng: 6.1757, name: 'Moselle (Metz)' },
+  '51': { lat: 49.2583, lng: 4.0317, name: 'Marne (Reims)' },
+  // Bourgogne-Franche-Comté
+  '21': { lat: 47.3220, lng: 5.0415, name: "Côte-d'Or (Dijon)" },
+  '25': { lat: 47.2378, lng: 6.0241, name: 'Doubs (Besançon)' },
+  // Centre-Val de Loire
+  '37': { lat: 47.3941, lng: 0.6848, name: 'Indre-et-Loire (Tours)' },
+  '45': { lat: 47.9029, lng: 1.9093, name: 'Loiret (Orléans)' },
+  // Corse
+  '20': { lat: 42.0396, lng: 9.0129, name: 'Corse (Ajaccio / Bastia)' },
+  '2A': { lat: 41.9272, lng: 8.7369, name: 'Corse-du-Sud (Ajaccio)' },
+  '2B': { lat: 42.6973, lng: 9.4509, name: 'Haute-Corse (Bastia)' },
   // DOM
   '971': { lat: 16.2411, lng: -61.5331, name: 'Guadeloupe (971)' },
   '972': { lat: 14.6161, lng: -61.0588, name: 'Martinique (972)' },
@@ -176,20 +215,47 @@ export const addressService = {
       facilities = facilities.filter(f => f.category === opts.categoryFilter);
     }
 
-    const refDept = opts.referenceDepartment || extractDepartmentFromAddress(opts.referenceAddress || '') || '31';
+    const refDept = opts.referenceDepartment || extractDepartmentFromAddress(opts.referenceAddress || '') || null;
 
-    // Si aucune saisie, retourner les établissements concordants avec le lieu du départ (ou grands CHU nationaux)
+    // Si aucune saisie, retourner les établissements concordants avec le lieu du départ (ou grands CHU nationaux de référence)
     if (!q) {
-      const sorted = [...facilities].sort((a, b) => {
-        const aDept = a.postalCode.startsWith('97') ? a.postalCode.slice(0, 3) : a.postalCode.slice(0, 2);
-        const bDept = b.postalCode.startsWith('97') ? b.postalCode.slice(0, 3) : b.postalCode.slice(0, 2);
+      if (refDept) {
+        const localFacilities = facilities.filter(f => {
+          const aDept = f.postalCode.startsWith('97') ? f.postalCode.slice(0, 3) : f.postalCode.slice(0, 2);
+          return aDept === refDept;
+        });
+        const otherFacilities = facilities.filter(f => {
+          const aDept = f.postalCode.startsWith('97') ? f.postalCode.slice(0, 3) : f.postalCode.slice(0, 2);
+          return aDept !== refDept;
+        });
+        const combined = [...localFacilities, ...otherFacilities];
+        return combined.slice(0, 15).map(f => {
+          const dept = f.postalCode.startsWith('97') ? f.postalCode.slice(0, 3) : f.postalCode.slice(0, 2);
+          return {
+            id: `fac-${f.id}`,
+            label: f.name,
+            secondaryText: `${f.city} (${f.postalCode}) • ${f.ambulanceAccessNotes || f.address}`,
+            address: `${f.name}, ${f.address}, ${f.postalCode} ${f.city}`,
+            city: f.city,
+            postalCode: f.postalCode,
+            type: 'FACILITY',
+            facility: f,
+            categoryLabel: `${f.categoryLabel} (${dept})`,
+          };
+        });
+      }
 
-        if (refDept) {
-          const aMatch = aDept === refDept ? 1 : 0;
-          const bMatch = bDept === refDept ? 1 : 0;
-          if (aMatch !== bMatch) return bMatch - aMatch;
-        }
-        return 0;
+      // Si aucun département de départ n'est renseigné, proposer un panorama des grands pôles hospitaliers et CHU de référence nationale
+      const nationalMajorIds = [
+        'aphp-pitie', 'hcl-herriot', 'aphm-timone', 'chu-bordeaux-pellegrin',
+        'chu-lille', 'chu-toulouse-purpan', 'chu-nantes', 'chu-strasbourg-hautepierre',
+        'chu-nice-pasteur', 'chu-rennes-pontchaillou', 'chu-montpellier-lapeyronie',
+        'chum-zobda', 'chu-guadeloupe', 'chu-reunion-nord', 'chsf-corbeil'
+      ];
+      const sorted = [...facilities].sort((a, b) => {
+        const aMajor = nationalMajorIds.includes(a.id) ? 1 : 0;
+        const bMajor = nationalMajorIds.includes(b.id) ? 1 : 0;
+        return bMajor - aMajor;
       });
 
       return sorted.slice(0, 15).map(f => {

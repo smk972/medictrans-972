@@ -248,7 +248,7 @@ export const BookingPage: React.FC = () => {
     }
     const fromDest = extractDepartmentFromAddress(destinationFacility);
     if (fromDest) return fromDest;
-    return '31';
+    return undefined;
   }, [pickupAddress, user?.address, destinationFacility]);
 
   const deptLabel = useMemo(() => {
@@ -277,6 +277,7 @@ export const BookingPage: React.FC = () => {
       '974': 'La Réunion (974)',
       '976': 'Mayotte (976)',
     };
+    if (!patientDept) return 'National (France Métropolitaine & DOM)';
     return names[patientDept] || `Secteur ${patientDept}`;
   }, [patientDept]);
 

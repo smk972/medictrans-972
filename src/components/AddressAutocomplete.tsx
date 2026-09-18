@@ -58,7 +58,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   // Détection territoriale dynamique du département
   const refDept = useMemo(() => {
-    return referenceDepartment || extractDepartmentFromAddress(referenceAddress || inputValue || '') || '31';
+    return referenceDepartment || extractDepartmentFromAddress(referenceAddress || inputValue || '') || undefined;
   }, [referenceDepartment, referenceAddress, inputValue]);
 
   // Communes d'accès rapide adaptées au secteur géographique
@@ -70,25 +70,37 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     if (refDept === '69') return ['Lyon', 'Villeurbanne', 'Vénissieux', 'Bron', 'Caluire-et-Cuire'];
     if (refDept === '13') return ['Marseille', 'Aix-en-Provence', 'Aubagne', 'Marignane', 'La Ciotat'];
     if (refDept === '33') return ['Bordeaux', 'Mérignac', 'Pessac', 'Talence', 'Bègles'];
+    if (refDept === '59') return ['Lille', 'Tourcoing', 'Roubaix', 'Dunkerque', 'Valenciennes'];
+    if (refDept === '44') return ['Nantes', 'Saint-Nazaire', 'Saint-Herblain', 'Rezé', 'Orvault'];
+    if (refDept === '35') return ['Rennes', 'Saint-Malo', 'Fougères', 'Cesson-Sévigné'];
+    if (refDept === '67') return ['Strasbourg', 'Schiltigheim', 'Illkirch-Graffenstaden', 'Haguenau'];
     if (refDept === '971') return ['Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Basse-Terre', 'Le Gosier'];
     if (refDept === '972') return ['Fort-de-France', 'Le Lamentin', 'Schoelcher', 'Le Robert', 'Le Marin'];
     if (refDept === '973') return ['Cayenne', 'Kourou', 'Saint-Laurent-du-Maroni', 'Matoury', 'Remire-Montjoly'];
     if (refDept === '974') return ['Saint-Denis', 'Saint-Paul', 'Saint-Pierre', 'Le Tampon', 'Saint-André'];
-    return ['Toulouse', 'Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Fort-de-France'];
+    return ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Toulouse', 'Lille', 'Nantes', 'Strasbourg', 'Fort-de-France'];
   }, [refDept]);
 
   const territoryFooterLabel = useMemo(() => {
-    if (refDept === '31') return 'Haute-Garonne (Toulouse - 31)';
     if (refDept === '75' || ['92', '93', '94', '77', '78', '91', '95'].includes(refDept || '')) return 'Paris & Île-de-France';
     if (refDept === '69') return 'Rhône / Lyon (69)';
     if (refDept === '13') return 'Bouches-du-Rhône / Marseille (13)';
     if (refDept === '33') return 'Gironde / Bordeaux (33)';
+    if (refDept === '31') return 'Haute-Garonne / Toulouse (31)';
+    if (refDept === '59') return 'Nord / Lille (59)';
+    if (refDept === '44') return 'Loire-Atlantique / Nantes (44)';
+    if (refDept === '35') return 'Ille-et-Vilaine / Rennes (35)';
+    if (refDept === '67') return 'Alsace / Strasbourg (67)';
+    if (refDept === '06') return 'Alpes-Maritimes / Nice (06)';
+    if (refDept === '34') return 'Hérault / Montpellier (34)';
+    if (refDept === '38') return 'Isère / Grenoble (38)';
+    if (refDept === '29') return 'Finistère / Brest (29)';
     if (refDept === '971') return 'Guadeloupe (971)';
     if (refDept === '972') return 'Martinique (972)';
     if (refDept === '973') return 'Guyane (973)';
     if (refDept === '974') return 'La Réunion (974)';
     if (refDept) return `Secteur Dépt ${refDept}`;
-    return 'France (Métropole & DOM)';
+    return 'Couverture Nationale (France & DOM)';
   }, [refDept]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -387,7 +399,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="material-symbols-outlined text-primary text-[17px] shrink-0">local_hospital</span>
                 <span className="font-bold text-xs text-primary truncate">
-                  Hôpitaux &amp; Cliniques proches de votre départ
+                  {refDept
+                    ? 'Hôpitaux & Cliniques proches de votre départ'
+                    : 'Grands CHU & Pôles Hospitaliers de Référence'}
                 </span>
               </div>
               <span className="text-[10px] font-bold text-primary/90 bg-surface-container-lowest px-2 py-0.5 rounded-full border border-primary/20 shrink-0">
