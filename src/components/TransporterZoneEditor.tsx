@@ -905,41 +905,54 @@ export const TransporterZoneEditor: React.FC<TransporterZoneEditorProps> = ({
             </div>
           </div>
 
-          {/* Map Legend & Covered Towns Bar */}
-          <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 text-xs">
-            <div className="flex flex-wrap items-center gap-3.5 text-slate-700 text-xs font-semibold">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-rose-200"></span>
-                Base de départ
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-sky-500/25 border-2 border-sky-600"></span>
-                Zone d'intervention garantie
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-4 h-0.5 border-t-2 border-dashed border-amber-600"></span>
-                Rayon étendu opportunités (+30 km)
+          {/* Map Legend Bar */}
+          <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center gap-3.5 text-slate-700 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-rose-200"></span>
+              Base de départ
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-sky-500/25 border-2 border-sky-600"></span>
+              Zone d'intervention garantie
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-4 h-0.5 border-t-2 border-dashed border-amber-600"></span>
+              Rayon étendu opportunités (+30 km)
+            </span>
+          </div>
+
+          {/* ENCART COMMUNES ENCADRÉ AVEC DÉGRADÉ DE COULEUR & ALIGNEMENT STRICT */}
+          <div className="px-4 py-2.5 border-t border-teal-200/80 bg-gradient-to-r from-sky-100/90 via-teal-50 to-emerald-100/90 flex items-center gap-3 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0"></span>
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider whitespace-nowrap">
+                Communes couvertes :
               </span>
             </div>
 
-            {/* Communes incluses / proches */}
-            <div className="flex items-center gap-1.5 flex-wrap text-xs">
-              <span className="text-slate-600 font-bold">Communes :</span>
+            {/* Communes strictement alignées sur une seule ligne horizontale (jamais les unes sous les autres) */}
+            <div
+              className="flex items-center gap-2 overflow-x-auto whitespace-nowrap min-w-0 flex-1 py-0.5"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {nearbyCommunes.length > 0 ? (
-                nearbyCommunes.slice(0, 5).map((c) => (
+                nearbyCommunes.map((c) => (
                   <button
                     key={c.insee}
                     type="button"
                     onClick={() => handleSnapClosestAnchorToCommune(c)}
-                    className="px-2 py-0.5 rounded bg-white border border-slate-300 hover:border-sky-500 hover:text-sky-700 text-slate-800 font-semibold shadow-2xs transition-colors cursor-pointer"
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/95 hover:bg-white text-slate-800 hover:text-teal-700 font-bold text-xs border border-teal-300 hover:border-teal-500 shadow-xs transition-all whitespace-nowrap cursor-pointer active:scale-95"
                     title={`Ajuster l'ancre la plus proche sur ${c.name} (${c.distKm.toFixed(0)} km)`}
                   >
-                    ✓ {c.name}
+                    <span className="text-teal-600 font-extrabold">✓</span>
+                    <span>{c.name}</span>
+                    <span className="text-[10px] text-slate-400 font-normal">({c.distKm.toFixed(0)} km)</span>
                   </button>
                 ))
               ) : (
-                <span className="px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-800 font-semibold shadow-2xs">
-                  ✓ {selectedCity}
+                <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/95 text-slate-800 font-bold text-xs border border-teal-300 shadow-xs whitespace-nowrap">
+                  <span className="text-teal-600 font-extrabold">✓</span>
+                  <span>{selectedCity}</span>
                 </span>
               )}
             </div>
