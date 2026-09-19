@@ -2,6 +2,7 @@ import { Ride, RideStatus, TransportType, Transporter, Facility, AssignedTranspo
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { EmailService } from './emailService';
 import { checkRideCompleteness } from '../utils/rideCompleteness';
+import { extractTime, formatRideDate } from '../utils/dateUtils';
 
 const STORAGE_KEY_RIDES = 'medictrans_rides_972';
 const STORAGE_KEY_TRANSPORTERS = 'medictrans_transporters_972';
@@ -474,7 +475,7 @@ export const rideService = {
         notes: rideData.mobility?.notes,
       },
       source: rideData.source || 'PATIENT',
-      appointmentTime: rideData.appointmentTime,
+      appointmentTime: rideData.appointmentTime || extractTime(rideData.pickupDateTime || now),
       isRecurring: rideData.isRecurring || false,
       recurringDates: rideData.recurringDates,
       pricing: rideData.pricing,
@@ -581,6 +582,27 @@ export const rideService = {
       const updated = [newRide, ...current.filter(r => r.reference !== newRide.reference)];
       localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(updated));
     } catch {}
+
+    // Envoi immédiat de l'email de confirmation au client (demande enregistrée en cours de régulation)
+    const patientEmail = newRide.patient?.email;
+    if (patientEmail && patientEmail.includes('@')) {
+      const patientName = `${newRide.patient.firstName || ''} ${newRide.patient.lastName || ''}`.trim() || 'Patient';
+      const pickupDate = formatRideDate(newRide.pickupDateTime);
+      const pickupTime = newRide.appointmentTime || extractTime(newRide.pickupDateTime);
+
+      EmailService.sendRideStatusEmail({
+        email: patientEmail,
+        patientName,
+        reference: newRide.reference,
+        status: 'PENDING',
+        transporterName: 'Réseau conventionné Clinigo',
+        pickupAddress: newRide.pickupAddress,
+        dropoffAddress: newRide.facilityName || newRide.dropoffAddress,
+        pickupDate,
+        pickupTime,
+        transportType: newRide.transportType,
+      }).catch(err => console.warn('[rideService] Notification email confirmation création échouée:', err));
+    }
 
     return newRide;
   },
@@ -735,10 +757,10 @@ export const rideService = {
       } catch {}
     }
 
-    if (patientEmail && patientEmail.includes('@') && status !== 'PENDING') {
+    if (patientEmail && patientEmail.includes('@')) {
       const patientName = `${currentRide.patient?.firstName || ''} ${currentRide.patient?.lastName || ''}`.trim() || 'Patient';
-      const pickupDate = currentRide.pickupDateTime ? new Date(currentRide.pickupDateTime).toLocaleDateString('fr-FR') : 'Aujourd’hui';
-      const pickupTime = timingUpdates?.transporterPickupTime || currentRide.transporterPickupTime || currentRide.appointmentTime || '08:30';
+      const pickupDate = formatRideDate(currentRide.pickupDateTime);
+      const pickupTime = timingUpdates?.transporterPickupTime || currentRide.transporterPickupTime || currentRide.appointmentTime || extractTime(currentRide.pickupDateTime);
       const activeTransporter = assigned || currentRide.assignedTransporter;
 
       EmailService.sendRideStatusEmail({
@@ -746,7 +768,7 @@ export const rideService = {
         patientName,
         reference: currentRide.reference,
         status: status as any,
-        transporterName: activeTransporter?.companyName || 'Ambulances Agréées Clinigo',
+        transporterName: activeTransporter?.companyName || (status === 'PENDING' ? 'Réseau conventionné Clinigo' : 'Ambulances Agréées Clinigo'),
         driverName: activeTransporter?.driverName,
         driverPhone: activeTransporter?.driverPhone,
         vehiclePlate: activeTransporter?.vehiclePlate,
@@ -756,6 +778,7 @@ export const rideService = {
         pickupTime,
         etaMinutes: activeTransporter?.etaMinutes,
         reason: cancelReason,
+        transportType: currentRide.transportType,
       }).catch(err => console.warn(`[rideService] Notification email statut (${status}) échouée:`, err));
     }
 
@@ -1125,7 +1148,7 @@ export const rideService = {
         vehiclePlate: row.vehicle_plate || undefined,
         etaMinutes: row.eta_minutes || undefined
       } : undefined,
-      appointmentTime: row.appointment_time || undefined,
+      appointmentTime: row.appointment_time || (row.pickup_datetime ? extractTime(row.pickup_datetime) : undefined),
       transporterPickupTime: row.transporter_pickup_time || undefined,
       estimatedArrivalTime: row.estimated_arrival_time || undefined,
       isRecurring: Boolean(row.is_recurring),

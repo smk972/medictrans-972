@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { rideService } from '../services/rideService';
 import { Ride } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { extractTime, formatRideDate } from '../utils/dateUtils';
 
 export const ConfirmationPage: React.FC = () => {
   const { ref } = useParams<{ ref: string }>();
@@ -359,16 +360,15 @@ export const ConfirmationPage: React.FC = () => {
     'Établissement Hospitalier';
 
   const displayDate =
-    matchedRide?.pickupDateTime
-      ? new Date(matchedRide.pickupDateTime).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-      : (bookingData?.transportDate || 'Aujourd’hui');
+    formatRideDate(matchedRide?.pickupDateTime || bookingData?.transportDate) ||
+    'Aujourd’hui';
 
   const displayTime =
-    matchedRide?.appointmentTime ||
-    (matchedRide?.pickupDateTime ? new Date(matchedRide.pickupDateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null) ||
-    bookingData?.appointmentTime ||
     bookingData?.transportTime ||
-    '09:00';
+    matchedRide?.appointmentTime ||
+    bookingData?.appointmentTime ||
+    (matchedRide?.pickupDateTime ? extractTime(matchedRide.pickupDateTime) : null) ||
+    '08:30';
 
   const displayTransportType =
     matchedRide?.transportType ||

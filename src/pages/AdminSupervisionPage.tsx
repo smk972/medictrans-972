@@ -16,6 +16,7 @@ import {
 import { TerritoryId } from '../data/nationalTerritoriesData';
 import { Search, X } from 'lucide-react';
 import { checkRideCompleteness } from '../utils/rideCompleteness';
+import { extractTime, formatRideDateShort } from '../utils/dateUtils';
 
 export const AdminSupervisionPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
@@ -437,8 +438,8 @@ export const AdminSupervisionPage: React.FC = () => {
                         <span className="font-mono font-bold text-primary block">
                           {ride.reference}
                         </span>
-                        <span className="text-[10px] text-on-surface-variant">
-                          {new Date(ride.pickupDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <span className="text-[10px] text-on-surface-variant font-medium">
+                          {formatRideDateShort(ride.pickupDateTime)} • {ride.appointmentTime || extractTime(ride.pickupDateTime)}
                         </span>
                       </td>
 
