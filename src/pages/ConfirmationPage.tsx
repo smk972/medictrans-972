@@ -20,7 +20,11 @@ export const ConfirmationPage: React.FC = () => {
   const [storedMutuelleDoc, setStoredMutuelleDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
   const [showMutuelleDocModal, setShowMutuelleDocModal] = useState(false);
-  const [liveAcceptedToast, setLiveAcceptedToast] = useState<{ transporterName: string; driverName?: string } | null>(null);
+  const [liveStatusToast, setLiveStatusToast] = useState<{
+    title: string;
+    message: string;
+    icon?: string;
+  } | null>(null);
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -52,20 +56,52 @@ export const ConfirmationPage: React.FC = () => {
           const oldStatus = prevStatusRef.current;
           prevStatusRef.current = found.status;
 
-          // Détection d'un passage en direct à ACCEPTED
-          if (oldStatus === 'PENDING' && found.status === 'ACCEPTED') {
+          // Détection d'un changement d'état en direct
+          if (oldStatus && oldStatus !== found.status) {
             const tName = found.assignedTransporter?.companyName || 'Ambulances Sanitaires Agréées';
             const dName = found.assignedTransporter?.driverName;
-            setLiveAcceptedToast({ transporterName: tName, driverName: dName });
 
-            try {
-              confetti({
-                particleCount: 100,
-                spread: 75,
-                origin: { y: 0.5 },
-                colors: ['#059669', '#10B981', '#34D399', '#004479', '#6EE7B7'],
+            if (found.status === 'ACCEPTED') {
+              setLiveStatusToast({
+                title: 'Course validée et attribuée !',
+                message: `Votre transporteur ${tName} a validé votre prise en charge${dName ? ` (Chauffeur : ${dName})` : ''}.`,
+                icon: 'celebration'
               });
-            } catch {}
+              try {
+                confetti({
+                  particleCount: 100,
+                  spread: 75,
+                  origin: { y: 0.5 },
+                  colors: ['#059669', '#10B981', '#34D399', '#004479', '#6EE7B7'],
+                });
+              } catch {}
+            } else if (found.status === 'EN_ROUTE') {
+              setLiveStatusToast({
+                title: 'Chauffeur en route !',
+                message: `Votre chauffeur ${dName || 'assigné'} fait route vers votre adresse de départ.`,
+                icon: 'directions_car'
+              });
+            } else if (found.status === 'PICKED_UP') {
+              setLiveStatusToast({
+                title: 'Prise en charge effectuée',
+                message: `Vous êtes bien à bord du véhicule. Trajet en cours vers votre destination.`,
+                icon: 'local_hospital'
+              });
+            } else if (found.status === 'COMPLETED') {
+              setLiveStatusToast({
+                title: 'Vous êtes arrivé(e) !',
+                message: `Votre transport avec ${tName} est terminé. Merci de votre confiance.`,
+                icon: 'task_alt'
+              });
+              try {
+                confetti({
+                  particleCount: 80,
+                  spread: 60,
+                  origin: { y: 0.5 },
+                  colors: ['#10B981', '#3B82F6', '#6366F1'],
+                });
+              } catch {}
+            }
           }
 
           setMatchedRide(found);
@@ -238,25 +274,25 @@ export const ConfirmationPage: React.FC = () => {
       <main className="w-full pt-4 sm:pt-6 bg-background flex-1">
         <div className="flex flex-col w-full">
           <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-md lg:py-space-xl flex flex-col gap-space-lg">
-            {/* Alerte temps réel lors de l'attribution sous les yeux du client */}
-            {liveAcceptedToast && (
+            {/* Alerte temps réel lors de l'évolution du statut de la course sous les yeux du client */}
+            {liveStatusToast && (
               <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-5 rounded-3xl shadow-xl border-2 border-emerald-300 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-3xl text-emerald-100">celebration</span>
+                    <span className="material-symbols-outlined text-3xl text-emerald-100">{liveStatusToast.icon || 'notifications_active'}</span>
                   </div>
                   <div>
                     <div className="font-black text-base sm:text-lg flex items-center gap-2">
-                      <span>Course acceptée et attribuée !</span>
+                      <span>{liveStatusToast.title}</span>
                       <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-white text-emerald-800">En direct</span>
                     </div>
                     <div className="text-xs sm:text-sm text-emerald-100 font-medium">
-                      Votre transporteur <strong>{liveAcceptedToast.transporterName}</strong> a validé votre prise en charge{liveAcceptedToast.driverName ? ` (Chauffeur : ${liveAcceptedToast.driverName})` : ''}.
+                      {liveStatusToast.message}
                     </div>
                   </div>
                 </div>
                 <button
-                  onClick={() => setLiveAcceptedToast(null)}
+                  onClick={() => setLiveStatusToast(null)}
                   className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all shrink-0"
                 >
                   Fermer
@@ -310,30 +346,46 @@ export const ConfirmationPage: React.FC = () => {
                       Étape 03
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'Prise en charge confirmée' : 'Régulation & Confirmation'}
+                      {matchedRide?.status === 'EN_ROUTE' ? 'Chauffeur en approche' :
+                       matchedRide?.status === 'PICKED_UP' ? 'Trajet en cours' :
+                       matchedRide?.status === 'COMPLETED' ? 'Arrivé à destination' :
+                       matchedRide?.status === 'ACCEPTED' ? 'Prise en charge confirmée' :
+                       'Régulation & Confirmation'}
                     </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Top Banner Success / Accepted */}
+            {/* Top Banner Success / Status */}
             {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
               <section className="relative overflow-hidden bg-gradient-to-r from-[#002D52] via-[#004D40] to-[#065F46] text-white rounded-3xl p-space-lg md:p-space-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md border border-emerald-500/30">
                 <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
                   <div className="flex items-center gap-2">
                     <span className="bg-emerald-400 text-emerald-950 px-3 py-1 rounded-full font-label-sm text-label-sm font-black uppercase tracking-wider text-xs shadow-xs">
-                      ✓ Transporteur Confirmé
+                      {matchedRide.status === 'EN_ROUTE' ? '🚗 Chauffeur en approche' :
+                       matchedRide.status === 'PICKED_UP' ? '🏥 Trajet en cours' :
+                       matchedRide.status === 'COMPLETED' ? '✅ Arrivé à destination' :
+                       '✓ Transporteur Confirmé'}
                     </span>
                     <span className="font-mono font-bold text-white/90 text-sm">
                       #{reservationRef}
                     </span>
                   </div>
                   <h1 className="font-headline-lg text-headline-lg font-black tracking-tight text-xl sm:text-2xl md:text-3xl text-white">
-                    Votre transporteur est confirmé !
+                    {matchedRide.status === 'EN_ROUTE' ? 'Votre chauffeur est en route !' :
+                     matchedRide.status === 'PICKED_UP' ? 'Prise en charge effectuée' :
+                     matchedRide.status === 'COMPLETED' ? 'Vous êtes bien arrivé(e)' :
+                     'Votre transporteur est confirmé !'}
                   </h1>
                   <p className="font-body-md text-body-md text-emerald-100 max-w-xl text-xs sm:text-sm">
-                    Votre course a été prise en charge par <strong>{matchedRide?.assignedTransporter?.companyName || 'Ambulances Sanitaires Agréées'}</strong>. Le véhicule et l'équipage sont officiellement réservés.
+                    {matchedRide.status === 'EN_ROUTE'
+                      ? `Votre chauffeur ${matchedRide.assignedTransporter?.driverName || 'assigné'} fait route vers votre adresse de départ à bord du véhicule ${matchedRide.assignedTransporter?.vehiclePlate || ''}.`
+                      : matchedRide.status === 'PICKED_UP'
+                      ? `Votre trajet se poursuit vers ${displayDestination} en toute sécurité.`
+                      : matchedRide.status === 'COMPLETED'
+                      ? `Votre transport médicalisé avec ${matchedRide.assignedTransporter?.companyName || 'votre transporteur'} est terminé.`
+                      : `Votre course a été prise en charge par ${matchedRide?.assignedTransporter?.companyName || 'Ambulances Sanitaires Agréées'}. Le véhicule et l'équipage sont officiellement réservés.`}
                   </p>
                 </div>
 
@@ -341,10 +393,13 @@ export const ConfirmationPage: React.FC = () => {
                   <div className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping"></div>
                   <div className="flex flex-col">
                     <span className="font-label-sm text-label-sm text-emerald-200 uppercase text-[10px] font-bold">
-                      Mission Validée
+                      Statut Mission
                     </span>
                     <span className="font-label-md text-label-md text-white font-black text-xs sm:text-sm">
-                      Prise en charge active
+                      {matchedRide.status === 'EN_ROUTE' ? 'En Approche' :
+                       matchedRide.status === 'PICKED_UP' ? 'Patient à bord' :
+                       matchedRide.status === 'COMPLETED' ? 'Terminé' :
+                       'Transporteur Confirmé'}
                     </span>
                   </div>
                 </div>

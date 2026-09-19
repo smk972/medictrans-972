@@ -1417,6 +1417,7 @@ function handleRideAcceptedEmail(req, res) {
       const cleanEmail = email.trim().toLowerCase();
       const cleanPatient = (patientName || 'Cher patient').trim();
       const cleanRef = reference || 'MT-972';
+      const cleanStatus = (data.status || 'ACCEPTED').toUpperCase();
       const cleanTransporter = transporterName || 'Ambulances Agréées Clinigo';
       const cleanDriver = driverName || 'Chauffeur Régulé';
       const cleanPlate = vehiclePlate || 'Véhicule Conventionné';
@@ -1424,11 +1425,48 @@ function handleRideAcceptedEmail(req, res) {
       const cleanDate = pickupDate || 'Aujourd’hui';
       const trackLink = trackingUrl || `https://clinigo.fr/suivi?ref=${cleanRef}`;
 
+      let badgeText = '✓ Course Acceptée & Validée';
+      let headerTitle = 'Votre transporteur est confirmé';
+      let headerSubtitle = `Demande N° #${cleanRef}`;
+      let subject = `✓ Transport médicalisé validé #${cleanRef} - ${cleanTransporter}`;
+      let statusDesc = `Bonne nouvelle ! Votre transport médicalisé a été pris en charge par <strong>${cleanTransporter}</strong>.`;
+      let headerGradient = 'linear-gradient(135deg, #002D52 0%, #004479 100%)';
+
+      if (cleanStatus === 'EN_ROUTE') {
+        badgeText = '🚗 Chauffeur en route';
+        headerTitle = 'Votre chauffeur est en route';
+        headerSubtitle = data.etaMinutes ? `Arrivée estimée dans ~${data.etaMinutes} min` : 'Arrivée sous peu';
+        subject = `🚗 Chauffeur en route #${cleanRef} - ${cleanTransporter}`;
+        statusDesc = `Votre chauffeur <strong>${cleanDriver}</strong> est en route vers votre lieu de prise en charge à bord du véhicule conventionné <strong>${cleanPlate}</strong>.`;
+        headerGradient = 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)';
+      } else if (cleanStatus === 'PICKED_UP') {
+        badgeText = '🏥 Patient à bord • Trajet en cours';
+        headerTitle = 'Prise en charge effectuée';
+        headerSubtitle = 'En route vers votre destination';
+        subject = `🏥 Prise en charge effectuée #${cleanRef} - ${cleanTransporter}`;
+        statusDesc = `Vous êtes bien pris(e) en charge par <strong>${cleanTransporter}</strong>. Votre trajet se poursuit en toute sécurité.`;
+        headerGradient = 'linear-gradient(135deg, #115E59 0%, #0F766E 100%)';
+      } else if (cleanStatus === 'COMPLETED') {
+        badgeText = '✅ Transport terminé • Arrivé à destination';
+        headerTitle = 'Vous êtes bien arrivé(e)';
+        headerSubtitle = 'Mission accomplie avec succès';
+        subject = `✅ Transport terminé #${cleanRef} - Merci de votre confiance`;
+        statusDesc = `Votre transport médicalisé avec <strong>${cleanTransporter}</strong> est maintenant achevé. Merci d'avoir utilisé Clinigo.`;
+        headerGradient = 'linear-gradient(135deg, #065F46 0%, #047857 100%)';
+      } else if (cleanStatus === 'CANCELLED') {
+        badgeText = '❌ Demande de transport annulée';
+        headerTitle = 'Course Annulée';
+        headerSubtitle = `Demande N° #${cleanRef}`;
+        subject = `❌ Demande de transport annulée #${cleanRef}`;
+        statusDesc = `Votre demande de transport médicalisé #${cleanRef} a été annulée. Vous pouvez renouveler une demande à tout moment sur Clinigo.`;
+        headerGradient = 'linear-gradient(135deg, #991B1B 0%, #B91C1C 100%)';
+      }
+
       const htmlContent = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Transport Confirmé #${cleanRef}</title>
+  <title>${subject}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#F8FAFC;padding:32px 16px;">
@@ -1436,22 +1474,22 @@ function handleRideAcceptedEmail(req, res) {
       <td align="center">
         <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#FFFFFF;border-radius:24px;border:1px solid #E2E8F0;overflow:hidden;box-shadow:0 10px 25px -5px rgba(0,0,0,0.05);">
           <tr>
-            <td style="background:linear-gradient(135deg, #002D52 0%, #004479 100%);padding:36px 32px;text-align:center;">
+            <td style="background:${headerGradient};padding:36px 32px;text-align:center;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td align="center" style="padding-bottom:12px;">
                     <span style="display:inline-block;padding:6px 14px;background:rgba(255,255,255,0.15);border-radius:9999px;color:#A7F3D0;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">
-                      ✓ Course Acceptée & Validée
+                      ${badgeText}
                     </span>
                   </td>
                 </tr>
                 <tr>
                   <td align="center">
                     <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:800;letter-spacing:-0.5px;">
-                      Votre transporteur est confirmé
+                      ${headerTitle}
                     </h1>
                     <p style="margin:8px 0 0 0;color:#BAE6FD;font-size:14px;font-weight:500;">
-                      Demande N° <strong>#${cleanRef}</strong>
+                      ${headerSubtitle}
                     </p>
                   </td>
                 </tr>
@@ -2638,8 +2676,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 5bis. Endpoint API Email Acceptation Course
-  if (pathname === '/api/email/ride-accepted' && req.method === 'POST') {
+  // 5bis. Endpoint API Email Statut & Acceptation Course
+  if ((pathname === '/api/email/ride-status' || pathname === '/api/email/ride-accepted') && req.method === 'POST') {
     handleRideAcceptedEmail(req, res);
     return;
   }

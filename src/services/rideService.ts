@@ -690,28 +690,29 @@ export const rideService = {
       }
     } catch {}
 
-    // Envoi de notification email réelle si la course est acceptée
-    if (status === 'ACCEPTED' && assigned) {
-      const patientEmail = currentRide.patient?.email;
-      if (patientEmail && patientEmail.includes('@')) {
-        const patientName = `${currentRide.patient?.firstName || ''} ${currentRide.patient?.lastName || ''}`.trim() || 'Patient';
-        const pickupDate = currentRide.pickupDateTime ? new Date(currentRide.pickupDateTime).toLocaleDateString('fr-FR') : 'Aujourd’hui';
-        const pickupTime = timingUpdates?.transporterPickupTime || currentRide.transporterPickupTime || currentRide.appointmentTime || '08:30';
+    // Envoi de notification email au client pour chaque changement d'état de la course
+    const patientEmail = currentRide.patient?.email;
+    if (patientEmail && patientEmail.includes('@') && status !== 'PENDING') {
+      const patientName = `${currentRide.patient?.firstName || ''} ${currentRide.patient?.lastName || ''}`.trim() || 'Patient';
+      const pickupDate = currentRide.pickupDateTime ? new Date(currentRide.pickupDateTime).toLocaleDateString('fr-FR') : 'Aujourd’hui';
+      const pickupTime = timingUpdates?.transporterPickupTime || currentRide.transporterPickupTime || currentRide.appointmentTime || '08:30';
+      const activeTransporter = assigned || currentRide.assignedTransporter;
 
-        EmailService.sendRideAcceptedEmail({
-          email: patientEmail,
-          patientName,
-          reference: currentRide.reference,
-          transporterName: assigned.companyName || 'Transporteur Sanitaire Agréé',
-          driverName: assigned.driverName,
-          driverPhone: assigned.driverPhone,
-          vehiclePlate: assigned.vehiclePlate,
-          pickupAddress: currentRide.pickupAddress,
-          dropoffAddress: currentRide.facilityName || currentRide.dropoffAddress,
-          pickupDate,
-          pickupTime,
-        }).catch(err => console.warn('[rideService] Notification email acceptation échouée:', err));
-      }
+      EmailService.sendRideStatusEmail({
+        email: patientEmail,
+        patientName,
+        reference: currentRide.reference,
+        status: status as any,
+        transporterName: activeTransporter?.companyName || 'Ambulances Agréées Clinigo',
+        driverName: activeTransporter?.driverName,
+        driverPhone: activeTransporter?.driverPhone,
+        vehiclePlate: activeTransporter?.vehiclePlate,
+        pickupAddress: currentRide.pickupAddress,
+        dropoffAddress: currentRide.facilityName || currentRide.dropoffAddress,
+        pickupDate,
+        pickupTime,
+        etaMinutes: activeTransporter?.etaMinutes,
+      }).catch(err => console.warn(`[rideService] Notification email statut (${status}) échouée:`, err));
     }
 
     // Diffusion multi-canaux temps réel pour mise à jour automatique immédiate des écrans clients

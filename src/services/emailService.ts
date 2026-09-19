@@ -13,6 +13,25 @@ export interface SendWelcomeEmailParams {
   loginUrl?: string;
 }
 
+export type RideEmailStatus = 'PENDING' | 'ACCEPTED' | 'EN_ROUTE' | 'PICKED_UP' | 'COMPLETED' | 'CANCELLED';
+
+export interface SendRideStatusEmailParams {
+  email: string;
+  patientName?: string;
+  reference: string;
+  status: RideEmailStatus;
+  transporterName?: string;
+  driverName?: string;
+  driverPhone?: string;
+  vehiclePlate?: string;
+  pickupAddress?: string;
+  dropoffAddress?: string;
+  pickupDate?: string;
+  pickupTime?: string;
+  etaMinutes?: number | string;
+  trackingUrl?: string;
+}
+
 export interface SendRideAcceptedEmailParams {
   email: string;
   patientName?: string;
@@ -125,13 +144,15 @@ export class EmailService {
   }
 
   /**
-   * Notifies the patient by transactional email when their ride is accepted by a transporter
+   * Notifie le patient par e-mail transactionnel à chaque changement de statut de sa course
+   * (ACCEPTED, EN_ROUTE, PICKED_UP, COMPLETED, CANCELLED)
    */
-  static async sendRideAcceptedEmail(params: SendRideAcceptedEmailParams): Promise<SendEmailResult> {
+  static async sendRideStatusEmail(params: SendRideStatusEmailParams): Promise<SendEmailResult> {
     const {
       email,
       patientName,
       reference,
+      status,
       transporterName,
       driverName,
       driverPhone,
@@ -140,50 +161,89 @@ export class EmailService {
       dropoffAddress,
       pickupDate,
       pickupTime,
+      etaMinutes,
       trackingUrl
     } = params;
 
     if (!email || !email.includes('@')) {
-      console.warn('[EmailService] Impossible d’envoyer la notification acceptation : email manquant', email);
+      console.warn('[EmailService] Impossible d’envoyer la notification de statut : email manquant', email);
       return { success: false, error: 'Email invalide' };
     }
 
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      console.log(`[EmailService] Envoi notification course acceptée (#${reference}) à ${cleanEmail}...`);
-      const response = await fetch('/api/email/ride-accepted', {
+      console.log(`[EmailService] Envoi notification course (${status} #${reference}) à ${cleanEmail}...`);
+      const response = await fetch('/api/email/ride-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
           patientName,
           reference,
-          transporterName,
-          driverName,
+          status,
+          transporterName: transporterName || 'Ambulances Agréées Clinigo',
+          driverName: driverName || 'Chauffeur Régulé',
           driverPhone,
           vehiclePlate,
           pickupAddress,
           dropoffAddress,
           pickupDate,
           pickupTime,
+          etaMinutes,
           trackingUrl: trackingUrl || `${window.location.origin}/suivi?ref=${reference}`,
         }),
       });
 
-      if (response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('application/json')) {
         const result = await response.json();
-        console.log('[EmailService] Notification acceptation expédiée avec succès ! ID:', result.resendId);
+        console.log(`[EmailService] Notification (${status}) expédiée avec succès ! ID:`, result.resendId);
         return { success: true, resendId: result.resendId };
       } else {
-        const errData = await response.json().catch(() => ({}));
-        console.warn('[EmailService] Échec API /api/email/ride-accepted:', errData);
-        return { success: false, error: errData.error || 'Échec envoi notification' };
+        // Fallback vers /api/email/ride-accepted si le statut est ACCEPTED
+        if (status === 'ACCEPTED') {
+          const fallbackResp = await fetch('/api/email/ride-accepted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: cleanEmail,
+              patientName,
+              reference,
+              transporterName,
+              driverName,
+              driverPhone,
+              vehiclePlate,
+              pickupAddress,
+              dropoffAddress,
+              pickupDate,
+              pickupTime,
+              trackingUrl: trackingUrl || `${window.location.origin}/suivi?ref=${reference}`,
+            }),
+          });
+          if (fallbackResp.ok) {
+            const result = await fallbackResp.json().catch(() => ({}));
+            return { success: true, resendId: result.resendId };
+          }
+        }
+        const errData = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {};
+        console.warn('[EmailService] Échec API /api/email/ride-status:', errData);
+        return { success: false, error: errData.error || 'Échec envoi notification statut' };
       }
     } catch (err: any) {
-      console.error('[EmailService] Erreur réseau lors de la notification acceptation:', err);
+      console.error('[EmailService] Erreur réseau lors de la notification statut:', err);
       return { success: false, error: err.message };
     }
+  }
+
+  /**
+   * Notifies the patient by transactional email when their ride is accepted by a transporter
+   */
+  static async sendRideAcceptedEmail(params: SendRideAcceptedEmailParams): Promise<SendEmailResult> {
+    return this.sendRideStatusEmail({
+      ...params,
+      status: 'ACCEPTED'
+    });
   }
 
   /**
