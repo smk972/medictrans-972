@@ -2084,74 +2084,74 @@ export const BookingPage: React.FC = () => {
 
 
                 {/* Official CPAM Tariffs & Tiers Payant breakdown */}
-                <div className="p-space-md rounded-2xl bg-surface-container-low/80 flex flex-col gap-space-xs border border-outline-variant/30 text-xs shadow-xs">
-                  <div className="flex items-center justify-between pb-1 border-b border-outline-variant/20 gap-2">
-                    <span className="font-bold text-on-surface flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm shrink-0">
+                <div className="p-3 sm:p-4 rounded-2xl bg-surface-container-low/80 flex flex-col gap-1.5 border border-outline-variant/30 text-xs shadow-xs">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-outline-variant/20 gap-1.5 flex-nowrap whitespace-nowrap">
+                    <span className="font-bold text-on-surface flex items-center gap-1 text-[11px] sm:text-xs whitespace-nowrap shrink-0 min-w-0">
                       <span className="material-symbols-outlined text-[15px] text-primary shrink-0">receipt_long</span>
-                      Tarif Conventionné Assurance Maladie
+                      <span className="whitespace-nowrap">Tarif Conventionné Assurance Maladie</span>
                     </span>
-                    <span className="font-extrabold font-mono text-sm text-primary whitespace-nowrap shrink-0">
+                    <span className="font-extrabold font-mono text-xs sm:text-sm text-primary whitespace-nowrap shrink-0 ml-auto pl-1">
                       {ridePricing.totalPrestation.toFixed(2)} €
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center text-on-surface-variant pt-1">
-                    <span>Forfait départemental réglementaire</span>
-                    <span className="font-mono">{ridePricing.baseForfait.toFixed(2)} €</span>
+                  <div className="flex justify-between items-center text-on-surface-variant pt-0.5 flex-nowrap whitespace-nowrap gap-2">
+                    <span className="truncate">Forfait départemental</span>
+                    <span className="font-mono shrink-0">{ridePricing.baseForfait.toFixed(2)} €</span>
                   </div>
 
-                  <div className="flex justify-between items-center text-on-surface-variant">
-                    <span>Distance ({ridePricing.distanceKm} km × {ridePricing.distanceTarifKm.toFixed(2)} €/km)</span>
-                    <span className="font-mono">{ridePricing.distanceAmount.toFixed(2)} €</span>
+                  <div className="flex justify-between items-center text-on-surface-variant flex-nowrap whitespace-nowrap gap-2">
+                    <span className="truncate">Distance ({ridePricing.distanceKm} km × {ridePricing.distanceTarifKm.toFixed(2)} €/km)</span>
+                    <span className="font-mono shrink-0">{ridePricing.distanceAmount.toFixed(2)} €</span>
                   </div>
 
                   {ridePricing.surcharges.map((s, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-amber-700">
-                      <span>{s.label}</span>
-                      <span className="font-mono">+{s.amount.toFixed(2)} €</span>
+                    <div key={idx} className="flex justify-between items-center text-amber-700 flex-nowrap whitespace-nowrap gap-2">
+                      <span className="truncate" title={s.label}>{s.label}</span>
+                      <span className="font-mono shrink-0">+{s.amount.toFixed(2)} €</span>
                     </div>
                   ))}
 
                   <div className="pt-1 border-t border-outline-variant/20 flex flex-col gap-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-secondary font-semibold">
+                    <div className="flex justify-between items-center flex-nowrap whitespace-nowrap gap-2">
+                      <span className="text-secondary font-semibold truncate">
                         Part Assurance Maladie ({ridePricing.cpamCoveragePercent}%)
                       </span>
-                      <span className="font-bold text-secondary font-mono">
+                      <span className="font-bold text-secondary font-mono shrink-0">
                         -{ridePricing.cpamAmount.toFixed(2)} €
                       </span>
                     </div>
 
                     {!isAld && (
-                      <div className="flex justify-between items-center text-on-surface-variant">
-                        <span>Part Mutuelle / Complémentaire (35%)</span>
+                      <div className="flex justify-between items-center text-on-surface-variant flex-nowrap whitespace-nowrap gap-2">
+                        <span className="truncate">Part Mutuelle / Complémentaire (35%)</span>
                         {hasMutuelle ? (
-                          <span className="font-mono text-emerald-700 font-semibold">-{ridePricing.mutuelleAmount.toFixed(2)} €</span>
+                          <span className="font-mono text-emerald-700 font-semibold shrink-0">-{ridePricing.mutuelleAmount.toFixed(2)} €</span>
                         ) : (
-                          <span className="font-mono text-amber-700 font-medium">Non couverte (sans mutuelle)</span>
+                          <span className="font-mono text-amber-700 font-medium shrink-0">Non couverte (sans mutuelle)</span>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-space-xs flex justify-between items-center border-t border-outline-variant/30 mt-1">
-                    <div className="flex flex-col">
-                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs">
+                  <div className="pt-space-xs flex justify-between items-center border-t border-outline-variant/30 mt-1 flex-nowrap whitespace-nowrap gap-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs whitespace-nowrap">
                         Reste à charge patient
                       </span>
                       {(!isAld && !hasMutuelle) ? (
-                        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-0.5">
-                          <span className="material-symbols-outlined text-[12px] text-amber-600">payments</span>
+                        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-0.5 whitespace-nowrap truncate">
+                          <span className="material-symbols-outlined text-[12px] text-amber-600 shrink-0">payments</span>
                           À régler au transporteur (ticket modérateur 35%)
                         </span>
                       ) : (
-                        <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5">
-                          <span className="material-symbols-outlined text-[12px]">verified</span>
+                        <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5 whitespace-nowrap">
+                          <span className="material-symbols-outlined text-[12px] shrink-0">verified</span>
                           Tiers-payant intégral activé
                         </span>
                       )}
                     </div>
-                    <span className={`font-headline-lg text-headline-lg font-bold text-2xl font-mono ${
+                    <span className={`font-headline-lg text-headline-lg font-bold text-xl sm:text-2xl font-mono shrink-0 whitespace-nowrap ${
                       (!isAld && !hasMutuelle) ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-700'
                     }`}>
                       {ridePricing.patientRemainder.toFixed(2).replace('.', ',')} €
