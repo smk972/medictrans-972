@@ -1518,8 +1518,8 @@ export const TransporterPortalPage: React.FC = () => {
 
         {/* Info Société */}
         <div className="m-3 p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white shadow-inner flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white font-bold flex items-center justify-center text-lg shrink-0 shadow-md shadow-amber-900/30">
-            🚑
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-600 text-white font-bold flex items-center justify-center shrink-0 shadow-md shadow-teal-950/40">
+            <span className="material-symbols-outlined text-xl">medical_services</span>
           </div>
           <div className="overflow-hidden">
             <div className="text-xs font-black text-white truncate">{transporterName}</div>
@@ -1545,7 +1545,7 @@ export const TransporterPortalPage: React.FC = () => {
             <div className="flex items-center gap-1.5">
               {pendingDirectRequestsCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-white font-black text-[10px] flex items-center gap-0.5 shadow-xs animate-pulse" title={`${pendingDirectRequestsCount} demande(s) directe(s) nominative(s) (délai 24h)`}>
-                  <span>🔥</span>
+                  <span className="material-symbols-outlined text-[11px]">bolt</span>
                   <span>{pendingDirectRequestsCount}</span>
                 </span>
               )}
@@ -1569,7 +1569,7 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-lg">local_shipping</span>
+              <span className="material-symbols-outlined text-lg">ambulance</span>
               <span>Missions en cours</span>
             </div>
             {activeMissions.length > 0 && (
@@ -1611,8 +1611,8 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-lg">garage</span>
-              <span>Flotte & Équipages</span>
+              <span className="material-symbols-outlined text-lg">commute</span>
+              <span>Flotte &amp; Équipages</span>
             </div>
             <span className="text-[10px] text-teal-300 font-bold">{fleet.length} actifs</span>
           </button>
@@ -1647,7 +1647,7 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-lg text-amber-300">workspace_premium</span>
+              <span className="material-symbols-outlined text-lg text-amber-300">verified</span>
               <span>Mon abonnement</span>
             </div>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono ${
@@ -1765,8 +1765,9 @@ export const TransporterPortalPage: React.FC = () => {
           >
             <span>Courses disponibles ({availableMissions.length})</span>
             {pendingDirectRequestsCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse">
-                🔥 {pendingDirectRequestsCount}
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[11px] leading-none">bolt</span>
+                <span>{pendingDirectRequestsCount}</span>
               </span>
             )}
           </button>
@@ -1870,8 +1871,8 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>En attente 972</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
-                📡
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200/60 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-teal-100/70 transition-all shadow-xs">
+                <span className="material-symbols-outlined text-2xl">sensors</span>
               </div>
             </button>
 
@@ -1899,8 +1900,8 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>Missions actives</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
-                🚑
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/60 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-amber-100/70 transition-all shadow-xs">
+                <span className="material-symbols-outlined text-2xl">ambulance</span>
               </div>
             </button>
 
@@ -1928,8 +1929,8 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>Arrivées confirmées</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
-                🏁
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/60 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-emerald-100/70 transition-all shadow-xs">
+                <span className="material-symbols-outlined text-2xl">task_alt</span>
               </div>
             </button>
 
@@ -1959,8 +1960,8 @@ export const TransporterPortalPage: React.FC = () => {
                   <span>Véhicules prêts</span>
                 </div>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
-                🚙
+              <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200/60 text-sky-700 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-sky-100/70 transition-all shadow-xs">
+                <span className="material-symbols-outlined text-2xl">commute</span>
               </div>
             </button>
           </div>
@@ -2016,7 +2017,7 @@ export const TransporterPortalPage: React.FC = () => {
                     {/* Bloc 1 : Base d'intervention & Région */}
                     <div className="flex items-start sm:items-center gap-3.5">
                       <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-xs">
-                        <span className="text-xl">📍</span>
+                        <span className="material-symbols-outlined text-2xl text-primary">location_on</span>
                       </div>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -2028,8 +2029,9 @@ export const TransporterPortalPage: React.FC = () => {
                             <span>{activeZone?.polygonCoordinates?.length ? `${activeZone.polygonCoordinates.length} sommets actifs` : 'Polygone configuré'}</span>
                           </span>
                           {activeZone?.allowExtendedRadius && (
-                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/30">
-                              📢 Offres étendues (+30 km de la base)
+                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/30 inline-flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[12px]">cell_tower</span>
+                              <span>Offres étendues (+30 km de la base)</span>
                             </span>
                           )}
                         </div>
@@ -2077,12 +2079,8 @@ export const TransporterPortalPage: React.FC = () => {
                         onClick={() => setIsRadiusModalOpen(true)}
                         className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-bold text-xs transition-all shadow-xs hover:shadow-md active:scale-95 cursor-pointer shrink-0"
                       >
-                        <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-                          <line x1="9" y1="3" x2="9" y2="18" />
-                          <line x1="15" y1="6" x2="15" y2="21" />
-                        </svg>
-                        <span>✏️ Configurer ma zone d'action</span>
+                        <span className="material-symbols-outlined text-base">edit_location_alt</span>
+                        <span>Configurer ma zone d'action</span>
                       </button>
                     </div>
                   </div>
@@ -2092,12 +2090,7 @@ export const TransporterPortalPage: React.FC = () => {
               <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/20 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-                      <circle cx="7" cy="17" r="2" />
-                      <path d="M9 17h6" />
-                      <circle cx="17" cy="17" r="2" />
-                    </svg>
+                    <span className="material-symbols-outlined text-xl">medical_services</span>
                   </div>
                   <div>
                     <span className="text-xs font-black text-on-surface uppercase tracking-wider block">
@@ -2111,10 +2104,10 @@ export const TransporterPortalPage: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { key: 'ALL', label: 'Tous les véhicules', icon: '✨', count: vehicleCounts.ALL },
-                    { key: 'AMBULANCE', label: 'Ambulance', icon: '🚑', count: vehicleCounts.AMBULANCE },
-                    { key: 'VSL', label: 'VSL', icon: '🚐', count: vehicleCounts.VSL },
-                    { key: 'TAXI', label: 'Taxi conventionné', icon: '🚗', count: vehicleCounts.TAXI },
+                    { key: 'ALL', label: 'Tous les véhicules', icon: 'apps', count: vehicleCounts.ALL },
+                    { key: 'AMBULANCE', label: 'Ambulance', icon: 'ambulance', count: vehicleCounts.AMBULANCE },
+                    { key: 'VSL', label: 'VSL', icon: 'directions_car', count: vehicleCounts.VSL },
+                    { key: 'TAXI', label: 'Taxi conventionné', icon: 'local_taxi', count: vehicleCounts.TAXI },
                   ].map((veh) => {
                     const isActive = vehicleFilter === veh.key;
                     return (
@@ -2128,7 +2121,7 @@ export const TransporterPortalPage: React.FC = () => {
                             : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                         }`}
                       >
-                        <span className="text-sm">{veh.icon}</span>
+                        <span className="material-symbols-outlined text-base leading-none">{veh.icon}</span>
                         <span>{veh.label}</span>
                         <span
                           className={`text-[11px] px-1.5 py-0.5 rounded-md font-mono ${
@@ -2154,7 +2147,8 @@ export const TransporterPortalPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="font-extrabold text-sm sm:text-base flex items-center gap-2">
-                        <span>🚨 DEMANDE DIRECTE NOMINATIVE EN ATTENTE</span>
+                        <span className="material-symbols-outlined text-xl text-amber-200">priority_high</span>
+                        <span>DEMANDE DIRECTE NOMINATIVE EN ATTENTE</span>
                         <span className="bg-white text-orange-900 text-[11px] px-2.5 py-0.5 rounded-full font-black shadow-xs">
                           Délai 24h00
                         </span>
@@ -2297,26 +2291,35 @@ export const TransporterPortalPage: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 {isDirect ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-100 border border-orange-300 text-orange-950 text-[11px] font-black">
-                                    <span className="w-2 h-2 rounded-full bg-orange-600 animate-ping"></span>
-                                    🔥 DEMANDE DIRECTE NOMINATIVE (24H)
+                                    <span className="material-symbols-outlined text-xs text-orange-600 animate-pulse">bolt</span>
+                                    <span>DEMANDE DIRECTE NOMINATIVE (24H)</span>
                                   </span>
                                 ) : isPotCommun ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-bold" title="Initialement demandée à un transporteur précis mais non répondue sous 24h : rebasculée au pot commun">
                                     <span className="material-symbols-outlined text-xs text-blue-600">sync_alt</span>
-                                    🌐 POT COMMUN (Délai 24h expiré)
+                                    <span>POT COMMUN (Délai 24h expiré)</span>
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
-                                    EN ATTENTE IMMÉDIATE
+                                    <span>EN ATTENTE IMMÉDIATE</span>
                                   </span>
                                 )}
-                                <span className="px-2.5 py-1 rounded-full bg-surface-container text-on-surface text-[11px] font-bold border border-outline-variant/20">
-                                  {mission.transportType === 'AMBULANCE'
-                                    ? '🚑 Ambulance'
-                                    : mission.transportType === 'TAXI_CONVENTIONNE'
-                                    ? '🚗 Taxi Conventionné'
-                                    : '🚐 VSL'}
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface text-[11px] font-bold border border-outline-variant/20">
+                                  <span className="material-symbols-outlined text-[13px] text-primary">
+                                    {mission.transportType === 'AMBULANCE'
+                                      ? 'ambulance'
+                                      : mission.transportType === 'TAXI_CONVENTIONNE'
+                                      ? 'local_taxi'
+                                      : 'directions_car'}
+                                  </span>
+                                  <span>
+                                    {mission.transportType === 'AMBULANCE'
+                                      ? 'Ambulance'
+                                      : mission.transportType === 'TAXI_CONVENTIONNE'
+                                      ? 'Taxi Conventionné'
+                                      : 'VSL'}
+                                  </span>
                                 </span>
                               </div>
                               <span className="font-mono text-xs font-bold text-on-surface-variant">
@@ -2332,7 +2335,7 @@ export const TransporterPortalPage: React.FC = () => {
                                   title={`Prise en charge dans votre polygone d'action (à ${distFromBase.toFixed(1)} km de votre base)`}
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                  <span>🟢 Dans votre zone d'action ({distFromBase.toFixed(1)} km de votre base)</span>
+                                  <span>Dans votre zone d'action ({distFromBase.toFixed(1)} km de votre base)</span>
                                 </span>
                               ) : zoneMatchReason === 'EXTENDED_RADIUS' ? (
                                 <span
@@ -2340,7 +2343,7 @@ export const TransporterPortalPage: React.FC = () => {
                                   title={`Offre située hors du polygone mais à moins de 30 km de votre base (${activeZone?.cityName || baseCommune})`}
                                 >
                                   <span className="material-symbols-outlined text-[13px] text-amber-700">travel_explore</span>
-                                  <span>📢 Offre étendue (+30 km) • À {distFromBase.toFixed(1)} km de votre base</span>
+                                  <span>Offre étendue (+30 km) • À {distFromBase.toFixed(1)} km de votre base</span>
                                 </span>
                               ) : (
                                 <span
@@ -2348,7 +2351,7 @@ export const TransporterPortalPage: React.FC = () => {
                                   title={`Départ à ${distFromBase.toFixed(1)} km de votre base`}
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-                                  <span>🟠 Hors zone d'action ({distFromBase.toFixed(1)} km de votre base)</span>
+                                  <span>Hors zone d'action ({distFromBase.toFixed(1)} km de votre base)</span>
                                 </span>
                               )}
                             </div>
@@ -2403,20 +2406,24 @@ export const TransporterPortalPage: React.FC = () => {
 
                           {/* Détails distance, tarif & mobilité */}
                           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-outline-variant/20 text-[11px]">
-                            <span className="px-2 py-0.5 rounded-md bg-surface-container font-mono font-semibold text-on-surface">
-                              📏 ~{route.distanceKm} km ({route.durationMinutes} min)
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container font-mono font-semibold text-on-surface">
+                              <span className="material-symbols-outlined text-xs text-on-surface-variant">route</span>
+                              <span>~{route.distanceKm} km ({route.durationMinutes} min)</span>
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                              💶 {pricing?.totalPrestation?.toFixed(2) || '68.50'} € (100% CPAM)
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                              <span className="material-symbols-outlined text-xs text-emerald-700">payments</span>
+                              <span>{pricing?.totalPrestation?.toFixed(2) || '68.50'} € (100% CPAM)</span>
                             </span>
                             {mission.mobility.wheelchair && (
-                              <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold border border-amber-200">
-                                ♿ Fauteuil
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold border border-amber-200">
+                                <span className="material-symbols-outlined text-xs text-amber-700">accessible</span>
+                                <span>Fauteuil</span>
                               </span>
                             )}
                             {mission.mobility.stretcher && (
-                              <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 font-semibold border border-rose-200">
-                                🛏️ Brancardage
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 font-semibold border border-rose-200">
+                                <span className="material-symbols-outlined text-xs text-rose-700">airline_seat_flat</span>
+                                <span>Brancardage</span>
                               </span>
                             )}
                           </div>
@@ -2561,8 +2568,10 @@ export const TransporterPortalPage: React.FC = () => {
                         {/* Header Mission */}
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/20 pb-4">
                           <div className="flex items-center gap-3">
-                            <span className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary font-bold flex items-center justify-center text-lg">
-                              🚑
+                            <span className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary font-bold flex items-center justify-center shrink-0 border border-secondary/20">
+                              <span className="material-symbols-outlined text-xl">
+                                {mission.transportType === 'AMBULANCE' ? 'ambulance' : mission.transportType === 'TAXI_CONVENTIONNE' ? 'local_taxi' : 'directions_car'}
+                              </span>
                             </span>
                             <div>
                               <div className="text-base font-extrabold text-on-surface">
@@ -2920,8 +2929,11 @@ export const TransporterPortalPage: React.FC = () => {
                                 </span>
                                 <span className="font-mono text-[11px] text-primary">#{mission.reference}</span>
                               </div>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                {mission.transportType === 'AMBULANCE' ? '🚑 Ambulance' : mission.transportType === 'VSL' ? '🚐 VSL' : '🚗 Taxi'}
+                              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <span className="material-symbols-outlined text-[12px]">
+                                  {mission.transportType === 'AMBULANCE' ? 'ambulance' : mission.transportType === 'VSL' ? 'directions_car' : 'local_taxi'}
+                                </span>
+                                <span>{mission.transportType === 'AMBULANCE' ? 'Ambulance' : mission.transportType === 'VSL' ? 'VSL' : 'Taxi'}</span>
                               </span>
                             </div>
 
@@ -2954,8 +2966,9 @@ export const TransporterPortalPage: React.FC = () => {
                           </div>
 
                           <div className="pt-2 border-t border-outline-variant/15 flex items-center justify-between gap-2">
-                            <span className="text-[10px] text-on-surface-variant font-medium">
-                              {hasPmt ? '📄 PMT Jointe' : '📄 PMT Papier'}
+                            <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant font-medium">
+                              <span className="material-symbols-outlined text-[13px] text-teal-700">description</span>
+                              <span>{hasPmt ? 'PMT Dématérialisée' : 'PMT Format Papier'}</span>
                             </span>
 
                             <button
@@ -3233,7 +3246,8 @@ export const TransporterPortalPage: React.FC = () => {
                               : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
                           }`}
                         >
-                          <span>👨‍✈️ {d.firstName}</span>
+                          <span className="material-symbols-outlined text-[14px]">badge</span>
+                          <span>{d.firstName}</span>
                           <span
                             className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                               selectedDriverFilter === d.id ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface'
@@ -3253,7 +3267,8 @@ export const TransporterPortalPage: React.FC = () => {
                           : 'bg-surface-container-lowest hover:bg-surface-container text-amber-800 border border-amber-300/50'
                       }`}
                     >
-                      <span>⚠️ Sans chauffeur</span>
+                      <span className="material-symbols-outlined text-[14px] text-amber-600">person_off</span>
+                      <span>Sans chauffeur</span>
                       <span
                         className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                           selectedDriverFilter === 'UNASSIGNED' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
@@ -3361,11 +3376,15 @@ export const TransporterPortalPage: React.FC = () => {
 
                                   <div className="text-xs space-y-1">
                                     <div className="font-bold text-slate-900">{getPatientDisplayName(mission.patient, true)}</div>
-                                    <div className="text-[11px] text-slate-600 truncate">
-                                      📍 {mission.pickupCity} ➔ {mission.facilityName || mission.dropoffCity}
+                                    <div className="text-[11px] text-slate-600 truncate flex items-center gap-1">
+                                      <span className="material-symbols-outlined text-[13px] text-slate-400 shrink-0">trip_origin</span>
+                                      <span className="truncate">{mission.pickupCity} ➔ {mission.facilityName || mission.dropoffCity}</span>
                                     </div>
-                                    <div className="text-[10px] text-slate-500">
-                                      {mission.transportType === 'AMBULANCE' ? '🚑 Ambulance' : mission.transportType === 'VSL' ? '🚐 VSL' : '🚗 Taxi Conv.'}
+                                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                      <span className="material-symbols-outlined text-[13px] text-slate-400">
+                                        {mission.transportType === 'AMBULANCE' ? 'ambulance' : mission.transportType === 'VSL' ? 'directions_car' : 'local_taxi'}
+                                      </span>
+                                      <span>{mission.transportType === 'AMBULANCE' ? 'Ambulance' : mission.transportType === 'VSL' ? 'VSL' : 'Taxi Conv.'}</span>
                                     </div>
                                   </div>
 
@@ -3382,7 +3401,7 @@ export const TransporterPortalPage: React.FC = () => {
                                       <option value="" disabled>-- Choisir un chauffeur --</option>
                                       {drivers.map((d) => (
                                         <option key={d.id} value={d.id}>
-                                          👨‍✈️ {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Sans véhicule'})
+                                          {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Sans véhicule'})
                                         </option>
                                       ))}
                                     </select>
@@ -3512,17 +3531,19 @@ export const TransporterPortalPage: React.FC = () => {
                                     <div className="text-xs space-y-1">
                                       <div className="font-bold text-on-surface group-hover:text-primary transition-colors flex items-center justify-between">
                                         <span>{getPatientDisplayName(mission.patient, true)}</span>
-                                        <span className="text-[10px] font-mono text-on-surface-variant font-normal">
-                                          {mission.transportType === 'AMBULANCE' ? '🚑' : mission.transportType === 'VSL' ? '🚐' : '🚗'}
+                                        <span className="material-symbols-outlined text-xs text-primary" title={mission.transportType}>
+                                          {mission.transportType === 'AMBULANCE' ? 'ambulance' : mission.transportType === 'VSL' ? 'directions_car' : 'local_taxi'}
                                         </span>
                                       </div>
 
                                       <div className="p-2 rounded-xl bg-surface-container-lowest text-[11px] space-y-0.5 border border-outline-variant/15">
-                                        <div className="truncate text-on-surface-variant">
-                                          📍 <span className="font-medium text-on-surface">{mission.pickupCity}</span>
+                                        <div className="truncate text-on-surface-variant flex items-center gap-1">
+                                          <span className="material-symbols-outlined text-[12px] text-slate-400 shrink-0">trip_origin</span>
+                                          <span className="font-medium text-on-surface truncate">{mission.pickupCity}</span>
                                         </div>
-                                        <div className="truncate text-on-surface-variant">
-                                          🏥 <span className="font-bold text-primary">{mission.facilityName || mission.dropoffCity}</span>
+                                        <div className="truncate text-on-surface-variant flex items-center gap-1">
+                                          <span className="material-symbols-outlined text-[12px] text-primary shrink-0">local_hospital</span>
+                                          <span className="font-bold text-primary truncate">{mission.facilityName || mission.dropoffCity}</span>
                                         </div>
                                       </div>
                                     </div>
@@ -3643,12 +3664,21 @@ export const TransporterPortalPage: React.FC = () => {
                                         <div className="font-mono text-xs font-bold text-primary">
                                           #{mission.reference}
                                         </div>
-                                        <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-surface-container text-on-surface-variant">
-                                          {mission.transportType === 'AMBULANCE'
-                                            ? '🚑 Ambulance'
-                                            : mission.transportType === 'VSL'
-                                            ? '🚐 VSL'
-                                            : '🚗 Taxi'}
+                                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-surface-container text-on-surface-variant border border-outline-variant/20">
+                                          <span className="material-symbols-outlined text-[11px] text-primary">
+                                            {mission.transportType === 'AMBULANCE'
+                                              ? 'ambulance'
+                                              : mission.transportType === 'VSL'
+                                              ? 'directions_car'
+                                              : 'local_taxi'}
+                                          </span>
+                                          <span>
+                                            {mission.transportType === 'AMBULANCE'
+                                              ? 'Ambulance'
+                                              : mission.transportType === 'VSL'
+                                              ? 'VSL'
+                                              : 'Taxi'}
+                                          </span>
                                         </span>
                                       </div>
                                     </div>
@@ -3869,33 +3899,37 @@ export const TransporterPortalPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setFleetSubView('VEHICLES')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                       fleetSubView === 'VEHICLES'
                         ? 'bg-primary text-white shadow-xs'
                         : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
-                    🚗 Véhicules ({fleet.length})
+                    <span className="material-symbols-outlined text-sm">directions_car</span>
+                    <span>Véhicules ({fleet.length})</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFleetSubView('DRIVERS')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                       fleetSubView === 'DRIVERS'
                         ? 'bg-primary text-white shadow-xs'
                         : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
-                    👨‍✈️ Chauffeurs &amp; Mobiles ({drivers.length})
+                    <span className="material-symbols-outlined text-sm">badge</span>
+                    <span>Chauffeurs &amp; Mobiles ({drivers.length})</span>
                   </button>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                    🟢 {fleet.filter((v) => v.status === 'DISPONIBLE').length} / {fleet.length} Véhicules prêts
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>{fleet.filter((v) => v.status === 'DISPONIBLE').length} / {fleet.length} Véhicules prêts</span>
                   </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 font-bold border border-blue-200">
-                    📱 {drivers.length} Chauffeurs avec mobile actif
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 font-bold border border-blue-200">
+                    <span className="material-symbols-outlined text-[13px] text-blue-600">smartphone</span>
+                    <span>{drivers.length} Chauffeurs avec mobile actif</span>
                   </span>
                 </div>
               </div>
@@ -3948,8 +3982,10 @@ export const TransporterPortalPage: React.FC = () => {
 
                             <div>
                               <div className="flex items-center justify-between gap-2 mb-2 pt-1">
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-container text-on-surface">
-                                  <span>{isAmbu ? '🚑' : isTaxi ? '🚗' : '🚐'}</span>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-surface-container text-on-surface border border-outline-variant/20">
+                                  <span className="material-symbols-outlined text-xs text-primary">
+                                    {isAmbu ? 'ambulance' : isTaxi ? 'local_taxi' : 'directions_car'}
+                                  </span>
                                   <span>{isAmbu ? 'Ambulance ASSU' : isTaxi ? 'Taxi CPAM' : 'VSL'}</span>
                                 </span>
                                 <span
@@ -4288,12 +4324,21 @@ export const TransporterPortalPage: React.FC = () => {
                               <span className="font-mono text-xs font-extrabold text-primary">
                                 #{mission.reference}
                               </span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-surface-container text-on-surface-variant">
-                                {mission.transportType === 'AMBULANCE'
-                                  ? '🚑 Ambulance'
-                                  : mission.transportType === 'VSL'
-                                  ? '🚐 VSL'
-                                  : '🚗 TPMR'}
+                              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold bg-surface-container text-on-surface-variant border border-outline-variant/20">
+                                <span className="material-symbols-outlined text-[11px] text-primary">
+                                  {mission.transportType === 'AMBULANCE'
+                                    ? 'ambulance'
+                                    : mission.transportType === 'VSL'
+                                    ? 'directions_car'
+                                    : 'local_taxi'}
+                                </span>
+                                <span>
+                                  {mission.transportType === 'AMBULANCE'
+                                    ? 'Ambulance'
+                                    : mission.transportType === 'VSL'
+                                    ? 'VSL'
+                                    : 'TPMR'}
+                                </span>
                               </span>
                             </div>
                             <div className="text-[11px] text-on-surface-variant mt-1 flex items-center gap-1">
@@ -4437,8 +4482,8 @@ export const TransporterPortalPage: React.FC = () => {
           <div className="bg-surface-container-lowest w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
               <div className="flex items-center gap-2.5">
-                <span className="w-9 h-9 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center text-lg">
-                  🚑
+                <span className="w-9 h-9 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center border border-secondary/20 shrink-0">
+                  <span className="material-symbols-outlined text-lg">medical_services</span>
                 </span>
                 <div>
                   <h3 className="text-base font-extrabold text-on-surface">Affectation de la mission</h3>
@@ -4594,8 +4639,9 @@ export const TransporterPortalPage: React.FC = () => {
                     </span>
                   </div>
                   {isLate && (
-                    <p className="text-[10px] text-amber-700 leading-tight">
-                      ⚠️ Attention : Avec ce départ, l'arrivée calculée ({calculatedArrival}) dépasse l'heure du rendez-vous ({appTime}).
+                    <p className="text-[11px] text-amber-800 leading-tight flex items-start gap-1">
+                      <span className="material-symbols-outlined text-xs text-amber-700 shrink-0 mt-0.5">warning</span>
+                      <span>Attention : Avec ce départ, l'arrivée calculée ({calculatedArrival}) dépasse l'heure du rendez-vous ({appTime}).</span>
                     </p>
                   )}
                 </div>
@@ -5113,11 +5159,11 @@ export const TransporterPortalPage: React.FC = () => {
                 Motif de l'annulation / libération :
               </label>
               {[
-                { id: 'PANNE_VEHICULE', label: '🔧 Panne ou incident technique sur le véhicule' },
-                { id: 'URGENCE_SAMU', label: '🚨 Réquisition SAMU 972 / Urgence vitale prioritaire' },
-                { id: 'RETARD_TRAFIC', label: '⏱️ Retard imprévu important / Circulation bloquée' },
-                { id: 'EQUIPAGE_INDISPONIBLE', label: '👨‍⚕️ Indisponibilité subite du personnel ambulancier' },
-                { id: 'AUTRE', label: '📝 Autre contrainte opérationnelle' }
+                { id: 'PANNE_VEHICULE', icon: 'build', label: 'Panne ou incident technique sur le véhicule' },
+                { id: 'URGENCE_SAMU', icon: 'emergency', label: 'Réquisition SAMU 972 / Urgence vitale prioritaire' },
+                { id: 'RETARD_TRAFIC', icon: 'traffic', label: 'Retard imprévu important / Circulation bloquée' },
+                { id: 'EQUIPAGE_INDISPONIBLE', icon: 'group_off', label: 'Indisponibilité subite du personnel ambulancier' },
+                { id: 'AUTRE', icon: 'edit_note', label: 'Autre contrainte opérationnelle' }
               ].map((reason) => (
                 <label
                   key={reason.id}
@@ -5136,6 +5182,7 @@ export const TransporterPortalPage: React.FC = () => {
                     onChange={() => setReleaseReason(reason.id)}
                     className="accent-rose-600"
                   />
+                  <span className="material-symbols-outlined text-base opacity-75">{reason.icon}</span>
                   <span>{reason.label}</span>
                 </label>
               ))}
@@ -5184,16 +5231,18 @@ export const TransporterPortalPage: React.FC = () => {
             {/* En-tête de la Fiche Récapitulative */}
             <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
               <div className="flex items-center gap-3">
-                <span className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg ${
+                <span className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 border ${
                   selectedMissionForRecap.status === 'PENDING'
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-primary/10 text-primary'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    : 'bg-primary/10 text-primary border-primary/20'
                 }`}>
-                  {selectedMissionForRecap.transportType === 'AMBULANCE'
-                    ? '🚑'
-                    : selectedMissionForRecap.transportType === 'VSL'
-                    ? '🚐'
-                    : '🚗'}
+                  <span className="material-symbols-outlined text-xl">
+                    {selectedMissionForRecap.transportType === 'AMBULANCE'
+                      ? 'ambulance'
+                      : selectedMissionForRecap.transportType === 'VSL'
+                      ? 'directions_car'
+                      : 'local_taxi'}
+                  </span>
                 </span>
                 <div>
                   <div className="flex items-center gap-2">
@@ -5793,28 +5842,33 @@ export const TransporterPortalPage: React.FC = () => {
               <span className="text-[11px] font-bold uppercase text-on-surface-variant block">Besoins Spécifiques & Mobilité :</span>
               <div className="flex flex-wrap gap-1.5">
                 {selectedMissionForRecap.mobility.stretcher && (
-                  <span className="px-2.5 py-1 rounded-lg bg-red-100 text-red-800 font-bold text-[11px] flex items-center gap-1">
-                    <span>🛏️</span> Brancardage complet
+                  <span className="px-2.5 py-1 rounded-lg bg-red-100 text-red-800 font-bold text-[11px] flex items-center gap-1.5 border border-red-200">
+                    <span className="material-symbols-outlined text-[13px] text-red-700">airline_seat_flat</span>
+                    <span>Brancardage complet</span>
                   </span>
                 )}
                 {selectedMissionForRecap.mobility.wheelchair && (
-                  <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 font-bold text-[11px] flex items-center gap-1">
-                    <span>♿</span> Fauteuil roulant
+                  <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 font-bold text-[11px] flex items-center gap-1.5 border border-blue-200">
+                    <span className="material-symbols-outlined text-[13px] text-blue-700">accessible</span>
+                    <span>Fauteuil roulant</span>
                   </span>
                 )}
                 {selectedMissionForRecap.mobility.oxygen && (
-                  <span className="px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-800 font-bold text-[11px] flex items-center gap-1">
-                    <span>💨</span> Oxygénothérapie requise
+                  <span className="px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-800 font-bold text-[11px] flex items-center gap-1.5 border border-cyan-200">
+                    <span className="material-symbols-outlined text-[13px] text-cyan-700">air</span>
+                    <span>Oxygénothérapie requise</span>
                   </span>
                 )}
                 {selectedMissionForRecap.mobility.stairsWithoutElevator && (
-                  <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center gap-1">
-                    <span>🪜</span> Portage étages (Étage {selectedMissionForRecap.mobility.floorNumber || 1})
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-bold text-[11px] flex items-center gap-1.5 border border-amber-200">
+                    <span className="material-symbols-outlined text-[13px] text-amber-700">stairs</span>
+                    <span>Portage étages (Étage {selectedMissionForRecap.mobility.floorNumber || 1})</span>
                   </span>
                 )}
                 {selectedMissionForRecap.mobility.needsEscort && (
-                  <span className="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 font-bold text-[11px] flex items-center gap-1">
-                    <span>👥</span> Accompagnateur autorisé
+                  <span className="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 font-bold text-[11px] flex items-center gap-1.5 border border-purple-200">
+                    <span className="material-symbols-outlined text-[13px] text-purple-700">group</span>
+                    <span>Accompagnateur autorisé</span>
                   </span>
                 )}
               </div>
@@ -5927,9 +5981,9 @@ export const TransporterPortalPage: React.FC = () => {
                   onChange={(e) => setNewVehType(e.target.value as TransportType)}
                   className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
                 >
-                  <option value="VSL">🚐 VSL (Véhicule Sanitaire Léger)</option>
-                  <option value="AMBULANCE">🚑 Ambulance (Type B / ASSU)</option>
-                  <option value="TAXI_CONVENTIONNE">🚗 Taxi Conventionné CPAM</option>
+                  <option value="VSL">VSL (Véhicule Sanitaire Léger)</option>
+                  <option value="AMBULANCE">Ambulance (Type B / ASSU)</option>
+                  <option value="TAXI_CONVENTIONNE">Taxi Conventionné CPAM</option>
                 </select>
               </div>
 
@@ -5973,7 +6027,7 @@ export const TransporterPortalPage: React.FC = () => {
                   <option value="">-- Aucun chauffeur (assigner plus tard) --</option>
                   {drivers.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.firstName} {d.lastName} ({d.role}) • 📱 {d.phone}
+                      {d.firstName} {d.lastName} ({d.role}) • Tél: {d.phone}
                     </option>
                   ))}
                 </select>
@@ -6258,9 +6312,9 @@ export const TransporterPortalPage: React.FC = () => {
                     onChange={(e) => setEditDriverStatus(e.target.value as any)}
                     className="w-full p-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-xs text-on-surface outline-none focus:border-primary"
                   >
-                    <option value="DISPONIBLE">🟢 Disponible / En service</option>
-                    <option value="EN_MISSION">🟠 En mission</option>
-                    <option value="EN_REPOS">⚪ En repos / Congé</option>
+                    <option value="DISPONIBLE">Disponible / En service</option>
+                    <option value="EN_MISSION">En mission</option>
+                    <option value="EN_REPOS">En repos / Congé</option>
                   </select>
                 </div>
 
@@ -6322,7 +6376,10 @@ export const TransporterPortalPage: React.FC = () => {
             <div className="p-3 rounded-2xl bg-surface-container-low text-on-surface space-y-1">
               <div className="font-bold text-sm">{driverToDelete.firstName} {driverToDelete.lastName}</div>
               <div className="text-secondary font-semibold">{driverToDelete.role}</div>
-              <div className="font-mono text-xs">📱 {driverToDelete.phone}</div>
+              <div className="font-mono text-xs flex items-center gap-1 text-on-surface-variant">
+                <span className="material-symbols-outlined text-[14px]">phone_iphone</span>
+                <span>{driverToDelete.phone}</span>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/20">
