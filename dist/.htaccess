@@ -4,6 +4,7 @@
 
   # Endpoints API PHP directs pour Apache / Plesk
   RewriteRule ^api/email/welcome/?$ /api/email/welcome/index.php [QSA,L]
+  RewriteRule ^api/email/ride-accepted/?$ /api/email/ride-accepted/index.php [QSA,L]
   RewriteRule ^api/email/password-reset/?$ /api/email/password-reset/index.php [QSA,L]
   RewriteRule ^api/health/?$ /api/health.php [QSA,L]
 

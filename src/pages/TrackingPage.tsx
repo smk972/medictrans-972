@@ -178,10 +178,36 @@ export const TrackingPage: React.FC = () => {
         .subscribe();
     }
 
-    // Polling de précaution
+    // Polling de précaution haute fréquence (3s)
     const interval = setInterval(() => {
       loadRides();
-    }, 5000);
+    }, 3000);
+
+    // Écouteur BroadcastChannel inter-onglets
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        bc = new BroadcastChannel('clinigo_rides_channel');
+        bc.onmessage = (event) => {
+          loadRides();
+          if (event.data?.status === 'ACCEPTED') {
+            const tName = event.data?.ride?.assignedTransporter?.companyName || 'Transporteur Sanitaire Agréé';
+            setToastMessage({
+              title: 'Course confirmée !',
+              desc: `Votre transporteur (${tName}) a validé votre mission.`
+            });
+          }
+        };
+      } catch {}
+    }
+
+    // Écouteur storage event universel
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'clinigo_last_ride_update' || e.key === 'medictrans_rides_v2') {
+        loadRides();
+      }
+    };
+    window.addEventListener('storage', onStorage);
 
     const onStatusUpdate = () => {
       loadRides();
@@ -191,6 +217,10 @@ export const TrackingPage: React.FC = () => {
     return () => {
       clearInterval(interval);
       window.removeEventListener('clinigo_ride_status_updated', onStatusUpdate);
+      window.removeEventListener('storage', onStorage);
+      if (bc) {
+        bc.close();
+      }
       if (channel && supabase) {
         supabase.removeChannel(channel);
       }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { Header } from '../components/Header';
@@ -7,6 +7,7 @@ import { SEOHead } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 import { rideService } from '../services/rideService';
 import { Ride } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const ConfirmationPage: React.FC = () => {
   const { ref } = useParams<{ ref: string }>();
@@ -19,6 +20,9 @@ export const ConfirmationPage: React.FC = () => {
   const [storedMutuelleDoc, setStoredMutuelleDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
   const [showMutuelleDocModal, setShowMutuelleDocModal] = useState(false);
+  const [liveAcceptedToast, setLiveAcceptedToast] = useState<{ transporterName: string; driverName?: string } | null>(null);
+
+  const prevStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -40,20 +44,40 @@ export const ConfirmationPage: React.FC = () => {
       // ignore
     }
 
-    // Charger les informations précises de la course si disponible
-    async function fetchRideInfo() {
+    // Charger les informations précises de la course
+    async function fetchRideInfo(isInitial = false) {
       try {
         const found = await rideService.getRideByReference(reservationRef);
         if (found) {
+          const oldStatus = prevStatusRef.current;
+          prevStatusRef.current = found.status;
+
+          // Détection d'un passage en direct à ACCEPTED
+          if (oldStatus === 'PENDING' && found.status === 'ACCEPTED') {
+            const tName = found.assignedTransporter?.companyName || 'Ambulances Sanitaires Agréées';
+            const dName = found.assignedTransporter?.driverName;
+            setLiveAcceptedToast({ transporterName: tName, driverName: dName });
+
+            try {
+              confetti({
+                particleCount: 100,
+                spread: 75,
+                origin: { y: 0.5 },
+                colors: ['#059669', '#10B981', '#34D399', '#004479', '#6EE7B7'],
+              });
+            } catch {}
+          }
+
           setMatchedRide(found);
         }
       } catch (err) {
         console.warn('Erreur récupération course:', err);
       }
     }
-    fetchRideInfo();
 
-    // Launch celebratory confetti
+    fetchRideInfo(true);
+
+    // Initial celebratory confetti
     try {
       confetti({
         particleCount: 70,
@@ -64,6 +88,75 @@ export const ConfirmationPage: React.FC = () => {
     } catch {
       // ignore
     }
+
+    // 1. Abonnement Supabase Realtime
+    let channel: any = null;
+    if (isSupabaseConfigured() && supabase) {
+      channel = supabase
+        .channel(`confirmation_ride_${reservationRef}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rides' },
+          (payload: any) => {
+            const updatedRef = payload.new?.reference || payload.old?.reference;
+            if (updatedRef && updatedRef.toUpperCase() === reservationRef.toUpperCase()) {
+              fetchRideInfo();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // 2. BroadcastChannel inter-onglets (instantané quand l'admin valide sur un autre onglet)
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        bc = new BroadcastChannel('clinigo_rides_channel');
+        bc.onmessage = (event) => {
+          if (event.data?.reference && event.data.reference.toUpperCase() === reservationRef.toUpperCase()) {
+            fetchRideInfo();
+          }
+        };
+      } catch {}
+    }
+
+    // 3. Écouteur Storage Event (inter-onglets universel)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'clinigo_last_ride_update' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed.reference && parsed.reference.toUpperCase() === reservationRef.toUpperCase()) {
+            fetchRideInfo();
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    // 4. Écouteur événement local
+    const onLocalStatusUpdate = (e: any) => {
+      if (e.detail?.reference && e.detail.reference.toUpperCase() === reservationRef.toUpperCase()) {
+        fetchRideInfo();
+      }
+    };
+    window.addEventListener('clinigo_ride_status_updated', onLocalStatusUpdate);
+
+    // 5. Polling actif haute fréquence (toutes les 3s tant que la page est ouverte)
+    const pollInterval = setInterval(() => {
+      fetchRideInfo();
+    }, 3000);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('clinigo_ride_status_updated', onLocalStatusUpdate);
+      if (bc) {
+        bc.close();
+      }
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [reservationRef]);
 
   // Données dynamiques du bénéficiaire
@@ -145,6 +238,32 @@ export const ConfirmationPage: React.FC = () => {
       <main className="w-full pt-4 sm:pt-6 bg-background flex-1">
         <div className="flex flex-col w-full">
           <div className="max-w-[1280px] w-full mx-auto px-margin md:px-margin-md lg:px-margin-lg py-space-md lg:py-space-xl flex flex-col gap-space-lg">
+            {/* Alerte temps réel lors de l'attribution sous les yeux du client */}
+            {liveAcceptedToast && (
+              <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-5 rounded-3xl shadow-xl border-2 border-emerald-300 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-3xl text-emerald-100">celebration</span>
+                  </div>
+                  <div>
+                    <div className="font-black text-base sm:text-lg flex items-center gap-2">
+                      <span>Course acceptée et attribuée !</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-white text-emerald-800">En direct</span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-emerald-100 font-medium">
+                      Votre transporteur <strong>{liveAcceptedToast.transporterName}</strong> a validé votre prise en charge{liveAcceptedToast.driverName ? ` (Chauffeur : ${liveAcceptedToast.driverName})` : ''}.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setLiveAcceptedToast(null)}
+                  className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all shrink-0"
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+
             {/* Step progress bar */}
             <section className="bg-white rounded-3xl shadow-sm p-4 md:p-6 border border-slate-200/80 card-silky-subtle">
               <div className="flex flex-col md:flex-row items-center justify-between gap-space-md">
@@ -181,95 +300,191 @@ export const ConfirmationPage: React.FC = () => {
                 <div className="hidden md:block h-0.5 flex-1 mx-space-md bg-teal-600/30 rounded-full"></div>
 
                 <div className="flex items-center gap-space-sm w-full md:w-auto">
-                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-sm animate-pulse">
-                    <span className="material-symbols-outlined text-[18px]">task_alt</span>
+                  <div className={`w-9 h-9 rounded-full ${matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-900 text-white shadow-sm animate-pulse'} flex items-center justify-center`}>
+                    <span className="material-symbols-outlined text-[18px]">
+                      {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'check' : 'task_alt'}
+                    </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[11px] text-slate-900 uppercase font-bold tracking-wider">
+                    <span className={`text-[11px] uppercase font-bold tracking-wider ${matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'text-emerald-700 font-extrabold' : 'text-slate-900'}`}>
                       Étape 03
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      Régulation &amp; Confirmation
+                      {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'Prise en charge confirmée' : 'Régulation & Confirmation'}
                     </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Top Banner Success */}
-            <section className="relative overflow-hidden bg-primary text-on-primary rounded-3xl p-space-lg md:p-space-xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
-              <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
-                <div className="flex items-center gap-2">
-                  <span className="bg-secondary text-on-secondary px-3 py-1 rounded-full font-label-sm text-label-sm font-bold uppercase tracking-wider text-xs">
-                    Réservation Confirmée
-                  </span>
-                  <span className="font-mono font-bold text-on-primary/90 text-sm">
-                    #{reservationRef}
-                  </span>
-                </div>
-                <h1 className="font-headline-lg text-headline-lg font-black tracking-tight text-xl sm:text-2xl md:text-3xl text-white">
-                  Votre demande de transport est validée
-                </h1>
-                <p className="font-body-md text-body-md text-on-primary-container max-w-xl text-xs sm:text-sm text-white/90">
-                  La demande a été transmise aux transporteurs sanitaires conventionnés du secteur.
-                  Vous recevrez une alerte dès qu'un chauffeur valide votre prise en charge.
-                </p>
-              </div>
-
-              <div className="bg-surface-container-lowest/15 backdrop-blur-md rounded-xl p-space-sm flex items-center gap-space-sm self-stretch md:self-auto relative z-10 shadow-sm border border-white/20">
-                <div className="w-3 h-3 rounded-full bg-secondary-fixed animate-ping"></div>
-                <div className="flex flex-col">
-                  <span className="font-label-sm text-label-sm text-surface-container-high uppercase text-[10px]">
-                    Régulation active
-                  </span>
-                  <span className="font-label-md text-label-md text-on-primary font-bold text-xs">
-                    Dispatch Sanitaire Clinigo
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            {/* Broadcast network status bar */}
-            <div className="bg-surface-container-high rounded-2xl p-space-md shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md border border-outline-variant/30">
-              <div className="flex items-center gap-space-sm">
-                <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-secondary/10">
-                  <span className="material-symbols-outlined text-[28px] text-secondary">
-                    {bookingData?.isDirectRequest ? 'local_fire_department' : 'broadcast_on_personal'}
-                  </span>
-                  <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full ${bookingData?.isDirectRequest ? 'bg-amber-600 animate-ping' : 'bg-secondary'}`}></span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold text-[10px]">
-                    {bookingData?.isDirectRequest ? 'Continuité des Soins (Priorité 24h)' : 'Réseau Sanitaire Opérationnel'}
-                  </span>
-                  <p className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
-                    {bookingData?.isDirectRequest ? (
-                      <>
-                        Demande adressée en priorité à <span className="text-amber-700 font-bold">{bookingData.targetTransporterName || 'votre transporteur habituel'}</span>
-                      </>
-                    ) : (
-                      <>
-                        Demande diffusée aux <span className="text-primary font-bold">transporteurs sanitaires conventionnés</span>
-                      </>
-                    )}
+            {/* Top Banner Success / Accepted */}
+            {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
+              <section className="relative overflow-hidden bg-gradient-to-r from-[#002D52] via-[#004D40] to-[#065F46] text-white rounded-3xl p-space-lg md:p-space-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md border border-emerald-500/30">
+                <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-emerald-400 text-emerald-950 px-3 py-1 rounded-full font-label-sm text-label-sm font-black uppercase tracking-wider text-xs shadow-xs">
+                      ✓ Transporteur Confirmé
+                    </span>
+                    <span className="font-mono font-bold text-white/90 text-sm">
+                      #{reservationRef}
+                    </span>
+                  </div>
+                  <h1 className="font-headline-lg text-headline-lg font-black tracking-tight text-xl sm:text-2xl md:text-3xl text-white">
+                    Votre transporteur est confirmé !
+                  </h1>
+                  <p className="font-body-md text-body-md text-emerald-100 max-w-xl text-xs sm:text-sm">
+                    Votre course a été prise en charge par <strong>{matchedRide?.assignedTransporter?.companyName || 'Ambulances Sanitaires Agréées'}</strong>. Le véhicule et l'équipage sont officiellement réservés.
                   </p>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
-                    {bookingData?.isDirectRequest
-                      ? 'Délai prioritaire de 24h00 pour votre transporteur habituel • Rebasculement automatique garanti au pot commun en cas d\'indisponibilité'
-                      : 'Attribution automatique par proximité et disponibilité de flotte'}
+                </div>
+
+                <div className="bg-white/15 backdrop-blur-md rounded-2xl p-space-sm sm:p-4 flex items-center gap-space-sm self-stretch md:self-auto relative z-10 shadow-sm border border-white/20">
+                  <div className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping"></div>
+                  <div className="flex flex-col">
+                    <span className="font-label-sm text-label-sm text-emerald-200 uppercase text-[10px] font-bold">
+                      Mission Validée
+                    </span>
+                    <span className="font-label-md text-label-md text-white font-black text-xs sm:text-sm">
+                      Prise en charge active
+                    </span>
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <section className="relative overflow-hidden bg-primary text-on-primary rounded-3xl p-space-lg md:p-space-xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+                <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-secondary text-on-secondary px-3 py-1 rounded-full font-label-sm text-label-sm font-bold uppercase tracking-wider text-xs">
+                      Réservation Confirmée
+                    </span>
+                    <span className="font-mono font-bold text-on-primary/90 text-sm">
+                      #{reservationRef}
+                    </span>
+                  </div>
+                  <h1 className="font-headline-lg text-headline-lg font-black tracking-tight text-xl sm:text-2xl md:text-3xl text-white">
+                    Votre demande de transport est validée
+                  </h1>
+                  <p className="font-body-md text-body-md text-on-primary-container max-w-xl text-xs sm:text-sm text-white/90">
+                    La demande a été transmise aux transporteurs sanitaires conventionnés du secteur.
+                    Vous recevrez une alerte dès qu'un chauffeur valide votre prise en charge.
+                  </p>
+                </div>
+
+                <div className="bg-surface-container-lowest/15 backdrop-blur-md rounded-xl p-space-sm flex items-center gap-space-sm self-stretch md:self-auto relative z-10 shadow-sm border border-white/20">
+                  <div className="w-3 h-3 rounded-full bg-secondary-fixed animate-ping"></div>
+                  <div className="flex flex-col">
+                    <span className="font-label-sm text-label-sm text-surface-container-high uppercase text-[10px]">
+                      Régulation active
+                    </span>
+                    <span className="font-label-md text-label-md text-on-primary font-bold text-xs">
+                      Dispatch Sanitaire Clinigo
+                    </span>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Carte Détaillée du Transporteur Assigné OU Barre de Statut En attente */}
+            {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
+              <div className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white rounded-3xl p-6 sm:p-7 border-2 border-emerald-400/90 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-all">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shrink-0">
+                    <span className="material-symbols-outlined text-3xl">airport_shuttle</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-200 text-emerald-900">
+                        Transporteur Conventionné Assigné
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping"></span>
+                        Prise en charge active
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      {matchedRide?.assignedTransporter?.companyName || 'Ambulances Conventionnées Clinigo'}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs sm:text-sm text-slate-700 mt-0.5">
+                      <span className="flex items-center gap-1.5 font-medium bg-white/80 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                        <span className="material-symbols-outlined text-base text-emerald-700">person</span>
+                        Chauffeur : <strong className="text-slate-900">{matchedRide?.assignedTransporter?.driverName || 'Chauffeur Régulé'}</strong>
+                      </span>
+                      {matchedRide?.assignedTransporter?.vehiclePlate && (
+                        <span className="flex items-center gap-1.5 font-mono bg-white px-2.5 py-1 rounded-lg border border-emerald-300 font-bold text-slate-900 shadow-2xs">
+                          <span className="material-symbols-outlined text-sm text-emerald-700">directions_car</span>
+                          {matchedRide.assignedTransporter.vehiclePlate}
+                        </span>
+                      )}
+                      {matchedRide?.assignedTransporter?.driverPhone && (
+                        <a
+                          href={`tel:${matchedRide.assignedTransporter.driverPhone}`}
+                          className="inline-flex items-center gap-1 font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-100/80 px-2.5 py-1 rounded-lg border border-emerald-300 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">call</span>
+                          {matchedRide.assignedTransporter.driverPhone}
+                        </a>
+                      )}
+                      {matchedRide?.assignedTransporter?.etaMinutes && (
+                        <span className="flex items-center gap-1 text-xs text-emerald-800 font-bold bg-emerald-100/60 px-2.5 py-1 rounded-lg">
+                          <span className="material-symbols-outlined text-sm">schedule</span>
+                          Arrivée estimée : {matchedRide.assignedTransporter.etaMinutes} min
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
+                  <Link
+                    to={`/suivi?ref=${reservationRef}`}
+                    className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span className="material-symbols-outlined text-xl">gps_fixed</span>
+                    <span>Suivre mon chauffeur en direct</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-surface-container-high rounded-2xl p-space-md shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md border border-outline-variant/30">
+                <div className="flex items-center gap-space-sm">
+                  <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-secondary/10">
+                    <span className="material-symbols-outlined text-[28px] text-secondary">
+                      {bookingData?.isDirectRequest ? 'local_fire_department' : 'broadcast_on_personal'}
+                    </span>
+                    <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full ${bookingData?.isDirectRequest ? 'bg-amber-600 animate-ping' : 'bg-secondary'}`}></span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold text-[10px]">
+                      {bookingData?.isDirectRequest ? 'Continuité des Soins (Priorité 24h)' : 'Réseau Sanitaire Opérationnel'}
+                    </span>
+                    <p className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
+                      {bookingData?.isDirectRequest ? (
+                        <>
+                          Demande adressée en priorité à <span className="text-amber-700 font-bold">{bookingData.targetTransporterName || 'votre transporteur habituel'}</span>
+                        </>
+                      ) : (
+                        <>
+                          Demande diffusée aux <span className="text-primary font-bold">transporteurs sanitaires conventionnés</span>
+                        </>
+                      )}
+                    </p>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
+                      {bookingData?.isDirectRequest
+                        ? 'Délai prioritaire de 24h00 pour votre transporteur habituel • Rebasculement automatique garanti au pot commun en cas d\'indisponibilité'
+                        : 'Attribution automatique par proximité et disponibilité de flotte'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-space-xs bg-surface-container-lowest px-space-md py-2 rounded-xl shadow-xs border border-outline-variant/20">
+                  <span className="material-symbols-outlined text-[20px] text-secondary animate-spin">
+                    sync
+                  </span>
+                  <span className="font-label-sm text-label-sm text-on-surface font-bold text-xs">
+                    {bookingData?.isDirectRequest ? 'En attente acceptation (24h)' : 'Attribution en cours'}
                   </span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-space-xs bg-surface-container-lowest px-space-md py-2 rounded-xl shadow-xs border border-outline-variant/20">
-                <span className="material-symbols-outlined text-[20px] text-secondary animate-spin">
-                  sync
-                </span>
-                <span className="font-label-sm text-label-sm text-on-surface font-bold text-xs">
-                  {bookingData?.isDirectRequest ? 'En attente acceptation (24h)' : 'Attribution en cours'}
-                </span>
-              </div>
-            </div>
+            )}
 
             {/* Main Details Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">

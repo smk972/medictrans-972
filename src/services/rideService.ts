@@ -588,31 +588,44 @@ export const rideService = {
       throw new Error(`Course introuvable : ${cleanRef}`);
     }
 
-    const allowedNext = VALID_TRANSITIONS[currentRide.status] || [];
-    if (!allowedNext.includes(status)) {
-      throw new Error(`Transition d'état invalide : impossible de passer de "${currentRide.status}" à "${status}".`);
+    // Autoriser la réassignation ou mise à jour (même statut) sans bloquer
+    if (currentRide.status !== status) {
+      const allowedNext = VALID_TRANSITIONS[currentRide.status] || [];
+      if (!allowedNext.includes(status)) {
+        throw new Error(`Transition d'état invalide : impossible de passer de "${currentRide.status}" à "${status}".`);
+      }
     }
 
     // 2. Traitement en base Supabase
     if (isSupabaseConfigured() && supabase) {
       if (status === 'ACCEPTED') {
-        // ACCEPTATION ATOMIQUE : WHERE reference = cleanRef AND status = 'PENDING'
-        const { data: updatedRows, error: updateError } = await supabase
+        const updatePayload: any = {
+          status: 'ACCEPTED',
+          transporter_name: assigned?.companyName || null,
+          driver_name: assigned?.driverName || null,
+          driver_phone: assigned?.driverPhone || null,
+          vehicle_plate: assigned?.vehiclePlate || null,
+          eta_minutes: assigned?.etaMinutes || 15,
+          updated_at: new Date().toISOString()
+        };
+        if (timingUpdates?.transporterPickupTime) {
+          updatePayload.transporter_pickup_time = timingUpdates.transporterPickupTime;
+        }
+        if (timingUpdates?.estimatedArrivalTime) {
+          updatePayload.estimated_arrival_time = timingUpdates.estimatedArrivalTime;
+        }
+
+        let query = supabase
           .from('rides')
-          .update({
-            status: 'ACCEPTED',
-            transporter_name: assigned?.companyName || null,
-            driver_name: assigned?.driverName || null,
-            driver_phone: assigned?.driverPhone || null,
-            vehicle_plate: assigned?.vehiclePlate || null,
-            eta_minutes: assigned?.etaMinutes || 15,
-            transporter_pickup_time: timingUpdates?.transporterPickupTime || null,
-            estimated_arrival_time: timingUpdates?.estimatedArrivalTime || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('reference', cleanRef)
-          .eq('status', 'PENDING')
-          .select();
+          .update(updatePayload)
+          .eq('reference', cleanRef);
+
+        // Atomicité : uniquement si la course était PENDING
+        if (currentRide.status === 'PENDING') {
+          query = query.eq('status', 'PENDING');
+        }
+
+        const { data: updatedRows, error: updateError } = await query.select();
 
         if (updateError) {
           throw new Error(`Erreur lors de l'acceptation de la course: ${updateError.message}`);
@@ -699,12 +712,36 @@ export const rideService = {
           pickupTime,
         }).catch(err => console.warn('[rideService] Notification email acceptation échouée:', err));
       }
+    }
 
-      try {
-        window.dispatchEvent(new CustomEvent('clinigo_ride_status_updated', {
-          detail: { reference: currentRide.reference, status: 'ACCEPTED', ride: currentRide }
-        }));
-      } catch {}
+    // Diffusion multi-canaux temps réel pour mise à jour automatique immédiate des écrans clients
+    try {
+      // 1. Événement local sur la fenêtre actuelle
+      window.dispatchEvent(new CustomEvent('clinigo_ride_status_updated', {
+        detail: { reference: currentRide.reference, status, ride: currentRide }
+      }));
+
+      // 2. BroadcastChannel inter-onglets/fenêtres sur le même navigateur
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('clinigo_rides_channel');
+        bc.postMessage({
+          type: 'RIDE_STATUS_UPDATED',
+          reference: currentRide.reference,
+          status,
+          ride: currentRide,
+          timestamp: Date.now()
+        });
+        bc.close();
+      }
+
+      // 3. Événement storage universel
+      localStorage.setItem('clinigo_last_ride_update', JSON.stringify({
+        reference: currentRide.reference,
+        status,
+        timestamp: Date.now()
+      }));
+    } catch (bcErr) {
+      console.warn('[rideService] Erreur diffusion temps réel:', bcErr);
     }
 
     return currentRide;
