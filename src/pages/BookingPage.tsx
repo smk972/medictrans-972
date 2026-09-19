@@ -2124,37 +2124,37 @@ export const BookingPage: React.FC = () => {
 
                     {!isAld && (
                       <div className="flex justify-between items-center text-on-surface-variant flex-nowrap whitespace-nowrap gap-2">
-                        <span className="truncate">Part Mutuelle / Complémentaire (35%)</span>
+                        <span className="truncate">Part Mutuelle {hasMutuelle ? '(35%)' : '(non couverte)'}</span>
                         {hasMutuelle ? (
-                          <span className="font-mono text-emerald-700 font-semibold shrink-0">-{ridePricing.mutuelleAmount.toFixed(2)} €</span>
+                          <span className="font-mono text-emerald-700 font-semibold shrink-0 whitespace-nowrap">-{ridePricing.mutuelleAmount.toFixed(2)}&nbsp;€</span>
                         ) : (
-                          <span className="font-mono text-amber-700 font-medium shrink-0">Non couverte (sans mutuelle)</span>
+                          <span className="font-mono text-amber-700 font-semibold shrink-0 whitespace-nowrap">0,00&nbsp;€</span>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-space-xs flex justify-between items-center border-t border-outline-variant/30 mt-1 flex-nowrap whitespace-nowrap gap-2">
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs whitespace-nowrap">
-                        Reste à charge patient
+                  <div className="pt-2 flex justify-between items-center border-t border-outline-variant/30 mt-1 flex-nowrap whitespace-nowrap gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-nowrap whitespace-nowrap">
+                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs whitespace-nowrap shrink-0">
+                        Reste à charge :
                       </span>
                       {(!isAld && !hasMutuelle) ? (
-                        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-0.5 whitespace-nowrap truncate">
+                        <span className="text-[10px] sm:text-[11px] text-amber-800 dark:text-amber-300 font-semibold whitespace-nowrap truncate flex items-center gap-0.5">
                           <span className="material-symbols-outlined text-[12px] text-amber-600 shrink-0">payments</span>
-                          À régler au transporteur (ticket modérateur 35%)
+                          Ticket modérateur 35%
                         </span>
                       ) : (
-                        <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5 whitespace-nowrap">
+                        <span className="text-[10px] sm:text-[11px] text-emerald-700 font-semibold flex items-center gap-0.5 whitespace-nowrap shrink-0">
                           <span className="material-symbols-outlined text-[12px] shrink-0">verified</span>
-                          Tiers-payant intégral activé
+                          Tiers-payant 100%
                         </span>
                       )}
                     </div>
-                    <span className={`font-headline-lg text-headline-lg font-bold text-xl sm:text-2xl font-mono shrink-0 whitespace-nowrap ${
+                    <span className={`font-headline-lg text-headline-lg font-bold text-lg sm:text-xl font-mono shrink-0 whitespace-nowrap ${
                       (!isAld && !hasMutuelle) ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-700'
                     }`}>
-                      {ridePricing.patientRemainder.toFixed(2).replace('.', ',')} €
+                      {ridePricing.patientRemainder.toFixed(2).replace('.', ',')}&nbsp;€
                     </span>
                   </div>
                 </div>
