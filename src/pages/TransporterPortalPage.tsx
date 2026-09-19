@@ -1705,7 +1705,7 @@ export const TransporterPortalPage: React.FC = () => {
               title="Saisir manuellement une course directe reçue de votre côté (client privé ou appel téléphonique)"
             >
               <span className="material-symbols-outlined text-base">add_circle</span>
-              <span className="font-extrabold">+ Course Directe</span>
+              <span className="font-extrabold">Course Directe</span>
             </button>
 
             <button
@@ -2827,7 +2827,7 @@ export const TransporterPortalPage: React.FC = () => {
                     title="Ajouter manuellement une course directe reçue par téléphone ou client privé"
                   >
                     <span className="material-symbols-outlined text-base">add_circle</span>
-                    <span>+ Saisir Course Directe</span>
+                    <span>Saisir Course Directe</span>
                   </button>
 
                   <button
@@ -3296,7 +3296,7 @@ export const TransporterPortalPage: React.FC = () => {
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-xs cursor-pointer shrink-0"
                     >
                       <span className="material-symbols-outlined text-sm">add_circle</span>
-                      <span>+ Saisir Course Directe</span>
+                      <span>Saisir Course Directe</span>
                     </button>
                   </div>
 
