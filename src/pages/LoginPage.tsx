@@ -30,7 +30,7 @@ export const LoginPage: React.FC = () => {
 
   // Détermination automatique du profil selon le lien cliqué au préalable
   const selectedRole: UserRole = useMemo(() => {
-    const qRole = searchParams.get('role')?.toUpperCase();
+    const qRole = (searchParams.get('role') || searchParams.get('category'))?.toUpperCase();
     if (qRole === 'FACILITY' || qRole === 'TRANSPORTER' || qRole === 'ADMIN' || qRole === 'PATIENT') {
       return qRole as UserRole;
     }
@@ -257,8 +257,8 @@ export const LoginPage: React.FC = () => {
     if (mode === 'LOGIN') {
       const res = await loginWithEmail(email, password, selectedRole);
       if (res.success) {
-        // Redirection instantanée sans délai artificiel
-        redirectAfterAuth(selectedRole);
+        const actualRole = AuthService.getLocalUser()?.role || selectedRole;
+        redirectAfterAuth(actualRole);
       } else {
         setFormError(res.error || 'Adresse e-mail ou mot de passe incorrect.');
       }

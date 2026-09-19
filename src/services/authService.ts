@@ -475,6 +475,31 @@ export class AuthService {
       return { user: demoUser, error: null };
     }
 
+    // Interception des identifiants Super-Administrateur Clinigo
+    if (cleanEmail === 'admin@clinigo.fr' || cleanEmail === 'admin.demo@clinigo.fr' || cleanEmail === 'admin@medictrans972.mq') {
+      if (password === 'Clinigo2026!' || password === 'demo972' || password === 'admin' || password === 'Clinigo2026') {
+        const adminUser: UserProfile = {
+          id: 'user-admin-01',
+          email: cleanEmail,
+          role: 'ADMIN',
+          firstName: 'Pierre',
+          lastName: 'Delmas',
+          phone: '0596 75 20 20',
+          avatarUrl: '/assets/logo-icon.svg',
+          createdAt: '2026-01-01T00:00:00Z'
+        };
+        this.setLocalUser(adminUser);
+        return { user: adminUser, error: null };
+      }
+    }
+
+    // Interception de l'identifiant Démo Établissement de Santé
+    if (cleanEmail === 'etablissement.demo@clinigo.fr' || cleanEmail === 'hopital.demo@clinigo.fr') {
+      const facilityUser = DEMO_PROFILES.FACILITY;
+      this.setLocalUser(facilityUser);
+      return { user: facilityUser, error: null };
+    }
+
     // 1. Authentification officielle via Supabase Auth
     if (isSupabaseConfigured() && supabase) {
       try {
