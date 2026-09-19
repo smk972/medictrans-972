@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { handleAiChatMiddleware, handleAiSeoMiddleware, handleBlogMiddleware, handleClientsMiddleware, handleUsersMiddleware } from './src/server/aiDevMiddleware.ts'
-import { handleWelcomeEmailMiddleware, handleRideAcceptedEmailMiddleware, handlePasswordResetEmailMiddleware, handleContactEmailMiddleware } from './src/server/emailDevMiddleware.ts'
+import { handleWelcomeEmailMiddleware, handleRideStatusEmailMiddleware, handleRideAcceptedEmailMiddleware, handlePasswordResetEmailMiddleware, handleContactEmailMiddleware } from './src/server/emailDevMiddleware.ts'
 import { handleOtpSendMiddleware, handleOtpVerifyMiddleware } from './src/server/otpDevMiddleware.ts'
 import { 
   handleStripeCheckoutSessionMiddleware, 
@@ -57,9 +57,9 @@ export default defineConfig(({ mode }) => {
               handleWelcomeEmailMiddleware(req, res, resendApiKey)
               return
             }
-            if (req.url === '/api/email/ride-accepted' && req.method === 'POST') {
+            if ((req.url === '/api/email/ride-status' || req.url === '/api/email/ride-accepted') && req.method === 'POST') {
               const resendApiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY
-              handleRideAcceptedEmailMiddleware(req, res, resendApiKey)
+              handleRideStatusEmailMiddleware(req, res, resendApiKey)
               return
             }
             if (req.url === '/api/email/password-reset' && req.method === 'POST') {

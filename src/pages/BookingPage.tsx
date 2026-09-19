@@ -509,7 +509,7 @@ export const BookingPage: React.FC = () => {
           birthDate,
           nir: currentNir || undefined,
           phone,
-          email: user?.email || guestEmail || `${firstName.toLowerCase().replace(/\s+/g, '')}@example.fr`,
+          email: (user?.email || guestEmail).trim().toLowerCase(),
           address: pickupAddress,
           city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Ville',
           postalCode: detectedPostal,
@@ -562,6 +562,7 @@ export const BookingPage: React.FC = () => {
         patientName: `${firstName} ${lastName}`,
         nir: currentNir,
         phone,
+        email: (user?.email || guestEmail).trim().toLowerCase(),
         uploadedPmtDoc,
         hasMutuelle: !isAld ? hasMutuelle : true,
         mutuelleNumber: !isAld && hasMutuelle ? mutuelleNumber : undefined,
@@ -610,6 +611,18 @@ export const BookingPage: React.FC = () => {
       setBookingError("Veuillez renseigner un numéro de téléphone valide à 10 chiffres pour être joignable par le transporteur.");
       const el = document.getElementById('patientPhone') || document.querySelector('input[type="tel"]');
       if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // 2bis. Validation de l'adresse e-mail
+    const effectiveEmail = (user?.email || guestEmail).trim().toLowerCase();
+    if (!effectiveEmail || !effectiveEmail.includes('@') || effectiveEmail.length < 5) {
+      setBookingError("Veuillez renseigner une adresse e-mail valide pour recevoir vos notifications et le suivi en direct de votre transport.");
+      const el = document.getElementById('patientEmailInput');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
       return;
     }
 

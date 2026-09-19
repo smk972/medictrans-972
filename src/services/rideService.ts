@@ -579,7 +579,8 @@ export const rideService = {
     reference: string, 
     status: RideStatus, 
     assigned?: Ride['assignedTransporter'],
-    timingUpdates?: { transporterPickupTime?: string; estimatedArrivalTime?: string }
+    timingUpdates?: { transporterPickupTime?: string; estimatedArrivalTime?: string },
+    cancelReason?: string
   ): Promise<Ride | null> {
     const cleanRef = reference.trim().toUpperCase();
 
@@ -662,6 +663,10 @@ export const rideService = {
           updatePayload.eta_minutes = null;
         }
 
+        if (status === 'CANCELLED' && cancelReason) {
+          updatePayload.mobility_notes = ((currentRide.mobility?.notes || '') + `\n[ANNULATION]: ${cancelReason}`).trim();
+        }
+
         if (timingUpdates?.transporterPickupTime) {
           updatePayload.transporter_pickup_time = timingUpdates.transporterPickupTime;
         }
@@ -684,6 +689,11 @@ export const rideService = {
     if (assigned) currentRide.assignedTransporter = assigned;
     else if (status === 'PENDING') delete currentRide.assignedTransporter;
 
+    if (status === 'CANCELLED' && cancelReason) {
+      if (!currentRide.mobility) currentRide.mobility = {} as any;
+      currentRide.mobility.notes = ((currentRide.mobility?.notes || '') + `\n[ANNULATION]: ${cancelReason}`).trim();
+    }
+
     if (timingUpdates?.transporterPickupTime) currentRide.transporterPickupTime = timingUpdates.transporterPickupTime;
     if (timingUpdates?.estimatedArrivalTime) currentRide.estimatedArrivalTime = timingUpdates.estimatedArrivalTime;
 
@@ -701,7 +711,19 @@ export const rideService = {
     } catch {}
 
     // Envoi de notification email au client pour chaque changement d'état de la course
-    const patientEmail = currentRide.patient?.email;
+    let patientEmail = currentRide.patient?.email;
+    if (!patientEmail || !patientEmail.includes('@')) {
+      try {
+        const lastBooking = localStorage.getItem('medictrans_last_booking');
+        if (lastBooking) {
+          const parsed = JSON.parse(lastBooking);
+          if (parsed.ref?.toUpperCase() === cleanRef && parsed.email) {
+            patientEmail = parsed.email;
+          }
+        }
+      } catch {}
+    }
+
     if (patientEmail && patientEmail.includes('@') && status !== 'PENDING') {
       const patientName = `${currentRide.patient?.firstName || ''} ${currentRide.patient?.lastName || ''}`.trim() || 'Patient';
       const pickupDate = currentRide.pickupDateTime ? new Date(currentRide.pickupDateTime).toLocaleDateString('fr-FR') : 'Aujourd’hui';
@@ -722,6 +744,7 @@ export const rideService = {
         pickupDate,
         pickupTime,
         etaMinutes: activeTransporter?.etaMinutes,
+        reason: cancelReason,
       }).catch(err => console.warn(`[rideService] Notification email statut (${status}) échouée:`, err));
     }
 
@@ -826,16 +849,7 @@ export const rideService = {
 
   async cancelRide(reference: string, reason?: string): Promise<Ride | null> {
     const cleanRef = reference.trim().toUpperCase();
-    if (isSupabaseConfigured() && supabase) {
-      await supabase
-        .from('rides')
-        .update({
-          status: 'CANCELLED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('reference', cleanRef);
-    }
-    return this.getRideByReference(cleanRef);
+    return this.updateRideStatus(cleanRef, 'CANCELLED', undefined, undefined, reason);
   },
 
   // Récupérer les transporteurs réels depuis Supabase

@@ -112,7 +112,7 @@ export function handleWelcomeEmailMiddleware(req: any, res: any, resendApiKey?: 
   });
 }
 
-export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiKey?: string) {
+export function handleRideStatusEmailMiddleware(req: any, res: any, resendApiKey?: string) {
   const https = require('https');
   const fallbackKey = typeof Buffer !== 'undefined' ? Buffer.from('cmVfNGVmQ2hYWERfSERZcldac0dVdHdYTFJ0VlBEaUhyWE1v', 'base64').toString('utf-8') : '';
   const apiKey = resendApiKey || process.env.RESEND_API_KEY || fallbackKey;
@@ -133,6 +133,7 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
         email,
         patientName,
         reference,
+        status,
         transporterName,
         driverName,
         driverPhone,
@@ -141,7 +142,9 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
         dropoffAddress,
         pickupDate,
         pickupTime,
-        trackingUrl
+        etaMinutes,
+        trackingUrl,
+        reason
       } = data;
 
       if (!email || !email.includes('@')) {
@@ -153,42 +156,83 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
       const cleanEmail = email.trim().toLowerCase();
       const cleanPatient = (patientName || 'Cher patient').trim();
       const cleanRef = reference || 'MT-972';
+      const cleanStatus = (status || 'ACCEPTED').toUpperCase();
       const cleanTransporter = transporterName || 'Ambulances Agréées Clinigo';
       const cleanDriver = driverName || 'Chauffeur Régulé';
       const cleanPlate = vehiclePlate || 'Véhicule Conventionné';
       const cleanTime = pickupTime || '08:30';
       const cleanDate = pickupDate || 'Aujourd’hui';
       const trackLink = trackingUrl || `https://clinigo.fr/suivi?ref=${cleanRef}`;
+      const rebookLink = `https://clinigo.fr/reserver`;
+
+      let badgeText = '✓ Course Acceptée & Validée';
+      let headerTitle = 'Votre transporteur est confirmé';
+      let headerSubtitle = `Demande N° #${cleanRef}`;
+      let subject = `✓ Transport médicalisé validé #${cleanRef} - ${cleanTransporter}`;
+      let statusDesc = `Bonne nouvelle ! Votre transport médicalisé a été pris en charge par <strong>${cleanTransporter}</strong>. Voici les détails de votre course :`;
+      let headerGradient = 'linear-gradient(135deg, #002D52 0%, #004479 100%)';
+      let isCancelled = false;
+
+      if (cleanStatus === 'EN_ROUTE') {
+        badgeText = '🚗 Chauffeur en route';
+        headerTitle = 'Votre chauffeur est en route';
+        headerSubtitle = etaMinutes ? `Arrivée estimée dans ~${etaMinutes} min` : 'Arrivée sous peu';
+        subject = `🚗 Chauffeur en route #${cleanRef} - ${cleanTransporter}`;
+        statusDesc = `Votre chauffeur <strong>${cleanDriver}</strong> est en route vers votre lieu de prise en charge à bord du véhicule conventionné <strong>${cleanPlate}</strong>.`;
+        headerGradient = 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)';
+      } else if (cleanStatus === 'PICKED_UP') {
+        badgeText = '🏥 Patient à bord • Trajet en cours';
+        headerTitle = 'Prise en charge effectuée';
+        headerSubtitle = 'En route vers votre destination';
+        subject = `🏥 Prise en charge effectuée #${cleanRef} - ${cleanTransporter}`;
+        statusDesc = `Vous êtes bien pris(e) en charge par <strong>${cleanTransporter}</strong>. Votre trajet se poursuit en toute sécurité vers votre lieu de soin.`;
+        headerGradient = 'linear-gradient(135deg, #115E59 0%, #0F766E 100%)';
+      } else if (cleanStatus === 'COMPLETED') {
+        badgeText = '✅ Transport terminé • Arrivé à destination';
+        headerTitle = 'Vous êtes bien arrivé(e)';
+        headerSubtitle = 'Mission accomplie avec succès';
+        subject = `✅ Transport terminé #${cleanRef} - Merci de votre confiance`;
+        statusDesc = `Votre transport médicalisé avec <strong>${cleanTransporter}</strong> est maintenant achevé. Merci d'avoir fait confiance au réseau conventionné Clinigo.`;
+        headerGradient = 'linear-gradient(135deg, #065F46 0%, #047857 100%)';
+      } else if (cleanStatus === 'CANCELLED') {
+        isCancelled = true;
+        badgeText = '❌ Demande de transport annulée';
+        headerTitle = 'Course Annulée';
+        headerSubtitle = `Demande N° #${cleanRef}`;
+        subject = `❌ Demande de transport annulée #${cleanRef}`;
+        statusDesc = `Votre demande de transport médicalisé N° <strong>#${cleanRef}</strong> a été annulée.`;
+        headerGradient = 'linear-gradient(135deg, #991B1B 0%, #DC2626 100%)';
+      }
 
       const htmlContent = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Transport Confirmé #${cleanRef}</title>
+  <title>${subject}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#F8FAFC;padding:32px 16px;">
     <tr>
       <td align="center">
         <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#FFFFFF;border-radius:24px;border:1px solid #E2E8F0;overflow:hidden;box-shadow:0 10px 25px -5px rgba(0,0,0,0.05);">
-          <!-- Header -->
+          <!-- Header Banner -->
           <tr>
-            <td style="background:linear-gradient(135deg, #002D52 0%, #004479 100%);padding:36px 32px;text-align:center;">
+            <td style="background:${headerGradient};padding:36px 32px;text-align:center;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td align="center" style="padding-bottom:12px;">
-                    <span style="display:inline-block;padding:6px 14px;background:rgba(255,255,255,0.15);border-radius:9999px;color:#A7F3D0;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">
-                      ✓ Course Acceptée & Validée
+                    <span style="display:inline-block;padding:6px 14px;background:rgba(255,255,255,0.18);border-radius:9999px;color:#FFFFFF;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">
+                      ${badgeText}
                     </span>
                   </td>
                 </tr>
                 <tr>
                   <td align="center">
                     <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:800;letter-spacing:-0.5px;">
-                      Votre transporteur est confirmé
+                      ${headerTitle}
                     </h1>
                     <p style="margin:8px 0 0 0;color:#BAE6FD;font-size:14px;font-weight:500;">
-                      Demande N° <strong>#${cleanRef}</strong>
+                      ${headerSubtitle}
                     </p>
                   </td>
                 </tr>
@@ -196,16 +240,35 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Content Body -->
           <tr>
             <td style="padding:32px;">
               <p style="margin:0 0 16px 0;font-size:15px;line-height:24px;color:#334155;">
                 Bonjour <strong>${cleanPatient}</strong>,
               </p>
               <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#334155;">
-                Bonne nouvelle ! Votre transport médicalisé a été pris en charge par <strong>${cleanTransporter}</strong>. Voici les détails de votre course :
+                ${statusDesc}
               </p>
 
+              ${isCancelled ? `
+              <!-- Bloc Annulation -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:16px;padding:20px;margin-bottom:24px;">
+                <tr>
+                  <td>
+                    <div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+                      Statut du Dossier
+                    </div>
+                    <div style="font-size:16px;font-weight:800;color:#B91C1C;margin-bottom:8px;">
+                      Demande Annulée
+                    </div>
+                    <div style="font-size:13px;color:#7F1D1D;line-height:20px;">
+                      ${reason ? `📌 <strong>Motif renseigné :</strong> ${reason}<br>` : ''}
+                      🛡️ <strong>Prise en charge :</strong> Aucun frais n'est débité ni engagé. Votre Prescription Médicale de Transport (Cerfa S3138) reste disponible pour un prochain rendez-vous.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              ` : `
               <!-- Transporter & Vehicle Card -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:16px;padding:20px;margin-bottom:24px;">
                 <tr>
@@ -223,13 +286,14 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
                   </td>
                 </tr>
               </table>
+              `}
 
               <!-- Journey Summary -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:16px;padding:20px;margin-bottom:28px;">
                 <tr>
                   <td>
                     <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">
-                      Récapitulatif du Trajet
+                      Détails de la Demande
                     </div>
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:13px;line-height:22px;">
                       <tr>
@@ -242,11 +306,7 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
                       </tr>
                       <tr>
                         <td width="30%" style="color:#64748B;padding-bottom:8px;">🏥 Destination :</td>
-                        <td style="color:#004479;font-weight:700;padding-bottom:8px;">${dropoffAddress || 'Centre Hospitalier'}</td>
-                      </tr>
-                      <tr>
-                        <td width="30%" style="color:#64748B;">🛡️ Prise en charge :</td>
-                        <td style="color:#059669;font-weight:700;">Tiers-Payant CPAM 100% (ALD)</td>
+                        <td style="color:#004479;font-weight:700;padding-bottom:8px;">${dropoffAddress || 'Établissement de santé'}</td>
                       </tr>
                     </table>
                   </td>
@@ -257,16 +317,28 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:28px;">
                 <tr>
                   <td align="center">
+                    ${isCancelled ? `
+                    <a href="${rebookLink}" style="display:inline-block;padding:14px 32px;background:#004479;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;border-radius:12px;box-shadow:0 4px 12px rgba(0,68,121,0.25);">
+                      Effectuer une nouvelle réservation →
+                    </a>
+                    ` : `
                     <a href="${trackLink}" style="display:inline-block;padding:14px 32px;background:#004479;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;border-radius:12px;box-shadow:0 4px 12px rgba(0,68,121,0.25);">
                       Accéder au Suivi en Direct →
                     </a>
+                    `}
                   </td>
                 </tr>
               </table>
 
+              ${!isCancelled ? `
               <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px;font-size:12px;color:#92400E;line-height:18px;">
                 ℹ️ <strong>Rappel utile :</strong> Veuillez préparer votre <strong>Prescription Médicale de Transport (PMT Cerfa)</strong> et votre <strong>Carte Vitale</strong> à présenter au chauffeur lors de la prise en charge.
               </div>
+              ` : `
+              <div style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:12px;padding:14px;font-size:12px;color:#475569;line-height:18px;">
+                Besoin d'aide ou de réorganiser votre rendez-vous ? Notre régulation reste à votre écoute au <strong>05 96 72 00 97</strong>.
+              </div>
+              `}
             </td>
           </tr>
 
@@ -284,15 +356,15 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
 </body>
 </html>`;
 
-      console.log(`[EmailMiddleware] Envoi de l'email d'acceptation de course à ${cleanEmail} (Réf #${cleanRef})...`);
+      console.log(`[EmailMiddleware] Envoi notification statut (${cleanStatus}) à ${cleanEmail} (Réf #${cleanRef})...`);
 
       const payload = JSON.stringify({
         from: fromEmail,
         to: [cleanEmail],
-        subject: `Transport Confirmé #${cleanRef} par ${cleanTransporter} 🚑`,
+        subject: subject,
         html: htmlContent,
         tags: [
-          { name: 'category', value: 'ride_accepted' },
+          { name: 'category', value: `ride_${cleanStatus.toLowerCase()}` },
           { name: 'app', value: 'clinigo' }
         ]
       });
@@ -319,11 +391,11 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
           try {
             const parsed = JSON.parse(resendBody);
             if (resendRes.statusCode && resendRes.statusCode >= 200 && resendRes.statusCode < 300) {
-              console.log(`[EmailMiddleware] Email d'acceptation envoyé avec succès ! ID: ${parsed.id}`);
+              console.log(`[EmailMiddleware] Email statut (${cleanStatus}) envoyé avec succès ! ID: ${parsed.id}`);
               res.statusCode = 200;
               res.end(JSON.stringify({ success: true, resendId: parsed.id }));
             } else {
-              console.error(`[EmailMiddleware] Erreur Resend acceptation (${resendRes.statusCode}):`, resendBody);
+              console.error(`[EmailMiddleware] Erreur Resend statut (${cleanStatus}) (${resendRes.statusCode}):`, resendBody);
               res.statusCode = resendRes.statusCode || 502;
               res.end(JSON.stringify({ error: parsed.message || 'Erreur Resend', details: parsed }));
             }
@@ -344,12 +416,15 @@ export function handleRideAcceptedEmailMiddleware(req: any, res: any, resendApiK
       resendReq.end();
 
     } catch (err: any) {
-      console.error('[EmailMiddleware] Erreur interne acceptation:', err);
+      console.error('[EmailMiddleware] Erreur interne statut:', err);
       res.statusCode = 500;
       res.end(JSON.stringify({ error: err.message || 'Erreur serveur interne' }));
     }
   });
 }
+
+// Alias de rétrocompatibilité
+export const handleRideAcceptedEmailMiddleware = handleRideStatusEmailMiddleware;
 
 export function handlePasswordResetEmailMiddleware(req: any, res: any, resendApiKey?: string) {
   const https = require('https');

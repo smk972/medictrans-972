@@ -30,6 +30,7 @@ export interface SendRideStatusEmailParams {
   pickupTime?: string;
   etaMinutes?: number | string;
   trackingUrl?: string;
+  reason?: string;
 }
 
 export interface SendRideAcceptedEmailParams {
@@ -162,7 +163,8 @@ export class EmailService {
       pickupDate,
       pickupTime,
       etaMinutes,
-      trackingUrl
+      trackingUrl,
+      reason
     } = params;
 
     if (!email || !email.includes('@')) {
@@ -192,6 +194,7 @@ export class EmailService {
           pickupTime,
           etaMinutes,
           trackingUrl: trackingUrl || `${window.location.origin}/suivi?ref=${reference}`,
+          reason,
         }),
       });
 
