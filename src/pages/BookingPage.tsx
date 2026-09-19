@@ -1453,7 +1453,9 @@ export const BookingPage: React.FC = () => {
                           <FileUpload
                             label="Attestation de Mutuelle / Carte Tiers-Payant"
                             helpText="Téléversez une photo lisible de votre carte de mutuelle recto/verso ou attestation de droits"
+                            subtext="Carte de tiers-payant en cours de validité (recto/verso) ou attestation de droits"
                             storageKey="booking_mutuelle_document"
+                            category="MUTUELLE"
                             onDocumentChange={(doc) => setUploadedMutuelleDoc(doc)}
                           />
                         </div>

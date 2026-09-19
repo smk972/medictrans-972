@@ -16,6 +16,7 @@ export interface FileUploadProps {
   label?: string;
   description?: string;
   helpText?: string;
+  subtext?: string;
   accept?: string;
   maxSizeMb?: number;
   initialDocument?: UploadedDocument | null;
@@ -29,6 +30,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   label = "Prescription Médicale de Transport (PMT Cerfa) ou Pièce Justificative",
   description,
   helpText,
+  subtext,
   accept = ".pdf,image/jpeg,image/png,image/webp",
   maxSizeMb = 10,
   initialDocument = null,
@@ -217,9 +219,21 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             <span className="font-label-lg text-label-lg font-bold text-on-surface">
               Glissez-déposez votre document ici, ou <span className="text-primary underline">parcourez vos fichiers</span>
             </span>
-            <span className="font-body-sm text-body-sm text-on-surface-variant">
-              Prescription Médicale (Cerfa n°11504*06), attestation ALD ou convocation hospitalière
-            </span>
+            {subtext !== undefined ? (
+              subtext ? (
+                <span className="font-body-sm text-body-sm text-on-surface-variant">
+                  {subtext}
+                </span>
+              ) : null
+            ) : category === 'MUTUELLE' || storageKey?.includes('mutuelle') ? (
+              <span className="font-body-sm text-body-sm text-on-surface-variant">
+                Carte de tiers-payant en cours de validité (recto/verso) ou attestation de droits
+              </span>
+            ) : (
+              <span className="font-body-sm text-body-sm text-on-surface-variant">
+                Prescription Médicale (Cerfa n°11504*06), attestation ALD ou convocation hospitalière
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-space-md mt-space-md pt-space-xs border-t border-outline-variant/20 text-xs text-on-surface-variant">
@@ -302,7 +316,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               </div>
 
               <span className="text-[11px] text-secondary font-medium mt-1">
-                Attaché automatiquement à la télétransmission CPAM 972
+                {category === 'MUTUELLE' || storageKey?.includes('mutuelle')
+                  ? 'Transmis automatiquement au transporteur conventionné'
+                  : 'Attaché automatiquement à la télétransmission CPAM 972'}
               </span>
             </div>
           </div>
