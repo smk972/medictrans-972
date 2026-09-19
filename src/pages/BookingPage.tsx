@@ -482,6 +482,23 @@ export const BookingPage: React.FC = () => {
   }, [user]);
 
   const executeBookingSubmission = async (currentNir: string) => {
+    // Contrôle strict de complétude dès la soumission client
+    const cleanNir = (currentNir || nir || '').replace(/[^\dA-Za-z]/g, '');
+    const nirVal = validateNir(cleanNir);
+    if (!cleanNir || cleanNir.length < 13 || !nirVal.isValid) {
+      setBookingError(
+        nirVal.errorMessage ||
+        "Action bloquée : Le numéro de Sécurité Sociale (NIR) à 13 ou 15 chiffres est obligatoire pour valider la prise en charge."
+      );
+      setNirSubmitAttempted(true);
+      const el = document.getElementById('patientNir');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+      return;
+    }
+
     setIsSubmitting(true);
     setBookingError(null);
 
@@ -1252,9 +1269,9 @@ export const BookingPage: React.FC = () => {
 
                   <NirInput
                     id="patientNir"
-                    label="Numéro de Sécurité Sociale (NIR) (Optionnel)"
+                    label="Numéro de Sécurité Sociale (NIR)"
                     value={nir}
-                    required={false}
+                    required={true}
                     onChange={(formattedVal) => setNir(formattedVal)}
                     className="md:col-span-2"
                   />
@@ -2037,6 +2054,11 @@ export const BookingPage: React.FC = () => {
                       <>
                         <span className="material-symbols-outlined text-base">upload_file</span>
                         <span>Bon de transport (PMT) requis pour valider</span>
+                      </>
+                    ) : isNirInvalid ? (
+                      <>
+                        <span className="material-symbols-outlined text-base">lock</span>
+                        <span>Numéro NIR obligatoire pour valider</span>
                       </>
                     ) : (
                       <>

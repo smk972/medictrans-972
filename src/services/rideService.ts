@@ -489,6 +489,17 @@ export const rideService = {
       estimatedDurationMin: rideData.estimatedDurationMin,
     };
 
+    // 0. Contrôle strict de complétude dès la commande du client :
+    // Une demande ne peut en aucun cas être injectée en base de données si elle est incomplète.
+    if (newRide.source === 'PATIENT') {
+      const completeness = checkRideCompleteness(newRide);
+      if (!completeness.isComplete) {
+        throw new Error(
+          `Demande de transport rejetée : le dossier est incomplet (${completeness.missingLabels.join(', ')}). L'ensemble des champs obligatoires (nom, prénom, NIR à 13/15 chiffres, téléphone, PMT/médecin, adresses) doivent être complétés lors de la commande.`
+        );
+      }
+    }
+
     if (isSupabaseConfigured() && supabase) {
       // Récupérer l'ID utilisateur authentifié si présent
       let authUserId: string | null = null;
@@ -811,6 +822,38 @@ export const rideService = {
     try {
       localStorage.removeItem('medictrans_declined_missions_972');
     } catch {}
+  },
+
+  // Mettre à jour les données patient d'une course (ex: régularisation du NIR par l'admin ou le patient)
+  async updateRidePatient(
+    reference: string,
+    patientUpdates: { nir?: string; firstName?: string; lastName?: string; phone?: string; email?: string }
+  ): Promise<Ride> {
+    const cleanRef = reference.trim().toUpperCase();
+    const currentRide = await this.getRideByReference(cleanRef);
+    if (!currentRide) {
+      throw new Error(`Course introuvable : ${cleanRef}`);
+    }
+
+    if (isSupabaseConfigured() && supabase) {
+      const dbUpdates: any = { updated_at: new Date().toISOString() };
+      if (patientUpdates.nir !== undefined) dbUpdates.patient_nir = patientUpdates.nir.trim();
+      if (patientUpdates.firstName !== undefined) dbUpdates.patient_first_name = patientUpdates.firstName.trim();
+      if (patientUpdates.lastName !== undefined) dbUpdates.patient_last_name = patientUpdates.lastName.trim();
+      if (patientUpdates.phone !== undefined) dbUpdates.patient_phone = patientUpdates.phone.trim();
+      if (patientUpdates.email !== undefined) dbUpdates.patient_email = patientUpdates.email.trim();
+
+      const { error } = await supabase.from('rides').update(dbUpdates).eq('reference', cleanRef);
+      if (error) throw new Error(`Erreur mise à jour patient : ${error.message}`);
+    }
+
+    if (patientUpdates.nir !== undefined) currentRide.patient.nir = patientUpdates.nir.trim();
+    if (patientUpdates.firstName !== undefined) currentRide.patient.firstName = patientUpdates.firstName.trim();
+    if (patientUpdates.lastName !== undefined) currentRide.patient.lastName = patientUpdates.lastName.trim();
+    if (patientUpdates.phone !== undefined) currentRide.patient.phone = patientUpdates.phone.trim();
+    if (patientUpdates.email !== undefined) currentRide.patient.email = patientUpdates.email.trim();
+
+    return currentRide;
   },
 
   async reassignRide(

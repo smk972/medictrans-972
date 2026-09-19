@@ -36,6 +36,9 @@ export const AdminSupervisionPage: React.FC = () => {
   const [reassignDriverName, setReassignDriverName] = useState('');
   const [reassignDriverPhone, setReassignDriverPhone] = useState('');
   const [reassignVehiclePlate, setReassignVehiclePlate] = useState('');
+  const [isEditingNir, setIsEditingNir] = useState(false);
+  const [editedNir, setEditedNir] = useState('');
+  const [isSavingNir, setIsSavingNir] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -98,6 +101,8 @@ export const AdminSupervisionPage: React.FC = () => {
 
   const handleOpenDrawer = (ride: Ride) => {
     setSelectedRide(ride);
+    setEditedNir(ride.patient.nir || '');
+    setIsEditingNir(false);
     if (ride.assignedTransporter) {
       const matchedTransporter = transporters.find(t => t.companyName === ride.assignedTransporter?.companyName);
       setReassignTransporterId(matchedTransporter?.id || '');
@@ -124,6 +129,21 @@ export const AdminSupervisionPage: React.FC = () => {
       setReassignDriverName('Chauffeur disponible');
       setReassignDriverPhone(defaultPhone);
       setReassignVehiclePlate(defaultPlate);
+    }
+  };
+
+  const handleSaveNir = async () => {
+    if (!selectedRide) return;
+    setIsSavingNir(true);
+    try {
+      const updated = await rideService.updateRidePatient(selectedRide.reference, { nir: editedNir });
+      setSelectedRide(updated);
+      await loadData();
+      setIsEditingNir(false);
+    } catch (err: any) {
+      alert(`Erreur mise à jour NIR : ${err?.message || err}`);
+    } finally {
+      setIsSavingNir(false);
     }
   };
 
@@ -549,8 +569,46 @@ export const AdminSupervisionPage: React.FC = () => {
                   {selectedRide.patient.firstName} {selectedRide.patient.lastName}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-on-surface-variant">
-                  <div>
-                    <span className="font-semibold text-on-surface">NIR :</span> {selectedRide.patient.nir}
+                  <div className="col-span-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-on-surface">NIR :</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditedNir(selectedRide.patient.nir || '');
+                          setIsEditingNir(!isEditingNir);
+                        }}
+                        className="text-[11px] font-bold text-teal-700 hover:text-teal-900 underline cursor-pointer"
+                      >
+                        {isEditingNir ? 'Annuler' : selectedRide.patient.nir ? 'Modifier' : 'Régulariser le NIR'}
+                      </button>
+                    </div>
+                    {isEditingNir ? (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={editedNir}
+                          onChange={(e) => setEditedNir(e.target.value)}
+                          placeholder="1 XX XX XX XXX XXX XX"
+                          className="flex-1 px-2.5 py-1 text-xs font-mono rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          disabled={isSavingNir || !editedNir.trim()}
+                          onClick={handleSaveNir}
+                          className="px-2.5 py-1 text-xs font-bold rounded-lg bg-teal-800 hover:bg-teal-700 text-white transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {isSavingNir ? '...' : 'Valider'}
+                        </button>
+                      </div>
+                    ) : selectedRide.patient.nir ? (
+                      <span className="font-mono font-bold text-slate-800">{selectedRide.patient.nir}</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md font-bold border border-rose-200 text-[11px] mt-0.5">
+                        <span className="material-symbols-outlined text-[13px]">warning</span>
+                        Non renseigné (Bloque l'acceptation)
+                      </span>
+                    )}
                   </div>
                   <div>
                     <span className="font-semibold text-on-surface">Né(e) le :</span> {selectedRide.patient.birthDate}
@@ -558,7 +616,7 @@ export const AdminSupervisionPage: React.FC = () => {
                   <div>
                     <span className="font-semibold text-on-surface">Téléphone :</span> {selectedRide.patient.phone}
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <span className="font-semibold text-on-surface">Prise en charge :</span>{' '}
                     {selectedRide.patient.isAld ? 'ALD 100%' : 'Standard 65%'}
                   </div>

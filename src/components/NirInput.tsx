@@ -51,6 +51,11 @@ export const NirInput: React.FC<NirInputProps> = ({
             <span className="material-symbols-outlined text-[14px]">verified</span>
             NIR Conforme
           </span>
+        ) : required ? (
+          <span className="font-label-sm text-label-sm text-rose-600 font-bold text-xs flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">lock</span>
+            Obligatoire CPAM
+          </span>
         ) : (
           <span className="font-label-sm text-label-sm text-secondary font-bold text-xs">
             13 chiffres (Sécurité Sociale)
@@ -133,8 +138,8 @@ export const NirInput: React.FC<NirInputProps> = ({
               )}
             </div>
           ) : (
-            <p className="text-[11px] text-on-surface-variant">
-              Inscrit sur votre Carte Vitale ou attestation de droits CGSS Martinique (13 chiffres d'immatriculation).
+            <p className="text-[11px] text-on-surface-variant font-medium">
+              <strong className="text-rose-600 font-bold">* Obligatoire CPAM / CGSS :</strong> 13 chiffres d'immatriculation inscrits sur votre Carte Vitale ou attestation de droits.
             </p>
           )}
         </div>
