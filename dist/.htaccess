@@ -1,6 +1,12 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Endpoints API PHP directs pour Apache / Plesk
+  RewriteRule ^api/email/password-reset/?$ /api/email/password-reset/index.php [QSA,L]
+  RewriteRule ^api/health/?$ /api/health.php [QSA,L]
+
+  # Routage SPA React Router (ne réécrit pas les fichiers ou dossiers physiques réels)
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
