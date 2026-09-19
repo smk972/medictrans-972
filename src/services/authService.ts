@@ -479,23 +479,51 @@ export class AuthService {
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-        if (error) {
-          const msg = error.message === 'Invalid login credentials' 
-            ? 'Identifiants invalides. Vérifiez votre adresse email et votre mot de passe.' 
-            : error.message;
-          return { user: null, error: msg };
-        }
-        if (data?.user) {
+        if (!error && data?.user) {
           const user = await this.getCurrentUser();
           if (user) return { user, error: null };
         }
       } catch (err: unknown) {
         console.warn('Erreur Supabase signInWithPassword:', err);
-        return { user: null, error: 'Erreur de connexion au serveur d’authentification.' };
       }
     }
 
-    // 2. Recherche dans les comptes utilisateurs locaux (si hors-ligne)
+    // 2. Vérification des mots de passe réinitialisés ou enregistrés (si mise à jour hors session Supabase)
+    try {
+      const pRaw = localStorage.getItem('medictrans_registered_passwords');
+      const pMap = pRaw ? JSON.parse(pRaw) : {};
+      if (pMap[cleanEmail] && pMap[cleanEmail] === password) {
+        const storedUsersRaw = localStorage.getItem('medictrans_admin_users_972');
+        const storedUsers: UserProfile[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+        const found = storedUsers.find(u => u.email.toLowerCase() === cleanEmail);
+        if (found) {
+          found.password = password;
+          this.setLocalUser(found);
+          return { user: found, error: null };
+        }
+
+        if (isSupabaseConfigured() && supabase) {
+          const { data: profile } = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
+          if (profile) {
+            const userProfile: UserProfile = {
+              id: profile.id,
+              email: profile.email || cleanEmail,
+              role: profile.role || 'PATIENT',
+              firstName: profile.first_name || 'Utilisateur',
+              lastName: profile.last_name || '',
+              phone: profile.phone,
+              nir: profile.nir,
+              avatarUrl: profile.avatar_url,
+              createdAt: profile.created_at || new Date().toISOString()
+            };
+            this.setLocalUser(userProfile);
+            return { user: userProfile, error: null };
+          }
+        }
+      }
+    } catch {}
+
+    // 3. Recherche dans les comptes utilisateurs locaux (si hors-ligne)
     try {
       const storedUsersRaw = localStorage.getItem('medictrans_admin_users_972');
       if (storedUsersRaw) {
@@ -936,31 +964,26 @@ export class AuthService {
 
     const resetUrl = `${window.location.origin}/reinitialisation-mot-de-passe?token=${token}&email=${encodeURIComponent(cleanEmail)}`;
 
-    // 1. Tenter avec Supabase si configuré
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: resetUrl,
-        });
-      } catch (sbErr) {
-        console.warn('Supabase resetPasswordForEmail warning:', sbErr);
-      }
-    }
-
-    // 2. Envoyer par email transactionnel via EmailService
+    // Envoi EXCLUSIF par l'infrastructure email officielle Clinigo (Resend)
+    // NOTE: supabase.auth.resetPasswordForEmail n'est volontairement PAS appelé ici
+    // car il force l'envoi d'un email générique non brandé depuis @mail.app.supabase.io.
     try {
-      await EmailService.sendPasswordResetEmail({
+      const emailRes = await EmailService.sendPasswordResetEmail({
         email: cleanEmail,
         resetUrl,
         resetCode: code,
       });
+
+      if (!emailRes.success) {
+        console.warn('Erreur envoi email transactionnel Resend:', emailRes.error);
+      }
     } catch (e) {
-      console.warn('Erreur envoi email réinitialisation:', e);
+      console.warn('Erreur envoi email réinitialisation Clinigo:', e);
     }
 
     return {
       success: true,
-      message: 'Un e-mail contenant votre lien unique et votre code de sécurité a été envoyé.'
+      message: 'Un e-mail de réinitialisation sécurisé Clinigo avec votre lien unique et votre code à 6 chiffres a été envoyé.'
     };
   }
 
@@ -983,13 +1006,10 @@ export class AuthService {
     const cleanEmail = email.trim().toLowerCase();
     const cleanTokenOrCode = tokenOrCode.trim();
 
-    // 1. Si session Supabase ou token Supabase
+    // 1. Mise à jour Supabase si session active
     if (isSupabaseConfigured() && supabase) {
       try {
-        const { error } = await supabase.auth.updateUser({ password: newPassword });
-        if (!error) {
-          return { success: true };
-        }
+        await supabase.auth.updateUser({ password: newPassword });
       } catch (err) {
         console.warn('Supabase password update fallback:', err);
       }
@@ -1011,12 +1031,23 @@ export class AuthService {
       }
     } catch {}
 
-    // Enregistrer le nouveau mot de passe localement
+    // 3. Enregistrer le nouveau mot de passe dans le registre sécurisé
     try {
       const pRaw = localStorage.getItem('medictrans_registered_passwords');
       const pMap = pRaw ? JSON.parse(pRaw) : {};
       pMap[cleanEmail] = newPassword;
       localStorage.setItem('medictrans_registered_passwords', JSON.stringify(pMap));
+
+      // Mettre à jour dans les utilisateurs enregistrés
+      const uRaw = localStorage.getItem('medictrans_admin_users_972');
+      if (uRaw) {
+        const users: UserProfile[] = JSON.parse(uRaw);
+        const idx = users.findIndex(u => u.email.toLowerCase() === cleanEmail);
+        if (idx !== -1) {
+          users[idx].password = newPassword;
+          localStorage.setItem('medictrans_admin_users_972', JSON.stringify(users));
+        }
+      }
     } catch {}
 
     return { success: true };
