@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { NirInput } from '../components/NirInput';
 import { validateNir, autoFixNir } from '../utils/nirValidator';
 import { CPAM_TRANSPORT_MOTIFS } from '../data/cpamMotifs';
+import { validateMutuelle, formatMutuelleInput } from '../utils/mutuelleValidator';
 import { useAiChat, FormDraftData } from '../context/AiChatContext';
 import { PhoneVerificationModal } from '../components/PhoneVerificationModal';
 
@@ -216,6 +217,18 @@ export const BookingPage: React.FC = () => {
   const [mutuelleNumber, setMutuelleNumber] = useState<string>('');
   const [mutuelleName, setMutuelleName] = useState<string>('');
   const [uploadedMutuelleDoc, setUploadedMutuelleDoc] = useState<UploadedFile | null>(null);
+  const [showMutuelleGuide, setShowMutuelleGuide] = useState<boolean>(false);
+  const mutuelleValidation = useMemo(() => {
+    return validateMutuelle(mutuelleNumber);
+  }, [mutuelleNumber]);
+  const handleMutuelleNumberChange = (raw: string) => {
+    const formatted = formatMutuelleInput(raw);
+    setMutuelleNumber(formatted);
+    const res = validateMutuelle(formatted);
+    if (res.providerName && !mutuelleName) {
+      setMutuelleName(res.providerName);
+    }
+  };
   const isPmtMissing = hasPmt === 'already' && !uploadedPmtDoc;
   const [motif, setMotif] = useState('');
   const [doctor, setDoctor] = useState('');
@@ -607,6 +620,17 @@ export const BookingPage: React.FC = () => {
         }
         return;
       }
+    }
+
+    // Si une mutuelle est renseignée mais que son format n'est pas valide
+    if (!isAld && hasMutuelle && mutuelleNumber.trim().length > 0 && !mutuelleValidation.isValid) {
+      setBookingError(mutuelleValidation.errorMessage || "Le numéro de mutuelle ou code télétransmission saisi n'est pas conforme.");
+      const el = document.getElementById('patientMutuelle');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+      return;
     }
 
     // Validation du numéro de téléphone
@@ -1318,20 +1342,112 @@ export const BookingPage: React.FC = () => {
                       /* Encart si le patient a une mutuelle */
                       <div className="pt-3 border-t border-outline-variant/20 flex flex-col gap-space-md animate-fadeIn">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
-                          <div className="flex flex-col gap-1.5 sm:col-span-2">
+                          <div className="flex flex-col gap-1.5">
                             <label className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center justify-between">
-                              <span>Numéro d'adhérent / Télétransmission Mutuelle</span>
-                              <span className="text-primary text-[10px] font-normal">Mentionné sur votre carte tiers-payant</span>
+                              <span>Nom de la mutuelle</span>
+                              <span className="text-slate-400 text-[10px] font-normal">Facultatif</span>
                             </label>
                             <input
                               type="text"
-                              value={mutuelleNumber}
-                              onChange={(e) => setMutuelleNumber(e.target.value)}
-                              placeholder="Ex. 0023849204 (Harmonie Mutuelle, MGEN, etc.)"
+                              value={mutuelleName}
+                              onChange={(e) => setMutuelleName(e.target.value)}
+                              placeholder="Ex. Harmonie Mutuelle, MGEN, Alan, MEMA..."
                               className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-xs text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary shadow-xs placeholder:text-slate-400 transition-all"
                             />
                           </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <label className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                                N° Télétransmission (AMC) ou N° Adhérent
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setShowMutuelleGuide(!showMutuelleGuide)}
+                                className="text-primary hover:underline text-[10px] font-medium flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">help</span>
+                                <span>Où le trouver ?</span>
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <input
+                                id="patientMutuelle"
+                                type="text"
+                                value={mutuelleNumber}
+                                onChange={(e) => handleMutuelleNumberChange(e.target.value)}
+                                placeholder="Ex. 00004011 ou N° Adhérent sur votre carte"
+                                maxLength={16}
+                                className={`h-11 w-full pl-3 pr-9 bg-surface-container-lowest rounded-xl font-body-md text-xs text-on-surface border outline-none shadow-xs placeholder:text-slate-400 transition-all font-mono ${
+                                  mutuelleNumber.length > 0
+                                    ? mutuelleValidation.isValid
+                                      ? 'border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 bg-emerald-50/20 text-emerald-950 font-bold'
+                                      : 'border-amber-400 focus:ring-2 focus:ring-amber-400/20 bg-amber-50/20 text-amber-950'
+                                    : 'border-outline-variant/40 focus:ring-2 focus:ring-primary'
+                                }`}
+                              />
+                              {mutuelleNumber.length > 0 && (
+                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                  {mutuelleValidation.isValid ? (
+                                    <span className="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-amber-600 text-lg">info</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Message de statut de validation automatique */}
+                            {mutuelleNumber.length > 0 && (
+                              <div className="animate-fadeIn">
+                                {mutuelleValidation.isValid ? (
+                                  <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
+                                    <span className="material-symbols-outlined text-[14px]">verified</span>
+                                    <span>
+                                      {mutuelleValidation.type === 'AMC'
+                                        ? `Code Télétransmission AMC conforme (8 chiffres)${mutuelleValidation.providerName ? ` — ${mutuelleValidation.providerName}` : ''}`
+                                        : 'Format numéro d\'adhérent conforme'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 text-[11px] text-amber-800 font-medium">
+                                    <span className="material-symbols-outlined text-[14px] text-amber-600">error</span>
+                                    <span>{mutuelleValidation.errorMessage}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Guide interactif : Où trouver son numéro de mutuelle */}
+                        {showMutuelleGuide && (
+                          <div className="p-3 bg-surface-container-low rounded-xl border border-primary/20 text-xs flex flex-col gap-2 animate-fadeIn">
+                            <div className="flex items-center justify-between text-primary font-bold text-xs">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-base">credit_card</span>
+                                Repères sur votre carte de tiers-payant Santé
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setShowMutuelleGuide(false)}
+                                className="text-on-surface-variant hover:text-on-surface text-[11px]"
+                              >
+                                Fermer
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-on-surface-variant">
+                              <div className="p-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30">
+                                <span className="font-bold text-emerald-800 block mb-0.5">1. Code Télétransmission / AMC (8 chiffres)</span>
+                                Situé sous le logo de votre mutuelle ou dans l'encadré « Télétransmission / Norme DRE » (Ex: 00004011, 00018501, 10002011...).
+                              </div>
+                              <div className="p-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30">
+                                <span className="font-bold text-sky-800 block mb-0.5">2. Numéro d'Adhérent (6 à 14 caractères)</span>
+                                Inscrit en face de « N° Adhérent », « N° Contrat » ou « N° Assuré » sous vos nom et prénom.
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="pt-1">
                           <FileUpload
