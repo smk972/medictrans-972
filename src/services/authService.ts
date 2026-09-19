@@ -962,28 +962,33 @@ export class AuthService {
       localStorage.setItem('medictrans_reset_tokens', JSON.stringify(tokens));
     } catch {}
 
-    const resetUrl = `${window.location.origin}/reinitialisation-mot-de-passe?token=${token}&email=${encodeURIComponent(cleanEmail)}`;
+    const resetUrl = `${window.location.origin}/reinitialisation-mot-de-passe?email=${encodeURIComponent(cleanEmail)}`;
 
-    // Envoi EXCLUSIF par l'infrastructure email officielle Clinigo (Resend)
-    // NOTE: supabase.auth.resetPasswordForEmail n'est volontairement PAS appelé ici
-    // car il force l'envoi d'un email générique non brandé depuis @mail.app.supabase.io.
+    // 1. Déclenchement via Supabase Auth (qui achemine l'email via le SMTP Resend personnalisé)
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: resetUrl,
+        });
+      } catch (sbErr) {
+        console.warn('Supabase resetPasswordForEmail warning:', sbErr);
+      }
+    }
+
+    // 2. Envoi de secours via EmailService
     try {
-      const emailRes = await EmailService.sendPasswordResetEmail({
+      await EmailService.sendPasswordResetEmail({
         email: cleanEmail,
-        resetUrl,
+        resetUrl: `${resetUrl}&token=${token}`,
         resetCode: code,
       });
-
-      if (!emailRes.success) {
-        console.warn('Erreur envoi email transactionnel Resend:', emailRes.error);
-      }
     } catch (e) {
       console.warn('Erreur envoi email réinitialisation Clinigo:', e);
     }
 
     return {
       success: true,
-      message: 'Un e-mail de réinitialisation sécurisé Clinigo avec votre lien unique et votre code à 6 chiffres a été envoyé.'
+      message: 'Un e-mail de réinitialisation sécurisé avec votre lien unique a été envoyé.'
     };
   }
 
