@@ -5,7 +5,7 @@ import { Footer } from '../components/Footer';
 import { GoogleMapView } from '../components/GoogleMapView';
 import { SEOHead } from '../components/SEOHead';
 import { rideService } from '../services/rideService';
-import { Ride } from '../types';
+import { Ride, RideStatus } from '../types';
 import { exportRidesToExcel, exportRidesToPdf } from '../utils/exportUtils';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,20 +34,12 @@ export const TrackingPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const urlRef = searchParams.get('ref');
 
-  // Références des courses actuellement en attente (PENDING)
-  const pendingRideRefs = useRef<Set<string>>(new Set());
+  // Références et cache des statuts connus
+  const isInitialLoadRef = useRef<boolean>(true);
+  const knownStatusesRef = useRef<Map<string, RideStatus>>(new Map());
 
-  // Déclencheur du rechargement automatique de la page de suivi
-  const triggerTrackingReload = useCallback((targetRef: string, reason: string) => {
-    const cleanRef = targetRef.trim().toUpperCase();
-    const reloadKey = `clinigo_reloaded_tracking_${cleanRef}`;
-    if (sessionStorage.getItem(reloadKey)) {
-      return;
-    }
-    console.log(`[TrackingPage] ${reason} pour ${cleanRef} -> Rechargement automatique de la page !`);
-    sessionStorage.setItem(reloadKey, 'true');
-
-    // Signal sonore discret de notification
+  // Signal sonore discret de notification lors d'un changement de statut
+  const playNotificationSound = useCallback(() => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
@@ -65,14 +57,12 @@ export const TrackingPage: React.FC = () => {
         osc.stop(ctx.currentTime + 0.3);
       }
     } catch {}
-
-    setTimeout(() => {
-      window.location.reload();
-    }, 150);
   }, []);
 
-  const loadRides = useCallback(async () => {
-    setIsLoading(true);
+  const loadRides = useCallback(async (isInitial = false) => {
+    if (isInitial && isInitialLoadRef.current) {
+      setIsLoading(true);
+    }
     try {
       const allRides = await rideService.getAllRides();
 
@@ -94,48 +84,20 @@ export const TrackingPage: React.FC = () => {
         }
       }
 
+      let relevantRides: Ride[] = [];
+
       // Si une référence spécifique est demandée via l'URL (?ref=MT-972-XXXX)
       if (urlRef && urlRef.trim()) {
         const cleanRef = urlRef.trim().toUpperCase();
-        const single = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
-        setRides(single);
-        setIsLoading(false);
-        return;
-      }
-
-      if (!isAuthenticated || !user) {
+        relevantRides = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
+      } else if (!isAuthenticated || !user) {
         if (lastBookingRef) {
           const cleanRef = lastBookingRef.trim().toUpperCase();
-          const single = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
-          setRides(single);
+          relevantRides = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
         } else {
-          setRides([]);
+          relevantRides = [];
         }
-        setIsLoading(false);
-        return;
-      }
-
-      if (isAuthenticated && user) {
-        // Nettoyer tout brouillon ou course anonyme d'une session antérieure qui n'appartient pas au compte connecté
-        try {
-          const raw = localStorage.getItem('medictrans_last_booking');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            const matchesEmail = parsed.email && user.email && parsed.email.toLowerCase() === user.email.toLowerCase();
-            const matchesPhone = parsed.phone && user.phone && parsed.phone.replace(/\D/g, '') === user.phone.replace(/\D/g, '');
-            const matchesNir = parsed.nir && user.nir && parsed.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '');
-            if (!matchesEmail && !matchesPhone && !matchesNir) {
-              localStorage.removeItem('medictrans_last_booking');
-              if (!urlRef) lastBookingRef = null;
-            }
-          }
-        } catch {}
-      }
-
-      let relevantRides: Ride[] = [];
-
-      if (user.role === 'ADMIN') {
-        // Mode Consultation Admin sur la page de suivi patient :
+      } else if (user.role === 'ADMIN') {
         if (lastBookingRef) {
           const cleanRef = lastBookingRef.trim().toUpperCase();
           relevantRides = allRides.filter(r => r.reference.toUpperCase() === cleanRef);
@@ -154,65 +116,86 @@ export const TrackingPage: React.FC = () => {
       } else {
         // Rôle PATIENT (ou compte particulier) : filtrer strictement ses propres courses
         relevantRides = allRides.filter((r) => {
-          // 1. Appartenance directe par identifiant de compte
           if (r.userId && user.id && r.userId === user.id) return true;
-
-          // 2. Correspondance exacte par email du compte
           if (user.email && r.patient?.email && r.patient.email.trim().toLowerCase() === user.email.trim().toLowerCase()) return true;
-
-          // 3. Correspondance exacte par Numéro de Sécurité Sociale (NIR)
           if (user.nir && r.patient?.nir && r.patient.nir.replace(/\s/g, '') === user.nir.replace(/\s/g, '')) return true;
-
-          // 4. Correspondance exacte par téléphone (au moins 9 chiffres identiques)
           if (user.phone && r.patient?.phone) {
             const cleanUserPhone = user.phone.replace(/\D/g, '');
             const cleanRidePhone = r.patient.phone.replace(/\D/g, '');
             if (cleanUserPhone.length >= 9 && cleanUserPhone === cleanRidePhone) return true;
           }
-
-          // 5. Demande enregistrée dans la session immédiate UNIQUEMENT si l'email ou le téléphone concorde
           if (lastBookingRef && r.reference.toUpperCase() === lastBookingRef.toUpperCase()) {
             const matchesSessionEmail = user.email && r.patient?.email && r.patient.email.trim().toLowerCase() === user.email.trim().toLowerCase();
             const matchesSessionPhone = user.phone && r.patient?.phone && user.phone.replace(/\D/g, '') === r.patient.phone.replace(/\D/g, '');
             if (matchesSessionEmail || matchesSessionPhone) return true;
           }
-
           return false;
         });
       }
 
-      setRides(relevantRides);
+      // Détection des changements effectifs de statut
+      let hasStatusChange = false;
+      let statusToastInfo: { title: string; desc: string } | null = null;
 
-      // Détection si une course en attente vient de passer à ACCEPTED
-      const currentPending = new Set<string>();
       relevantRides.forEach(r => {
-        if (r.status === 'PENDING') {
-          currentPending.add(r.reference.toUpperCase());
+        const ref = r.reference.toUpperCase();
+        const prevStatus = knownStatusesRef.current.get(ref);
+
+        if (prevStatus && prevStatus !== r.status) {
+          hasStatusChange = true;
+          const tName = r.assignedTransporter?.companyName || 'Ambulances Sanitaires Agréées';
+          const dName = r.assignedTransporter?.driverName;
+
+          if (r.status === 'ACCEPTED') {
+            statusToastInfo = {
+              title: 'Course validée et attribuée !',
+              desc: `Votre transporteur (${tName}) a pris en charge votre mission${dName ? ` (Chauffeur : ${dName})` : ''}.`
+            };
+          } else if (r.status === 'EN_ROUTE') {
+            statusToastInfo = {
+              title: 'Chauffeur en route !',
+              desc: `Votre chauffeur ${dName || ''} fait route vers votre adresse de départ.`
+            };
+          } else if (r.status === 'PICKED_UP') {
+            statusToastInfo = {
+              title: 'Prise en charge effectuée',
+              desc: 'Patient à bord • Trajet en cours vers votre destination de soin.'
+            };
+          } else if (r.status === 'COMPLETED') {
+            statusToastInfo = {
+              title: 'Transport terminé',
+              desc: 'Vous êtes bien arrivé(e) à destination. Merci pour votre confiance.'
+            };
+          } else if (r.status === 'CANCELLED') {
+            statusToastInfo = {
+              title: 'Course annulée',
+              desc: 'La mission de transport a été annulée.'
+            };
+          }
         }
+        knownStatusesRef.current.set(ref, r.status);
       });
 
-      if (pendingRideRefs.current.size > 0) {
-        const newlyAccepted = relevantRides.find(
-          r => (r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP') &&
-               pendingRideRefs.current.has(r.reference.toUpperCase())
-        );
-        if (newlyAccepted) {
-          triggerTrackingReload(newlyAccepted.reference, 'Passage de PENDING à ACCEPTED');
-          return;
-        }
+      if (hasStatusChange && statusToastInfo) {
+        setToastMessage(statusToastInfo);
+        playNotificationSound();
       }
-      pendingRideRefs.current = currentPending;
+
+      setRides(relevantRides);
     } catch (err) {
       console.warn('Erreur chargement des courses:', err);
-      setRides([]);
+      if (isInitial) setRides([]);
     } finally {
-      setIsLoading(false);
+      if (isInitial) {
+        setIsLoading(false);
+        isInitialLoadRef.current = false;
+      }
     }
-  }, [isAuthenticated, user, urlRef, triggerTrackingReload]);
+  }, [isAuthenticated, user, urlRef, playNotificationSound]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    loadRides();
+    loadRides(true);
 
     // Abonnement Supabase Realtime pour recevoir les changements de statut en direct
     let channel: any = null;
@@ -223,29 +206,21 @@ export const TrackingPage: React.FC = () => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'rides' },
           (payload: any) => {
-            const ref = (payload.new?.reference || '').toUpperCase();
             const newStatus = payload.new?.status;
-
-            if (newStatus === 'ACCEPTED' || newStatus === 'EN_ROUTE') {
-              if (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref)) {
-                triggerTrackingReload(ref, `Supabase Realtime (${newStatus})`);
-                return;
-              }
-              setToastMessage({
-                title: 'Course confirmée !',
-                desc: `Votre transporteur (${payload.new.transporter_name || 'Transporteur Sanitaire Agréé'}) a validé votre mission.`
-              });
+            const oldStatus = payload.old?.status;
+            // Actualisation uniquement si le statut a effectivement changé
+            if (newStatus && (!oldStatus || newStatus !== oldStatus)) {
+              loadRides(false);
             }
-            loadRides();
           }
         )
         .subscribe();
     }
 
-    // Polling de précaution haute fréquence (2s)
+    // Polling de synchronisation discret en arrière-plan (sans loader ni scintillement)
     const interval = setInterval(() => {
-      loadRides();
-    }, 2000);
+      loadRides(false);
+    }, 6000);
 
     // Écouteur BroadcastChannel inter-onglets
     let bc: BroadcastChannel | null = null;
@@ -255,19 +230,10 @@ export const TrackingPage: React.FC = () => {
         bc.onmessage = (event) => {
           const ref = (event.data?.reference || '').toUpperCase();
           const newStatus = event.data?.status;
-
-          if (newStatus === 'ACCEPTED' || newStatus === 'EN_ROUTE') {
-            if (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref)) {
-              triggerTrackingReload(ref, `BroadcastChannel (${newStatus})`);
-              return;
-            }
-            const tName = event.data?.ride?.assignedTransporter?.companyName || 'Transporteur Sanitaire Agréé';
-            setToastMessage({
-              title: 'Course confirmée !',
-              desc: `Votre transporteur (${tName}) a validé votre mission.`
-            });
+          const prev = knownStatusesRef.current.get(ref);
+          if (!prev || prev !== newStatus) {
+            loadRides(false);
           }
-          loadRides();
         };
       } catch {}
     }
@@ -278,25 +244,21 @@ export const TrackingPage: React.FC = () => {
         try {
           const parsed = JSON.parse(e.newValue);
           const ref = (parsed.reference || '').toUpperCase();
-          if ((parsed.status === 'ACCEPTED' || parsed.status === 'EN_ROUTE') && (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref))) {
-            triggerTrackingReload(ref, 'Storage event');
-            return;
+          const prev = knownStatusesRef.current.get(ref);
+          if (!prev || prev !== parsed.status) {
+            loadRides(false);
           }
         } catch {}
-      }
-      if (e.key === 'clinigo_last_ride_update' || e.key === 'medictrans_rides_v2') {
-        loadRides();
       }
     };
     window.addEventListener('storage', onStorage);
 
     const onStatusUpdate = (e: any) => {
       const ref = (e.detail?.reference || '').toUpperCase();
-      if ((e.detail?.status === 'ACCEPTED' || e.detail?.status === 'EN_ROUTE') && (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref))) {
-        triggerTrackingReload(ref, 'CustomEvent');
-        return;
+      const prev = knownStatusesRef.current.get(ref);
+      if (!prev || prev !== e.detail?.status) {
+        loadRides(false);
       }
-      loadRides();
     };
     window.addEventListener('clinigo_ride_status_updated', onStatusUpdate);
 

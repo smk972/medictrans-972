@@ -83,13 +83,15 @@ export const ConfirmationPage: React.FC = () => {
       }
     } catch {}
 
-    setTimeout(() => {
-      if (window.location.pathname === '/confirmation' && reservationRef && reservationRef !== 'MT-972-8821') {
-        window.location.href = `/confirmation/${reservationRef}`;
-      } else {
-        window.location.reload();
-      }
-    }, 150);
+    // Confetti de célébration et signal sonore lors du passage à ACCEPTED
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.5 },
+        colors: ['#059669', '#10B981', '#34D399', '#004479', '#6EE7B7'],
+      });
+    } catch {}
   }, [reservationRef]);
 
   useEffect(() => {
@@ -137,8 +139,8 @@ export const ConfirmationPage: React.FC = () => {
           const isNowAccepted = found.status === 'ACCEPTED' || found.status === 'EN_ROUTE' || found.status === 'PICKED_UP';
 
           if (wasWaiting && isNowAccepted && !sessionStorage.getItem(`clinigo_reloaded_accepted_${reservationRef}`)) {
+            sessionStorage.setItem(`clinigo_reloaded_accepted_${reservationRef}`, 'true');
             triggerAutoReload(`Passage d'état en cours: ${oldStatus || 'PENDING'} -> ${found.status}`);
-            return;
           }
 
           // Détection d'un changement d'état en direct
@@ -210,7 +212,7 @@ export const ConfirmationPage: React.FC = () => {
       // ignore
     }
 
-    // 1. Abonnement Supabase Realtime (déclenche immédiatement le rechargement dès que ACCEPTED est reçu)
+    // 1. Abonnement Supabase Realtime (mise à jour fluide en direct sans rechargement de page)
     let channel: any = null;
     if (isSupabaseConfigured() && supabase) {
       channel = supabase
@@ -221,17 +223,6 @@ export const ConfirmationPage: React.FC = () => {
           (payload: any) => {
             const updatedRef = (payload.new?.reference || payload.old?.reference || '').toUpperCase();
             if (!updatedRef || updatedRef === reservationRef.toUpperCase()) {
-              const newStatus = payload.new?.status;
-              if (newStatus === 'ACCEPTED' || newStatus === 'EN_ROUTE' || newStatus === 'PICKED_UP') {
-                const wasWaiting =
-                  prevStatusRef.current === 'PENDING' ||
-                  isWaitingForAcceptanceRef.current ||
-                  sessionStorage.getItem(`clinigo_waiting_for_acceptance_${reservationRef}`) === 'true';
-                if (wasWaiting && !sessionStorage.getItem(`clinigo_reloaded_accepted_${reservationRef}`)) {
-                  triggerAutoReload(`Supabase Realtime postgres_changes: ${newStatus}`);
-                  return;
-                }
-              }
               fetchRideInfo();
             }
           }
@@ -239,24 +230,13 @@ export const ConfirmationPage: React.FC = () => {
         .subscribe();
     }
 
-    // 2. BroadcastChannel inter-onglets (instantané quand l'admin ou le transporteur valide sur un autre onglet/navigateur)
+    // 2. BroadcastChannel inter-onglets (mise à jour instantanée en direct)
     let bc: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
       try {
         bc = new BroadcastChannel('clinigo_rides_channel');
         bc.onmessage = (event) => {
           if (event.data?.reference && event.data.reference.toUpperCase() === reservationRef.toUpperCase()) {
-            const newStatus = event.data?.status;
-            if (newStatus === 'ACCEPTED' || newStatus === 'EN_ROUTE' || newStatus === 'PICKED_UP') {
-              const wasWaiting =
-                prevStatusRef.current === 'PENDING' ||
-                isWaitingForAcceptanceRef.current ||
-                sessionStorage.getItem(`clinigo_waiting_for_acceptance_${reservationRef}`) === 'true';
-              if (wasWaiting && !sessionStorage.getItem(`clinigo_reloaded_accepted_${reservationRef}`)) {
-                triggerAutoReload(`BroadcastChannel: ${newStatus}`);
-                return;
-              }
-            }
             fetchRideInfo();
           }
         };
@@ -269,16 +249,6 @@ export const ConfirmationPage: React.FC = () => {
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed.reference && parsed.reference.toUpperCase() === reservationRef.toUpperCase()) {
-            if (parsed.status === 'ACCEPTED' || parsed.status === 'EN_ROUTE' || parsed.status === 'PICKED_UP') {
-              const wasWaiting =
-                prevStatusRef.current === 'PENDING' ||
-                isWaitingForAcceptanceRef.current ||
-                sessionStorage.getItem(`clinigo_waiting_for_acceptance_${reservationRef}`) === 'true';
-              if (wasWaiting && !sessionStorage.getItem(`clinigo_reloaded_accepted_${reservationRef}`)) {
-                triggerAutoReload(`StorageEvent: ${parsed.status}`);
-                return;
-              }
-            }
             fetchRideInfo();
           }
         } catch {}
@@ -289,25 +259,15 @@ export const ConfirmationPage: React.FC = () => {
     // 4. Écouteur événement local CustomEvent
     const onLocalStatusUpdate = (e: any) => {
       if (e.detail?.reference && e.detail.reference.toUpperCase() === reservationRef.toUpperCase()) {
-        if (e.detail?.status === 'ACCEPTED' || e.detail?.status === 'EN_ROUTE' || e.detail?.status === 'PICKED_UP') {
-          const wasWaiting =
-            prevStatusRef.current === 'PENDING' ||
-            isWaitingForAcceptanceRef.current ||
-            sessionStorage.getItem(`clinigo_waiting_for_acceptance_${reservationRef}`) === 'true';
-          if (wasWaiting && !sessionStorage.getItem(`clinigo_reloaded_accepted_${reservationRef}`)) {
-            triggerAutoReload(`CustomEvent: ${e.detail.status}`);
-            return;
-          }
-        }
         fetchRideInfo();
       }
     };
     window.addEventListener('clinigo_ride_status_updated', onLocalStatusUpdate);
 
-    // 5. Polling actif haute fréquence (toutes les 2 secondes)
+    // 5. Polling de précaution discret (toutes les 6 secondes, en tâche de fond)
     const pollInterval = setInterval(() => {
       fetchRideInfo();
-    }, 2000);
+    }, 6000);
 
     return () => {
       clearInterval(pollInterval);
