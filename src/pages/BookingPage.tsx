@@ -160,8 +160,10 @@ export const BookingPage: React.FC = () => {
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [phone, setPhone] = useState(user?.phone || '');
+  // Configuration de la vérification par SMS Twilio (désactivée temporairement à la demande du client)
+  const ENABLE_PHONE_SMS_VERIFICATION = false;
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(true);
   const [birthDate, setBirthDate] = useState('1980-01-01');
   const [isAld, setIsAld] = useState(true);
   const [mobility, setMobility] = useState<'assis' | 'marche' | 'fauteuil' | 'allonge'>('assis');
@@ -642,8 +644,8 @@ export const BookingPage: React.FC = () => {
       return;
     }
 
-    // Vérification par SMS Twilio obligatoire avant validation finale
-    if (!isPhoneVerified) {
+    // Vérification par SMS Twilio (désactivée temporairement, activable via ENABLE_PHONE_SMS_VERIFICATION)
+    if (ENABLE_PHONE_SMS_VERIFICATION && !isPhoneVerified) {
       setIsPhoneModalOpen(true);
       return;
     }
@@ -1209,15 +1211,17 @@ export const BookingPage: React.FC = () => {
                       >
                         Téléphone portable <span className="text-error ml-1">*</span>
                       </label>
-                      {isPhoneVerified ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                          Vérifié par SMS
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 shrink-0 hidden sm:inline">
-                          Validation SMS à l’étape finale
-                        </span>
+                      {ENABLE_PHONE_SMS_VERIFICATION && (
+                        isPhoneVerified ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Vérifié par SMS
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 shrink-0 hidden sm:inline">
+                            Validation SMS à l’étape finale
+                          </span>
+                        )
                       )}
                     </div>
                     <PhoneInput
@@ -2268,16 +2272,18 @@ export const BookingPage: React.FC = () => {
         </div>
       </main>
 
-      <PhoneVerificationModal
-        isOpen={isPhoneModalOpen}
-        phone={phone}
-        onClose={() => setIsPhoneModalOpen(false)}
-        onSuccess={handlePhoneVerificationSuccess}
-        onPhoneChange={(newPhone) => {
-          setPhone(newPhone);
-          setIsPhoneVerified(false);
-        }}
-      />
+      {ENABLE_PHONE_SMS_VERIFICATION && (
+        <PhoneVerificationModal
+          isOpen={isPhoneModalOpen}
+          phone={phone}
+          onClose={() => setIsPhoneModalOpen(false)}
+          onSuccess={handlePhoneVerificationSuccess}
+          onPhoneChange={(newPhone) => {
+            setPhone(newPhone);
+            setIsPhoneVerified(false);
+          }}
+        />
+      )}
 
       <Footer />
     </div>

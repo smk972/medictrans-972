@@ -77,7 +77,8 @@ export class EmailService {
         }),
       });
 
-      if (response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('application/json')) {
         const result = await response.json();
         console.log('[EmailService] Email de bienvenue envoyé avec succès via API !', result);
         return {
@@ -85,7 +86,7 @@ export class EmailService {
           resendId: result.resendId,
         };
       } else {
-        const errData = await response.json().catch(() => ({}));
+        const errData = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {};
         console.warn('[EmailService] Échec API locale, fallback Supabase:', errData);
       }
     } catch (apiErr) {
