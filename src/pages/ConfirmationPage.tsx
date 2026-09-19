@@ -16,7 +16,9 @@ export const ConfirmationPage: React.FC = () => {
   const [bookingData, setBookingData] = useState<any>(null);
   const [matchedRide, setMatchedRide] = useState<Ride | null>(null);
   const [storedDoc, setStoredDoc] = useState<any>(null);
+  const [storedMutuelleDoc, setStoredMutuelleDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
+  const [showMutuelleDocModal, setShowMutuelleDocModal] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -29,6 +31,10 @@ export const ConfirmationPage: React.FC = () => {
       const rawDoc = localStorage.getItem('booking_pmt_document');
       if (rawDoc) {
         setStoredDoc(JSON.parse(rawDoc));
+      }
+      const rawMutuelleDoc = localStorage.getItem('booking_mutuelle_document');
+      if (rawMutuelleDoc) {
+        setStoredMutuelleDoc(JSON.parse(rawMutuelleDoc));
       }
     } catch {
       // ignore
@@ -489,6 +495,77 @@ export const ConfirmationPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Card Mutuelle Document Téléversé */}
+                {(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc || matchedRide?.patient?.mutuelleFileUrl) && (
+                  <div className="bg-surface-container-lowest rounded-2xl p-space-md md:p-space-lg shadow-sm flex flex-col gap-space-sm border border-outline-variant/30 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-surface-container pb-space-sm">
+                      <div className="flex items-center gap-space-xs">
+                        <span className="material-symbols-outlined text-[24px] text-sky-700">
+                          health_and_safety
+                        </span>
+                        <h2 className="font-headline-md text-headline-md text-on-surface font-bold text-base">
+                          Attestation de Mutuelle / Carte Tiers-Payant
+                        </h2>
+                      </div>
+                      <span className="bg-sky-100 text-sky-900 px-3 py-1 rounded-full font-label-sm text-label-sm font-bold flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-sky-600"></span> Télétransmis Transporteur
+                      </span>
+                    </div>
+
+                    <div className="p-space-md bg-surface-container-low rounded-xl flex items-center justify-between gap-space-sm border border-outline-variant/20">
+                      <div className="flex items-center gap-space-sm">
+                        <div className="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-2xl">
+                            {(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.type?.includes('pdf')
+                              ? 'picture_as_pdf'
+                              : 'image'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-xs text-on-surface">
+                            {(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.name || matchedRide?.patient?.mutuelleFileName || 'Attestation_Mutuelle.pdf'}
+                          </span>
+                          <span className="text-[11px] text-on-surface-variant">
+                            {bookingData?.mutuelleNumber ? `N° Télétransmission / Adhérent : ${bookingData.mutuelleNumber}` : 'Document justificatif de droits complémentaire'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {((storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.dataUrl || matchedRide?.patient?.mutuelleFileUrl) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if ((storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.dataUrl) {
+                              setShowMutuelleDocModal(true);
+                            } else if (matchedRide?.patient?.mutuelleFileUrl) {
+                              window.open(matchedRide.patient.mutuelleFileUrl, '_blank');
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-surface-container-highest text-sky-800 hover:bg-surface-variant font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-sm">visibility</span>
+                          <span>Consulter</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Alerte reste à charge si sans ALD et sans Mutuelle */}
+                {!bookingData?.isAld && !bookingData?.hasMutuelle && !matchedRide?.patient?.isAld && !matchedRide?.patient?.hasMutuelle && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-3 text-xs animate-fadeIn">
+                    <span className="material-symbols-outlined text-amber-700 text-xl shrink-0 mt-0.5">payments</span>
+                    <div className="flex flex-col gap-1 w-full">
+                      <span className="font-bold text-sm text-amber-900">
+                        Information règlement transporteur sanitaire
+                      </span>
+                      <p className="text-[12px] text-amber-900 leading-relaxed">
+                        Votre prise en charge ne comportant pas d'exonération ALD 100% ni d'attestation de mutuelle, la part ticket modérateur de 35% ({bookingData?.pricing?.patientRemainder ? `${bookingData.pricing.patientRemainder.toFixed(2)} €` : 'calculée selon conventionnement'}) sera à régler directement auprès du transporteur sanitaire lors de la course.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Col: Actions & Contact */}
@@ -618,6 +695,53 @@ export const ConfirmationPage: React.FC = () => {
                   type="button"
                   onClick={() => setShowDocModal(false)}
                   className="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold"
+                >
+                  Fermer l'aperçu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Aperçu Attestation Mutuelle */}
+        {showMutuelleDocModal && (storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.dataUrl && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-surface-container-lowest rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-outline-variant/30 animate-scaleUp">
+              <div className="p-4 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sky-700">health_and_safety</span>
+                  <span className="font-bold text-sm text-on-surface">
+                    {(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.name || 'Attestation_Mutuelle.pdf'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMutuelleDocModal(false)}
+                  className="p-1 text-on-surface-variant hover:text-on-surface rounded-lg cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-xl">close</span>
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-surface-container-lowest">
+                {(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.type?.includes('pdf') ? (
+                  <iframe
+                    src={(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.dataUrl}
+                    title="Aperçu Attestation Mutuelle"
+                    className="w-full h-[60vh] rounded-lg border border-outline-variant/20"
+                  />
+                ) : (
+                  <img
+                    src={(storedMutuelleDoc || bookingData?.uploadedMutuelleDoc)?.dataUrl}
+                    alt="Aperçu Attestation Mutuelle"
+                    className="max-h-[60vh] max-w-full object-contain rounded-lg border border-outline-variant/20"
+                  />
+                )}
+              </div>
+              <div className="p-3 border-t border-outline-variant/20 bg-surface-container-low flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowMutuelleDocModal(false)}
+                  className="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Fermer l'aperçu
                 </button>

@@ -451,6 +451,12 @@ export const rideService = {
         city: rideData.patient?.city || rideData.pickupCity || '',
         postalCode: rideData.patient?.postalCode || '97200',
         isAld: rideData.patient?.isAld || false,
+        hasMutuelle: rideData.patient?.hasMutuelle,
+        mutuelleName: rideData.patient?.mutuelleName,
+        mutuelleNumber: rideData.patient?.mutuelleNumber,
+        mutuelleUploaded: rideData.patient?.mutuelleUploaded || Boolean(rideData.patient?.mutuelleFileUrl),
+        mutuelleFileName: rideData.patient?.mutuelleFileName,
+        mutuelleFileUrl: rideData.patient?.mutuelleFileUrl,
         hasPmt: rideData.patient?.hasPmt || false,
         pmtPrescriberDoctor: rideData.patient?.pmtPrescriberDoctor,
         pmtUploaded: rideData.patient?.pmtUploaded || false,
@@ -490,6 +496,18 @@ export const rideService = {
         authUserId = sessionData?.session?.user?.id || null;
       } catch {}
 
+      const mutuellePayload = (newRide.patient.hasMutuelle !== undefined)
+        ? `\n[MUTUELLE_DATA]:${JSON.stringify({
+            hasMutuelle: newRide.patient.hasMutuelle,
+            mutuelleName: newRide.patient.mutuelleName || '',
+            mutuelleNumber: newRide.patient.mutuelleNumber || '',
+            mutuelleFileUrl: newRide.patient.mutuelleFileUrl || '',
+            mutuelleFileName: newRide.patient.mutuelleFileName || '',
+            mutuelleUploaded: newRide.patient.mutuelleUploaded || false
+          })}`
+        : '';
+      const encodedMobilityNotes = ((newRide.mobility.notes || '') + mutuellePayload).trim();
+
       const { data, error } = await supabase.from('rides').insert({
         reference,
         pickup_address: newRide.pickupAddress,
@@ -518,7 +536,7 @@ export const rideService = {
         mobility_stairs: newRide.mobility.stairsWithoutElevator,
         mobility_stairs_count: newRide.mobility.floorNumber,
         mobility_needs_escort: newRide.mobility.needsEscort,
-        mobility_notes: newRide.mobility.notes,
+        mobility_notes: encodedMobilityNotes || null,
         source: newRide.source,
         facility_department: newRide.facilityDepartment,
         bed_discharge_number: newRide.bedDischargeNumber,
@@ -890,6 +908,30 @@ export const rideService = {
 
   // Mapper Supabase DB Record vers Ride (sans données injectées artificiellement)
   mapSupabaseToRide(row: any): Ride {
+    let hasMutuelle: boolean | undefined = undefined;
+    let mutuelleName: string | undefined = undefined;
+    let mutuelleNumber: string | undefined = undefined;
+    let mutuelleFileUrl: string | undefined = undefined;
+    let mutuelleFileName: string | undefined = undefined;
+    let mutuelleUploaded: boolean | undefined = undefined;
+    let cleanMobilityNotes = row.mobility_notes || undefined;
+
+    if (row.mobility_notes && row.mobility_notes.includes('[MUTUELLE_DATA]:')) {
+      try {
+        const parts = row.mobility_notes.split('[MUTUELLE_DATA]:');
+        cleanMobilityNotes = parts[0].trim() || undefined;
+        const parsed = JSON.parse(parts[1].trim());
+        hasMutuelle = parsed.hasMutuelle;
+        mutuelleName = parsed.mutuelleName || undefined;
+        mutuelleNumber = parsed.mutuelleNumber || undefined;
+        mutuelleFileUrl = parsed.mutuelleFileUrl || undefined;
+        mutuelleFileName = parsed.mutuelleFileName || undefined;
+        mutuelleUploaded = parsed.mutuelleUploaded;
+      } catch {
+        // ignore parse error
+      }
+    }
+
     return {
       id: row.id,
       reference: row.reference,
@@ -915,6 +957,12 @@ export const rideService = {
         city: row.pickup_city || '',
         postalCode: '97200',
         isAld: Boolean(row.patient_is_ald),
+        hasMutuelle,
+        mutuelleName,
+        mutuelleNumber,
+        mutuelleFileUrl,
+        mutuelleFileName,
+        mutuelleUploaded: mutuelleUploaded || Boolean(mutuelleFileUrl),
         hasPmt: Boolean(row.patient_has_pmt),
         pmtPrescriberDoctor: row.pmt_prescriber_doctor || undefined,
         pmtUploaded: Boolean(row.pmt_file_url),
@@ -928,7 +976,7 @@ export const rideService = {
         stairsWithoutElevator: Boolean(row.mobility_stairs),
         floorNumber: row.mobility_stairs_count || 0,
         needsEscort: Boolean(row.mobility_needs_escort),
-        notes: row.mobility_notes || undefined
+        notes: cleanMobilityNotes
       },
       assignedTransporter: row.transporter_name ? {
         companyName: row.transporter_name,

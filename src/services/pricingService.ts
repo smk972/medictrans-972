@@ -412,6 +412,7 @@ export interface PricingCalculationParams {
   originAddress: string;
   destinationAddress: string;
   isAld?: boolean;
+  hasMutuelle?: boolean;
   isRoundTrip?: boolean;
   dateTimeStr?: string; // Pour déterminer nuit/dimanche
   mobility?: MobilityNeeds;
@@ -444,6 +445,7 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
     originAddress,
     destinationAddress,
     isAld = true,
+    hasMutuelle = true,
     isRoundTrip = false,
     dateTimeStr,
     mobility
@@ -573,14 +575,16 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
   const surchargesTotal = surcharges.reduce((acc, s) => acc + s.amount, 0);
   const totalPrestation = Math.round((baseForfait + distanceAmount + surchargesTotal) * 100) / 100;
 
-  // Prise en charge Assurance Maladie (CGSS Martinique)
+  // Prise en charge Assurance Maladie (CGSS / CPAM)
   const cpamCoveragePercent = isAld ? 100 : 65;
   const cpamAmount = Math.round(((totalPrestation * cpamCoveragePercent) / 100) * 100) / 100;
   const mutuelleAmount = Math.round((totalPrestation - cpamAmount) * 100) / 100;
 
-  // En Martinique, avec télétransmission BPEC / ROC et conventionnement,
-  // le tiers-payant intégral dispense le patient de toute avance de frais.
-  const patientRemainder = 0.00;
+  // Si le patient bénéficie d'une ALD (100%) ou d'une complémentaire santé / mutuelle,
+  // le tiers-payant intégral dispense le patient de toute avance de frais (0,00 €).
+  // En revanche, si le patient n'a NI ALD NI mutuelle, la part ticket modérateur (35%)
+  // reste intégralement à sa charge et doit être acquittée auprès du transporteur.
+  const patientRemainder = (!isAld && !hasMutuelle) ? mutuelleAmount : 0.00;
 
   return {
     distanceKm: effectiveDistance,
@@ -595,6 +599,7 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
     mutuelleAmount,
     patientRemainder,
     isAld,
+    hasMutuelle,
     tariffRegime: (() => {
       const terr = detectTerritoryFromAddress(originAddress) || detectTerritoryFromAddress(destinationAddress);
       if (terr === 'GUADELOUPE') return 'Convention Nationale des Transporteurs Sanitaires & CGSS Guadeloupe (971)';

@@ -20,6 +20,12 @@ export interface PatientInfo {
   postalCode: string;
   isAld: boolean; // Affection Longue Durée (100% CPAM)
   aldReason?: string;
+  hasMutuelle?: boolean; // Complémentaire santé / Mutuelle
+  mutuelleName?: string;
+  mutuelleNumber?: string; // Numéro d'adhérent ou télétransmission
+  mutuelleFileUrl?: string; // URL attestation de mutuelle
+  mutuelleFileName?: string;
+  mutuelleUploaded?: boolean;
   hasPmt: boolean; // Prescription Médicale de Transport présente
   pmtPrescriberDoctor?: string;
   pmtDate?: string;
@@ -112,6 +118,7 @@ export interface RidePricing {
   mutuelleAmount: number;
   patientRemainder: number;
   isAld: boolean;
+  hasMutuelle?: boolean;
   tariffRegime: string; // Ex: 'CPAM Martinique 972 - Barème Officiel'
 }
 
@@ -312,6 +319,11 @@ export interface ClientRecord {
   postalCode: string;
   isAld: boolean;
   aldReason?: string;
+  hasMutuelle?: boolean;
+  mutuelleName?: string;
+  mutuelleNumber?: string;
+  mutuelleFileUrl?: string;
+  mutuelleFileName?: string;
   hasPmt: boolean;
   pmtPrescriberDoctor?: string;
   pmtFileUrl?: string;

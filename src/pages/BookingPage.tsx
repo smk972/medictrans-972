@@ -211,6 +211,12 @@ export const BookingPage: React.FC = () => {
   const [hasCompanion, setHasCompanion] = useState(true);
   const [hasPmt, setHasPmt] = useState<'already' | 'later'>('already');
   const [uploadedPmtDoc, setUploadedPmtDoc] = useState<UploadedFile | null>(null);
+  const [pmtUploadAttempted, setPmtUploadAttempted] = useState<boolean>(false);
+  const [hasMutuelle, setHasMutuelle] = useState<boolean>(true);
+  const [mutuelleNumber, setMutuelleNumber] = useState<string>('');
+  const [mutuelleName, setMutuelleName] = useState<string>('');
+  const [uploadedMutuelleDoc, setUploadedMutuelleDoc] = useState<UploadedFile | null>(null);
+  const isPmtMissing = hasPmt === 'already' && !uploadedPmtDoc;
   const [motif, setMotif] = useState('');
   const [doctor, setDoctor] = useState('');
   const handleMotifChange = (newMotif: string) => {
@@ -428,6 +434,7 @@ export const BookingPage: React.FC = () => {
       originAddress: pickupAddress,
       destinationAddress: destinationFacility,
       isAld,
+      hasMutuelle,
       isRoundTrip: false,
       dateTimeStr: `${transportDate}T${transportTime}:00`,
       mobility: {
@@ -438,7 +445,7 @@ export const BookingPage: React.FC = () => {
         needsEscort: hasCompanion,
       },
     });
-  }, [mappedTransportType, pickupAddress, destinationFacility, isAld, transportDate, transportTime, mobility, oxygen, hasElevator, hasCompanion]);
+  }, [mappedTransportType, pickupAddress, destinationFacility, isAld, hasMutuelle, transportDate, transportTime, mobility, oxygen, hasElevator, hasCompanion]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -495,6 +502,12 @@ export const BookingPage: React.FC = () => {
           city: pickupAddress.includes(',') ? pickupAddress.split(',')[1].trim() : 'Ville',
           postalCode: detectedPostal,
           isAld,
+          hasMutuelle: !isAld ? hasMutuelle : true,
+          mutuelleName: !isAld && hasMutuelle ? mutuelleName : undefined,
+          mutuelleNumber: !isAld && hasMutuelle ? mutuelleNumber : undefined,
+          mutuelleUploaded: !isAld && hasMutuelle && !!uploadedMutuelleDoc,
+          mutuelleFileName: uploadedMutuelleDoc?.name,
+          mutuelleFileUrl: uploadedMutuelleDoc?.dataUrl,
           hasPmt: hasPmt === 'already' && !!uploadedPmtDoc,
           pmtUploaded: hasPmt === 'already' && !!uploadedPmtDoc,
           pmtFileName: uploadedPmtDoc?.name,
@@ -538,6 +551,10 @@ export const BookingPage: React.FC = () => {
         nir: currentNir,
         phone,
         uploadedPmtDoc,
+        hasMutuelle: !isAld ? hasMutuelle : true,
+        mutuelleNumber: !isAld && hasMutuelle ? mutuelleNumber : undefined,
+        mutuelleName: !isAld && hasMutuelle ? mutuelleName : undefined,
+        uploadedMutuelleDoc,
         isDirectRequest: !!priorityTransporter,
         targetTransporterId: priorityTransporter?.transporterId,
         targetTransporterName: priorityTransporter?.transporterName,
@@ -563,6 +580,17 @@ export const BookingPage: React.FC = () => {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    // Si le client indique être déjà en possession du bon de transport, le téléversement est obligatoire pour valider
+    if (isPmtMissing) {
+      setPmtUploadAttempted(true);
+      setBookingError("Veuillez téléverser votre Prescription Médicale de Transport (Cerfa S3138) pour valider votre demande.");
+      const el = document.getElementById('block-pmt');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
     // Si un NIR est renseigné, validation de conformité
     let currentNir = nir.trim();
@@ -1253,6 +1281,95 @@ export const BookingPage: React.FC = () => {
                   </label>
                 </div>
 
+                {/* Section Mutuelle conditionnelle (si ALD décochée) */}
+                {!isAld && (
+                  <div className="flex flex-col gap-3 p-space-md rounded-2xl bg-surface-container-low/90 border border-outline-variant/40 animate-fadeIn mt-1">
+                    <div className="flex items-center justify-between gap-space-md">
+                      <div className="flex items-start sm:items-center gap-space-sm">
+                        <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                          <span className="material-symbols-outlined text-[18px]">health_and_safety</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-label-md text-label-md text-on-surface font-bold text-xs sm:text-sm">
+                              Bénéficiez-vous d'une complémentaire santé / mutuelle ?
+                            </span>
+                            <span className="font-label-sm text-label-sm bg-primary-container text-on-primary-container px-2 py-0.5 rounded-full font-bold text-[10px]">
+                              Prise en charge 35%
+                            </span>
+                          </div>
+                          <span className="font-body-sm text-body-sm text-on-surface-variant text-[11px] mt-0.5">
+                            Permet d'éviter l'avance du ticket modérateur de 35% grâce au tiers-payant mutuelle
+                          </span>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          checked={hasMutuelle}
+                          onChange={(e) => setHasMutuelle(e.target.checked)}
+                          className="sr-only peer"
+                          type="checkbox"
+                        />
+                        <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+
+                    {hasMutuelle ? (
+                      /* Encart si le patient a une mutuelle */
+                      <div className="pt-3 border-t border-outline-variant/20 flex flex-col gap-space-md animate-fadeIn">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+                          <div className="flex flex-col gap-1.5 sm:col-span-2">
+                            <label className="font-label-md text-label-md text-on-surface font-semibold text-xs flex items-center justify-between">
+                              <span>Numéro d'adhérent / Télétransmission Mutuelle</span>
+                              <span className="text-primary text-[10px] font-normal">Mentionné sur votre carte tiers-payant</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={mutuelleNumber}
+                              onChange={(e) => setMutuelleNumber(e.target.value)}
+                              placeholder="Ex. 0023849204 (Harmonie Mutuelle, MGEN, etc.)"
+                              className="h-11 px-3 bg-surface-container-lowest rounded-xl font-body-md text-xs text-on-surface border border-outline-variant/40 outline-none focus:ring-2 focus:ring-primary shadow-xs placeholder:text-slate-400 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-1">
+                          <FileUpload
+                            label="Attestation de Mutuelle / Carte Tiers-Payant"
+                            helpText="Téléversez une photo lisible de votre carte de mutuelle recto/verso ou attestation de droits"
+                            storageKey="booking_mutuelle_document"
+                            onDocumentChange={(doc) => setUploadedMutuelleDoc(doc)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Information si le patient n'a pas d'ALD ni de mutuelle */
+                      <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200 flex items-start gap-2.5 text-xs animate-fadeIn">
+                        <span className="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">warning</span>
+                        <div className="flex flex-col gap-1.5 w-full">
+                          <span className="font-bold text-xs text-amber-900 dark:text-amber-100">
+                            Information tarifaire : Absence d'ALD et de mutuelle
+                          </span>
+                          <p className="text-[11px] leading-relaxed text-amber-900/90 dark:text-amber-200">
+                            L'Assurance Maladie (Sécurité Sociale) prend en charge <strong>65%</strong> du coût conventionné de votre transport ({ridePricing.cpamAmount.toFixed(2)} €).
+                          </p>
+                          <div className="p-2.5 rounded-xl bg-amber-100/90 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 flex items-center justify-between">
+                            <span className="font-bold text-amber-950 dark:text-amber-100 text-xs">
+                              Montant à régler pour cette course :
+                            </span>
+                            <span className="font-extrabold text-base text-amber-900 dark:text-amber-100 font-mono">
+                              {ridePricing.patientRemainder.toFixed(2)} €
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-amber-800 dark:text-amber-300 italic">
+                            Ce montant correspond au ticket modérateur de 35% non remboursé par la Sécurité Sociale. Vous devrez le régler directement auprès de l'équipage transporteur lors de votre prise en charge (espèces, chèque ou CB selon équipement).
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Bouton de passage fluide à l'étape suivante */}
                 <div className="flex items-center justify-between pt-2 border-t border-outline-variant/15 mt-1">
                   <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
@@ -1670,7 +1787,18 @@ export const BookingPage: React.FC = () => {
                 </div>
 
                 {hasPmt === 'already' && (
-                  <div className="pt-space-xs">
+                  <div className="pt-space-xs flex flex-col gap-2">
+                    {isPmtMissing && pmtUploadAttempted && (
+                      <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl text-xs text-red-800 dark:text-red-200 flex items-start gap-2 animate-shake">
+                        <span className="material-symbols-outlined text-base text-red-600 shrink-0 mt-0.5">error</span>
+                        <div>
+                          <p className="font-bold">Téléversement du bon de transport obligatoire</p>
+                          <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5">
+                            Vous avez indiqué être déjà en possession de votre bon de transport. Veuillez obligatoirement téléverser la photo ou le scan de votre Cerfa S3138 pour finaliser et valider votre réservation.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     <FileUpload
                       label="Prescription Médicale de Transport (Cerfa S3138 / PMT)"
                       helpText="Prenez en photo votre bon de transport Cerfa ou téléversez votre document numérique (PDF, JPEG, PNG)"
@@ -1719,13 +1847,18 @@ export const BookingPage: React.FC = () => {
                 <div className="flex items-center justify-end pt-3 border-t border-outline-variant/15 mt-2">
                   <button
                     type="submit"
-                    disabled={isSubmitting || isNirInvalid}
+                    disabled={isSubmitting || isNirInvalid || isPmtMissing}
                     className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 text-white hover:from-teal-700 hover:to-sky-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                   >
                     {isSubmitting ? (
                       <>
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                         <span>Transmission en cours...</span>
+                      </>
+                    ) : isPmtMissing ? (
+                      <>
+                        <span className="material-symbols-outlined text-base">upload_file</span>
+                        <span>Bon de transport (PMT) requis pour valider</span>
                       </>
                     ) : (
                       <>
@@ -1874,7 +2007,11 @@ export const BookingPage: React.FC = () => {
                     {!isAld && (
                       <div className="flex justify-between items-center text-on-surface-variant">
                         <span>Part Mutuelle / Complémentaire (35%)</span>
-                        <span className="font-mono">-{ridePricing.mutuelleAmount.toFixed(2)} €</span>
+                        {hasMutuelle ? (
+                          <span className="font-mono text-emerald-700 font-semibold">-{ridePricing.mutuelleAmount.toFixed(2)} €</span>
+                        ) : (
+                          <span className="font-mono text-amber-700 font-medium">Non couverte (sans mutuelle)</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1884,19 +2021,40 @@ export const BookingPage: React.FC = () => {
                       <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs">
                         Reste à charge patient
                       </span>
-                      <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5">
-                        <span className="material-symbols-outlined text-[12px]">verified</span>
-                        Tiers-payant intégral activé
-                      </span>
+                      {(!isAld && !hasMutuelle) ? (
+                        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-[12px] text-amber-600">payments</span>
+                          À régler au transporteur (ticket modérateur 35%)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-[12px]">verified</span>
+                          Tiers-payant intégral activé
+                        </span>
+                      )}
                     </div>
-                    <span className="font-headline-lg text-headline-lg text-emerald-700 font-bold text-2xl font-mono">
-                      0,00 €
+                    <span className={`font-headline-lg text-headline-lg font-bold text-2xl font-mono ${
+                      (!isAld && !hasMutuelle) ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-700'
+                    }`}>
+                      {ridePricing.patientRemainder.toFixed(2).replace('.', ',')} €
                     </span>
                   </div>
                 </div>
 
                 {/* Submit Action */}
                 <div className="flex flex-col gap-space-sm pt-space-xs">
+                  {isPmtMissing && pmtUploadAttempted && (
+                    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800/50 rounded-xl text-xs text-red-900 dark:text-red-200 flex items-start gap-2 animate-shake">
+                      <span className="material-symbols-outlined text-base text-red-600 shrink-0 mt-0.5">upload_file</span>
+                      <div>
+                        <p className="font-bold">Prescription médicale (PMT) requise</p>
+                        <p className="text-[11px] text-red-800 dark:text-red-300 mt-0.5">
+                          Vous avez indiqué posséder votre bon de transport. Veuillez téléverser votre Cerfa S3138 pour valider la réservation.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {isNirInvalid && nirSubmitAttempted && (
                     <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl text-xs text-red-800 dark:text-red-200 flex items-start gap-2 animate-shake">
                       <span className="material-symbols-outlined text-base text-red-600 shrink-0 mt-0.5">error</span>
@@ -1924,9 +2082,9 @@ export const BookingPage: React.FC = () => {
                   )}
 
                   <button
-                    disabled={isSubmitting || isNirInvalid}
+                    disabled={isSubmitting || isNirInvalid || isPmtMissing}
                     className={`relative overflow-hidden group w-full h-14 transition-all duration-300 text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
-                      isNirInvalid
+                      isNirInvalid || isPmtMissing
                         ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
                         : priorityTransporter
                         ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
@@ -1935,7 +2093,7 @@ export const BookingPage: React.FC = () => {
                     type="submit"
                   >
                     {/* Animated subtle shimmer glow on hover */}
-                    {!isNirInvalid && !isSubmitting && (
+                    {!isNirInvalid && !isPmtMissing && !isSubmitting && (
                       <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-in-out pointer-events-none" />
                     )}
 
@@ -1944,6 +2102,11 @@ export const BookingPage: React.FC = () => {
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                         {priorityTransporter ? 'Transmission prioritaire en cours...' : 'Diffusion en cours...'}
                       </span>
+                    ) : isPmtMissing ? (
+                      <>
+                        <span className="material-symbols-outlined text-[20px]">upload_file</span>
+                        <span>Téléversement PMT obligatoire</span>
+                      </>
                     ) : isNirInvalid ? (
                       <>
                         <span className="material-symbols-outlined text-[20px]">lock</span>

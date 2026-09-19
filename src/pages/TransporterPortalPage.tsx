@@ -4831,6 +4831,57 @@ export const TransporterPortalPage: React.FC = () => {
               </div>
             )}
 
+            {/* Statut & Attestation Mutuelle / Complémentaire Santé */}
+            {selectedMissionForDetails.patient.hasMutuelle || selectedMissionForDetails.patient.mutuelleUploaded || selectedMissionForDetails.patient.mutuelleFileUrl ? (
+              <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sky-950 font-bold text-sm">
+                    <span className="material-symbols-outlined text-sky-600 text-lg">health_and_safety</span>
+                    <span>Attestation de Mutuelle disponible</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-bold text-[10px]">
+                    Télétransmis
+                  </span>
+                </div>
+                <div className="text-[11px] text-sky-900 space-y-0.5">
+                  <div>Organisme / Mutuelle : <strong>{selectedMissionForDetails.patient.mutuelleName || 'Complémentaire Santé'}</strong></div>
+                  <div>N° Télétransmission / Adhérent : <strong className="font-mono">{selectedMissionForDetails.patient.mutuelleNumber || 'Renseigné sur attestation'}</strong></div>
+                  <div>Nom du fichier : <strong>{selectedMissionForDetails.patient.mutuelleFileName || 'Attestation_Mutuelle.pdf'}</strong></div>
+                </div>
+                {selectedMissionForDetails.patient.mutuelleFileUrl && (
+                  <div className="pt-1">
+                    <a
+                      href={selectedMissionForDetails.patient.mutuelleFileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-700 text-white font-bold text-xs hover:bg-sky-800 transition-all shadow-xs"
+                    >
+                      <span className="material-symbols-outlined text-sm">open_in_new</span>
+                      <span>Ouvrir l'attestation de mutuelle</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : !selectedMissionForDetails.patient.isAld ? (
+              <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 font-extrabold text-sm">
+                  <span className="material-symbols-outlined text-xl text-amber-600">payments</span>
+                  <span>Patient sans ALD et sans Mutuelle : Ticket modérateur à encaisser</span>
+                </div>
+                <p className="text-amber-900 leading-relaxed text-[11px]">
+                  Le patient a déclaré ne pas bénéficier d'une prise en charge ALD 100% et n'a pas renseigné de mutuelle complémentaire.
+                </p>
+                <div className="p-3 rounded-xl bg-white/90 border border-amber-200 text-amber-950 flex items-center justify-between text-xs font-bold">
+                  <span>Part restant à régler par le patient :</span>
+                  <span className="font-mono text-base text-amber-800">
+                    {selectedMissionForDetails.pricing?.patientRemainder
+                      ? `${selectedMissionForDetails.pricing.patientRemainder.toFixed(2)} €`
+                      : '35% du tarif conventionné'}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+
             {/* Consignes de mobilité */}
             <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/30 text-xs space-y-1.5">
               <span className="text-[11px] font-bold uppercase text-on-surface-variant block">Consignes Médicales & Mobilité :</span>
@@ -5640,7 +5691,7 @@ export const TransporterPortalPage: React.FC = () => {
                   <p className="text-on-surface-variant text-[11px] leading-relaxed">
                     Conformément aux règles de confidentialité médicale et de régulation, les détails de prescription et le document Cerfa S3138 sont <strong>verrouillés et visibles uniquement après acceptation de la mission</strong>.
                   </p>
-                  <div className="pt-0.5">
+                  <div className="pt-0.5 flex flex-col gap-1.5">
                     {selectedMissionForRecap.patient.pmtUploaded || selectedMissionForRecap.patient.pmtFileUrl ? (
                       <span className="inline-flex items-center gap-1.5 text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px]">
                         <span className="material-symbols-outlined text-xs text-emerald-600">verified</span>
@@ -5652,6 +5703,18 @@ export const TransporterPortalPage: React.FC = () => {
                         Avertissement : Pas de PMT téléversée (Cerfa papier original à récupérer lors de la prise en charge)
                       </span>
                     )}
+
+                    {selectedMissionForRecap.patient.hasMutuelle || selectedMissionForRecap.patient.mutuelleUploaded || selectedMissionForRecap.patient.mutuelleFileUrl ? (
+                      <span className="inline-flex items-center gap-1.5 text-sky-800 font-semibold bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 text-[11px]">
+                        <span className="material-symbols-outlined text-xs text-sky-600">health_and_safety</span>
+                        Attestation Mutuelle téléversée (déverrouillée dès acceptation)
+                      </span>
+                    ) : !selectedMissionForRecap.patient.isAld ? (
+                      <span className="inline-flex items-center gap-1.5 text-amber-900 font-semibold bg-amber-100/70 px-2.5 py-1 rounded-lg border border-amber-300 text-[11px]">
+                        <span className="material-symbols-outlined text-xs text-amber-700">payments</span>
+                        Attention : Sans ALD et sans mutuelle (Ticket modérateur 35% à percevoir au client)
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               ) : (
@@ -5688,6 +5751,39 @@ export const TransporterPortalPage: React.FC = () => {
                       </span>
                     </div>
                   )}
+
+                  {selectedMissionForRecap.patient.hasMutuelle || selectedMissionForRecap.patient.mutuelleUploaded || selectedMissionForRecap.patient.mutuelleFileUrl ? (
+                    <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-950 flex items-center justify-between mt-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sky-600 text-base">health_and_safety</span>
+                        <div>
+                          <span className="font-semibold text-[11px] block">
+                            Mutuelle : {selectedMissionForRecap.patient.mutuelleName || 'Complémentaire Santé'} {selectedMissionForRecap.patient.mutuelleNumber ? `(N° ${selectedMissionForRecap.patient.mutuelleNumber})` : ''}
+                          </span>
+                          <span className="text-[10px] text-sky-800">
+                            Fichier : {selectedMissionForRecap.patient.mutuelleFileName || 'Attestation_Mutuelle.pdf'}
+                          </span>
+                        </div>
+                      </div>
+                      {selectedMissionForRecap.patient.mutuelleFileUrl && (
+                        <a
+                          href={selectedMissionForRecap.patient.mutuelleFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-sky-700 text-white font-bold text-[11px] hover:bg-sky-800 transition-colors"
+                        >
+                          Consulter Mutuelle
+                        </a>
+                      )}
+                    </div>
+                  ) : !selectedMissionForRecap.patient.isAld ? (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center gap-2 text-[11px] mt-1.5">
+                      <span className="material-symbols-outlined text-amber-700 text-base shrink-0">payments</span>
+                      <span>
+                        <strong>Sans ALD ni mutuelle :</strong> Ticket modérateur 35% ({selectedMissionForRecap.pricing?.patientRemainder ? `${selectedMissionForRecap.pricing.patientRemainder.toFixed(2)} €` : 'selon convention CPAM'}) à encaisser auprès du patient.
+                      </span>
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>
