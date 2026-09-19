@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -33,6 +33,43 @@ export const TrackingPage: React.FC = () => {
 
   const [searchParams] = useSearchParams();
   const urlRef = searchParams.get('ref');
+
+  // Références des courses actuellement en attente (PENDING)
+  const pendingRideRefs = useRef<Set<string>>(new Set());
+
+  // Déclencheur du rechargement automatique de la page de suivi
+  const triggerTrackingReload = useCallback((targetRef: string, reason: string) => {
+    const cleanRef = targetRef.trim().toUpperCase();
+    const reloadKey = `clinigo_reloaded_tracking_${cleanRef}`;
+    if (sessionStorage.getItem(reloadKey)) {
+      return;
+    }
+    console.log(`[TrackingPage] ${reason} pour ${cleanRef} -> Rechargement automatique de la page !`);
+    sessionStorage.setItem(reloadKey, 'true');
+
+    // Signal sonore discret de notification
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+      }
+    } catch {}
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 150);
+  }, []);
 
   const loadRides = useCallback(async () => {
     setIsLoading(true);
@@ -145,13 +182,33 @@ export const TrackingPage: React.FC = () => {
       }
 
       setRides(relevantRides);
+
+      // Détection si une course en attente vient de passer à ACCEPTED
+      const currentPending = new Set<string>();
+      relevantRides.forEach(r => {
+        if (r.status === 'PENDING') {
+          currentPending.add(r.reference.toUpperCase());
+        }
+      });
+
+      if (pendingRideRefs.current.size > 0) {
+        const newlyAccepted = relevantRides.find(
+          r => (r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP') &&
+               pendingRideRefs.current.has(r.reference.toUpperCase())
+        );
+        if (newlyAccepted) {
+          triggerTrackingReload(newlyAccepted.reference, 'Passage de PENDING à ACCEPTED');
+          return;
+        }
+      }
+      pendingRideRefs.current = currentPending;
     } catch (err) {
       console.warn('Erreur chargement des courses:', err);
       setRides([]);
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, user, urlRef]);
+  }, [isAuthenticated, user, urlRef, triggerTrackingReload]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -161,27 +218,34 @@ export const TrackingPage: React.FC = () => {
     let channel: any = null;
     if (isSupabaseConfigured() && supabase) {
       channel = supabase
-        .channel('realtime_tracking_rides')
+        .channel(`realtime_tracking_rides_${Date.now()}`)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'rides' },
           (payload: any) => {
-            loadRides();
-            if (payload.eventType === 'UPDATE' && payload.new?.status === 'ACCEPTED') {
+            const ref = (payload.new?.reference || '').toUpperCase();
+            const newStatus = payload.new?.status;
+
+            if (newStatus === 'ACCEPTED' || newStatus === 'EN_ROUTE') {
+              if (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref)) {
+                triggerTrackingReload(ref, `Supabase Realtime (${newStatus})`);
+                return;
+              }
               setToastMessage({
                 title: 'Course confirmée !',
                 desc: `Votre transporteur (${payload.new.transporter_name || 'Transporteur Sanitaire Agréé'}) a validé votre mission.`
               });
             }
+            loadRides();
           }
         )
         .subscribe();
     }
 
-    // Polling de précaution haute fréquence (3s)
+    // Polling de précaution haute fréquence (2s)
     const interval = setInterval(() => {
       loadRides();
-    }, 3000);
+    }, 2000);
 
     // Écouteur BroadcastChannel inter-onglets
     let bc: BroadcastChannel | null = null;
@@ -189,27 +253,49 @@ export const TrackingPage: React.FC = () => {
       try {
         bc = new BroadcastChannel('clinigo_rides_channel');
         bc.onmessage = (event) => {
-          loadRides();
-          if (event.data?.status === 'ACCEPTED') {
+          const ref = (event.data?.reference || '').toUpperCase();
+          const newStatus = event.data?.status;
+
+          if (newStatus === 'ACCEPTED' || newStatus === 'EN_ROUTE') {
+            if (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref)) {
+              triggerTrackingReload(ref, `BroadcastChannel (${newStatus})`);
+              return;
+            }
             const tName = event.data?.ride?.assignedTransporter?.companyName || 'Transporteur Sanitaire Agréé';
             setToastMessage({
               title: 'Course confirmée !',
               desc: `Votre transporteur (${tName}) a validé votre mission.`
             });
           }
+          loadRides();
         };
       } catch {}
     }
 
     // Écouteur storage event universel
     const onStorage = (e: StorageEvent) => {
+      if (e.key === 'clinigo_last_ride_update' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          const ref = (parsed.reference || '').toUpperCase();
+          if ((parsed.status === 'ACCEPTED' || parsed.status === 'EN_ROUTE') && (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref))) {
+            triggerTrackingReload(ref, 'Storage event');
+            return;
+          }
+        } catch {}
+      }
       if (e.key === 'clinigo_last_ride_update' || e.key === 'medictrans_rides_v2') {
         loadRides();
       }
     };
     window.addEventListener('storage', onStorage);
 
-    const onStatusUpdate = () => {
+    const onStatusUpdate = (e: any) => {
+      const ref = (e.detail?.reference || '').toUpperCase();
+      if ((e.detail?.status === 'ACCEPTED' || e.detail?.status === 'EN_ROUTE') && (pendingRideRefs.current.has(ref) || (urlRef && urlRef.toUpperCase() === ref))) {
+        triggerTrackingReload(ref, 'CustomEvent');
+        return;
+      }
       loadRides();
     };
     window.addEventListener('clinigo_ride_status_updated', onStatusUpdate);

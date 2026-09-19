@@ -577,6 +577,9 @@ export const BookingPage: React.FC = () => {
       };
       try {
         localStorage.setItem('medictrans_last_booking', JSON.stringify(bookingRecord));
+        sessionStorage.setItem(`clinigo_waiting_for_acceptance_${actualRef.toUpperCase()}`, 'true');
+        sessionStorage.removeItem(`clinigo_reloaded_accepted_${actualRef.toUpperCase()}`);
+        localStorage.setItem(`clinigo_pending_${actualRef.toUpperCase()}`, 'true');
       } catch {
         // ignore
       }
