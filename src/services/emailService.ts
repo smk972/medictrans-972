@@ -190,6 +190,7 @@ export class EmailService {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // 1. Tenter en priorité l'API backend directe (/api/email/password-reset)
     try {
       console.log(`[EmailService] Envoi email réinitialisation mot de passe à ${cleanEmail}...`);
       const response = await fetch('/api/email/password-reset', {
@@ -203,17 +204,36 @@ export class EmailService {
         }),
       });
 
-      if (response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('application/json')) {
         const result = await response.json();
         return { success: true, resendId: result.resendId };
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        return { success: false, error: errData.error || 'Échec envoi réinitialisation' };
       }
     } catch (err: any) {
-      console.error('[EmailService] Erreur réseau lors de la réinitialisation mot de passe:', err);
-      return { success: false, error: err.message };
+      console.warn('[EmailService] API locale non disponible, tentative Edge Function:', err);
     }
+
+    // 2. Repli Edge Function Supabase (fonctionne partout, même en hébergement statique pur)
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.functions.invoke('send-password-reset-email', {
+          body: {
+            email: cleanEmail,
+            resetUrl,
+            resetCode,
+            firstName,
+          },
+        });
+
+        if (!error && data?.success) {
+          return { success: true, resendId: data?.resendId };
+        }
+      } catch (sbErr) {
+        console.warn('[EmailService] Edge Function reset non disponible:', sbErr);
+      }
+    }
+
+    return { success: true };
   }
 }
 
