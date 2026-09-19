@@ -195,7 +195,7 @@ export class EmailService {
           pickupDate,
           pickupTime,
           etaMinutes,
-          trackingUrl: trackingUrl || `${window.location.origin}/suivi?ref=${reference}`,
+          trackingUrl: trackingUrl || `${window.location.origin}/confirmation/${reference}`,
           reason,
           transportType,
         }),
@@ -224,7 +224,7 @@ export class EmailService {
               dropoffAddress,
               pickupDate,
               pickupTime,
-              trackingUrl: trackingUrl || `${window.location.origin}/suivi?ref=${reference}`,
+              trackingUrl: trackingUrl || `${window.location.origin}/confirmation/${reference}`,
             }),
           });
           if (fallbackResp.ok) {

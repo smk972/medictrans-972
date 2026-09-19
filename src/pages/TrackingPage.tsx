@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { GoogleMapView } from '../components/GoogleMapView';
@@ -36,7 +36,11 @@ export const TrackingPage: React.FC = () => {
   const urlRef = searchParams.get('ref');
 
   // Si un utilisateur non connecté arrive avec une référence explicite (?ref=MT-972-XXXX),
-  // le rediriger directement vers la page de confirmation/suivi dédiée
+  // le rediriger directement et immédiatement vers la page de confirmation/suivi dédiée
+  if (!isAuthenticated && urlRef && urlRef.trim()) {
+    return <Navigate to={`/confirmation/${urlRef.trim().toUpperCase()}`} replace />;
+  }
+
   useEffect(() => {
     if (!isAuthenticated && urlRef && urlRef.trim()) {
       navigate(`/confirmation/${urlRef.trim().toUpperCase()}`, { replace: true });

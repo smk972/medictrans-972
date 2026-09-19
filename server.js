@@ -1515,7 +1515,7 @@ function handleRideAcceptedEmail(req, res) {
       const cleanTime = pickupTime || '08:30';
       const cleanDate = pickupDate || 'Aujourd’hui';
       const cleanTransport = formatTransportLabel(transportType || data.transportType);
-      const trackLink = trackingUrl || `https://clinigo.fr/suivi?ref=${cleanRef}`;
+      const trackLink = trackingUrl || `https://clinigo.fr/confirmation/${cleanRef}`;
       const rebookLink = `https://clinigo.fr/reserver`;
 
       let badgeText = '✓ Course Acceptée & Validée';
@@ -1699,21 +1699,27 @@ function handleRideAcceptedEmail(req, res) {
               </table>
 
               <!-- CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:28px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:16px;">
                 <tr>
                   <td align="center">
                     ${isCancelled ? `
-                    <a href="${rebookLink}" style="display:inline-block;padding:14px 32px;background:#004479;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;border-radius:12px;box-shadow:0 4px 12px rgba(0,68,121,0.25);">
+                    <a href="${rebookLink}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 32px;background:#004479;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;border-radius:12px;box-shadow:0 4px 12px rgba(0,68,121,0.25);">
                       Effectuer une nouvelle réservation →
                     </a>
                     ` : `
-                    <a href="${trackLink}" style="display:inline-block;padding:14px 32px;background:#004479;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;border-radius:12px;box-shadow:0 4px 12px rgba(0,68,121,0.25);">
+                    <a href="${trackLink}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 32px;background:#004479;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;border-radius:12px;box-shadow:0 4px 12px rgba(0,68,121,0.25);">
                       Accéder au Suivi en Direct →
                     </a>
                     `}
                   </td>
                 </tr>
               </table>
+
+              <!-- Lien de secours en texte brut pour compatibilité absolue -->
+              <p style="margin:0 0 24px 0;font-size:12px;line-height:18px;color:#64748B;text-align:center;">
+                Si le bouton ne s'ouvre pas, vous pouvez cliquer directement sur ce lien ou le copier :<br>
+                <a href="${trackLink}" target="_blank" rel="noopener noreferrer" style="color:#004479;font-weight:600;word-break:break-all;text-decoration:underline;">${trackLink}</a>
+              </p>
 
               ${!isCancelled ? `
               <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px;font-size:12px;color:#92400E;line-height:18px;">
@@ -1730,7 +1736,7 @@ function handleRideAcceptedEmail(req, res) {
           <!-- Footer -->
           <tr>
             <td style="background:#F1F5F9;border-top:1px solid #E2E8F0;padding:24px 32px;text-align:center;font-size:12px;color:#64748B;line-height:18px;">
-              Une question ou une modification ? Contactez la régulation au <strong style="color:#0F172A;">05 96 72 00 97</strong> ou répondez à cet e-mail.<br>
+              Une question ou une modification ? Contactez la régulation au <strong style="color:#0F172A;">05 96 72 00 97</strong> ou par email à <strong style="color:#0F172A;">contact@clinigo.fr</strong>.<br>
               © 2026 Clinigo — Le transport sanitaire conventionné simplifié.
             </td>
           </tr>
@@ -1741,11 +1747,29 @@ function handleRideAcceptedEmail(req, res) {
 </body>
 </html>`;
 
+      const textContent = `Bonjour ${cleanPatient},\n\n`
+        + `${statusDesc.replace(/<[^>]+>/g, '')}\n\n`
+        + `DÉTAILS DE LA MISSION #${cleanRef} :\n`
+        + `- Date & Heure : ${cleanDate} à ${cleanTime}\n`
+        + `- Départ : ${pickupAddress || 'Adresse communiquée'}\n`
+        + `- Destination : ${dropoffAddress || 'Établissement de santé'}\n`
+        + (cleanTransport ? `- Véhicule : ${cleanTransport}\n` : '')
+        + (!isCancelled && cleanStatus !== 'PENDING' ? `- Chauffeur : ${cleanDriver} (${cleanPlate})\n` : '')
+        + `\nPour accéder au suivi de votre commande en direct :\n${trackLink}\n\n`
+        + `Assistance Régulation Clinigo 24/7 : 05 96 72 00 97 • Email : contact@clinigo.fr\n`
+        + `Clinigo - Plateforme de régulation du transport sanitaire`;
+
       const payload = JSON.stringify({
         from: RESEND_FROM_EMAIL,
         to: [cleanEmail],
+        reply_to: 'contact@clinigo.fr',
         subject: subject,
         html: htmlContent,
+        text: textContent,
+        headers: {
+          'X-Entity-Ref-ID': cleanRef,
+          'List-Unsubscribe': '<mailto:contact@clinigo.fr?subject=unsubscribe>'
+        },
         tags: [{ name: 'category', value: `ride_${cleanStatus.toLowerCase()}` }, { name: 'app', value: 'clinigo' }]
       });
 

@@ -488,6 +488,29 @@ export const ConfirmationPage: React.FC = () => {
               </div>
             </section>
 
+            {/* Mention d'information Email de confirmation & Dossier Spam */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50/80 dark:bg-amber-950/30 border-2 border-amber-300/80 dark:border-amber-700/50 rounded-3xl p-4 sm:p-5 shadow-sm flex items-start gap-3.5 animate-fadeIn">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="material-symbols-outlined text-2xl">mark_email_read</span>
+              </div>
+              <div className="flex-1 text-xs sm:text-sm">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <strong className="text-amber-950 dark:text-amber-100 font-bold text-sm">
+                    E-mail de confirmation et suivi expédié
+                  </strong>
+                  {displayEmail && (
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300 font-semibold">
+                      {displayEmail}
+                    </span>
+                  )}
+                </div>
+                <p className="text-amber-900/90 dark:text-amber-200/90 leading-relaxed text-xs sm:text-[13px]">
+                  Un courriel officiel contenant le récapitulatif de votre transport et votre lien direct de suivi vient de vous être adressé.<br className="hidden sm:inline" />
+                  <strong>Conseil utile :</strong> Si vous ne le voyez pas dans votre boîte de réception d'ici 1 à 2 minutes, <strong>pensez à vérifier votre dossier Spam ou Courrier indésirable</strong> et à marquer le message comme légitime.
+                </p>
+              </div>
+            </div>
+
             {/* Top Banner Success / Status / Cancellation */}
             {matchedRide?.status === 'CANCELLED' ? (
               <section className="relative overflow-hidden bg-gradient-to-r from-red-950 via-red-900 to-rose-950 text-white rounded-3xl p-space-lg md:p-space-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md border-2 border-red-500/40 animate-fadeIn">

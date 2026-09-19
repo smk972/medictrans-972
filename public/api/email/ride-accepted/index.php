@@ -40,7 +40,7 @@ $pickupAddress = isset($data['pickupAddress']) && !empty($data['pickupAddress'])
 $dropoffAddress = isset($data['dropoffAddress']) && !empty($data['dropoffAddress']) ? trim($data['dropoffAddress']) : 'Établissement de soins';
 $pickupDate = isset($data['pickupDate']) && !empty($data['pickupDate']) ? trim($data['pickupDate']) : 'Aujourd’hui';
 $pickupTime = isset($data['pickupTime']) && !empty($data['pickupTime']) ? trim($data['pickupTime']) : '08:30';
-$trackingUrl = isset($data['trackingUrl']) && !empty($data['trackingUrl']) ? trim($data['trackingUrl']) : ('https://clinigo.fr/suivi?ref=' . urlencode($reference));
+$trackingUrl = isset($data['trackingUrl']) && !empty($data['trackingUrl']) ? trim($data['trackingUrl']) : ('https://clinigo.fr/confirmation/' . urlencode($reference));
 
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
@@ -167,18 +167,24 @@ $htmlContent = '<!DOCTYPE html>
               </table>
 
               <!-- Bouton d\'accès au suivi en direct -->
-              <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto 28px auto;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto 16px auto;">
                 <tr>
                   <td align="center" bgcolor="#004479" style="border-radius: 12px; background-color: #004479; box-shadow: 0 4px 12px rgba(0, 68, 121, 0.25);">
-                    <a href="' . $safeTrackingUrl . '" target="_blank" style="display: inline-block; padding: 15px 32px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 12px; letter-spacing: 0.02em;">
-                      🚑 Suivre mon chauffeur en direct &rarr;
+                    <a href="' . $safeTrackingUrl . '" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 15px 32px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 12px; letter-spacing: 0.02em;">
+                      Accéder au suivi en direct &rarr;
                     </a>
                   </td>
                 </tr>
               </table>
 
+              <!-- Lien de secours en texte brut pour garantir l\'accès sur tous les clients mails -->
+              <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 12px; line-height: 18px; color: #64748B; text-align: center;">
+                Si le bouton ne s\'ouvre pas, vous pouvez cliquer directement sur ce lien ou le copier :<br>
+                <a href="' . $safeTrackingUrl . '" target="_blank" rel="noopener noreferrer" style="color: #004479; font-weight: 600; word-break: break-all; text-decoration: underline;">' . $safeTrackingUrl . '</a>
+              </p>
+
               <p style="margin: 0 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 13px; line-height: 20px; color: #64748B; text-align: center;">
-                Pensez à préparer votre Prescription Médicale de Transport (PMT) et votre attestation de droits pour le chauffeur.
+                Pensez à préparer votre Prescription Médicale de Transport (PMT Cerfa) et votre Carte Vitale pour le chauffeur.
               </p>
             </td>
           </tr>
@@ -186,10 +192,14 @@ $htmlContent = '<!DOCTYPE html>
           <!-- Pied de page -->
           <tr>
             <td align="center" style="background-color: #FAFAFA; border-top: 1px solid #F1F5F9; padding: 24px; text-align: center;">
-              <div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 12px; font-weight: 500; color: #64748B; margin-bottom: 6px;">
-                Clinigo • Plateforme de régulation du transport sanitaire
+              <div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                Clinigo • Plateforme de Régulation du Transport Sanitaire Conventionné
+              </div>
+              <div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 11px; color: #64748B; margin-bottom: 6px;">
+                Assistance Régulation 24/7 : 05 96 72 00 97 • Email : contact@clinigo.fr
               </div>
               <div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 11px; color: #94A3B8;">
+                Vous recevez ce courriel car une demande de transport a été initiée sur Clinigo.fr.<br>
                 &copy; ' . date('Y') . ' Clinigo. Tous droits réservés.
               </div>
             </td>
@@ -201,11 +211,31 @@ $htmlContent = '<!DOCTYPE html>
 </body>
 </html>';
 
+$textContent = "Bonjour " . $patientName . ",\n\n"
+    . "Bonne nouvelle ! Votre transport médicalisé #" . $reference . " a été validé et pris en charge par " . $transporterName . ".\n\n"
+    . "DÉTAILS DE VOTRE PRISE EN CHARGE :\n"
+    . "- Chauffeur : " . $driverName . ($driverPhone ? " (" . $driverPhone . ")" : "") . "\n"
+    . "- Véhicule conventionné : " . $vehiclePlate . "\n"
+    . "- Date et heure : " . $pickupDate . " à " . $pickupTime . "\n"
+    . "- Départ : " . $pickupAddress . "\n"
+    . "- Destination : " . $dropoffAddress . "\n\n"
+    . "Pour suivre l'arrivée de votre chauffeur en direct, rendez-vous sur :\n"
+    . $trackingUrl . "\n\n"
+    . "Rappel : Préparez votre Prescription Médicale de Transport (Cerfa S3138) et votre attestation de droits pour le chauffeur.\n"
+    . "Assistance Régulation Clinigo : 05 96 72 00 97.\n"
+    . "Clinigo - Plateforme de régulation sanitaire";
+
 $payload = json_encode([
     'from' => $fromEmail,
     'to' => [$email],
-    'subject' => '✓ Transport médicalisé validé #' . $safeRef . ' - ' . $safeTransporter,
+    'reply_to' => 'contact@clinigo.fr',
+    'subject' => 'Clinigo — Transport médicalisé validé #' . $safeRef . ' - ' . $safeTransporter,
     'html' => $htmlContent,
+    'text' => $textContent,
+    'headers' => [
+        'X-Entity-Ref-ID' => $reference,
+        'List-Unsubscribe' => '<mailto:contact@clinigo.fr?subject=unsubscribe>'
+    ],
     'tags' => [
         ['name' => 'category', 'value' => 'ride_accepted'],
         ['name' => 'reference', 'value' => $reference]

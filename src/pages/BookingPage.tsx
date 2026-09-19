@@ -2054,6 +2054,21 @@ export const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Mention anti-spam e-mail de confirmation */}
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-800/40 text-amber-950 dark:text-amber-200 text-xs shadow-2xs mt-2">
+                  <span className="material-symbols-outlined text-base text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
+                    mark_email_read
+                  </span>
+                  <div className="leading-snug">
+                    <p className="font-bold text-amber-950 dark:text-amber-100">
+                      E-mail de confirmation immédiat avec lien de suivi
+                    </p>
+                    <p className="text-[11px] text-amber-900/90 dark:text-amber-300/90 mt-0.5">
+                      Dès validation, un email contenant votre lien de suivi vous est automatiquement expédié. <strong>Pensez à vérifier votre dossier Spam ou Courrier indésirable</strong> si vous ne le recevez pas dans les 2 minutes.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Bouton de confirmation de la réservation */}
                 <div className="flex items-center justify-end pt-3 border-t border-outline-variant/15 mt-2">
                   <button
@@ -2298,6 +2313,21 @@ export const BookingPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Mention anti-spam e-mail de confirmation */}
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-800/40 text-amber-950 dark:text-amber-200 text-xs shadow-2xs">
+                    <span className="material-symbols-outlined text-base text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
+                      mark_email_read
+                    </span>
+                    <div className="leading-snug">
+                      <p className="font-bold text-amber-950 dark:text-amber-100">
+                        E-mail de confirmation immédiat
+                      </p>
+                      <p className="text-[11px] text-amber-900/90 dark:text-amber-300/90 mt-0.5">
+                        Un email avec le lien de suivi vous est expédié dès validation. <strong>Vérifiez vos spams ou courriers indésirables</strong> si vous ne le voyez pas dans les 2 minutes.
+                      </p>
+                    </div>
+                  </div>
 
                   <button
                     disabled={isSubmitting || isNirInvalid || isPmtMissing}
