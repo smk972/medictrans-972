@@ -19,6 +19,7 @@ import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../
 import { reverseGeocode } from '../services/nationalGeoDatabase';
 import { TransporterManualRideModal } from '../components/TransporterManualRideModal';
 import { TransporterPlanningCalendar } from '../components/TransporterPlanningCalendar';
+import { checkRideCompleteness } from '../utils/rideCompleteness';
 
 
 export interface Driver {
@@ -1134,6 +1135,18 @@ export const TransporterPortalPage: React.FC = () => {
       );
       return;
     }
+
+    // Contrôle strict : la demande ne peut pas être acceptée si les champs ne sont pas remplis entièrement par le client
+    const completeness = checkRideCompleteness(mission);
+    if (!completeness.isComplete) {
+      showNotification(
+        'error',
+        'Dossier client incomplet',
+        `Cette demande ne peut pas être acceptée tant que les champs obligatoires ne sont pas entièrement remplis par le client : ${completeness.missingLabels.join(', ')}.`
+      );
+      return;
+    }
+
     setMissionToAccept(mission);
     const match = fleet.find((v) => v.type === mission.transportType) || fleet[0];
     setSelectedDriver(match.driver);
@@ -1168,6 +1181,18 @@ export const TransporterPortalPage: React.FC = () => {
       return;
     }
     if (!missionToAccept) return;
+
+    // Contrôle de complétude
+    const completeness = checkRideCompleteness(missionToAccept);
+    if (!completeness.isComplete) {
+      showNotification(
+        'error',
+        'Dossier client incomplet',
+        `Cette demande ne peut pas être acceptée : ${completeness.summary}.`
+      );
+      return;
+    }
+
     const missionRef = missionToAccept.reference;
 
     const matchedDriver = drivers.find(
@@ -2546,101 +2571,135 @@ export const TransporterPortalPage: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Avertissement PMT non téléversée par le client */}
-                          {(!mission.patient.hasPmt && !mission.patient.pmtUploaded && !mission.patient.pmtFileUrl) ? (
-                            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-center gap-2 mt-2">
-                              <span className="material-symbols-outlined text-amber-700 text-base shrink-0">warning</span>
-                              <span className="text-[11px] leading-tight">
-                                <strong className="text-amber-900">PMT non téléversée :</strong> le client fournira le Cerfa papier original lors de la prise en charge.
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-semibold mt-2">
-                              <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
-                              <span>Prescription PMT numérique enregistrée</span>
-                            </div>
-                          )}
+                          {/* Avertissement Dossier incomplet : acceptation bloquée */}
+                          {(() => {
+                            const missionCompleteness = checkRideCompleteness(mission);
+                            if (!missionCompleteness.isComplete) {
+                              return (
+                                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-950 text-xs flex items-start gap-2 mt-2">
+                                  <span className="material-symbols-outlined text-rose-700 text-base shrink-0 mt-0.5">report_problem</span>
+                                  <div className="flex flex-col gap-0.5">
+                                    <strong className="text-rose-900 font-bold">Dossier incomplet par le client :</strong>
+                                    <span className="text-[11px] text-rose-800 leading-tight">
+                                      Champs manquants : <strong className="text-rose-950">{missionCompleteness.missingLabels.join(', ')}</strong>.
+                                    </span>
+                                    <span className="text-[10px] text-rose-700 font-medium mt-0.5">
+                                      Cette demande ne peut pas être acceptée tant que le client n'a pas entièrement rempli ses informations.
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-semibold mt-2">
+                                <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
+                                <span>Dossier complet et prescription PMT enregistrée</span>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Actions : Décliner, PMT (après acceptation), Affecter, Accepter */}
-                        {isDirect ? (
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-orange-300/40">
-                            {/* Transférer immédiatement au pot commun */}
-                            <button
-                              type="button"
-                              onClick={() => handleTransferToPublicPool(mission)}
-                              className="py-2.5 px-3 rounded-xl border border-orange-300 bg-white hover:bg-orange-50 text-orange-900 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-xs"
-                              title="Libérer cette demande au pot commun pour qu'un confrère disponible la prenne sans attendre"
-                            >
-                              <span className="material-symbols-outlined text-base text-orange-600">sync_alt</span>
-                              <span>Transférer au pot commun</span>
-                            </button>
+                        {(() => {
+                          const missionCompleteness = checkRideCompleteness(mission);
+                          if (isDirect) {
+                            return (
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-orange-300/40">
+                                {/* Transférer immédiatement au pot commun */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleTransferToPublicPool(mission)}
+                                  className="py-2.5 px-3 rounded-xl border border-orange-300 bg-white hover:bg-orange-50 text-orange-900 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-xs"
+                                  title="Libérer cette demande au pot commun pour qu'un confrère disponible la prenne sans attendre"
+                                >
+                                  <span className="material-symbols-outlined text-base text-orange-600">sync_alt</span>
+                                  <span>Transférer au pot commun</span>
+                                </button>
 
-                            {/* Affectation personnalisée */}
-                            <button
-                              type="button"
-                              onClick={() => openAcceptModal(mission)}
-                              className="py-2.5 px-3 rounded-xl border border-orange-400 text-orange-950 bg-orange-100 hover:bg-orange-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                              title="Choisir le chauffeur et le véhicule avant d'accepter"
-                            >
-                              <span className="material-symbols-outlined text-base">badge</span>
-                              <span className="hidden sm:inline">Affecter</span>
-                            </button>
+                                {!missionCompleteness.isComplete ? (
+                                  <div 
+                                    className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+                                    title={`Acceptation impossible : ${missionCompleteness.summary}`}
+                                  >
+                                    <span className="material-symbols-outlined text-base text-slate-400">lock</span>
+                                    <span>Dossier client incomplet (Acceptation bloquée)</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {/* Affectation personnalisée */}
+                                    <button
+                                      type="button"
+                                      onClick={() => openAcceptModal(mission)}
+                                      className="py-2.5 px-3 rounded-xl border border-orange-400 text-orange-950 bg-orange-100 hover:bg-orange-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                                      title="Choisir le chauffeur et le véhicule avant d'accepter"
+                                    >
+                                      <span className="material-symbols-outlined text-base">badge</span>
+                                      <span className="hidden sm:inline">Affecter</span>
+                                    </button>
 
-                            {/* Accepter la demande directe nominative */}
-                            <button
-                              type="button"
-                              onClick={() => handleDirectAccept(mission)}
-                              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white text-xs font-extrabold hover:opacity-95 transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5"
-                            >
-                              <span className="material-symbols-outlined text-base">check_circle</span>
-                              <span>Accepter la demande directe</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-outline-variant/20">
-                            {/* Décliner la mission */}
-                            <button
-                              type="button"
-                              onClick={() => openDeclineModal(mission)}
-                              className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                              title="Décliner cette opportunité de transport"
-                            >
-                              <span className="material-symbols-outlined text-base text-rose-600">close</span>
-                              <span>Décliner</span>
-                            </button>
+                                    {/* Accepter la demande directe nominative */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDirectAccept(mission)}
+                                      className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white text-xs font-extrabold hover:opacity-95 transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-1.5"
+                                    >
+                                      <span className="material-symbols-outlined text-base">check_circle</span>
+                                      <span>Accepter la demande directe</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          }
 
-                            {/* Fiche PMT : disponible au transporteur uniquement après acceptation de la course */}
-                            <div
-                              className="py-2 px-3 rounded-xl border border-outline-variant/30 text-on-surface-variant/70 text-xs font-semibold flex items-center justify-center gap-1.5 bg-surface-container-low cursor-not-allowed select-none"
-                              title="La fiche PMT détaillée est confidentielle et accessible uniquement après validation de la course"
-                            >
-                              <span className="material-symbols-outlined text-[15px] text-on-surface-variant/60">lock</span>
-                              <span>PMT après acceptation</span>
+                          return (
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-outline-variant/20">
+                              {/* Décliner la mission */}
+                              <button
+                                type="button"
+                                onClick={() => openDeclineModal(mission)}
+                                className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                                title="Décliner cette opportunité de transport"
+                              >
+                                <span className="material-symbols-outlined text-base text-rose-600">close</span>
+                                <span>Décliner</span>
+                              </button>
+
+                              {!missionCompleteness.isComplete ? (
+                                <div 
+                                  className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+                                  title={`Acceptation impossible : ${missionCompleteness.summary}`}
+                                >
+                                  <span className="material-symbols-outlined text-base text-slate-400">lock</span>
+                                  <span>Dossier client incomplet (Acceptation bloquée)</span>
+                                </div>
+                              ) : (
+                                <>
+                                  {/* Affectation personnalisée (chauffeur / véhicule) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => openAcceptModal(mission)}
+                                    className="py-2 px-3 rounded-xl border border-secondary/30 text-secondary bg-secondary/5 hover:bg-secondary/15 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                                    title="Choisir le chauffeur et le véhicule avant d'accepter"
+                                  >
+                                    <span className="material-symbols-outlined text-base">badge</span>
+                                    <span className="hidden sm:inline">Affecter</span>
+                                  </button>
+
+                                  {/* 1-Clic Acceptation Directe */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDirectAccept(mission)}
+                                    className="flex-1 py-2.5 px-4 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs active:scale-[0.99] flex items-center justify-center gap-1.5"
+                                  >
+                                    <span className="material-symbols-outlined text-base">check_circle</span>
+                                    <span>Accepter la course</span>
+                                  </button>
+                                </>
+                              )}
                             </div>
-
-                            {/* Affectation personnalisée (chauffeur / véhicule) */}
-                            <button
-                              type="button"
-                              onClick={() => openAcceptModal(mission)}
-                              className="py-2 px-3 rounded-xl border border-secondary/30 text-secondary bg-secondary/5 hover:bg-secondary/15 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                              title="Choisir le chauffeur et le véhicule avant d'accepter"
-                            >
-                              <span className="material-symbols-outlined text-base">badge</span>
-                              <span className="hidden sm:inline">Affecter</span>
-                            </button>
-
-                            {/* 1-Clic Acceptation Directe */}
-                            <button
-                              type="button"
-                              onClick={() => handleDirectAccept(mission)}
-                              className="flex-1 py-2.5 px-4 rounded-xl bg-secondary text-white text-xs font-bold hover:bg-secondary/90 transition-all shadow-xs active:scale-[0.99] flex items-center justify-center gap-1.5"
-                            >
-                              <span className="material-symbols-outlined text-base">check_circle</span>
-                              <span>Accepter la course</span>
-                            </button>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </article>
                     );
                   })}

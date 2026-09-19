@@ -6,6 +6,7 @@ import { Ride, Transporter } from '../types';
 import { TransportBadge } from '../components/TransportBadge';
 import { StatusBadge } from '../components/StatusBadge';
 import { GoogleMapView } from '../components/GoogleMapView';
+import { checkRideCompleteness } from '../utils/rideCompleteness';
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -80,6 +81,13 @@ export const AdminDashboardPage: React.FC = () => {
     e.preventDefault();
     if (!assignModalRide) return;
 
+    // Contrôle strict de la complétude du dossier
+    const completeness = checkRideCompleteness(assignModalRide);
+    if (!completeness.isComplete) {
+      alert(`Action impossible : Cette demande ne peut pas être acceptée tant que les champs obligatoires ne sont pas entièrement remplis par le client :\n\n• ${completeness.missingLabels.join('\n• ')}`);
+      return;
+    }
+
     setIsSubmittingAssign(true);
     const chosenTransporter = transporters.find(t => t.id === selectedTransporterId) || transporters[0];
     if (!chosenTransporter) {
@@ -87,17 +95,22 @@ export const AdminDashboardPage: React.FC = () => {
       return;
     }
 
-    await rideService.reassignRide(assignModalRide.reference, {
-      companyName: chosenTransporter.companyName,
-      driverName: driverName || 'Chauffeur assigné',
-      driverPhone: driverPhone || chosenTransporter.phone || '',
-      vehiclePlate: vehiclePlate || '',
-      etaMinutes: 15
-    }, 'ACCEPTED');
+    try {
+      await rideService.reassignRide(assignModalRide.reference, {
+        companyName: chosenTransporter.companyName,
+        driverName: driverName || 'Chauffeur assigné',
+        driverPhone: driverPhone || chosenTransporter.phone || '',
+        vehiclePlate: vehiclePlate || '',
+        etaMinutes: 15
+      }, 'ACCEPTED');
 
-    setIsSubmittingAssign(false);
-    setAssignModalRide(null);
-    await loadData();
+      setAssignModalRide(null);
+      await loadData();
+    } catch (err: any) {
+      alert(`Erreur lors de l'attribution : ${err?.message || err}`);
+    } finally {
+      setIsSubmittingAssign(false);
+    }
   };
 
   return (
@@ -492,6 +505,28 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
             </div>
 
+            {/* Avertissement dossier incomplet */}
+            {(() => {
+              const completeness = checkRideCompleteness(assignModalRide);
+              if (!completeness.isComplete) {
+                return (
+                  <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-950 text-xs flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-rose-700 text-lg shrink-0 mt-0.5">report_problem</span>
+                    <div>
+                      <strong className="text-rose-900 font-bold block">Demande incomplète par le client :</strong>
+                      <span className="text-[11px] text-rose-800 leading-tight block mt-0.5">
+                        Champs obligatoires manquants : <strong className="text-rose-950">{completeness.missingLabels.join(', ')}</strong>.
+                      </span>
+                      <span className="text-[10px] text-rose-700 font-medium block mt-1">
+                        Cette course ne peut pas être acceptée ni attribuée tant que le client n'a pas complété l'ensemble des informations réglementaires.
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <form onSubmit={handleConfirmAssign} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
@@ -560,10 +595,15 @@ export const AdminDashboardPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingAssign}
-                  className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary-container hover:text-on-primary shadow-sm"
+                  disabled={isSubmittingAssign || !checkRideCompleteness(assignModalRide).isComplete}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                    !checkRideCompleteness(assignModalRide).isComplete
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                      : 'bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary'
+                  }`}
+                  title={!checkRideCompleteness(assignModalRide).isComplete ? 'Action bloquée : Dossier client incomplet' : undefined}
                 >
-                  {isSubmittingAssign ? 'Attribution...' : 'Confirmer l\'Attribution'}
+                  {isSubmittingAssign ? 'Attribution...' : !checkRideCompleteness(assignModalRide).isComplete ? 'Dossier incomplet (Bloqué)' : 'Confirmer l\'Attribution'}
                 </button>
               </div>
             </form>

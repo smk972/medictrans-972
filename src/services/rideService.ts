@@ -1,6 +1,7 @@
 import { Ride, RideStatus, TransportType, Transporter, Facility, AssignedTransporter, TransporterVehicle, TransporterDriver } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { EmailService } from './emailService';
+import { checkRideCompleteness } from '../utils/rideCompleteness';
 
 const STORAGE_KEY_RIDES = 'medictrans_rides_972';
 const STORAGE_KEY_TRANSPORTERS = 'medictrans_transporters_972';
@@ -588,6 +589,15 @@ export const rideService = {
       throw new Error(`Course introuvable : ${cleanRef}`);
     }
 
+    // 2. Contrôle de complétude du dossier client :
+    // La demande ne peut pas être acceptée si les champs obligatoires ne sont pas entièrement remplis par le client.
+    if (status === 'ACCEPTED') {
+      const completeness = checkRideCompleteness(currentRide);
+      if (!completeness.isComplete) {
+        throw new Error(`La demande ne peut pas être acceptée tant que les champs obligatoires ne sont pas entièrement remplis par le client : ${completeness.missingLabels.join(', ')}.`);
+      }
+    }
+
     // Autoriser la réassignation ou mise à jour (même statut) sans bloquer
     if (currentRide.status !== status) {
       const allowedNext = VALID_TRANSITIONS[currentRide.status] || [];
@@ -596,7 +606,7 @@ export const rideService = {
       }
     }
 
-    // 2. Traitement en base Supabase
+    // 3. Traitement en base Supabase
     if (isSupabaseConfigured() && supabase) {
       if (status === 'ACCEPTED') {
         const updatePayload: any = {

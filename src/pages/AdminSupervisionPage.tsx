@@ -15,6 +15,7 @@ import {
 } from '../data/supervisionSectors';
 import { TerritoryId } from '../data/nationalTerritoriesData';
 import { Search, X } from 'lucide-react';
+import { checkRideCompleteness } from '../utils/rideCompleteness';
 
 export const AdminSupervisionPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
@@ -128,32 +129,56 @@ export const AdminSupervisionPage: React.FC = () => {
 
   const handleUpdateStatus = async (newStatus: RideStatus) => {
     if (!selectedRide) return;
+    if (newStatus === 'ACCEPTED') {
+      const completeness = checkRideCompleteness(selectedRide);
+      if (!completeness.isComplete) {
+        alert(`Action refusée : Cette demande ne peut pas être acceptée tant que les champs obligatoires ne sont pas entièrement remplis par le client :\n\n• ${completeness.missingLabels.join('\n• ')}`);
+        return;
+      }
+    }
     setIsUpdatingStatus(true);
-    await rideService.updateRideStatus(selectedRide.reference, newStatus);
-    const updated = await rideService.getRideByReference(selectedRide.reference);
-    setSelectedRide(updated);
-    await loadData();
-    setIsUpdatingStatus(false);
+    try {
+      await rideService.updateRideStatus(selectedRide.reference, newStatus);
+      const updated = await rideService.getRideByReference(selectedRide.reference);
+      setSelectedRide(updated);
+      await loadData();
+    } catch (err: any) {
+      alert(`Erreur de mise à jour : ${err?.message || err}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const handleConfirmReassign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRide) return;
+
+    const completeness = checkRideCompleteness(selectedRide);
+    if (!completeness.isComplete) {
+      alert(`Action refusée : Cette demande ne peut pas être acceptée tant que les champs obligatoires ne sont pas entièrement remplis par le client :\n\n• ${completeness.missingLabels.join('\n• ')}`);
+      return;
+    }
+
     setIsUpdatingStatus(true);
     const chosen = transporters.find(t => t.id === reassignTransporterId) || transporters[0];
 
-    await rideService.reassignRide(selectedRide.reference, {
-      companyName: chosen ? chosen.companyName : (selectedRide.assignedTransporter?.companyName || 'Ambulances Agréées'),
-      driverName: reassignDriverName,
-      driverPhone: reassignDriverPhone,
-      vehiclePlate: reassignVehiclePlate,
-      etaMinutes: 15
-    }, 'ACCEPTED');
+    try {
+      await rideService.reassignRide(selectedRide.reference, {
+        companyName: chosen ? chosen.companyName : (selectedRide.assignedTransporter?.companyName || 'Ambulances Agréées'),
+        driverName: reassignDriverName,
+        driverPhone: reassignDriverPhone,
+        vehiclePlate: reassignVehiclePlate,
+        etaMinutes: 15
+      }, 'ACCEPTED');
 
-    const updated = await rideService.getRideByReference(selectedRide.reference);
-    setSelectedRide(updated);
-    await loadData();
-    setIsUpdatingStatus(false);
+      const updated = await rideService.getRideByReference(selectedRide.reference);
+      setSelectedRide(updated);
+      await loadData();
+    } catch (err: any) {
+      alert(`Erreur d'attribution : ${err?.message || err}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const urgentCount = rides.filter(r => r.status === 'PENDING' && (r.mobility.stretcher || r.transportType === 'AMBULANCE')).length;

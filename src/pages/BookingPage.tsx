@@ -149,14 +149,11 @@ export const BookingPage: React.FC = () => {
     }
     return raw;
   });
-  // NIR optionnel : Ne bloque jamais si non renseigné
+  // NIR obligatoire : Requis par la réglementation CPAM / ARS pour la prise en charge
   const nirValidation = useMemo(() => {
-    if (!nir.trim()) {
-      return { isValid: true, errorMessage: undefined, canAutoCalculateKey: false };
-    }
     return validateNir(nir);
   }, [nir]);
-  const isNirInvalid = nir.trim().length > 0 && !nirValidation.isValid;
+  const isNirInvalid = !nirValidation.isValid;
   const [nirSubmitAttempted, setNirSubmitAttempted] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [phone, setPhone] = useState(user?.phone || '');
@@ -231,9 +228,9 @@ export const BookingPage: React.FC = () => {
       setMutuelleName(res.providerName);
     }
   };
-  const isPmtMissing = hasPmt === 'already' && !uploadedPmtDoc;
   const [motif, setMotif] = useState('');
   const [doctor, setDoctor] = useState('');
+  const isPmtMissing = !uploadedPmtDoc && (!doctor.trim() || doctor.trim().length < 2);
   const handleMotifChange = (newMotif: string) => {
     setMotif(newMotif);
     const lower = newMotif.toLowerCase();
@@ -599,10 +596,54 @@ export const BookingPage: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    // Si le client indique être déjà en possession du bon de transport, le téléversement est obligatoire pour valider
+    // 1. Validation de l'identité complète du patient
+    if (!firstName.trim() || !lastName.trim() || firstName.trim().length < 2 || lastName.trim().length < 2) {
+      setBookingError("Veuillez renseigner le nom et le prénom complets du patient.");
+      const el = document.getElementById('patientFirstName') || document.getElementById('patientLastName') || document.getElementById('step-patient');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // 2. Validation du numéro de téléphone
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setBookingError("Veuillez renseigner un numéro de téléphone valide à 10 chiffres pour être joignable par le transporteur.");
+      const el = document.getElementById('patientPhone') || document.querySelector('input[type="tel"]');
+      if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // 3. Validation obligatoire du numéro de Sécurité Sociale (NIR)
+    let currentNir = nir.trim();
+    if (!currentNir) {
+      setNirSubmitAttempted(true);
+      setBookingError("Le numéro de Sécurité Sociale (NIR / Carte Vitale) est obligatoire pour valider la prise en charge et le tiers-payant CPAM.");
+      const el = document.getElementById('patientNir');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+      return;
+    }
+
+    if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
+      currentNir = autoFixNir(currentNir);
+      setNir(currentNir);
+    } else if (!nirValidation.isValid) {
+      setNirSubmitAttempted(true);
+      setBookingError(nirValidation.errorMessage || "Le numéro de Sécurité Sociale (NIR) saisi n'est pas conforme aux normes CPAM.");
+      const el = document.getElementById('patientNir');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+      return;
+    }
+
+    // 4. Validation obligatoire de la Prescription Médicale de Transport (PMT Cerfa S3138)
     if (isPmtMissing) {
       setPmtUploadAttempted(true);
-      setBookingError("Veuillez téléverser votre Prescription Médicale de Transport (Cerfa S3138) pour valider votre demande.");
+      setBookingError("La Prescription Médicale de Transport (Cerfa S3138) est obligatoire. Veuillez téléverser votre document ou renseigner le nom de votre médecin prescripteur.");
       const el = document.getElementById('block-pmt');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -610,15 +651,34 @@ export const BookingPage: React.FC = () => {
       return;
     }
 
-    // Si un NIR est renseigné, validation de conformité
-    let currentNir = nir.trim();
-    if (currentNir) {
-      if (!nirValidation.isValid && nirValidation.canAutoCalculateKey) {
-        currentNir = autoFixNir(currentNir);
-        setNir(currentNir);
-      } else if (!nirValidation.isValid) {
-        setNirSubmitAttempted(true);
-        const el = document.getElementById('patientNir');
+    // 5. Validation des adresses de transport
+    if (!pickupAddress.trim() || pickupAddress.trim().length < 5) {
+      setBookingError("Veuillez renseigner une adresse de départ complète.");
+      const el = document.getElementById('pickupAddress');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!destinationFacility.trim() || destinationFacility.trim().length < 3) {
+      setBookingError("Veuillez sélectionner un établissement de santé ou une adresse de destination.");
+      const el = document.getElementById('destinationFacility');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // 6. Validation Mutuelle si non-ALD
+    if (!isAld && hasMutuelle) {
+      if (!mutuelleNumber.trim() && !uploadedMutuelleDoc) {
+        setBookingError("Pour une prise en charge hors ALD, veuillez renseigner votre numéro de mutuelle ou téléverser votre attestation.");
+        const el = document.getElementById('patientMutuelle');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+        return;
+      }
+      if (mutuelleNumber.trim().length > 0 && !mutuelleValidation.isValid) {
+        setBookingError(mutuelleValidation.errorMessage || "Le numéro de mutuelle ou code télétransmission saisi n'est pas conforme.");
+        const el = document.getElementById('patientMutuelle');
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           el.focus();
@@ -627,27 +687,7 @@ export const BookingPage: React.FC = () => {
       }
     }
 
-    // Si une mutuelle est renseignée mais que son format n'est pas valide
-    if (!isAld && hasMutuelle && mutuelleNumber.trim().length > 0 && !mutuelleValidation.isValid) {
-      setBookingError(mutuelleValidation.errorMessage || "Le numéro de mutuelle ou code télétransmission saisi n'est pas conforme.");
-      const el = document.getElementById('patientMutuelle');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.focus();
-      }
-      return;
-    }
-
-    // Validation du numéro de téléphone
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      setBookingError("Veuillez renseigner un numéro de téléphone valide avant de finaliser votre commande.");
-      const el = document.getElementById('patientPhone') || document.querySelector('input[type="tel"]');
-      if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    // Vérification par SMS Twilio (désactivée temporairement, activable via ENABLE_PHONE_SMS_VERIFICATION)
+    // Vérification par SMS Twilio (si activée)
     if (ENABLE_PHONE_SMS_VERIFICATION && !isPhoneVerified) {
       setIsPhoneModalOpen(true);
       return;
