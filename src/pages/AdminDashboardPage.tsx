@@ -113,6 +113,23 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const handleDeleteRide = async (ride: Ride) => {
+    if (!ride) return;
+    const confirmDelete = window.confirm(
+      `Attention Action Super Admin :\n\nConfirmez-vous la suppression DÉFINITIVE de la demande #${ride.reference} (${ride.patient.firstName} ${ride.patient.lastName}) ?\n\nCette action retirera immédiatement la course de la base de données.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await rideService.deleteRide(ride.reference);
+      await loadData();
+      alert(`La demande #${ride.reference} a été supprimée avec succès.`);
+    } catch (err: any) {
+      console.error('Erreur suppression course:', err);
+      alert(`Erreur lors de la suppression : ${err?.message || err}`);
+    }
+  };
+
   return (
     <AdminLayout
       title="Supervision & Régulation Active"
@@ -309,11 +326,19 @@ export const AdminDashboardPage: React.FC = () => {
 
                       <Link
                         to="/admin/supervision"
-                        className="p-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-on-surface-variant transition-colors"
+                        className="p-2 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-on-surface-variant transition-colors cursor-pointer"
                         title="Détails"
                       >
                         <span className="material-symbols-outlined text-base">visibility</span>
                       </Link>
+
+                      <button
+                        onClick={() => handleDeleteRide(ride)}
+                        className="p-2 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-600 transition-colors cursor-pointer"
+                        title="Supprimer définitivement la demande (Super Admin)"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
                     </div>
                   </div>
                 ))}

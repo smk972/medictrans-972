@@ -856,6 +856,41 @@ export const rideService = {
     return currentRide;
   },
 
+  // Suppression définitive d'une course (Réservé au Super Admin)
+  async deleteRide(reference: string): Promise<boolean> {
+    const cleanRef = reference.trim().toUpperCase();
+
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase
+        .from('rides')
+        .delete()
+        .eq('reference', cleanRef);
+
+      if (error) {
+        throw new Error(`Erreur lors de la suppression de la course : ${error.message}`);
+      }
+    }
+
+    // Mise à jour cache local
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_RIDES);
+      if (raw) {
+        const list: Ride[] = JSON.parse(raw);
+        const filtered = list.filter(r => r.reference.toUpperCase() !== cleanRef);
+        localStorage.setItem(STORAGE_KEY_RIDES, JSON.stringify(filtered));
+      }
+      const lastBooking = localStorage.getItem('medictrans_last_booking');
+      if (lastBooking) {
+        const parsed = JSON.parse(lastBooking);
+        if (parsed.ref?.toUpperCase() === cleanRef) {
+          localStorage.removeItem('medictrans_last_booking');
+        }
+      }
+    } catch {}
+
+    return true;
+  },
+
   async reassignRide(
     reference: string, 
     assignment: AssignedTransporter, 

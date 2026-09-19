@@ -39,6 +39,7 @@ export const AdminSupervisionPage: React.FC = () => {
   const [isEditingNir, setIsEditingNir] = useState(false);
   const [editedNir, setEditedNir] = useState('');
   const [isSavingNir, setIsSavingNir] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -144,6 +145,29 @@ export const AdminSupervisionPage: React.FC = () => {
       alert(`Erreur mise à jour NIR : ${err?.message || err}`);
     } finally {
       setIsSavingNir(false);
+    }
+  };
+
+  const handleDeleteRide = async (ride: Ride) => {
+    if (!ride) return;
+    const confirmDelete = window.confirm(
+      `Attention Action Super Admin :\n\nConfirmez-vous la suppression DÉFINITIVE de la demande #${ride.reference} (${ride.patient.firstName} ${ride.patient.lastName}) ?\n\nCette action est irréversible et retirera complètement la course de la base de données.`
+    );
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await rideService.deleteRide(ride.reference);
+      if (selectedRide?.reference === ride.reference) {
+        setSelectedRide(null);
+      }
+      await loadData();
+      alert(`La demande #${ride.reference} a été supprimée avec succès.`);
+    } catch (err: any) {
+      console.error('Erreur suppression course:', err);
+      alert(`Erreur lors de la suppression : ${err?.message || err}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -479,16 +503,30 @@ export const AdminSupervisionPage: React.FC = () => {
                       </td>
 
                       <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenDrawer(ride);
-                          }}
-                          className="px-2.5 py-1 rounded-lg border border-outline-variant/50 hover:bg-primary hover:text-on-primary hover:border-primary text-xs font-bold text-primary transition-colors"
-                        >
-                          Détails
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDrawer(ride);
+                            }}
+                            className="px-2.5 py-1 rounded-lg border border-outline-variant/50 hover:bg-primary hover:text-on-primary hover:border-primary text-xs font-bold text-primary transition-colors cursor-pointer"
+                          >
+                            Détails
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isDeleting}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRide(ride);
+                            }}
+                            title="Supprimer définitivement la demande (Super Admin)"
+                            className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -517,12 +555,23 @@ export const AdminSupervisionPage: React.FC = () => {
                   Créée le {new Date(selectedRide.createdAt).toLocaleDateString()} à {new Date(selectedRide.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              <button
-                onClick={() => setSelectedRide(null)}
-                className="p-1.5 rounded-xl hover:bg-surface-container text-on-surface-variant"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => handleDeleteRide(selectedRide)}
+                  title="Supprimer définitivement cette mission (Super Admin)"
+                  className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-100/70 border border-rose-200 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-lg">delete</span>
+                </button>
+                <button
+                  onClick={() => setSelectedRide(null)}
+                  className="p-1.5 rounded-xl hover:bg-surface-container text-on-surface-variant cursor-pointer"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
             </div>
 
             {/* Drawer Content */}
@@ -747,6 +796,33 @@ export const AdminSupervisionPage: React.FC = () => {
                     Télétransmission CPAM & CGSS (National & DOM) certifiée
                   </span>
                   Numéro d'agrément BPEC / Sécurité Sociale : <span className="font-mono">BPEC-FR-2026-X8</span>. Données de santé chiffrées conformes HDS & RGPD.
+                </div>
+              </div>
+
+              {/* Super Admin Privileged Deletion Card */}
+              <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50/70 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-rose-800 font-extrabold text-xs uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-base text-rose-700">shield_person</span>
+                    <span>Privilèges Super Admin</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-rose-700 bg-rose-200/70 px-2 py-0.5 rounded-full">
+                    Contrôle Total
+                  </span>
+                </div>
+                <p className="text-xs text-rose-800/80 leading-relaxed">
+                  En tant que Super Administrateur, vous pouvez supprimer définitivement cette demande du système. La course <strong className="font-mono text-rose-950 font-bold">#{selectedRide.reference}</strong> sera totalement effacée de la base de données.
+                </p>
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => handleDeleteRide(selectedRide)}
+                    className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-base">delete_forever</span>
+                    <span>{isDeleting ? 'Suppression en cours...' : 'Supprimer définitivement la demande'}</span>
+                  </button>
                 </div>
               </div>
             </div>
