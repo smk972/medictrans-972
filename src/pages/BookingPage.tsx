@@ -2124,38 +2124,40 @@ export const BookingPage: React.FC = () => {
 
                     {!isAld && (
                       <div className="flex justify-between items-center text-on-surface-variant flex-nowrap whitespace-nowrap gap-2">
-                        <span className="truncate">Part Mutuelle {hasMutuelle ? '(35%)' : '(non couverte)'}</span>
+                        <span className="whitespace-nowrap">Part Mutuelle (35%)</span>
                         {hasMutuelle ? (
                           <span className="font-mono text-emerald-700 font-semibold shrink-0 whitespace-nowrap">-{ridePricing.mutuelleAmount.toFixed(2)}&nbsp;€</span>
                         ) : (
-                          <span className="font-mono text-amber-700 font-semibold shrink-0 whitespace-nowrap">0,00&nbsp;€</span>
+                          <span className="font-mono text-amber-800 font-semibold shrink-0 whitespace-nowrap">0,00&nbsp;€</span>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-2 flex justify-between items-center border-t border-outline-variant/30 mt-1 flex-nowrap whitespace-nowrap gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0 flex-nowrap whitespace-nowrap">
-                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs whitespace-nowrap shrink-0">
-                        Reste à charge :
+                  <div className="pt-2.5 flex justify-between items-center border-t border-outline-variant/30 mt-1 flex-nowrap whitespace-nowrap gap-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold text-xs whitespace-nowrap">
+                        Reste à charge patient
                       </span>
                       {(!isAld && !hasMutuelle) ? (
-                        <span className="text-[10px] sm:text-[11px] text-amber-800 dark:text-amber-300 font-semibold whitespace-nowrap truncate flex items-center gap-0.5">
+                        <span className="text-[10px] text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-0.5 whitespace-nowrap">
                           <span className="material-symbols-outlined text-[12px] text-amber-600 shrink-0">payments</span>
-                          Ticket modérateur 35%
+                          <span className="whitespace-nowrap">Ticket modérateur 35%</span>
                         </span>
                       ) : (
-                        <span className="text-[10px] sm:text-[11px] text-emerald-700 font-semibold flex items-center gap-0.5 whitespace-nowrap shrink-0">
+                        <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5 whitespace-nowrap">
                           <span className="material-symbols-outlined text-[12px] shrink-0">verified</span>
-                          Tiers-payant 100%
+                          <span className="whitespace-nowrap">Tiers-payant intégral</span>
                         </span>
                       )}
                     </div>
-                    <span className={`font-headline-lg text-headline-lg font-bold text-lg sm:text-xl font-mono shrink-0 whitespace-nowrap ${
-                      (!isAld && !hasMutuelle) ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-700'
-                    }`}>
-                      {ridePricing.patientRemainder.toFixed(2).replace('.', ',')}&nbsp;€
-                    </span>
+                    <div className="shrink-0 text-right whitespace-nowrap ml-auto">
+                      <span className={`font-headline-lg text-headline-lg font-black text-xl sm:text-2xl font-mono whitespace-nowrap inline-block leading-none ${
+                        (!isAld && !hasMutuelle) ? 'text-amber-800 dark:text-amber-400' : 'text-emerald-700'
+                      }`}>
+                        {ridePricing.patientRemainder.toFixed(2).replace('.', ',')}&nbsp;€
+                      </span>
+                    </div>
                   </div>
                 </div>
 
