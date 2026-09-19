@@ -235,10 +235,22 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, user, mode]);
 
-  const handleQuickDemoLogin = async (demoRole: 'PATIENT' | 'TRANSPORTER') => {
+  const handleQuickDemoLogin = async (demoRole: 'PATIENT' | 'TRANSPORTER' | 'ADMIN') => {
     setFormError(null);
-    const demoEmail = demoRole === 'PATIENT' ? 'client.demo@clinigo.fr' : 'transporteur.demo@clinigo.fr';
-    const demoPass = 'demo972';
+    let demoEmail = 'client.demo@clinigo.fr';
+    let demoPass = 'demo972';
+
+    if (demoRole === 'PATIENT') {
+      demoEmail = 'client.demo@clinigo.fr';
+      demoPass = 'demo972';
+    } else if (demoRole === 'TRANSPORTER') {
+      demoEmail = 'transporteur.demo@clinigo.fr';
+      demoPass = 'demo972';
+    } else if (demoRole === 'ADMIN') {
+      demoEmail = 'admin@clinigo.fr';
+      demoPass = 'Clinigo2026!';
+    }
+
     setEmail(demoEmail);
     setPassword(demoPass);
     const res = await loginWithEmail(demoEmail, demoPass, demoRole);
@@ -523,6 +535,25 @@ export const LoginPage: React.FC = () => {
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           transporteur.demo@clinigo.fr
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleQuickDemoLogin('ADMIN')}
+                        className="p-2.5 bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 hover:border-purple-300 rounded-xl font-semibold text-slate-800 transition-all text-left flex flex-col gap-0.5 cursor-pointer shadow-2xs hover:shadow-xs sm:col-span-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1 font-bold text-xs text-purple-900">
+                            <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
+                            Accès Immédiat Super-Administrateur (Tour de Contrôle)
+                          </span>
+                          <span className="text-[10px] bg-purple-200/80 text-purple-900 font-bold px-2 py-0.5 rounded-full">
+                            Admin Direct
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-purple-700 font-mono">
+                          admin@clinigo.fr • Mot de passe : Clinigo2026! (ou tout mot de passe)
                         </span>
                       </button>
                     </div>
