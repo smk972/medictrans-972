@@ -771,7 +771,7 @@ export const BookingPage: React.FC = () => {
                     </div>
                     <div className="flex flex-col">
                       <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
-                        Itinéraire &amp; Établissement de Soins
+                        Destination de soins
                       </h2>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
                         Suggestions Google Maps &amp; Répertoire Hospitalier National &amp; DOM
@@ -818,7 +818,6 @@ export const BookingPage: React.FC = () => {
                       isDestination={true}
                       icon="domain"
                       defaultFilter="ALL"
-                      helperText="Hôpitaux & cliniques suggérés automatiquement selon votre départ"
                       allowManualEntry={true}
                       showCategories={false}
                       showQuickCommunes={false}
@@ -887,7 +886,7 @@ export const BookingPage: React.FC = () => {
                       <span className="material-symbols-outlined">schedule</span>
                     </div>
                     <div className="flex flex-col">
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold whitespace-nowrap">
                         Rendez-vous Médical &amp; Programmation
                       </h2>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
@@ -895,9 +894,6 @@ export const BookingPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <span className="font-label-sm text-label-sm bg-surface-container text-primary px-2.5 py-1 rounded-full font-bold">
-                    Ponctualité garantie
-                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
@@ -1629,7 +1625,7 @@ export const BookingPage: React.FC = () => {
                       <span className="material-symbols-outlined">description</span>
                     </div>
                     <div className="flex flex-col">
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold whitespace-nowrap">
                         Prescription Médicale de Transport (PMT)
                       </h2>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
@@ -1686,15 +1682,9 @@ export const BookingPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                   <div className="flex flex-col gap-1.5 md:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="booking-motif" className="font-label-md text-label-md text-on-surface font-semibold text-xs">
-                        Motif de la prise en charge Sécurité Sociale
-                      </label>
-                      <span className="text-[10px] font-bold text-secondary flex items-center gap-0.5">
-                        <span className="material-symbols-outlined text-xs">edit_note</span>
-                        Champ libre (Cerfa S3138)
-                      </span>
-                    </div>
+                    <label htmlFor="booking-motif" className="font-label-md text-label-md text-on-surface font-semibold text-xs">
+                      Motif de la prise en charge Sécurité Sociale
+                    </label>
                     <input
                       type="text"
                       id="booking-motif"
@@ -1726,11 +1716,7 @@ export const BookingPage: React.FC = () => {
                 </div>
 
                 {/* Bouton de confirmation de la réservation */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-outline-variant/15 mt-2">
-                  <span className="text-[11px] text-on-surface-variant flex items-center gap-1 font-medium">
-                    <span className="material-symbols-outlined text-sm text-secondary">description</span>
-                    {hasPmt === 'already' ? 'Bon de transport Cerfa prêt' : 'PMT délivrée en consultation'}
-                  </span>
+                <div className="flex items-center justify-end pt-3 border-t border-outline-variant/15 mt-2">
                   <button
                     type="submit"
                     disabled={isSubmitting || isNirInvalid}
@@ -1848,12 +1834,12 @@ export const BookingPage: React.FC = () => {
 
                 {/* Official CPAM Tariffs & Tiers Payant breakdown */}
                 <div className="p-space-md rounded-2xl bg-surface-container-low/80 flex flex-col gap-space-xs border border-outline-variant/30 text-xs shadow-xs">
-                  <div className="flex items-center justify-between pb-1 border-b border-outline-variant/20">
-                    <span className="font-bold text-on-surface flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[15px] text-primary">receipt_long</span>
+                  <div className="flex items-center justify-between pb-1 border-b border-outline-variant/20 gap-2">
+                    <span className="font-bold text-on-surface flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm shrink-0">
+                      <span className="material-symbols-outlined text-[15px] text-primary shrink-0">receipt_long</span>
                       Tarif Conventionné Assurance Maladie
                     </span>
-                    <span className="font-extrabold text-on-surface font-mono text-sm text-primary">
+                    <span className="font-extrabold font-mono text-sm text-primary whitespace-nowrap shrink-0">
                       {ridePricing.totalPrestation.toFixed(2)} €
                     </span>
                   </div>
@@ -1912,15 +1898,13 @@ export const BookingPage: React.FC = () => {
                 {/* Submit Action */}
                 <div className="flex flex-col gap-space-sm pt-space-xs">
                   {isNirInvalid && nirSubmitAttempted && (
-                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs">
-                      <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">
-                        badge
-                      </span>
-                      <div className="flex flex-col">
-                        <strong className="text-amber-900 font-bold">Numéro de Sécurité Sociale (NIR) incomplet :</strong>
-                        <span className="text-[11px] text-amber-800 leading-tight mt-0.5">
-                          {nirValidation.errorMessage || "Le NIR doit comporter 13 chiffres valides."}
-                        </span>
+                    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-xl text-xs text-red-800 dark:text-red-200 flex items-start gap-2 animate-shake">
+                      <span className="material-symbols-outlined text-base text-red-600 shrink-0 mt-0.5">error</span>
+                      <div>
+                        <p className="font-bold">Numéro de sécurité sociale (NIR) obligatoire</p>
+                        <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5">
+                          Pour valider la prise en charge et le Tiers-Payant CPAM, veuillez saisir votre numéro de sécurité sociale à 13 ou 15 chiffres.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1941,15 +1925,20 @@ export const BookingPage: React.FC = () => {
 
                   <button
                     disabled={isSubmitting || isNirInvalid}
-                    className={`w-full h-14 transition-all text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
+                    className={`relative overflow-hidden group w-full h-14 transition-all duration-300 text-on-primary rounded-xl font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-sm shadow-lg ${
                       isNirInvalid
                         ? 'bg-outline/50 text-on-surface-variant/70 cursor-not-allowed shadow-none'
                         : priorityTransporter
                         ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:opacity-95 active:scale-[0.99] shadow-amber-600/30 hover:scale-[1.01]'
-                        : 'bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white active:scale-[0.99] shadow-lg shadow-teal-950/20 hover:scale-[1.01]'
+                        : 'bg-gradient-to-r from-teal-800 via-teal-900 to-sky-900 hover:from-teal-700 hover:to-sky-800 text-white active:scale-[0.99] shadow-lg shadow-teal-950/20 hover:scale-[1.01] hover:shadow-xl hover:shadow-teal-900/30'
                     }`}
                     type="submit"
                   >
+                    {/* Animated subtle shimmer glow on hover */}
+                    {!isNirInvalid && !isSubmitting && (
+                      <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-in-out pointer-events-none" />
+                    )}
+
                     {isSubmitting ? (
                       <span className="flex items-center gap-2">
                         <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -1962,13 +1951,13 @@ export const BookingPage: React.FC = () => {
                       </>
                     ) : priorityTransporter ? (
                       <>
-                        <span className="material-symbols-outlined text-[24px]">send</span>
                         <span className="truncate">Proposer en priorité à {priorityTransporter.transporterName}</span>
+                        <span className="material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:translate-x-1">send</span>
                       </>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined text-[24px]">send</span>
                         <span>Diffuser ma demande aux transporteurs</span>
+                        <span className="material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:translate-x-1.5">send</span>
                       </>
                     )}
                   </button>
@@ -1984,9 +1973,7 @@ export const BookingPage: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <strong className="text-on-surface">Diffusion instantanée :</strong> Alerte
-                          transmise par SMS et console télématique aux{' '}
-                          <span className="text-primary font-bold">professionnels conventionnés</span> du secteur {deptLabel}.
+                          <strong className="text-on-surface">Diffusion instantanée :</strong> Alerte transmise en temps réel aux professionnels conventionnés de votre secteur.
                         </>
                       )}
                     </p>

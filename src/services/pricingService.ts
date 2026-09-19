@@ -451,16 +451,31 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
 
   const { distanceKm, durationMinutes } = calculateNationalRoadDistance(originAddress, destinationAddress);
 
-  // Déterminer si le transport a lieu de nuit ou le week-end
-  let isNightOrWeekend = false;
+  // Déterminer la plage horaire selon la Convention Nationale CPAM :
+  // - Jour : 08h00 à 20h00
+  // - Nuit : 20h00 à 08h00
+  // - Dimanche & Fériés : du samedi 12h00 au lundi 08h00
+  let isNight = false;
+  let isSundayOrHoliday = false;
+
   if (dateTimeStr) {
     try {
       const date = new Date(dateTimeStr);
-      const hour = date.getHours();
-      const day = date.getDay();
-      isNightOrWeekend = hour < 8 || hour >= 20 || day === 0 || day === 6;
+      if (!isNaN(date.getTime())) {
+        const hour = date.getHours();
+        const minutes = date.getMinutes();
+        const timeDecimal = hour + minutes / 60;
+        const day = date.getDay(); // 0 = Dimanche, 1 = Lundi, 6 = Samedi
+
+        // Plage horaire Nuit (20h00 - 08h00)
+        isNight = timeDecimal < 8 || timeDecimal >= 20;
+
+        // Plage Dimanche & Jours fériés (du samedi 12h00 au lundi 08h00)
+        isSundayOrHoliday = day === 0 || (day === 6 && timeDecimal >= 12) || (day === 1 && timeDecimal < 8);
+      }
     } catch {
-      isNightOrWeekend = false;
+      isNight = false;
+      isSundayOrHoliday = false;
     }
   }
 
@@ -472,29 +487,85 @@ export function calculateMedicalRidePricing(params: PricingCalculationParams): R
   const surcharges: { label: string; amount: number }[] = [];
 
   if (transportType === 'AMBULANCE') {
-    baseForfait = 59.50;
-    distanceTarifKm = 2.35;
+    // Ambulance (ASSU) - Barème officiel Convention Nationale CPAM
+    baseForfait = 59.50; // Forfait départemental réglementaire
+    distanceTarifKm = 2.35; // Tarif kilométrique conventionné
 
-    if (isNightOrWeekend) {
-      surcharges.push({ label: 'Majoration Nuit / Dimanche conventionnelle', amount: 19.80 });
+    // Majorations conventionnelles CPAM selon l'horaire du transport
+    if (isNight && isSundayOrHoliday) {
+      surcharges.push({
+        label: 'Majoration Nuit & Dimanche/Férié conventionnelle CPAM (+75%)',
+        amount: Math.round(baseForfait * 0.75 * 100) / 100,
+      });
+    } else if (isNight) {
+      surcharges.push({
+        label: 'Majoration de Nuit conventionnelle CPAM (20h00 - 08h00)',
+        amount: 19.80,
+      });
+    } else if (isSundayOrHoliday) {
+      surcharges.push({
+        label: 'Majoration Dimanche & Jours Fériés CPAM (+50%)',
+        amount: Math.round(baseForfait * 0.50 * 100) / 100,
+      });
     }
-    if (mobility?.stretcher || mobility?.oxygen || mobility?.stairsWithoutElevator) {
-      surcharges.push({ label: 'Supplément Portage / Brancardage / Oxygène', amount: 15.00 });
+
+    // Suppléments conventionnels médicaux liés aux besoins du patient
+    if (mobility?.stretcher) {
+      surcharges.push({ label: 'Prise en charge Brancardage & Position allongée', amount: 15.00 });
+    }
+    if (mobility?.oxygen) {
+      surcharges.push({ label: 'Supplément Oxygénothérapie sous surveillance', amount: 15.00 });
+    }
+    if (mobility?.stairsWithoutElevator) {
+      surcharges.push({ label: 'Supplément Portage complexe / Étage sans ascenseur', amount: 10.00 });
     }
   } else if (transportType === 'VSL') {
-    baseForfait = 14.80;
-    distanceTarifKm = 1.15;
+    // VSL (Véhicule Sanitaire Léger) - Convention Nationale CPAM
+    baseForfait = 15.75; // Forfait départemental conventionné
+    distanceTarifKm = 1.15; // Tarif kilométrique conventionné
 
-    if (isNightOrWeekend) {
-      surcharges.push({ label: 'Majoration Nuit / Dimanche VSL', amount: 9.50 });
+    // Valorisation "trajet court" dégressive conventionnelle CPAM pour les transports < 19 km
+    if (effectiveDistance < 10) {
+      surcharges.push({ label: 'Valorisation CPAM Trajet Court (< 10 km)', amount: 4.50 });
+    } else if (effectiveDistance < 19) {
+      surcharges.push({ label: 'Valorisation CPAM Trajet Court (10 - 19 km)', amount: 2.50 });
+    }
+
+    // Majorations conventionnelles VSL
+    if (isNight && isSundayOrHoliday) {
+      surcharges.push({
+        label: 'Majoration Nuit & Dimanche VSL (+50%)',
+        amount: Math.round(baseForfait * 0.50 * 100) / 100,
+      });
+    } else if (isNight) {
+      surcharges.push({
+        label: 'Majoration de Nuit conventionnelle VSL (20h00 - 08h00)',
+        amount: 9.50,
+      });
+    } else if (isSundayOrHoliday) {
+      surcharges.push({
+        label: 'Majoration Dimanche VSL (+25%)',
+        amount: Math.round(baseForfait * 0.25 * 100) / 100,
+      });
     }
   } else {
-    // TAXI_CONVENTIONNE
-    baseForfait = 4.10;
+    // TAXI_CONVENTIONNE - Grille tarifaire préfectorale & convention CPAM
+    baseForfait = 4.10; // Prise en charge initiale réglementée
+    const isNightOrWeekend = isNight || isSundayOrHoliday;
+    
+    // Tarif Horokilométrique : Tarif A/C (Jour) ou B/D (Nuit / Dimanche / Férié)
     distanceTarifKm = isNightOrWeekend ? 2.35 : 1.82;
 
-    if (isNightOrWeekend) {
-      surcharges.push({ label: 'Tarif Réglementé Préfectoral B (Nuit/Week-end)', amount: 0.00 });
+    if (isNight) {
+      surcharges.push({
+        label: 'Tarif Horokilométrique Réglementé Nuit (20h00 - 08h00)',
+        amount: 0.00,
+      });
+    } else if (isSundayOrHoliday) {
+      surcharges.push({
+        label: 'Tarif Horokilométrique Réglementé Dimanche & Férié',
+        amount: 0.00,
+      });
     }
   }
 

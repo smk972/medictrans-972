@@ -176,13 +176,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     <div className="flex flex-col gap-2 w-full">
       {label && (
         <div className="flex items-center justify-between">
-          <label className="font-label-md text-label-md text-on-surface font-bold">
+          <label className="font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">
             {label} {required && <span className="text-error">*</span>}
           </label>
-          <span className="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">lock</span>
-            Hébergeur Certifié HDS
-          </span>
         </div>
       )}
 
@@ -230,10 +226,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-xs text-secondary">check_circle</span>
               PDF, JPG, PNG jusqu'à 10 Mo
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs text-secondary">verified_user</span>
-              Conforme CPAM Martinique
             </span>
           </div>
         </div>
