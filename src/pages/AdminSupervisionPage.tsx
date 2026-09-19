@@ -181,12 +181,28 @@ export const AdminSupervisionPage: React.FC = () => {
         return;
       }
     }
+
+    let cancelReason: string | undefined = undefined;
+    if (newStatus === 'CANCELLED') {
+      const promptRes = window.prompt(
+        `Veuillez indiquer le motif d'annulation (ce motif sera affiché au patient et mentionné dans l'email envoyé) :`,
+        "Indisponibilité exceptionnelle de véhicule conventionné"
+      );
+      if (promptRes === null) {
+        return; // L'administrateur a cliqué sur 'Annuler'
+      }
+      cancelReason = promptRes.trim() || "Annulation administrative";
+    }
+
     setIsUpdatingStatus(true);
     try {
-      await rideService.updateRideStatus(selectedRide.reference, newStatus);
+      await rideService.updateRideStatus(selectedRide.reference, newStatus, undefined, undefined, cancelReason);
       const updated = await rideService.getRideByReference(selectedRide.reference);
       setSelectedRide(updated);
       await loadData();
+      if (newStatus === 'CANCELLED') {
+        alert(`La course #${selectedRide.reference} a été annulée avec succès.\n\n• L'écran de suivi du patient a été actualisé en direct avec le motif d'annulation.\n• L'email de notification d'annulation a été envoyé au client.`);
+      }
     } catch (err: any) {
       alert(`Erreur de mise à jour : ${err?.message || err}`);
     } finally {

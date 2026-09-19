@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { GoogleMapView } from '../components/GoogleMapView';
@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export const TrackingPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [rides, setRides] = useState<Ride[]>([]);
@@ -33,6 +34,14 @@ export const TrackingPage: React.FC = () => {
 
   const [searchParams] = useSearchParams();
   const urlRef = searchParams.get('ref');
+
+  // Si un utilisateur non connecté arrive avec une référence explicite (?ref=MT-972-XXXX),
+  // le rediriger directement vers la page de confirmation/suivi dédiée
+  useEffect(() => {
+    if (!isAuthenticated && urlRef && urlRef.trim()) {
+      navigate(`/confirmation/${urlRef.trim().toUpperCase()}`, { replace: true });
+    }
+  }, [isAuthenticated, urlRef, navigate]);
 
   // Références et cache des statuts connus
   const isInitialLoadRef = useRef<boolean>(true);
@@ -693,7 +702,12 @@ export const TrackingPage: React.FC = () => {
                     <div className="relative bg-white rounded-3xl shadow-sm p-6 sm:p-8 flex flex-col gap-6 overflow-hidden border border-slate-200/80 card-silky">
                       <div className="flex flex-wrap items-center justify-between gap-space-sm relative z-10">
                         <div className="flex items-center gap-space-sm">
-                          {activeRide.status === 'PENDING' ? (
+                          {activeRide.status === 'CANCELLED' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-950 border border-red-300 font-label-md text-label-md font-extrabold text-xs">
+                              <span className="material-symbols-outlined text-xs text-red-700">cancel</span>
+                              DEMANDE ANNULÉE
+                            </span>
+                          ) : activeRide.status === 'PENDING' ? (
                             activeRide.isDirectRequest && !activeRide.isDirectRequestExpired && !activeRide.reassignedToPublicPool ? (
                               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-950 border border-orange-300 font-label-md text-label-md font-extrabold text-xs">
                                 <span className="w-2 h-2 rounded-full bg-orange-600 animate-ping"></span>
@@ -778,6 +792,31 @@ export const TrackingPage: React.FC = () => {
                           )}
                         </div>
                       </div>
+
+                      {activeRide.status === 'CANCELLED' && (
+                        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border-2 border-red-200 dark:border-red-800/60 text-red-950 dark:text-red-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                          <div className="flex items-start gap-3">
+                            <span className="material-symbols-outlined text-2xl text-red-600 shrink-0 mt-0.5">event_busy</span>
+                            <div>
+                              <p className="font-bold text-sm text-red-950 dark:text-red-100">Cette course a été annulée</p>
+                              <p className="text-red-800 dark:text-red-300 mt-0.5">
+                                La demande de transport a été clôturée. Aucun prélèvement n'est effectué et votre prescription médicale Cerfa reste disponible.
+                              </p>
+                              {activeRide.mobility?.notes && activeRide.mobility.notes.includes('[ANNULATION]:') && (
+                                <p className="mt-1.5 font-medium bg-white/70 dark:bg-black/30 p-2 rounded-lg border border-red-200 dark:border-red-900">
+                                  <strong>Motif d'annulation :</strong> {activeRide.mobility.notes.split('[ANNULATION]:')[1]?.trim()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Link
+                            to="/reserver"
+                            className="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shrink-0 self-stretch sm:self-center text-center shadow-xs cursor-pointer"
+                          >
+                            Nouvelle réservation
+                          </Link>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-space-md relative z-10 pt-space-xs">
                         <div className="md:col-span-8 flex flex-col gap-space-md">

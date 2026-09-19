@@ -188,6 +188,29 @@ export const ConfirmationPage: React.FC = () => {
                   colors: ['#10B981', '#3B82F6', '#6366F1'],
                 });
               } catch {}
+            } else if (found.status === 'CANCELLED') {
+              setLiveStatusToast({
+                title: 'Demande de transport annulée',
+                message: `Votre demande #${reservationRef} a été annulée.`,
+                icon: 'cancel'
+              });
+              try {
+                const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                if (AudioCtx) {
+                  const ctx = new AudioCtx();
+                  const osc = ctx.createOscillator();
+                  const gain = ctx.createGain();
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  osc.type = 'sine';
+                  osc.frequency.setValueAtTime(440, ctx.currentTime);
+                  osc.frequency.setValueAtTime(349.23, ctx.currentTime + 0.1);
+                  gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                  osc.start(ctx.currentTime);
+                  osc.stop(ctx.currentTime + 0.35);
+                }
+              } catch {}
             }
           }
 
@@ -422,29 +445,89 @@ export const ConfirmationPage: React.FC = () => {
                 <div className="hidden md:block h-0.5 flex-1 mx-space-md bg-teal-600/30 rounded-full"></div>
 
                 <div className="flex items-center gap-space-sm w-full md:w-auto">
-                  <div className={`w-9 h-9 rounded-full ${matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-900 text-white shadow-sm animate-pulse'} flex items-center justify-center`}>
+                  <div className={`w-9 h-9 rounded-full ${
+                    matchedRide?.status === 'CANCELLED'
+                      ? 'bg-red-600 text-white shadow-xs'
+                      : matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-900 text-white shadow-sm animate-pulse'
+                  } flex items-center justify-center`}>
                     <span className="material-symbols-outlined text-[18px]">
-                      {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'check' : 'task_alt'}
+                      {matchedRide?.status === 'CANCELLED'
+                        ? 'close'
+                        : matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED'
+                        ? 'check'
+                        : 'task_alt'}
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className={`text-[11px] uppercase font-bold tracking-wider ${matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? 'text-emerald-700 font-extrabold' : 'text-slate-900'}`}>
+                    <span className={`text-[11px] uppercase font-bold tracking-wider ${
+                      matchedRide?.status === 'CANCELLED'
+                        ? 'text-red-700 font-extrabold'
+                        : matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED'
+                        ? 'text-emerald-700 font-extrabold'
+                        : 'text-slate-900'
+                    }`}>
                       Étape 03
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      {matchedRide?.status === 'EN_ROUTE' ? 'Chauffeur en approche' :
-                       matchedRide?.status === 'PICKED_UP' ? 'Trajet en cours' :
-                       matchedRide?.status === 'COMPLETED' ? 'Arrivé à destination' :
-                       matchedRide?.status === 'ACCEPTED' ? 'Prise en charge confirmée' :
-                       'Régulation & Confirmation'}
+                      {matchedRide?.status === 'CANCELLED'
+                        ? 'Course Annulée'
+                        : matchedRide?.status === 'EN_ROUTE'
+                        ? 'Chauffeur en approche'
+                        : matchedRide?.status === 'PICKED_UP'
+                        ? 'Trajet en cours'
+                        : matchedRide?.status === 'COMPLETED'
+                        ? 'Arrivé à destination'
+                        : matchedRide?.status === 'ACCEPTED'
+                        ? 'Prise en charge confirmée'
+                        : 'Régulation & Confirmation'}
                     </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Top Banner Success / Status */}
-            {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
+            {/* Top Banner Success / Status / Cancellation */}
+            {matchedRide?.status === 'CANCELLED' ? (
+              <section className="relative overflow-hidden bg-gradient-to-r from-red-950 via-red-900 to-rose-950 text-white rounded-3xl p-space-lg md:p-space-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md border-2 border-red-500/40 animate-fadeIn">
+                <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-red-500 text-white px-3 py-1 rounded-full font-label-sm text-label-sm font-black uppercase tracking-wider text-xs shadow-xs flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">cancel</span>
+                      Demande de transport annulée
+                    </span>
+                    <span className="font-mono font-bold text-white/90 text-sm">
+                      #{reservationRef}
+                    </span>
+                  </div>
+                  <h1 className="font-headline-lg text-headline-lg font-black tracking-tight text-xl sm:text-2xl md:text-3xl text-white">
+                    Cette course a été annulée
+                  </h1>
+                  <p className="font-body-md text-body-md text-red-100 max-w-xl text-xs sm:text-sm leading-relaxed">
+                    Votre demande de transport médicalisé N° <strong>#{reservationRef}</strong> a bien été annulée. Aucun frais n'est engagé et votre Prescription Médicale de Transport (Cerfa S3138) reste disponible pour une prochaine réservation.
+                  </p>
+                  {matchedRide.mobility?.notes && matchedRide.mobility.notes.includes('[ANNULATION]:') && (
+                    <div className="mt-2 p-3 rounded-xl bg-black/30 border border-red-400/40 text-xs text-red-100 flex items-start gap-2">
+                      <span className="material-symbols-outlined text-base text-red-300 shrink-0 mt-0.5">info</span>
+                      <div>
+                        <strong className="text-white">Motif de l'annulation :</strong> {matchedRide.mobility.notes.split('[ANNULATION]:')[1]?.trim()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 relative z-10 w-full md:w-auto shrink-0">
+                  <Link
+                    to="/reserver"
+                    className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-white text-red-950 font-bold text-xs sm:text-sm hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base text-red-700">calendar_add_on</span>
+                    <span>Effectuer une nouvelle réservation</span>
+                  </Link>
+                </div>
+              </section>
+            ) : matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
               <section className="relative overflow-hidden bg-gradient-to-r from-[#002D52] via-[#004D40] to-[#065F46] text-white rounded-3xl p-space-lg md:p-space-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md border border-emerald-500/30">
                 <div className="relative z-10 flex flex-col gap-space-xs max-w-2xl">
                   <div className="flex items-center gap-2">
@@ -524,8 +607,34 @@ export const ConfirmationPage: React.FC = () => {
               </section>
             )}
 
-            {/* Carte Détaillée du Transporteur Assigné OU Barre de Statut En attente */}
-            {matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
+            {/* Carte Détaillée du Transporteur Assigné OU Alerte Annulation OU Barre En attente */}
+            {matchedRide?.status === 'CANCELLED' ? (
+              <div className="bg-red-50/80 dark:bg-red-950/30 rounded-3xl p-6 sm:p-7 border-2 border-red-300 dark:border-red-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">event_busy</span>
+                  </div>
+                  <div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-200 text-red-950 inline-block mb-1">
+                      Statut : Annulée
+                    </span>
+                    <h3 className="font-bold text-sm sm:text-base text-red-950 dark:text-red-100">
+                      Ce transport sanitaire ne sera pas réalisé
+                    </h3>
+                    <p className="text-xs text-red-800 dark:text-red-300 mt-0.5">
+                      Besoin d'aide ou de réorganiser votre rendez-vous ? Notre régulation reste joignable au <strong>05 96 72 00 97</strong>.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="tel:0596720097"
+                  className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:bg-red-50 shrink-0"
+                >
+                  <span className="material-symbols-outlined text-base text-red-600">call</span>
+                  <span>05 96 72 00 97</span>
+                </a>
+              </div>
+            ) : matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
               <div className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white rounded-3xl p-6 sm:p-7 border-2 border-emerald-400/90 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-all">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shrink-0">

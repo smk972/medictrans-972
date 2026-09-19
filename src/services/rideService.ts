@@ -763,23 +763,28 @@ export const rideService = {
       const pickupTime = timingUpdates?.transporterPickupTime || currentRide.transporterPickupTime || currentRide.appointmentTime || extractTime(currentRide.pickupDateTime);
       const activeTransporter = assigned || currentRide.assignedTransporter;
 
-      EmailService.sendRideStatusEmail({
-        email: patientEmail,
-        patientName,
-        reference: currentRide.reference,
-        status: status as any,
-        transporterName: activeTransporter?.companyName || (status === 'PENDING' ? 'Réseau conventionné Clinigo' : 'Ambulances Agréées Clinigo'),
-        driverName: activeTransporter?.driverName,
-        driverPhone: activeTransporter?.driverPhone,
-        vehiclePlate: activeTransporter?.vehiclePlate,
-        pickupAddress: currentRide.pickupAddress,
-        dropoffAddress: currentRide.facilityName || currentRide.dropoffAddress,
-        pickupDate,
-        pickupTime,
-        etaMinutes: activeTransporter?.etaMinutes,
-        reason: cancelReason,
-        transportType: currentRide.transportType,
-      }).catch(err => console.warn(`[rideService] Notification email statut (${status}) échouée:`, err));
+      try {
+        await EmailService.sendRideStatusEmail({
+          email: patientEmail,
+          patientName,
+          reference: currentRide.reference,
+          status: status as any,
+          transporterName: activeTransporter?.companyName || (status === 'PENDING' ? 'Réseau conventionné Clinigo' : 'Ambulances Agréées Clinigo'),
+          driverName: activeTransporter?.driverName,
+          driverPhone: activeTransporter?.driverPhone,
+          vehiclePlate: activeTransporter?.vehiclePlate,
+          pickupAddress: currentRide.pickupAddress,
+          dropoffAddress: currentRide.facilityName || currentRide.dropoffAddress,
+          pickupDate,
+          pickupTime,
+          etaMinutes: activeTransporter?.etaMinutes,
+          reason: cancelReason,
+          transportType: currentRide.transportType,
+        });
+        console.log(`[rideService] Email de statut (${status}) envoyé avec succès à ${patientEmail}`);
+      } catch (emailErr) {
+        console.warn(`[rideService] Notification email statut (${status}) échouée:`, emailErr);
+      }
     }
 
     // Diffusion multi-canaux temps réel pour mise à jour automatique immédiate des écrans clients

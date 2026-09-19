@@ -69,11 +69,19 @@ export function checkRideCompleteness(ride: Partial<Ride> | any): RideCompletene
   }
 
   // 4. Prescription Médicale de Transport (PMT / Cerfa S3138)
+  const isHospitalPmt = Boolean(
+    ride.patient?.pmtFileName?.toLowerCase().includes('hôpital') ||
+    ride.patient?.pmtFileName?.toLowerCase().includes('hopital') ||
+    ride.mobility?.notes?.toLowerCase().includes('hôpital') ||
+    ride.mobility?.notes?.toLowerCase().includes('hopital')
+  );
   const hasPmtDoc = Boolean(
     ride.patient?.pmtUploaded ||
     ride.patient?.pmtFileUrl ||
     ride.pmt_file_url ||
-    ride.patient_has_pmt
+    ride.patient_has_pmt ||
+    ride.patient?.hasPmt ||
+    isHospitalPmt
   );
   const prescriberDoctor = (ride.patient?.pmtPrescriberDoctor || ride.pmt_prescriber_doctor || '').trim();
   const hasPmt = hasPmtDoc || prescriberDoctor.length >= 2;

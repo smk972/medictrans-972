@@ -230,7 +230,9 @@ export const BookingPage: React.FC = () => {
   };
   const [motif, setMotif] = useState('');
   const [doctor, setDoctor] = useState('');
-  const isPmtMissing = !uploadedPmtDoc && (!doctor.trim() || doctor.trim().length < 2);
+  // Si le client indique déjà avoir sa PMT, le téléversement est obligatoire pour finaliser la demande.
+  // Si le client indique que le médecin lui remettra à l'hôpital ('later'), le système accepte cette variable sans blocage.
+  const isPmtMissing = hasPmt === 'already' ? !uploadedPmtDoc : false;
   const handleMotifChange = (newMotif: string) => {
     setMotif(newMotif);
     const lower = newMotif.toLowerCase();
@@ -537,11 +539,11 @@ export const BookingPage: React.FC = () => {
           mutuelleUploaded: !isAld && hasMutuelle && !!uploadedMutuelleDoc,
           mutuelleFileName: uploadedMutuelleDoc?.name,
           mutuelleFileUrl: uploadedMutuelleDoc?.dataUrl,
-          hasPmt: hasPmt === 'already' && !!uploadedPmtDoc,
+          hasPmt: true, // Le bon de transport est validé (soit déjà téléversé, soit délivré par le médecin sur place)
           pmtUploaded: hasPmt === 'already' && !!uploadedPmtDoc,
-          pmtFileName: uploadedPmtDoc?.name,
+          pmtFileName: uploadedPmtDoc?.name || (hasPmt === 'later' ? "Bon remis par le médecin à l'hôpital" : undefined),
           pmtFileUrl: uploadedPmtDoc?.dataUrl,
-          pmtPrescriberDoctor: doctor,
+          pmtPrescriberDoctor: doctor.trim() || (hasPmt === 'later' ? "Médecin hospitalier (remise sur place)" : undefined),
         },
         mobility: {
           wheelchair: mobility === 'fauteuil',
@@ -550,7 +552,7 @@ export const BookingPage: React.FC = () => {
           stairsWithoutElevator: !hasElevator && floor !== 'Rez-de-chaussée / Plain-pied',
           floorNumber: floor === 'Rez-de-chaussée / Plain-pied' ? 0 : 2,
           needsEscort: hasCompanion,
-          notes: `Motif: ${motif}`,
+          notes: `Motif: ${motif}${hasPmt === 'later' ? " | Bon de transport : remis par le médecin à l'hôpital" : ""}`,
         },
         source: 'PATIENT',
         estimatedDistanceKm: ridePricing.distanceKm,
@@ -673,7 +675,7 @@ export const BookingPage: React.FC = () => {
     // 4. Validation obligatoire de la Prescription Médicale de Transport (PMT Cerfa S3138)
     if (isPmtMissing) {
       setPmtUploadAttempted(true);
-      setBookingError("La Prescription Médicale de Transport (Cerfa S3138) est obligatoire. Veuillez téléverser votre document ou renseigner le nom de votre médecin prescripteur.");
+      setBookingError("Vous avez indiqué être déjà en possession de votre bon de transport. Veuillez téléverser votre Cerfa S3138 pour valider votre réservation.");
       const el = document.getElementById('block-pmt');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2000,6 +2002,20 @@ export const BookingPage: React.FC = () => {
                       storageKey="booking_pmt_document"
                       onDocumentChange={(doc) => setUploadedPmtDoc(doc)}
                     />
+                  </div>
+                )}
+
+                {hasPmt === 'later' && (
+                  <div className="p-3.5 bg-teal-50/80 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/40 rounded-xl text-xs text-teal-900 dark:text-teal-200 flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-base text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">
+                      local_hospital
+                    </span>
+                    <div>
+                      <p className="font-bold text-teal-950 dark:text-teal-100">Prise en charge acceptée avec bon remis à l'hôpital</p>
+                      <p className="text-[11px] text-teal-800 dark:text-teal-300 mt-0.5 leading-relaxed">
+                        Le système valide votre choix. Le bon de transport (Cerfa S3138) vous sera directement remis par le praticien ou le service hospitalier lors de votre consultation ou hospitalisation.
+                      </p>
+                    </div>
                   </div>
                 )}
 
