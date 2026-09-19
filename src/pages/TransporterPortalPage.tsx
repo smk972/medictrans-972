@@ -111,6 +111,8 @@ export const TransporterPortalPage: React.FC = () => {
   const [planningStatusFilter, setPlanningStatusFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
   const [planningSearch, setPlanningSearch] = useState('');
   const [isManualRideModalOpen, setIsManualRideModalOpen] = useState<boolean>(false);
+  const [manualRideInitialDateTime, setManualRideInitialDateTime] = useState<string | undefined>(undefined);
+  const [manualRideInitialDriverId, setManualRideInitialDriverId] = useState<string | undefined>(undefined);
   const [planningViewMode, setPlanningViewMode] = useState<'CALENDAR' | 'CHRONO' | 'DISPATCH_DRIVERS'>('CALENDAR');
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('ALL');
 
@@ -3431,10 +3433,27 @@ export const TransporterPortalPage: React.FC = () => {
                     drivers={drivers}
                     fleet={fleet}
                     transporterName={transporterName}
+                    defaultCity={baseCommune}
                     onSelectMission={(mission) => setSelectedMissionForRecap(mission)}
                     onCombineMissions={handleCombineMissions}
                     onUncombineMission={handleUncombineMission}
                     onReassignDriver={(mission) => setMissionToReassign(mission)}
+                    onAddQuickRide={(newRide) => {
+                      setRides((prev) => {
+                        const filtered = prev.filter((r) => r.reference !== newRide.reference);
+                        return [newRide, ...filtered];
+                      });
+                      setToastMessage({
+                        title: 'Course directe planifiée !',
+                        desc: `La course #${newRide.reference} (${newRide.patient.firstName} ${newRide.patient.lastName}) a été ajoutée à votre agenda.`,
+                        type: 'success'
+                      });
+                    }}
+                    onRequestOpenFullModal={(dateTimeISO, driverId) => {
+                      setManualRideInitialDateTime(dateTimeISO);
+                      setManualRideInitialDriverId(driverId);
+                      setIsManualRideModalOpen(true);
+                    }}
                   />
                 </div>
               ) : planningViewMode === 'DISPATCH_DRIVERS' ? (
@@ -6588,12 +6607,18 @@ export const TransporterPortalPage: React.FC = () => {
       {/* ========================================================================= */}
       <TransporterManualRideModal
         isOpen={isManualRideModalOpen}
-        onClose={() => setIsManualRideModalOpen(false)}
+        onClose={() => {
+          setIsManualRideModalOpen(false);
+          setManualRideInitialDateTime(undefined);
+          setManualRideInitialDriverId(undefined);
+        }}
         onSuccess={(newRide) => {
           setRides((prev) => {
             const filtered = prev.filter((r) => r.reference !== newRide.reference);
             return [newRide, ...filtered];
           });
+          setManualRideInitialDateTime(undefined);
+          setManualRideInitialDriverId(undefined);
           // Réinitialisation immédiate des filtres pour affichage sans friction
           setPlanningHorizon('ALL');
           setSelectedPlanningDate(null);
@@ -6612,6 +6637,8 @@ export const TransporterPortalPage: React.FC = () => {
         transporterName={transporterName}
         defaultCity={baseCommune}
         defaultTerritory={baseTerritory}
+        initialDateTime={manualRideInitialDateTime}
+        initialDriverId={manualRideInitialDriverId}
       />
 
       {/* ========================================================================= */}

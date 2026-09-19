@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { PhoneInput } from './PhoneInput';
 import { FileUpload } from './FileUpload';
@@ -16,6 +16,8 @@ interface TransporterManualRideModalProps {
   transporterName: string;
   defaultCity?: string;
   defaultTerritory?: string;
+  initialDateTime?: string;
+  initialDriverId?: string;
 }
 
 export const TransporterManualRideModal: React.FC<TransporterManualRideModalProps> = ({
@@ -26,7 +28,9 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
   fleet,
   transporterName,
   defaultCity = 'Fort-de-France',
-  defaultTerritory = '972'
+  defaultTerritory = '972',
+  initialDateTime,
+  initialDriverId
 }) => {
   // 1. Patient
   const [firstName, setFirstName] = useState('');
@@ -91,6 +95,18 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
       if (matchVehicle) setSelectedPlate(matchVehicle.plate);
     }
   };
+
+  useEffect(() => {
+    if (initialDateTime && isOpen) {
+      setPickupDateTime(initialDateTime);
+    }
+  }, [initialDateTime, isOpen]);
+
+  useEffect(() => {
+    if (initialDriverId && isOpen) {
+      handleDriverChange(initialDriverId);
+    }
+  }, [initialDriverId, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Ride, TransportType } from '../types';
+import { rideService } from '../services/rideService';
 
 export interface DriverInfo {
   id: string;
@@ -30,61 +31,106 @@ interface ConflictGroup {
   reason: string;
 }
 
-interface TransporterPlanningCalendarProps {
+export interface TransporterPlanningCalendarProps {
   missions: Ride[];
   drivers: DriverInfo[];
   fleet: FleetVehicle[];
   transporterName: string;
+  defaultCity?: string;
   onSelectMission: (mission: Ride) => void;
   onUpdateMission?: (updatedMission: Ride) => void;
   onCombineMissions?: (missionIds: string[], driverName: string, driverPhone: string, vehiclePlate: string) => void;
   onUncombineMission?: (combinedGroupId: string) => void;
   onReassignDriver?: (mission: Ride) => void;
+  onAddQuickRide?: (newRide: Ride) => void;
+  onRequestOpenFullModal?: (dateTimeISO: string, driverId?: string) => void;
 }
 
 type CalendarViewMode = 'WEEK' | 'DAY' | 'DRIVERS';
 
 const START_HOUR = 6; // 06:00
 const END_HOUR = 21; // 21:00
-const TOTAL_HOURS = END_HOUR - START_HOUR; // 15 hours
+const TOTAL_HOURS = END_HOUR - START_HOUR; // 15 heures
 const TOTAL_MINUTES = TOTAL_HOURS * 60; // 900 minutes
+
+const COMMON_FACILITIES = [
+  'CHU de Martinique - P. Zobda Quitman',
+  'Clinique Sainte-Marie (Schoelcher)',
+  'Clinique Saint-Paul (Clairière)',
+  'Hôpital Pierre Zobda-Quitman',
+  'Centre de dialyse Meynard',
+  'Hôpital Maurice Despinoy'
+];
 
 export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarProps> = ({
   missions,
   drivers,
   fleet,
   transporterName,
+  defaultCity = 'Fort-de-France',
   onSelectMission,
   onUpdateMission,
   onCombineMissions,
   onUncombineMission,
   onReassignDriver,
+  onAddQuickRide,
+  onRequestOpenFullModal,
 }) => {
-  // Navigation & View State
+  // Navigation & Mode d'affichage
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>('WEEK');
   const [filterType, setFilterType] = useState<'ALL' | TransportType>('ALL');
   const [filterDriverId, setFilterDriverId] = useState<string>('ALL');
 
-  // Conflict Resolution Modal State
+  // Conflits & Arbitrage
   const [activeConflict, setActiveConflict] = useState<ConflictGroup | null>(null);
   const [selectedCombineDriverId, setSelectedCombineDriverId] = useState<string>('');
   const [combineSuccessToast, setCombineSuccessToast] = useState<string | null>(null);
 
-  // Helper date calculations
+  // État du créneau vide cliqué pour ajout rapide
+  const [slotToCreate, setSlotToCreate] = useState<{
+    date: Date;
+    dateKey: string;
+    hour: number;
+    minute: number;
+    timeStr: string;
+    dateTimeISO: string;
+    driverId?: string;
+  } | null>(null);
+
+  // Champs du formulaire rapide
+  const [quickPatientName, setQuickPatientName] = useState('');
+  const [quickPatientPhone, setQuickPatientPhone] = useState('');
+  const [quickTransportType, setQuickTransportType] = useState<TransportType>('VSL');
+  const [quickPickupAddress, setQuickPickupAddress] = useState('');
+  const [quickPickupCity, setQuickPickupCity] = useState(defaultCity);
+  const [quickDropoffAddress, setQuickDropoffAddress] = useState('CHU Pierre Zobda Quitman');
+  const [quickDropoffCity, setQuickDropoffCity] = useState('Fort-de-France');
+  const [quickDurationMin, setQuickDurationMin] = useState(45);
+  const [quickDriverId, setQuickDriverId] = useState<string>('');
+  const [quickError, setQuickError] = useState<string | null>(null);
+  const [isSubmittingQuick, setIsSubmittingQuick] = useState(false);
+
+  // Heure actuelle en temps réel (pour la ligne rouge d'indicateur)
+  const [nowDate, setNowDate] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNowDate(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const today = useMemo(() => {
     const t = new Date();
     t.setHours(0, 0, 0, 0);
     return t;
   }, []);
 
-  // Compute Week start (Monday) and 7 days
+  // Calcul du premier jour de la semaine affichée (Lundi)
   const weekDays = useMemo(() => {
-    const curr = new Date(currentDate);
-    const dayOfWeek = curr.getDay(); // 0 is Sunday, 1 is Monday...
-    const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
-    const monday = new Date(curr);
-    monday.setDate(curr.getDate() + diffToMonday);
+    const base = new Date(currentDate);
+    const day = base.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(base);
+    monday.setDate(base.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
 
     const days: Date[] = [];
@@ -96,142 +142,125 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     return days;
   }, [currentDate]);
 
-  // Current Day for DAY view
+  // Jour unique sélectionné (pour vue Jour ou Ressources)
   const singleDay = useMemo(() => {
     const d = new Date(currentDate);
     d.setHours(0, 0, 0, 0);
     return d;
   }, [currentDate]);
 
-  // Format date keys (YYYY-MM-DD)
+  // Formatage standard des clés de date (YYYY-MM-DD)
   const formatDateKey = (d: Date) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  // Navigate functions
-  const handlePrev = () => {
-    const nextDate = new Date(currentDate);
-    if (viewMode === 'WEEK') {
-      nextDate.setDate(nextDate.getDate() - 7);
-    } else {
-      nextDate.setDate(nextDate.getDate() - 1);
-    }
-    setCurrentDate(nextDate);
-  };
-
-  const handleNext = () => {
-    const nextDate = new Date(currentDate);
-    if (viewMode === 'WEEK') {
-      nextDate.setDate(nextDate.getDate() + 7);
-    } else {
-      nextDate.setDate(nextDate.getDate() + 1);
-    }
-    setCurrentDate(nextDate);
-  };
-
-  const handleToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  // Filter missions
+  // Filtrage des courses
   const filteredMissions = useMemo(() => {
     return missions.filter((m) => {
-      if (filterType !== 'ALL' && m.transportType !== filterType) {
-        return false;
-      }
+      if (filterType !== 'ALL' && m.transportType !== filterType) return false;
       if (filterDriverId !== 'ALL') {
-        const driver = drivers.find((d) => d.id === filterDriverId);
-        if (!driver) return false;
-        const assignedName = m.assignedTransporter?.driverName?.toLowerCase() || '';
-        const matches =
-          assignedName.includes(driver.firstName.toLowerCase()) ||
-          assignedName.includes(driver.lastName.toLowerCase());
-        if (!matches) return false;
+        const assignedDriverName = (m.assignedTransporter?.driverName || '').toLowerCase();
+        const targetDriver = drivers.find((d) => d.id === filterDriverId);
+        if (targetDriver) {
+          const matchFirstName = assignedDriverName.includes(targetDriver.firstName.toLowerCase());
+          const matchLastName = assignedDriverName.includes(targetDriver.lastName.toLowerCase());
+          if (!matchFirstName && !matchLastName) return false;
+        } else {
+          return false;
+        }
       }
       return true;
     });
   }, [missions, filterType, filterDriverId, drivers]);
 
-  // CONFLICT DETECTION ENGINE
-  // Two missions conflict if:
-  // 1. Same date
-  // 2. Time intervals overlap: [Start, Start + Duration]
-  // 3. AND (Same driver/vehicle OR collision of unassigned missions)
-  // 4. AND not already in the same combinedGroupId!
-  const detectedConflicts = useMemo(() => {
+  // Algorithme de détection des conflits de courses
+  const detectedConflicts = useMemo<ConflictGroup[]>(() => {
     const conflictMap = new Map<string, ConflictGroup>();
-    const missionsByDate = new Map<string, Ride[]>();
+    const missionsByDay = new Map<string, Ride[]>();
 
     filteredMissions.forEach((m) => {
-      const d = new Date(m.pickupDateTime);
-      const dateKey = formatDateKey(d);
-      if (!missionsByDate.has(dateKey)) {
-        missionsByDate.set(dateKey, []);
+      const dateKey = formatDateKey(new Date(m.pickupDateTime));
+      if (!missionsByDay.has(dateKey)) {
+        missionsByDay.set(dateKey, []);
       }
-      missionsByDate.get(dateKey)!.push(m);
+      missionsByDay.get(dateKey)!.push(m);
     });
 
-    missionsByDate.forEach((dayMissions, dateKey) => {
-      for (let i = 0; i < dayMissions.length; i++) {
-        for (let j = i + 1; j < dayMissions.length; j++) {
-          const m1 = dayMissions[i];
-          const m2 = dayMissions[j];
+    missionsByDay.forEach((dayRides, dateKey) => {
+      if (dayRides.length < 2) return;
 
-          // If already in the same combined group, they are deliberately merged!
-          if (m1.combinedGroupId && m2.combinedGroupId && m1.combinedGroupId === m2.combinedGroupId) {
+      const intervals = dayRides.map((r) => {
+        const start = new Date(r.pickupDateTime).getTime();
+        const durationMin = r.estimatedDurationMin || 45;
+        const end = start + durationMin * 60 * 1000;
+        return {
+          ride: r,
+          start,
+          end,
+          driverName: r.assignedTransporter?.driverName?.trim().toLowerCase() || '',
+          driverId: r.assignedTransporter?.driverName || 'UNASSIGNED',
+          isShared: !!r.isSharedTransport || !!r.combinedGroupId,
+          combinedGroupId: r.combinedGroupId,
+        };
+      });
+
+      for (let i = 0; i < intervals.length; i++) {
+        for (let j = i + 1; j < intervals.length; j++) {
+          const a = intervals[i];
+          const b = intervals[j];
+
+          // Deux courses déjà associées dans le même groupe partagé ne sont pas en conflit
+          if (a.combinedGroupId && b.combinedGroupId && a.combinedGroupId === b.combinedGroupId) {
             continue;
           }
 
-          const t1Start = new Date(m1.pickupDateTime).getTime();
-          const dur1Min = m1.estimatedDurationMin || 45;
-          const t1End = t1Start + (dur1Min + 15) * 60000; // 15 min buffer
+          const hasSameDriver = a.driverName && b.driverName && a.driverName === b.driverName;
+          const bothUnassigned = !a.driverName && !b.driverName;
+          const driversCollide = hasSameDriver || bothUnassigned;
 
-          const t2Start = new Date(m2.pickupDateTime).getTime();
-          const dur2Min = m2.estimatedDurationMin || 45;
-          const t2End = t2Start + (dur2Min + 15) * 60000;
+          if (!driversCollide) continue;
 
-          // Interval overlap check: start1 < end2 && start2 < end1
-          const isOverlap = t1Start < t2End && t2Start < t1End;
+          // Chevauchement temporel : Max(startA, startB) < Min(endA, endB)
+          const overlap = Math.max(a.start, b.start) < Math.min(a.end, b.end);
+          if (overlap) {
+            const conflictKey = `${dateKey}-${a.driverId}-${Math.min(a.start, b.start)}`;
+            const ridesInConflict = [a.ride, b.ride];
 
-          if (isOverlap) {
-            // Check driver clash or shared schedule
-            const d1 = m1.assignedTransporter?.driverName;
-            const d2 = m2.assignedTransporter?.driverName;
-            const sameDriver = d1 && d2 && d1 === d2;
-            const bothUnassigned = !d1 && !d2;
+            const hasAmbulance = ridesInConflict.some((r) => r.transportType === 'AMBULANCE');
+            const canCombine = !hasAmbulance && ridesInConflict.length <= 3;
 
-            // Flag conflict if same driver or simultaneous unassigned
-            if (sameDriver || bothUnassigned || (!d1 && d2) || (d1 && !d2)) {
-              const conflictKey = [m1.id, m2.id].sort().join('_');
-              const hasAmbulance = m1.transportType === 'AMBULANCE' || m2.transportType === 'AMBULANCE';
-              const canCombine = !hasAmbulance;
+            const startTimeStr = new Date(Math.min(a.start, b.start)).toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+            const endTimeStr = new Date(Math.max(a.end, b.end)).toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
 
-              const timeRange = `${new Date(Math.min(t1Start, t2Start)).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })} - ${new Date(Math.max(t1End, t2End)).toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}`;
+            const reason = hasSameDriver
+              ? `Le chauffeur ${a.ride.assignedTransporter?.driverName} a 2 courses programmées sur le même intervalle horaire.`
+              : `Deux courses simultanées n'ont pas encore de chauffeur attribué et se chevauchent.`;
 
-              let reason = '';
-              if (hasAmbulance) {
-                reason = "Chevauchement incluant une Ambulance. L'Assurance Maladie interdit le transport partagé sous brancardage.";
-              } else if (sameDriver) {
-                reason = `Même chauffeur (${d1}) affecté sur deux courses simultanées.`;
-              } else {
-                reason = 'Deux transports programmés sur le même créneau horaire.';
-              }
-
+            if (!conflictMap.has(conflictKey)) {
               conflictMap.set(conflictKey, {
                 id: conflictKey,
                 dateKey,
-                timeRange,
-                missions: [m1, m2],
+                timeRange: `${startTimeStr} - ${endTimeStr}`,
+                missions: ridesInConflict,
                 hasAmbulance,
                 canCombine,
                 reason,
               });
+            } else {
+              const existing = conflictMap.get(conflictKey)!;
+              ridesInConflict.forEach((r) => {
+                if (!existing.missions.some((m) => m.id === r.id)) {
+                  existing.missions.push(r);
+                }
+              });
+              existing.hasAmbulance = existing.missions.some((m) => m.transportType === 'AMBULANCE');
+              existing.canCombine = !existing.hasAmbulance && existing.missions.length <= 3;
             }
           }
         }
@@ -241,7 +270,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     return Array.from(conflictMap.values());
   }, [filteredMissions]);
 
-  // Quick lookup map: missionId -> conflict group
+  // Dictionnaire direct pour retrouver si une course est en conflit
   const missionConflictMap = useMemo(() => {
     const map = new Map<string, ConflictGroup>();
     detectedConflicts.forEach((cg) => {
@@ -252,30 +281,184 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     return map;
   }, [detectedConflicts]);
 
-  // Execute Combination into Transport Partagé (max 3)
+  // Actions de navigation
+  const handlePrev = () => {
+    const d = new Date(currentDate);
+    if (viewMode === 'WEEK') {
+      d.setDate(d.getDate() - 7);
+    } else {
+      d.setDate(d.getDate() - 1);
+    }
+    setCurrentDate(d);
+  };
+
+  const handleNext = () => {
+    const d = new Date(currentDate);
+    if (viewMode === 'WEEK') {
+      d.setDate(d.getDate() + 7);
+    } else {
+      d.setDate(d.getDate() + 1);
+    }
+    setCurrentDate(d);
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Clic sur un espace vide du calendrier pour planifier
+  const handleSlotClick = (dateObj: Date, hour: number, minute: number, driverId?: string) => {
+    const dateCopy = new Date(dateObj);
+    dateCopy.setHours(hour, minute, 0, 0);
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dateKey = formatDateKey(dateCopy);
+    const timeStr = `${pad(hour)}:${pad(minute)}`;
+    const dateTimeISO = `${dateKey}T${timeStr}`;
+
+    setSlotToCreate({
+      date: dateCopy,
+      dateKey,
+      hour,
+      minute,
+      timeStr,
+      dateTimeISO,
+      driverId
+    });
+
+    // Initialiser les champs rapides
+    setQuickPatientName('');
+    setQuickPatientPhone('');
+    setQuickTransportType('VSL');
+    setQuickPickupAddress(defaultCity);
+    setQuickPickupCity(defaultCity);
+    setQuickDropoffAddress('CHU Pierre Zobda Quitman');
+    setQuickDropoffCity('Fort-de-France');
+    setQuickDurationMin(45);
+    setQuickDriverId(driverId || (drivers.length > 0 ? drivers[0].id : ''));
+    setQuickError(null);
+  };
+
+  // Validation de l'ajout rapide
+  const handleConfirmQuickAdd = async () => {
+    if (!slotToCreate) return;
+
+    if (!quickPatientName.trim()) {
+      setQuickError('Veuillez renseigner le nom ou prénom du patient.');
+      return;
+    }
+
+    setIsSubmittingQuick(true);
+    setQuickError(null);
+
+    const nameParts = quickPatientName.trim().split(' ');
+    const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : 'Patient';
+
+    const targetDriver = drivers.find((d) => d.id === quickDriverId);
+    const targetPlate = targetDriver?.assignedVehiclePlate || fleet[0]?.plate || 'GH-972-MQ';
+
+    const newRef = `DIR-${Date.now().toString().slice(-6)}`;
+    const newRide: Ride = {
+      id: `ride-quick-${Date.now()}`,
+      reference: newRef,
+      status: 'ACCEPTED',
+      source: 'TRANSPORTER_DIRECT',
+      isRoundTrip: false,
+      createdAt: new Date().toISOString(),
+      pickupDateTime: slotToCreate.dateTimeISO,
+      estimatedDurationMin: quickDurationMin,
+      transportType: quickTransportType,
+      mobility: {
+        wheelchair: false,
+        stretcher: quickTransportType === 'AMBULANCE',
+        oxygen: false,
+        stairsWithoutElevator: false,
+        floorNumber: 0,
+        needsEscort: false,
+        notes: 'Course directe planifiée depuis le Google Agenda'
+      },
+      patient: {
+        firstName,
+        lastName,
+        phone: quickPatientPhone.trim() || '06 96 00 00 00',
+        email: 'contact@patient.mq',
+        address: quickPickupAddress.trim() || defaultCity,
+        city: quickPickupCity.trim() || defaultCity,
+        postalCode: '97200',
+        isAld: true,
+        hasPmt: true,
+        birthDate: '1980-01-01'
+      },
+      pickupAddress: quickPickupAddress.trim() || defaultCity,
+      pickupCity: quickPickupCity.trim() || defaultCity,
+      dropoffAddress: quickDropoffAddress.trim() || 'CHU Pierre Zobda Quitman',
+      dropoffCity: quickDropoffCity.trim() || 'Fort-de-France',
+      facilityName: quickDropoffAddress.trim() || 'CHU Pierre Zobda Quitman',
+      estimatedDistanceKm: 14,
+      assignedTransporter: {
+        companyName: transporterName,
+        driverName: targetDriver ? `${targetDriver.firstName} ${targetDriver.lastName}` : transporterName,
+        driverPhone: targetDriver?.phone || '06 96 00 00 00',
+        vehiclePlate: targetPlate,
+        etaMinutes: 15
+      }
+    };
+
+    try {
+      if (onAddQuickRide) {
+        onAddQuickRide(newRide);
+      } else if (onUpdateMission) {
+        onUpdateMission(newRide);
+      }
+
+      try {
+        await rideService.createRide(newRide);
+      } catch (err) {
+        console.warn('Sauvegarde service ride:', err);
+      }
+
+      setCombineSuccessToast(`Course #${newRef} (${firstName} ${lastName}) planifiée avec succès à ${slotToCreate.timeStr} !`);
+      setTimeout(() => setCombineSuccessToast(null), 5000);
+      setSlotToCreate(null);
+    } catch (err: any) {
+      setQuickError(err.message || "Erreur lors de l'enregistrement de la course.");
+    } finally {
+      setIsSubmittingQuick(false);
+    }
+  };
+
+  // Basculer vers le formulaire complet
+  const handleOpenFullForm = () => {
+    if (!slotToCreate) return;
+    const dt = slotToCreate.dateTimeISO;
+    const drv = slotToCreate.driverId;
+    setSlotToCreate(null);
+    if (onRequestOpenFullModal) {
+      onRequestOpenFullModal(dt, drv);
+    }
+  };
+
+  // Confirmation de la combinaison en transport partagé
   const handleConfirmCombination = (group: ConflictGroup) => {
     if (group.hasAmbulance) {
       alert("La réglementation interdit formellement le transport partagé pour les ambulances.");
       return;
     }
-
     if (group.missions.length > 3) {
       alert("Le transport partagé est limité à un maximum de 3 patients simultanés par véhicule.");
       return;
     }
 
-    // Determine driver to assign
     const driver = drivers.find((d) => d.id === selectedCombineDriverId) || drivers[0];
     const driverName = driver ? `${driver.firstName} ${driver.lastName}` : transporterName;
     const driverPhone = driver?.phone || '0596 00 00 00';
     const vehiclePlate = driver?.assignedVehiclePlate || fleet[0]?.plate || 'GH-972-MQ';
-
     const missionIds = group.missions.map((m) => m.id);
 
     if (onCombineMissions) {
       onCombineMissions(missionIds, driverName, driverPhone, vehiclePlate);
     } else {
-      // Fallback local update if parent didn't provide callback
       const newGroupId = `GRP-${Date.now().toString().slice(-6)}`;
       group.missions.forEach((m) => {
         const updated: Ride = {
@@ -298,13 +481,13 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     }
 
     setCombineSuccessToast(
-      `Les ${group.missions.length} courses ont été combinées avec succès en transport partagé (${group.missions.length}/3) !`
+      `Les ${group.missions.length} courses ont été combinées en transport partagé (${group.missions.length}/3) !`
     );
     setTimeout(() => setCombineSuccessToast(null), 5000);
     setActiveConflict(null);
   };
 
-  // Dissolve/Uncombine a group
+  // Dissoudre un groupe partagé
   const handleDissolveGroup = (combinedGroupId: string) => {
     if (onUncombineMission) {
       onUncombineMission(combinedGroupId);
@@ -323,87 +506,78 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
           }
         });
     }
-    setCombineSuccessToast("Le transport partagé a été dissocié en courses individuelles distinctes.");
+    setCombineSuccessToast("Le transport partagé a été dissocié en trajets individuels.");
     setTimeout(() => setCombineSuccessToast(null), 4000);
   };
 
-  // Render Header of the Calendar
+  // =========================================================================
+  // 1. EN-TÊTE PROFESSIONNEL (GOOGLE AGENDA PREMIUM)
+  // =========================================================================
   const renderCalendarHeader = () => {
     let titleStr = '';
     if (viewMode === 'WEEK') {
       const start = weekDays[0];
       const end = weekDays[6];
-      titleStr = `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+      titleStr = `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
     } else {
       titleStr = singleDay.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       titleStr = titleStr.charAt(0).toUpperCase() + titleStr.slice(1);
     }
 
     return (
-      <div className="bg-surface-container-lowest rounded-3xl p-4 sm:p-5 border border-outline-variant/30 shadow-xs flex flex-col gap-4">
-        {/* Top bar: Navigation + Title + Views */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col gap-4">
+        {/* Ligne 1 : Navigation temporelle + Titre + Boutons Vues + Action Nouvelle Course */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Today Button */}
+            {/* Bouton Aujourd'hui */}
             <button
               type="button"
               onClick={handleToday}
-              className="px-3.5 py-1.5 rounded-xl border border-outline-variant/50 hover:bg-surface-container text-on-surface text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Aujourd'hui
+              <span className="material-symbols-outlined text-sm text-blue-600">today</span>
+              <span>Aujourd'hui</span>
             </button>
 
-            {/* Prev / Next */}
-            <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/20">
+            {/* Chevrons Précédent / Suivant */}
+            <div className="flex items-center bg-slate-100/90 rounded-xl p-0.5 border border-slate-200/60">
               <button
                 type="button"
                 onClick={handlePrev}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white hover:text-slate-900 transition-all cursor-pointer"
                 title="Période précédente"
-                className="w-8 h-8 rounded-lg hover:bg-surface-container text-on-surface flex items-center justify-center transition-all cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">chevron_left</span>
+                <span className="material-symbols-outlined text-base">chevron_left</span>
               </button>
               <button
                 type="button"
                 onClick={handleNext}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white hover:text-slate-900 transition-all cursor-pointer"
                 title="Période suivante"
-                className="w-8 h-8 rounded-lg hover:bg-surface-container text-on-surface flex items-center justify-center transition-all cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">chevron_right</span>
+                <span className="material-symbols-outlined text-base">chevron_right</span>
               </button>
             </div>
 
-            {/* Date Title */}
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
-              <h2 className="text-base sm:text-lg font-black text-on-surface tracking-tight capitalize">
-                {titleStr}
-              </h2>
-            </div>
+            {/* Titre Editorial de la période */}
+            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight capitalize flex items-center gap-2">
+              <span>{titleStr}</span>
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+                {filteredMissions.length} course{filteredMissions.length > 1 ? 's' : ''}
+              </span>
+            </h2>
           </div>
 
-          {/* View Mode Switcher + Conflict pill */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {detectedConflicts.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveConflict(detectedConflicts[0])}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-black animate-pulse hover:bg-rose-100 transition-all cursor-pointer shadow-xs"
-                title="Cliquez pour afficher et résoudre les conflits horaires"
-              >
-                <span className="material-symbols-outlined text-sm text-rose-600">warning</span>
-                <span>{detectedConflicts.length} conflit{detectedConflicts.length > 1 ? 's' : ''} détecté{detectedConflicts.length > 1 ? 's' : ''}</span>
-              </button>
-            )}
-
-            <div className="inline-flex p-1 bg-surface-container-low rounded-2xl border border-outline-variant/30 text-xs">
+          {/* Contrôle Segmenté des 3 Vues (Style macOS / iOS) + Bouton Nouvelle course */}
+          <div className="flex items-center gap-2.5 self-start lg:self-auto flex-wrap">
+            <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
               <button
                 type="button"
                 onClick={() => setViewMode('WEEK')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'WEEK'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-on-surface-variant hover:text-on-surface'
+                    ? 'bg-white text-slate-950 shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">calendar_view_week</span>
@@ -412,123 +586,133 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               <button
                 type="button"
                 onClick={() => setViewMode('DAY')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'DAY'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-on-surface-variant hover:text-on-surface'
+                    ? 'bg-white text-slate-950 shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span className="material-symbols-outlined text-sm">calendar_view_day</span>
+                <span className="material-symbols-outlined text-sm">view_day</span>
                 <span>Jour</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('DRIVERS')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'DRIVERS'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-on-surface-variant hover:text-on-surface'
+                    ? 'bg-white text-slate-950 shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">badge</span>
                 <span>Chauffeurs ({drivers.length})</span>
               </button>
             </div>
+
+            {/* Bouton Créer course */}
+            <button
+              type="button"
+              onClick={() => handleSlotClick(currentDate, 8, 30)}
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shrink-0"
+              title="Cliquer pour planifier une course sur le calendrier"
+            >
+              <span className="material-symbols-outlined text-sm">add_circle</span>
+              <span>+ Nouvelle Course</span>
+            </button>
           </div>
         </div>
 
-        {/* Filters Bar: Transport Type + Drivers */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-outline-variant/15 text-xs">
-          {/* Type filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Type :</span>
+        {/* Ligne 2 : Filtres rapides par type de transport & Sélection chauffeur & Alerte Conflits */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+          {/* Pills Types */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <span className="text-[11px] font-bold text-slate-400 mr-1 uppercase tracking-wider shrink-0">Type :</span>
             {[
-              { key: 'ALL', label: 'Tous', icon: 'apps' },
-              { key: 'AMBULANCE', label: 'Ambulance', icon: 'ambulance' },
-              { key: 'VSL', label: 'VSL', icon: 'directions_car' },
-              { key: 'TAXI_CONVENTIONNE', label: 'Taxi CPAM', icon: 'local_taxi' },
+              { key: 'ALL', label: 'Tous', color: 'bg-slate-900 text-white' },
+              { key: 'AMBULANCE', label: 'Ambulances', dot: 'bg-amber-500', color: 'bg-amber-500 text-white' },
+              { key: 'VSL', label: 'VSL', dot: 'bg-blue-600', color: 'bg-blue-600 text-white' },
+              { key: 'TAXI_CONVENTIONNE', label: 'Taxis CPAM', dot: 'bg-emerald-600', color: 'bg-emerald-600 text-white' },
             ].map((t) => {
               const active = filterType === t.key;
+              const count = t.key === 'ALL'
+                ? missions.length
+                : missions.filter(m => m.transportType === t.key).length;
+
               return (
                 <button
                   key={t.key}
                   type="button"
                   onClick={() => setFilterType(t.key as any)}
-                  className={`px-2.5 py-1 rounded-xl font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
                     active
-                      ? 'bg-primary text-white shadow-2xs'
-                      : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+                      ? `${t.color} shadow-xs font-bold`
+                      : 'bg-slate-100/80 hover:bg-slate-200/70 text-slate-700'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-sm">{t.icon}</span>
+                  {t.dot && !active && <span className={`w-2 h-2 rounded-full ${t.dot}`}></span>}
                   <span>{t.label}</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                    active ? 'bg-white/25 text-white' : 'bg-white text-slate-600'
+                  }`}>
+                    {count}
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Driver filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-on-surface-variant shrink-0">Filtrer par chauffeur :</span>
-            <select
-              value={filterDriverId}
-              onChange={(e) => setFilterDriverId(e.target.value)}
-              className="px-2.5 py-1 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs font-bold text-on-surface outline-none cursor-pointer"
-            >
-              <option value="ALL">Tous les chauffeurs</option>
-              {drivers.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Sans véh.'})
-                </option>
-              ))}
-            </select>
+          {/* Droite : Sélecteur Chauffeur & Alerte Conflits */}
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            {detectedConflicts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveConflict(detectedConflicts[0])}
+                className="px-3 py-1 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer animate-pulse"
+                title="Conflits de programmation détectés. Cliquez pour réguler."
+              >
+                <span className="material-symbols-outlined text-sm text-rose-600">warning</span>
+                <span>{detectedConflicts.length} conflit{detectedConflicts.length > 1 ? 's' : ''} détecté{detectedConflicts.length > 1 ? 's' : ''}</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400 shrink-0">Chauffeur :</span>
+              <select
+                value={filterDriverId}
+                onChange={(e) => setFilterDriverId(e.target.value)}
+                className="px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 outline-none cursor-pointer focus:border-blue-500"
+              >
+                <option value="ALL">Tous les équipages</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Sans véh.'})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Global Conflict Warning Banner if any */}
-        {detectedConflicts.length > 0 && (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/15 via-orange-500/10 to-rose-500/15 border border-rose-400/60 text-slate-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs font-bold">
-                <span className="material-symbols-outlined text-xl">event_busy</span>
-              </div>
-              <div>
-                <div className="font-extrabold text-xs sm:text-sm text-rose-950 flex items-center gap-2">
-                  <span>Conflits de programmation détectés</span>
-                  <span className="px-2 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-black">
-                    {detectedConflicts.length} alerte{detectedConflicts.length > 1 ? 's' : ''}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-700 mt-0.5 leading-tight">
-                  Deux ou plusieurs courses se chevauchent sur le même créneau horaire.
-                  Pour les véhicules VSL &amp; Taxis, vous pouvez les <strong>combiner en transport partagé (jusqu'à 3 max)</strong>.
-                  La combinaison est <strong>strictement interdite pour les ambulances</strong>.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveConflict(detectedConflicts[0])}
-              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-xs transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-sm">rule</span>
-              <span>Résoudre le conflit</span>
-            </button>
+        {/* Indication interactive pour l'utilisateur */}
+        <div className="px-3 py-1.5 rounded-xl bg-blue-50/60 border border-blue-100/80 text-blue-900 text-[11px] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm text-blue-600">touch_app</span>
+            <span><strong>Astuce agenda :</strong> Cliquez sur n'importe quel créneau horaire vide pour planifier directement une course sur cet horaire.</span>
           </div>
-        )}
+          <span className="text-[10px] text-blue-700 font-medium hidden sm:inline">Créneaux de 30 min interactifs</span>
+        </div>
 
-        {/* Success Toast */}
+        {/* Toast Succès */}
         {combineSuccessToast && (
-          <div className="p-3 rounded-2xl bg-emerald-100 border border-emerald-300 text-emerald-950 text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn shadow-xs">
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs font-bold flex items-center justify-between gap-2 animate-fadeIn shadow-xs">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-emerald-700 text-base">check_circle</span>
+              <span className="material-symbols-outlined text-emerald-600 text-base">check_circle</span>
               <span>{combineSuccessToast}</span>
             </div>
             <button
               type="button"
               onClick={() => setCombineSuccessToast(null)}
-              className="text-emerald-800 hover:text-emerald-950"
+              className="text-emerald-700 hover:text-emerald-900"
             >
               <span className="material-symbols-outlined text-base">close</span>
             </button>
@@ -538,16 +722,18 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     );
   };
 
-  // Render a Single Event Block
+  // =========================================================================
+  // 2. RENDU D'UN BLOC DE COURSE (ÉVÉNEMENT AGENDA)
+  // =========================================================================
   const renderMissionEvent = (mission: Ride) => {
     const d = new Date(mission.pickupDateTime);
     const startMinutes = d.getHours() * 60 + d.getMinutes();
     const duration = mission.estimatedDurationMin || 45;
 
-    // Relative to START_HOUR (06:00 = 360 min)
+    // Calcul de position relatif à START_HOUR
     const relStart = startMinutes - START_HOUR * 60;
     const topPct = Math.max(0, (relStart / TOTAL_MINUTES) * 100);
-    const heightPct = Math.max(3.5, (duration / TOTAL_MINUTES) * 100);
+    const heightPct = Math.max(3.8, (duration / TOTAL_MINUTES) * 100);
 
     const timeLabel = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     const endD = new Date(d.getTime() + duration * 60000);
@@ -559,45 +745,63 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     const isAmbu = mission.transportType === 'AMBULANCE';
     const isTaxi = mission.transportType === 'TAXI_CONVENTIONNE';
 
-    // Theme based on transport type and combined status
-    let cardStyle = '';
-    let accentBorder = '';
+    // Styles des cartes selon les règles médicales
+    let cardBg = '';
+    let cardBorder = '';
+    let accentBar = '';
+    let typeLabel = '';
+    let typeIcon = '';
 
     if (isShared) {
-      cardStyle = 'bg-purple-50/95 border-purple-300 text-purple-950 hover:bg-purple-100';
-      accentBorder = 'border-l-4 border-l-purple-600';
+      cardBg = 'bg-purple-50/95 hover:bg-purple-100/90 text-purple-950';
+      cardBorder = 'border-purple-200/90';
+      accentBar = 'border-l-[3.5px] border-l-purple-600';
+      typeLabel = 'Partagé';
+      typeIcon = 'groups';
     } else if (isAmbu) {
-      cardStyle = 'bg-teal-50/95 border-teal-300 text-teal-950 hover:bg-teal-100';
-      accentBorder = 'border-l-4 border-l-teal-600';
+      cardBg = 'bg-amber-50/95 hover:bg-amber-100/90 text-amber-950';
+      cardBorder = 'border-amber-200/90';
+      accentBar = 'border-l-[3.5px] border-l-amber-500';
+      typeLabel = 'Ambulance';
+      typeIcon = 'ambulance';
     } else if (isTaxi) {
-      cardStyle = 'bg-amber-50/95 border-amber-300 text-amber-950 hover:bg-amber-100';
-      accentBorder = 'border-l-4 border-l-amber-600';
+      cardBg = 'bg-emerald-50/95 hover:bg-emerald-100/90 text-emerald-950';
+      cardBorder = 'border-emerald-200/90';
+      accentBar = 'border-l-[3.5px] border-l-emerald-600';
+      typeLabel = 'Taxi CPAM';
+      typeIcon = 'local_taxi';
     } else {
-      // VSL
-      cardStyle = 'bg-blue-50/95 border-blue-300 text-blue-950 hover:bg-blue-100';
-      accentBorder = 'border-l-4 border-l-blue-600';
+      // VSL Médical
+      cardBg = 'bg-blue-50/95 hover:bg-blue-100/90 text-blue-950';
+      cardBorder = 'border-blue-200/90';
+      accentBar = 'border-l-[3.5px] border-l-blue-600';
+      typeLabel = 'VSL';
+      typeIcon = 'directions_car';
     }
 
     return (
       <div
         key={mission.id}
-        onClick={() => onSelectMission(mission)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectMission(mission);
+        }}
         style={{
           top: `${topPct}%`,
           height: `${heightPct}%`,
-          minHeight: '44px',
+          minHeight: '46px',
         }}
-        className={`absolute inset-x-1 sm:inset-x-1.5 rounded-xl border p-1.5 sm:p-2 flex flex-col justify-between overflow-hidden shadow-2xs transition-all cursor-pointer z-10 group hover:shadow-md hover:z-20 ${cardStyle} ${accentBorder} ${
+        className={`absolute inset-x-1 sm:inset-x-1.5 rounded-xl border p-2 flex flex-col justify-between overflow-hidden shadow-2xs transition-all cursor-pointer z-10 group hover:shadow-md hover:z-20 ${cardBg} ${cardBorder} ${accentBar} ${
           isConflict ? 'ring-2 ring-rose-500 shadow-md animate-pulse' : ''
         }`}
-        title={`Course #${mission.reference} - ${mission.patient.firstName} ${mission.patient.lastName}`}
+        title={`Course #${mission.reference} • ${mission.patient.firstName} ${mission.patient.lastName} (${typeLabel})`}
       >
         <div>
-          {/* Header of event block */}
+          {/* Ligne 1 : Heure & Badges statut */}
           <div className="flex items-center justify-between gap-1 leading-none">
-            <div className="flex items-center gap-1 font-mono font-extrabold text-[10px] sm:text-[11px]">
+            <div className="flex items-center gap-1 font-mono font-black text-[10px] sm:text-[11px] text-slate-800">
               <span>{timeLabel}</span>
-              <span className="opacity-50">-</span>
+              <span className="opacity-40">➔</span>
               <span className="opacity-75">{endTimeLabel}</span>
             </div>
 
@@ -609,10 +813,11 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                     e.stopPropagation();
                     if (conflictGroup) setActiveConflict(conflictGroup);
                   }}
-                  className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shadow-xs hover:scale-110 transition-transform"
-                  title="Conflit horaire détecté ! Cliquez pour combiner ou réassigner."
+                  className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-extrabold text-[9px] shadow-xs flex items-center gap-0.5 hover:scale-105 transition-transform"
+                  title="Conflit horaire ! Cliquez pour arbitrer ou combiner."
                 >
-                  !
+                  <span className="material-symbols-outlined text-[10px]">warning</span>
+                  <span>Conflit</span>
                 </button>
               )}
 
@@ -623,36 +828,38 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                 </span>
               )}
 
-              <span className="material-symbols-outlined text-[13px] opacity-75">
-                {isAmbu ? 'ambulance' : isTaxi ? 'local_taxi' : 'directions_car'}
+              <span className="material-symbols-outlined text-[13px] opacity-70">
+                {typeIcon}
               </span>
             </div>
           </div>
 
-          {/* Patient and Trajet */}
+          {/* Ligne 2 : Nom Patient & Destination */}
           <div className="mt-1">
-            <div className="font-extrabold text-[11px] sm:text-xs truncate text-on-surface">
-              {mission.patient.firstName} {mission.patient.lastName[0]}.
+            <div className="font-extrabold text-xs truncate text-slate-900">
+              {mission.patient.firstName} {mission.patient.lastName}
             </div>
-            <div className="text-[10px] text-on-surface-variant truncate flex items-center gap-0.5 mt-0.5">
-              <span className="material-symbols-outlined text-[11px] shrink-0 text-slate-500">trip_origin</span>
+            <div className="text-[10px] text-slate-600 truncate flex items-center gap-0.5 mt-0.5 font-medium">
+              <span className="material-symbols-outlined text-[11px] text-slate-400 shrink-0">location_on</span>
               <span className="truncate">{mission.pickupCity} ➔ {mission.facilityName || mission.dropoffCity}</span>
             </div>
           </div>
         </div>
 
-        {/* Footer: Chauffeur attribution */}
-        <div className="pt-1 mt-1 border-t border-black/5 flex items-center justify-between text-[9px] sm:text-[10px] font-medium">
-          <span className="truncate opacity-80">
+        {/* Ligne 3 : Chauffeur & Réf */}
+        <div className="pt-1 mt-1 border-t border-slate-900/5 flex items-center justify-between text-[9px] sm:text-[10px] font-medium text-slate-600">
+          <span className="truncate">
             {mission.assignedTransporter?.driverName ? (
-              <span className="flex items-center gap-0.5 truncate">
-                <span className="material-symbols-outlined text-[11px]">badge</span>
+              <span className="flex items-center gap-1 truncate font-semibold text-slate-800">
+                <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[9px] font-bold flex items-center justify-center shrink-0">
+                  {mission.assignedTransporter.driverName.charAt(0)}
+                </span>
                 <span className="truncate">{mission.assignedTransporter.driverName}</span>
               </span>
             ) : (
               <span className="text-amber-800 font-bold flex items-center gap-0.5">
                 <span className="material-symbols-outlined text-[11px]">person_off</span>
-                <span>Non affecté</span>
+                <span>Sans chauffeur</span>
               </span>
             )}
           </span>
@@ -662,13 +869,55 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     );
   };
 
-  // VUE SEMAINE (7 Colonnes Lundi à Dimanche)
+  // Rendu des cellules horaires interactives (deux demi-heures par tranche de 1h)
+  const renderTimeSlotCells = (dateObj: Date, driverId?: string) => {
+    return Array.from({ length: TOTAL_HOURS }).map((_, i) => {
+      const hour = START_HOUR + i;
+      const padHour = String(hour).padStart(2, '0');
+
+      return (
+        <div key={hour} className="h-16 border-b border-slate-200/60 relative">
+          {/* 1ère demi-heure : 00 à 30 */}
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSlotClick(dateObj, hour, 0, driverId);
+            }}
+            className="h-1/2 w-full border-b border-dashed border-slate-100/90 hover:bg-blue-500/10 cursor-pointer transition-colors relative group/slot flex items-center justify-center"
+            title={`Planifier une course à ${padHour}:00`}
+          >
+            <span className="opacity-0 group-hover/slot:opacity-100 transition-opacity text-[10px] font-bold text-blue-600 bg-white/95 px-2 py-0.5 rounded-full shadow-2xs pointer-events-none border border-blue-200">
+              + {padHour}:00
+            </span>
+          </div>
+
+          {/* 2ème demi-heure : 30 à 60 */}
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSlotClick(dateObj, hour, 30, driverId);
+            }}
+            className="h-1/2 w-full hover:bg-blue-500/10 cursor-pointer transition-colors relative group/slot flex items-center justify-center"
+            title={`Planifier une course à ${padHour}:30`}
+          >
+            <span className="opacity-0 group-hover/slot:opacity-100 transition-opacity text-[10px] font-bold text-blue-600 bg-white/95 px-2 py-0.5 rounded-full shadow-2xs pointer-events-none border border-blue-200">
+              + {padHour}:30
+            </span>
+          </div>
+        </div>
+      );
+    });
+  };
+
+  // =========================================================================
+  // 3. VUE SEMAINE (7 Colonnes Lundi à Dimanche)
+  // =========================================================================
   const renderWeekView = () => {
     return (
-      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-xs overflow-hidden flex flex-col">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
         {/* Entête des 7 jours */}
-        <div className="grid grid-cols-[56px_repeat(7,1fr)] sm:grid-cols-[64px_repeat(7,1fr)] border-b border-outline-variant/20 bg-surface-container-low/70 sticky top-0 z-20">
-          <div className="p-2 sm:p-3 border-r border-outline-variant/20 flex items-center justify-center text-[11px] font-bold text-on-surface-variant">
+        <div className="grid grid-cols-[56px_repeat(7,1fr)] sm:grid-cols-[64px_repeat(7,1fr)] border-b border-slate-200/80 bg-slate-50/80 sticky top-0 z-20">
+          <div className="p-2 sm:p-3 border-r border-slate-200/60 flex items-center justify-center text-[11px] font-bold text-slate-400">
             Heure
           </div>
           {weekDays.map((day) => {
@@ -686,28 +935,28 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                   setCurrentDate(day);
                   setViewMode('DAY');
                 }}
-                className={`p-2 sm:p-2.5 text-center border-r border-outline-variant/20 last:border-r-0 cursor-pointer hover:bg-surface-container transition-colors ${
-                  isCurrentDay ? 'bg-primary/5' : ''
+                className={`p-2 sm:p-2.5 text-center border-r border-slate-200/60 last:border-r-0 cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                  isCurrentDay ? 'bg-blue-50/40' : ''
                 }`}
               >
-                <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-on-surface-variant">
+                <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-slate-400">
                   {day.toLocaleDateString('fr-FR', { weekday: 'short' })}
                 </div>
                 <div className="flex items-center justify-center gap-1 mt-0.5">
                   <div
-                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs sm:text-sm font-extrabold ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black ${
                       isCurrentDay
-                        ? 'bg-primary text-white shadow-xs'
-                        : 'text-on-surface'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-800'
                     }`}
                   >
                     {day.getDate()}
                   </div>
                   {hasConflict && (
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Conflit sur cette journée"></span>
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Conflit détecté sur cette journée"></span>
                   )}
                 </div>
-                <div className="text-[10px] text-on-surface-variant font-mono mt-0.5">
+                <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                   {dayMissions.length} course{dayMissions.length > 1 ? 's' : ''}
                 </div>
               </div>
@@ -719,13 +968,13 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
         <div className="relative overflow-y-auto max-h-[720px] min-h-[580px] select-none">
           <div className="grid grid-cols-[56px_repeat(7,1fr)] sm:grid-cols-[64px_repeat(7,1fr)] relative">
             {/* Colonne des heures sur la gauche */}
-            <div className="border-r border-outline-variant/20 bg-surface-container-low/40">
+            <div className="border-r border-slate-200/60 bg-slate-50/50">
               {Array.from({ length: TOTAL_HOURS }).map((_, i) => {
                 const hour = START_HOUR + i;
                 return (
                   <div
                     key={hour}
-                    className="h-16 border-b border-outline-variant/15 text-right pr-2 pt-1 text-[10px] sm:text-[11px] font-mono font-bold text-on-surface-variant/80"
+                    className="h-16 border-b border-slate-200/60 text-right pr-2 pt-1 text-[10px] sm:text-[11px] font-mono font-bold text-slate-400"
                   >
                     {String(hour).padStart(2, '0')}:00
                   </div>
@@ -744,25 +993,16 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               return (
                 <div
                   key={dateKey}
-                  className={`relative border-r border-outline-variant/20 last:border-r-0 ${
-                    isCurrentDay ? 'bg-primary/[0.02]' : ''
+                  className={`relative border-r border-slate-200/60 last:border-r-0 ${
+                    isCurrentDay ? 'bg-blue-50/[0.04]' : ''
                   }`}
                 >
-                  {/* Lignes horizontales d'heures */}
-                  {Array.from({ length: TOTAL_HOURS }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-16 border-b border-outline-variant/15 relative"
-                    >
-                      {/* Demi-heure en pointillés discrets */}
-                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-outline-variant/10"></div>
-                    </div>
-                  ))}
+                  {/* Demi-heures interactives cliquables */}
+                  {renderTimeSlotCells(day)}
 
                   {/* Ligne rouge temps réel pour aujourd'hui */}
                   {isCurrentDay && (() => {
-                    const now = new Date();
-                    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                    const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
                     if (nowMinutes >= START_HOUR * 60 && nowMinutes <= END_HOUR * 60) {
                       const nowPct = ((nowMinutes - START_HOUR * 60) / TOTAL_MINUTES) * 100;
                       return (
@@ -777,7 +1017,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                     return null;
                   })()}
 
-                  {/* Blocs de courses pour cette journée */}
+                  {/* Événements de la journée */}
                   {dayMissions.map((mission) => renderMissionEvent(mission))}
                 </div>
               );
@@ -788,7 +1028,9 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     );
   };
 
-  // VUE JOUR UNIQUE
+  // =========================================================================
+  // 4. VUE JOUR (Timeline détaillée d'une seule journée)
+  // =========================================================================
   const renderDayView = () => {
     const dateKey = formatDateKey(singleDay);
     const dayMissions = filteredMissions.filter(
@@ -797,20 +1039,20 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     const isCurrentDay = singleDay.toDateString() === today.toDateString();
 
     return (
-      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-xs overflow-hidden flex flex-col">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
         {/* Entête du jour */}
-        <div className="p-4 border-b border-outline-variant/20 bg-surface-container-low/70 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-200/80 bg-slate-50/80 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg ${
-              isCurrentDay ? 'bg-primary text-white shadow-xs' : 'bg-surface-container text-on-surface'
+              isCurrentDay ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-200 text-slate-800'
             }`}>
               {singleDay.getDate()}
             </div>
             <div>
-              <div className="font-extrabold text-sm text-on-surface capitalize">
+              <div className="font-extrabold text-sm text-slate-900 capitalize">
                 {singleDay.toLocaleDateString('fr-FR', { weekday: 'long', month: 'long', year: 'numeric' })}
               </div>
-              <div className="text-xs text-on-surface-variant font-mono">
+              <div className="text-xs text-slate-500 font-mono">
                 {dayMissions.length} course{dayMissions.length > 1 ? 's' : ''} planifiée{dayMissions.length > 1 ? 's' : ''}
               </div>
             </div>
@@ -819,7 +1061,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
           <button
             type="button"
             onClick={() => setViewMode('WEEK')}
-            className="px-3 py-1.5 rounded-xl border border-outline-variant/40 hover:bg-surface-container text-xs font-bold text-on-surface transition-all flex items-center gap-1 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-all flex items-center gap-1 cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm">view_week</span>
             <span>Retour Semaine</span>
@@ -830,13 +1072,13 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
         <div className="relative overflow-y-auto max-h-[720px] min-h-[580px] select-none">
           <div className="grid grid-cols-[64px_1fr] relative">
             {/* Colonne des heures */}
-            <div className="border-r border-outline-variant/20 bg-surface-container-low/40">
+            <div className="border-r border-slate-200/60 bg-slate-50/50">
               {Array.from({ length: TOTAL_HOURS }).map((_, i) => {
                 const hour = START_HOUR + i;
                 return (
                   <div
                     key={hour}
-                    className="h-20 border-b border-outline-variant/15 text-right pr-2 pt-1 text-xs font-mono font-bold text-on-surface-variant/80"
+                    className="h-16 border-b border-slate-200/60 text-right pr-2 pt-1 text-xs font-mono font-bold text-slate-400"
                   >
                     {String(hour).padStart(2, '0')}:00
                   </div>
@@ -844,18 +1086,13 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               })}
             </div>
 
-            {/* Colonne des événements */}
+            {/* Colonne des événements avec créneaux cliquables */}
             <div className="relative">
-              {Array.from({ length: TOTAL_HOURS }).map((_, i) => (
-                <div key={i} className="h-20 border-b border-outline-variant/15 relative">
-                  <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-outline-variant/15"></div>
-                </div>
-              ))}
+              {renderTimeSlotCells(singleDay)}
 
               {/* Ligne rouge temps réel */}
               {isCurrentDay && (() => {
-                const now = new Date();
-                const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                const nowMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
                 if (nowMinutes >= START_HOUR * 60 && nowMinutes <= END_HOUR * 60) {
                   const nowPct = ((nowMinutes - START_HOUR * 60) / TOTAL_MINUTES) * 100;
                   return (
@@ -863,7 +1100,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                       style={{ top: `${nowPct}%` }}
                       className="absolute left-0 right-0 border-t-2 border-red-500 z-30 pointer-events-none flex items-center"
                     >
-                      <div className="w-3 h-3 rounded-full bg-red-500 -ml-1.5 shadow-xs"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 shadow-xs"></div>
                     </div>
                   );
                 }
@@ -879,14 +1116,15 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     );
   };
 
-  // VUE RESSOURCES CHAUFFEURS (1 Colonne par Chauffeur sur la journée sélectionnée)
+  // =========================================================================
+  // 5. VUE RESSOURCES CHAUFFEURS (1 Colonne par Chauffeur)
+  // =========================================================================
   const renderDriversView = () => {
     const dateKey = formatDateKey(singleDay);
     const dayMissions = filteredMissions.filter(
       (m) => formatDateKey(new Date(m.pickupDateTime)) === dateKey
     );
 
-    // Columns: all drivers + 1 column for unassigned
     const resourceColumns = [
       ...drivers.map((d) => ({
         id: d.id,
@@ -907,16 +1145,16 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     ];
 
     return (
-      <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-xs overflow-hidden flex flex-col">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
         {/* Entête Chauffeurs */}
-        <div className="overflow-x-auto border-b border-outline-variant/20 bg-surface-container-low/70 sticky top-0 z-20">
+        <div className="overflow-x-auto border-b border-slate-200/80 bg-slate-50/80 sticky top-0 z-20">
           <div
             className="grid"
             style={{
-              gridTemplateColumns: `64px repeat(${resourceColumns.length}, minmax(160px, 1fr))`,
+              gridTemplateColumns: `64px repeat(${resourceColumns.length}, minmax(170px, 1fr))`,
             }}
           >
-            <div className="p-3 border-r border-outline-variant/20 flex items-center justify-center text-[11px] font-bold text-on-surface-variant">
+            <div className="p-3 border-r border-slate-200/60 flex items-center justify-center text-[11px] font-bold text-slate-400">
               Heure
             </div>
 
@@ -936,16 +1174,18 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               return (
                 <div
                   key={col.id}
-                  className="p-3 border-r border-outline-variant/20 last:border-r-0 flex items-center gap-2.5"
+                  className="p-3 border-r border-slate-200/60 last:border-r-0 flex items-center gap-2.5"
                 >
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
-                    col.id === 'UNASSIGNED' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-100 text-blue-900 border border-blue-200'
+                    col.id === 'UNASSIGNED'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                      : 'bg-blue-100 text-blue-900 border border-blue-200'
                   }`}>
                     {col.avatar}
                   </div>
                   <div className="overflow-hidden">
-                    <div className="font-extrabold text-xs text-on-surface truncate">{col.name}</div>
-                    <div className="text-[10px] text-on-surface-variant font-mono truncate">{col.sub} ({colMissions.length})</div>
+                    <div className="font-extrabold text-xs text-slate-900 truncate">{col.name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono truncate">{col.sub} ({colMissions.length})</div>
                   </div>
                 </div>
               );
@@ -958,17 +1198,17 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
           <div
             className="grid relative"
             style={{
-              gridTemplateColumns: `64px repeat(${resourceColumns.length}, minmax(160px, 1fr))`,
+              gridTemplateColumns: `64px repeat(${resourceColumns.length}, minmax(170px, 1fr))`,
             }}
           >
             {/* Colonne des heures */}
-            <div className="border-r border-outline-variant/20 bg-surface-container-low/40">
+            <div className="border-r border-slate-200/60 bg-slate-50/50">
               {Array.from({ length: TOTAL_HOURS }).map((_, i) => {
                 const hour = START_HOUR + i;
                 return (
                   <div
                     key={hour}
-                    className="h-20 border-b border-outline-variant/15 text-right pr-2 pt-1 text-xs font-mono font-bold text-on-surface-variant/80"
+                    className="h-16 border-b border-slate-200/60 text-right pr-2 pt-1 text-xs font-mono font-bold text-slate-400"
                   >
                     {String(hour).padStart(2, '0')}:00
                   </div>
@@ -976,7 +1216,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               })}
             </div>
 
-            {/* Colonnes individuelles */}
+            {/* Colonnes individuelles de chauffeurs */}
             {resourceColumns.map((col) => {
               const colMissions = dayMissions.filter((m) => {
                 if (col.id === 'UNASSIGNED') {
@@ -993,13 +1233,10 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               return (
                 <div
                   key={col.id}
-                  className="relative border-r border-outline-variant/20 last:border-r-0"
+                  className="relative border-r border-slate-200/60 last:border-r-0"
                 >
-                  {Array.from({ length: TOTAL_HOURS }).map((_, i) => (
-                    <div key={i} className="h-20 border-b border-outline-variant/15 relative">
-                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-outline-variant/15"></div>
-                    </div>
-                  ))}
+                  {/* Créneaux cliquables avec pré-sélection de ce chauffeur */}
+                  {renderTimeSlotCells(singleDay, col.id !== 'UNASSIGNED' ? col.id : undefined)}
 
                   {/* Événements de ce chauffeur */}
                   {colMissions.map((mission) => renderMissionEvent(mission))}
@@ -1012,26 +1249,264 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     );
   };
 
-  // MODAL : RÉSOLUTION DE CONFLIT & COMBINAISON DE COURSES (TRANSPORT PARTAGÉ MAX 3)
+  // =========================================================================
+  // 6. MODAL D'AJOUT RAPIDE SUR CRÉNEAU CLIQUÉ (POP-UP GOOGLE CALENDAR)
+  // =========================================================================
+  const renderQuickAddModal = () => {
+    if (!slotToCreate) return null;
+
+    const formattedDate = slotToCreate.date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    const capFormattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div className="bg-white w-full max-w-xl rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b border-slate-100 pb-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 shadow-2xs">
+                <span className="material-symbols-outlined text-xl">event_available</span>
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Planifier une course directe
+                </h3>
+                <div className="flex items-center gap-1.5 text-xs text-blue-700 font-medium mt-0.5">
+                  <span className="material-symbols-outlined text-xs">schedule</span>
+                  <span>{capFormattedDate} à <strong>{slotToCreate.timeStr}</strong></span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSlotToCreate(null)}
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-xl cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
+          </div>
+
+          {quickError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-rose-600">error</span>
+              <span>{quickError}</span>
+            </div>
+          )}
+
+          {/* Type de Transport */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+              Type de Véhicule sanitaire :
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { type: 'VSL' as TransportType, label: 'VSL Médicalisé', icon: 'directions_car', desc: 'Assis conventionné' },
+                { type: 'TAXI_CONVENTIONNE' as TransportType, label: 'Taxi CPAM', icon: 'local_taxi', desc: 'Assis agréé' },
+                { type: 'AMBULANCE' as TransportType, label: 'Ambulance', icon: 'ambulance', desc: 'Allongé / Brancard' },
+              ].map((item) => {
+                const isSelected = quickTransportType === item.type;
+                return (
+                  <button
+                    key={item.type}
+                    type="button"
+                    onClick={() => setQuickTransportType(item.type)}
+                    className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`material-symbols-outlined text-base ${isSelected ? 'text-blue-600' : 'text-slate-500'}`}>
+                        {item.icon}
+                      </span>
+                      {isSelected && <span className="w-2 h-2 rounded-full bg-blue-600"></span>}
+                    </div>
+                    <div className="mt-1.5">
+                      <div className="font-extrabold text-xs text-slate-900">{item.label}</div>
+                      <div className="text-[10px] text-slate-500">{item.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Patient Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Nom &amp; Prénom du patient <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={quickPatientName}
+                onChange={(e) => setQuickPatientName(e.target.value)}
+                placeholder="Ex: Jean DUPONT"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:outline-hidden focus:border-blue-600"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Téléphone mobile
+              </label>
+              <input
+                type="tel"
+                value={quickPatientPhone}
+                onChange={(e) => setQuickPatientPhone(e.target.value)}
+                placeholder="Ex: 06 96 12 34 56"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:outline-hidden focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          {/* Trajet : Départ & Destination */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Lieu de départ (Commune / Adresse)
+              </label>
+              <input
+                type="text"
+                value={quickPickupAddress}
+                onChange={(e) => {
+                  setQuickPickupAddress(e.target.value);
+                  setQuickPickupCity(e.target.value);
+                }}
+                placeholder="Ex: Fort-de-France (Clairière)"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:outline-hidden focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Destination (Hôpital / Clinique)
+              </label>
+              <input
+                type="text"
+                value={quickDropoffAddress}
+                onChange={(e) => setQuickDropoffAddress(e.target.value)}
+                placeholder="Ex: CHU Pierre Zobda Quitman"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:outline-hidden focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          {/* Suggestions d'établissements rapides */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <span className="text-[10px] font-bold text-slate-400 shrink-0">Suggestions :</span>
+            {COMMON_FACILITIES.slice(0, 3).map((fac) => (
+              <button
+                key={fac}
+                type="button"
+                onClick={() => setQuickDropoffAddress(fac)}
+                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-[10px] font-medium transition-colors shrink-0 cursor-pointer"
+              >
+                {fac.split(' - ')[0]}
+              </button>
+            ))}
+          </div>
+
+          {/* Attribution Chauffeur & Durée */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Chauffeur affecté
+              </label>
+              <select
+                value={quickDriverId}
+                onChange={(e) => setQuickDriverId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 outline-hidden focus:border-blue-600 cursor-pointer"
+              >
+                <option value="">À affecter ultérieurement</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Flotte'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                Durée estimée de prise en charge
+              </label>
+              <select
+                value={quickDurationMin}
+                onChange={(e) => setQuickDurationMin(parseInt(e.target.value, 10))}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 outline-hidden focus:border-blue-600 cursor-pointer"
+              >
+                <option value={30}>30 minutes</option>
+                <option value={45}>45 minutes (standard)</option>
+                <option value={60}>1 heure</option>
+                <option value={90}>1 heure 30</option>
+                <option value={120}>2 heures (trajet long)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleOpenFullForm}
+              className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+            >
+              <span>Formulaire complet (NIR, ALD, Prescription...)</span>
+              <span className="material-symbols-outlined text-xs">arrow_forward</span>
+            </button>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setSlotToCreate(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmQuickAdd}
+                disabled={isSubmittingQuick}
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-sm">check</span>
+                <span>{isSubmittingQuick ? 'Planification...' : 'Valider ce créneau'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // =========================================================================
+  // 7. MODAL DE RÉSOLUTION DE CONFLIT & TRANSPORT PARTAGÉ
+  // =========================================================================
   const renderConflictModal = () => {
     if (!activeConflict) return null;
 
     const { missions: conflictMissions, hasAmbulance, canCombine, timeRange, reason } = activeConflict;
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
-        <div className="bg-surface-container-lowest w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div className="bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-slate-200 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-800 border border-rose-200 flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-xl text-rose-700">warning</span>
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-on-surface">
-                  Détection de conflit &amp; Régulation d'horaire
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Arbitrage de Conflit &amp; Régulation d'Horaire
                 </h3>
-                <p className="text-xs text-on-surface-variant font-mono">
+                <p className="text-xs text-slate-500 font-mono">
                   Créneau : {timeRange} • {conflictMissions.length} courses en collision
                 </p>
               </div>
@@ -1039,21 +1514,21 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
             <button
               type="button"
               onClick={() => setActiveConflict(null)}
-              className="text-on-surface-variant hover:text-on-surface p-1 rounded-xl"
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-xl cursor-pointer"
             >
               <span className="material-symbols-outlined text-xl">close</span>
             </button>
           </div>
 
-          {/* Conflict Reason Explanation */}
-          <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant/20 text-xs text-on-surface flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-base text-secondary">info</span>
+          {/* Motif du conflit */}
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-800 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-base text-blue-600">info</span>
             <span>{reason}</span>
           </div>
 
-          {/* Cards of conflicting missions */}
+          {/* Cartes des courses en collision */}
           <div className="space-y-3">
-            <label className="text-xs font-black uppercase text-on-surface-variant tracking-wider">
+            <label className="text-xs font-black uppercase text-slate-500 tracking-wider">
               Courses concernées par le chevauchement ({conflictMissions.length}) :
             </label>
 
@@ -1069,18 +1544,18 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                 return (
                   <div
                     key={m.id}
-                    className="p-3.5 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 flex flex-col justify-between gap-2.5 relative shadow-xs"
+                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between gap-2.5 relative shadow-xs"
                   >
-                    <div className="flex items-center justify-between gap-1 border-b border-outline-variant/15 pb-2">
-                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-primary">
-                        <span className="px-2 py-0.5 rounded-lg bg-primary text-white text-[11px] font-black">
+                    <div className="flex items-center justify-between gap-1 border-b border-slate-200/60 pb-2">
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-blue-700">
+                        <span className="px-2 py-0.5 rounded-lg bg-blue-600 text-white text-[11px] font-black">
                           {timeStr}
                         </span>
                         <span>#{m.reference}</span>
                       </div>
 
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container text-on-surface border border-outline-variant/20">
-                        <span className="material-symbols-outlined text-xs text-primary">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-slate-800 border border-slate-200">
+                        <span className="material-symbols-outlined text-xs text-blue-600">
                           {isAmbu ? 'ambulance' : isTaxi ? 'local_taxi' : 'directions_car'}
                         </span>
                         <span>{isAmbu ? 'Ambulance' : isTaxi ? 'Taxi CPAM' : 'VSL'}</span>
@@ -1088,19 +1563,21 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                     </div>
 
                     <div className="text-xs space-y-1">
-                      <div className="font-extrabold text-on-surface">
+                      <div className="font-extrabold text-slate-900">
                         Patient {idx + 1} : {m.patient.firstName} {m.patient.lastName}
                       </div>
-                      <div className="text-[11px] text-on-surface-variant truncate">
-                        Départ : <strong className="text-on-surface">{m.pickupCity}</strong> ({m.pickupAddress})
+                      <div className="text-[11px] text-slate-600 truncate">
+                        Départ : <strong className="text-slate-900">{m.pickupCity}</strong> ({m.pickupAddress})
                       </div>
-                      <div className="text-[11px] text-on-surface-variant truncate">
-                        Destination : <strong className="text-primary">{m.facilityName || m.dropoffCity}</strong>
+                      <div className="text-[11px] text-slate-600 truncate">
+                        Destination : <strong className="text-blue-700">{m.facilityName || m.dropoffCity}</strong>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-outline-variant/15 flex items-center justify-between text-[11px] text-on-surface-variant">
-                      <span>Affecté à : <strong>{m.assignedTransporter?.driverName || 'Non affecté'}</strong></span>
+                    <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">
+                        {m.assignedTransporter?.driverName ? `Chauffeur : ${m.assignedTransporter.driverName}` : 'Non assigné'}
+                      </span>
                       {onReassignDriver && (
                         <button
                           type="button"
@@ -1108,9 +1585,9 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
                             setActiveConflict(null);
                             onReassignDriver(m);
                           }}
-                          className="text-xs font-bold text-blue-700 hover:underline cursor-pointer"
+                          className="text-blue-600 font-bold hover:underline cursor-pointer"
                         >
-                          Changer chauffeur
+                          Réassigner
                         </button>
                       )}
                     </div>
@@ -1120,78 +1597,71 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
             </div>
           </div>
 
-          {/* CASE 1 : AMBULANCE RESTRICTION (IMPOSSIBLE POUR LES AMBULANCES) */}
-          {hasAmbulance && (
-            <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex flex-col gap-2 animate-fadeIn">
-              <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-rose-900">
-                <span className="material-symbols-outlined text-xl text-rose-600">block</span>
+          {/* Section d'arbitrage selon Ambulance vs VSL/Taxi */}
+          {hasAmbulance ? (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 flex flex-col gap-2">
+              <div className="flex items-center gap-2 font-black text-xs text-rose-800 uppercase tracking-wide">
+                <span className="material-symbols-outlined text-lg text-rose-700">block</span>
                 <span>Combinaison strictement impossible pour les Ambulances</span>
               </div>
-              <p className="text-xs text-rose-800 leading-relaxed">
-                <strong>Réglementation CPAM &amp; ARS :</strong> Le transport en Ambulance (ASSU) nécessite un équipage dédié avec surveillance continue du patient sous brancardage strict.
-                Le regroupement de patients en <strong>transport partagé est formellement interdit pour toute course en Ambulance</strong>.
+              <p className="text-xs leading-relaxed text-rose-900">
+                La réglementation sanitaire (ARS &amp; CPAM - Art. R. 322-10-6 du CSS) <strong>interdit formellement le transport partagé pour les ambulances</strong>.
+                La prise en charge en position allongée/semi-assise exige une surveillance continue et un brancardage exclusif.
               </p>
-              <div className="pt-2 text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-sm">tips_and_updates</span>
-                <span>Solution : Réaffectez l'une des courses à un autre chauffeur ou débranchez l'horaire.</span>
+              <div className="pt-2 border-t border-rose-200 flex items-center justify-between text-xs">
+                <span className="font-semibold text-rose-900">Action recommandée :</span>
+                <span className="font-bold text-rose-700">Réaffecter l'une des courses vers un autre chauffeur disponible.</span>
               </div>
             </div>
-          )}
-
-          {/* CASE 2 : VSL & TAXI COMBINATION (TRANSPORT PARTAGÉ JUSQU'À 3 PATIENTS) */}
-          {canCombine && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 border-2 border-purple-400/50 text-slate-900 flex flex-col gap-3 animate-fadeIn">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm text-purple-950">
-                  <span className="material-symbols-outlined text-xl text-purple-700">groups</span>
-                  <span>Option : Combiner en Transport Partagé (Jusqu'à 3 max)</span>
+          ) : (
+            <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-black text-xs text-blue-900 uppercase tracking-wide">
+                  <span className="material-symbols-outlined text-lg text-blue-700">groups</span>
+                  <span>Combiner en transport partagé (Art. R. 322-10-6 CSS)</span>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-black text-[10px] tracking-wide">
-                  Art. R. 322-10-6 CSS
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-mono font-bold">
+                  Max 3 courses
                 </span>
               </div>
-
-              <p className="text-xs text-slate-700 leading-relaxed">
-                Les transports en <strong>VSL</strong> et <strong>Taxi conventionné</strong> peuvent être légalement combinés en un circuit unique si les trajets et créneaux sont compatibles.
-                La Sécurité Sociale autorise <strong>jusqu'à 3 patients transportés simultanément</strong>.
+              <p className="text-xs text-blue-950 leading-relaxed">
+                Ces courses de type VSL / Taxi peuvent être légalement regroupées dans le même véhicule.
+                Sélectionnez le chauffeur qui réalisera la tournée groupée :
               </p>
 
-              {/* Chauffeur selection for combined route */}
-              <div className="bg-white/80 p-3 rounded-xl border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-                <label className="font-bold text-purple-950">
-                  Chauffeur &amp; Véhicule titulaire du circuit partagé :
-                </label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <select
                   value={selectedCombineDriverId}
                   onChange={(e) => setSelectedCombineDriverId(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-300 font-bold text-purple-950 text-xs outline-none cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-white border border-blue-300 text-xs font-bold text-slate-800 outline-none flex-1"
                 >
-                  <option value="">-- Choisir un chauffeur commun --</option>
+                  <option value="">Sélectionner le chauffeur affecté...</option>
                   {drivers.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Sans véh.'})
+                      {d.firstName} {d.lastName} ({d.assignedVehiclePlate || 'Flotte'})
                     </option>
                   ))}
                 </select>
-              </div>
 
-              <button
-                type="button"
-                onClick={() => handleConfirmCombination(activeConflict)}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-              >
-                <span className="material-symbols-outlined text-base">merge_type</span>
-                <span>Valider la combinaison en Transport Partagé ({conflictMissions.length}/3)</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmCombination(activeConflict)}
+                  disabled={!canCombine}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">merge_type</span>
+                  <span>Confirmer le transport partagé ({conflictMissions.length}/3)</span>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/20">
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setActiveConflict(null)}
-              className="py-2.5 px-4 rounded-xl border border-outline-variant/40 text-xs font-bold text-on-surface hover:bg-surface-container transition-all cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer"
             >
               Fermer
             </button>
@@ -1206,14 +1676,18 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
       {/* 1. Header Google Agenda */}
       {renderCalendarHeader()}
 
-      {/* 2. Main Calendar Content according to View Mode */}
+      {/* 2. Vue Principale */}
       {viewMode === 'WEEK' && renderWeekView()}
       {viewMode === 'DAY' && renderDayView()}
       {viewMode === 'DRIVERS' && renderDriversView()}
 
-      {/* 3. Conflict Resolution Modal */}
+      {/* 3. Modal de Résolution de Conflit */}
       {renderConflictModal()}
+
+      {/* 4. Modal d'Ajout Rapide sur créneau vide cliqué */}
+      {renderQuickAddModal()}
     </div>
   );
 };
+
 export default TransporterPlanningCalendar;
