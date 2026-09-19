@@ -2326,7 +2326,7 @@ export const TransporterPortalPage: React.FC = () => {
                     Vous n'avez aucune mission en cours.
                   </h2>
                   <p className="text-sm text-on-surface-variant max-w-lg mx-auto leading-relaxed mb-4">
-                    Toutes les nouvelles opportunités et demandes de transport sanitaire émises par les patients et les établissements de santé (CHU Pierre Zobda-Quitman, Trinité, Le Marin) apparaîtront ici dès leur diffusion.
+                    Toutes les nouvelles opportunités et demandes de transport sanitaire émises par les patients et les établissements de santé apparaîtront ici dès leur diffusion.
                   </p>
 
                   {/* Alerte si des courses sont en attente hors du rayon sélectionné */}
