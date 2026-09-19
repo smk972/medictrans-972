@@ -18,6 +18,8 @@ import { StripeSubscriptionService } from '../services/stripeSubscriptionService
 import { TerritoryId, TERRITORIES_CONFIG, detectTerritoryFromAddress } from '../data/nationalTerritoriesData';
 import { reverseGeocode } from '../services/nationalGeoDatabase';
 import { TransporterManualRideModal } from '../components/TransporterManualRideModal';
+import { TransporterPlanningCalendar } from '../components/TransporterPlanningCalendar';
+
 
 export interface Driver {
   id: string;
@@ -109,7 +111,7 @@ export const TransporterPortalPage: React.FC = () => {
   const [planningStatusFilter, setPlanningStatusFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
   const [planningSearch, setPlanningSearch] = useState('');
   const [isManualRideModalOpen, setIsManualRideModalOpen] = useState<boolean>(false);
-  const [planningViewMode, setPlanningViewMode] = useState<'CHRONO' | 'DISPATCH_DRIVERS'>('CHRONO');
+  const [planningViewMode, setPlanningViewMode] = useState<'CALENDAR' | 'CHRONO' | 'DISPATCH_DRIVERS'>('CALENDAR');
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('ALL');
 
   const [selectedMissionForRecap, setSelectedMissionForRecap] = useState<Ride | null>(null);
@@ -1380,6 +1382,120 @@ export const TransporterPortalPage: React.FC = () => {
       console.error('Erreur affectation rapide chauffeur:', err);
     }
   };
+
+  // Combinaison de courses en transport partagé (jusqu'à 3 courses max, ambulances strictement interdites)
+  const handleCombineMissions = async (
+    missionIds: string[],
+    driverName: string,
+    driverPhone: string,
+    vehiclePlate: string
+  ) => {
+    if (!missionIds || missionIds.length < 2) return;
+
+    // Vérification stricte : aucune ambulance autorisée (Art. R. 322-10-6 CSS)
+    const targets = rides.filter(
+      (r) => missionIds.includes(r.id) || missionIds.includes(r.reference)
+    );
+    const hasAmbulance = targets.some((r) => r.transportType === 'AMBULANCE');
+    if (hasAmbulance) {
+      setToastMessage({
+        title: 'Action réglementairement impossible',
+        desc: 'La législation (ARS / CPAM) interdit formellement le transport partagé pour les ambulances.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (targets.length > 3) {
+      setToastMessage({
+        title: 'Capacité maximale dépassée',
+        desc: 'Le transport partagé sanitaire est limité à 3 patients maximum par véhicule.',
+        type: 'error'
+      });
+      return;
+    }
+
+    const combinedGroupId = `GRP-${Date.now().toString().slice(-6)}`;
+    const count = targets.length;
+
+    setRides((prev) =>
+      prev.map((r) => {
+        if (missionIds.includes(r.id) || missionIds.includes(r.reference)) {
+          return {
+            ...r,
+            combinedGroupId,
+            isSharedTransport: true,
+            combinedRidesCount: count,
+            assignedTransporter: {
+              companyName: r.assignedTransporter?.companyName || transporterName,
+              driverName: driverName || r.assignedTransporter?.driverName || transporterName,
+              driverPhone: driverPhone || r.assignedTransporter?.driverPhone || transporterPhone,
+              vehiclePlate: vehiclePlate || r.assignedTransporter?.vehiclePlate || 'PARTAGE-972',
+              etaMinutes: 15
+            }
+          };
+        }
+        return r;
+      })
+    );
+
+    // Ajuster le statut du véhicule dans la flotte
+    if (vehiclePlate) {
+      setFleet((prev) =>
+        prev.map((v) => (v.plate === vehiclePlate ? { ...v, status: 'EN_MISSION' } : v))
+      );
+    }
+
+    setToastMessage({
+      title: 'Courses combinées en transport partagé !',
+      desc: `${count} courses ont été regroupées avec succès (Dossier : ${combinedGroupId} • Chauffeur : ${driverName || 'Affecté'}).`,
+      type: 'success'
+    });
+
+    // Sauvegarde asynchrone de l'attribution pour chaque course
+    for (const m of targets) {
+      try {
+        await rideService.reassignRide(
+          m.reference,
+          {
+            companyName: m.assignedTransporter?.companyName || transporterName,
+            driverName: driverName || m.assignedTransporter?.driverName || transporterName,
+            driverPhone: driverPhone || m.assignedTransporter?.driverPhone || transporterPhone,
+            vehiclePlate: vehiclePlate || m.assignedTransporter?.vehiclePlate || 'PARTAGE-972',
+            etaMinutes: 15
+          },
+          m.status
+        );
+      } catch (err) {
+        console.error('Erreur sauvegarde réaffectation combinée:', err);
+      }
+    }
+  };
+
+  // Dissocier un groupe de transport partagé
+  const handleUncombineMission = (combinedGroupId: string) => {
+    if (!combinedGroupId) return;
+
+    setRides((prev) =>
+      prev.map((r) => {
+        if (r.combinedGroupId === combinedGroupId) {
+          const updated = { ...r };
+          delete updated.combinedGroupId;
+          delete updated.isSharedTransport;
+          delete updated.combinedRidesCount;
+          return updated;
+        }
+        return r;
+      })
+    );
+
+    setToastMessage({
+      title: 'Transport partagé dissous',
+      desc: `Le dossier partagé #${combinedGroupId} a été dissocié. Les courses redeviennent des trajets individuels.`,
+      type: 'info'
+    });
+  };
+
 
   // Ouvrir le modal d'annulation / désistement et republication
   const openReleaseModal = (mission: Ride) => {
@@ -3030,259 +3146,298 @@ export const TransporterPortalPage: React.FC = () => {
 
               {/* Barre de navigation temporelle, Filtres & Recherche */}
               <div className="p-4 rounded-3xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-3">
-                {/* 1. Sélecteur d'horizon temporel & Dates */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-outline-variant/20">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-bold uppercase text-on-surface-variant mr-1">Horizon :</span>
+                {/* Switch Principal de Vue Planning */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 bg-surface-container-high/70 p-1 rounded-2xl w-fit flex-wrap">
                     <button
                       type="button"
-                      onClick={() => {
-                        setPlanningHorizon('ALL');
-                        setSelectedPlanningDate(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        planningHorizon === 'ALL' && selectedPlanningDate === null
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      Toutes les dates ({plannedMissions.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPlanningHorizon('TODAY');
-                        setSelectedPlanningDate(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        planningHorizon === 'TODAY'
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      Aujourd'hui ({planningDaysSummary.find((d) => d.label === "Aujourd'hui")?.count || 0})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPlanningHorizon('TOMORROW');
-                        setSelectedPlanningDate(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        planningHorizon === 'TOMORROW'
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      Demain ({planningDaysSummary.find((d) => d.label === 'Demain')?.count || 0})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPlanningHorizon('NEXT_7_DAYS');
-                        setSelectedPlanningDate(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        planningHorizon === 'NEXT_7_DAYS'
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      7 prochains jours
-                    </button>
-                  </div>
-
-                  {/* Barre de recherche */}
-                  <div className="relative w-full md:w-72 shrink-0">
-                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-lg">
-                      search
-                    </span>
-                    <input
-                      type="text"
-                      value={planningSearch}
-                      onChange={(e) => setPlanningSearch(e.target.value)}
-                      placeholder="Filtrer réf, patient, NIR, ville..."
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-lowest border border-outline-variant/30 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-hidden focus:border-primary"
-                    />
-                    {planningSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setPlanningSearch('')}
-                        className="absolute right-2.5 top-2.5 text-on-surface-variant hover:text-on-surface text-xs cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 2. Mode d'affichage (Agenda vs Dispatching Chauffeurs) & Filtres Chauffeurs */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1 border-t border-outline-variant/15">
-                  {/* Toggle Vue Agenda vs Dispatching Chauffeurs */}
-                  <div className="flex items-center gap-1 bg-surface-container-high/60 p-1 rounded-2xl w-fit">
-                    <button
-                      type="button"
-                      onClick={() => setPlanningViewMode('CHRONO')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        planningViewMode === 'CHRONO'
-                          ? 'bg-white text-slate-950 shadow-xs font-black'
-                          : 'text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-sm">view_agenda</span>
-                      <span>Vue Agenda</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPlanningViewMode('DISPATCH_DRIVERS')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        planningViewMode === 'DISPATCH_DRIVERS'
+                      onClick={() => setPlanningViewMode('CALENDAR')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        planningViewMode === 'CALENDAR'
                           ? 'bg-blue-600 text-white shadow-xs font-black'
                           : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-sm">badge</span>
-                      <span>Planning Chauffeurs ({drivers.length})</span>
+                      <span className="material-symbols-outlined text-sm">calendar_month</span>
+                      <span>Vue Google Agenda</span>
                     </button>
-                  </div>
-
-                  {/* Filtres d'affectation globale */}
-                  <div className="flex items-center gap-1.5 shrink-0 text-xs">
                     <button
                       type="button"
-                      onClick={() => setPlanningStatusFilter('ALL')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                        planningStatusFilter === 'ALL'
-                          ? 'bg-surface-container-high text-on-surface shadow-2xs font-extrabold'
+                      onClick={() => setPlanningViewMode('CHRONO')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        planningViewMode === 'CHRONO'
+                          ? 'bg-slate-900 text-white shadow-xs font-black'
                           : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      Toutes ({plannedMissions.length})
+                      <span className="material-symbols-outlined text-sm">view_agenda</span>
+                      <span>Vue Liste ({plannedMissions.length})</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPlanningStatusFilter('ASSIGNED')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                        planningStatusFilter === 'ASSIGNED'
-                          ? 'bg-blue-600 text-white shadow-2xs'
-                          : 'text-blue-800 hover:bg-blue-50'
+                      onClick={() => setPlanningViewMode('DISPATCH_DRIVERS')}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        planningViewMode === 'DISPATCH_DRIVERS'
+                          ? 'bg-indigo-600 text-white shadow-xs font-black'
+                          : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                      <span>Chauffeur affecté ({plannedMissions.filter((m) => !!m.assignedTransporter?.driverName).length})</span>
+                      <span className="material-symbols-outlined text-sm">badge</span>
+                      <span>Colonnes Chauffeurs ({drivers.length})</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setPlanningStatusFilter('UNASSIGNED')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                        planningStatusFilter === 'UNASSIGNED'
-                          ? 'bg-amber-600 text-white shadow-2xs'
-                          : 'text-amber-800 hover:bg-amber-50'
-                      }`}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      <span>À affecter ({plannedMissions.filter((m) => !m.assignedTransporter?.driverName).length})</span>
-                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-[11px] font-semibold text-emerald-800">
+                      Détection conflits &amp; transport partagé active
+                    </span>
                   </div>
                 </div>
 
-                {/* 3. Bandeau des journées individuelles (Défilement horizontal) & Filtre individuel par Chauffeur */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-outline-variant/15">
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Par jour :</span>
-                    {planningDaysSummary.map((day) => {
-                      const isSelected = selectedPlanningDate === day.dateKey;
-                      return (
+                {/* Filtres spécifiques pour la vue Liste Chronologique ou Dispatching */}
+                {planningViewMode !== 'CALENDAR' && (
+                  <div className="flex flex-col gap-3 pt-3 border-t border-outline-variant/20 animate-fadeIn">
+                    {/* 1. Sélecteur d'horizon temporel & Dates */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-outline-variant/20">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[11px] font-bold uppercase text-on-surface-variant mr-1">Horizon :</span>
                         <button
-                          key={day.dateKey}
                           type="button"
-                          onClick={() => setSelectedPlanningDate(isSelected ? null : day.dateKey)}
-                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
-                            isSelected
-                              ? 'bg-secondary text-white shadow-xs'
-                              : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
+                          onClick={() => {
+                            setPlanningHorizon('ALL');
+                            setSelectedPlanningDate(null);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            planningHorizon === 'ALL' && selectedPlanningDate === null
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                           }`}
                         >
-                          <span>{day.label}</span>
-                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                            isSelected ? 'bg-white/20 text-white' : 'bg-surface-container-high text-primary font-mono'
-                          }`}>
-                            {day.count}
-                          </span>
+                          Toutes les dates ({plannedMissions.length})
                         </button>
-                      );
-                    })}
-                  </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlanningHorizon('TODAY');
+                            setSelectedPlanningDate(null);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            planningHorizon === 'TODAY'
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                          }`}
+                        >
+                          Aujourd'hui ({planningDaysSummary.find((d) => d.label === "Aujourd'hui")?.count || 0})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlanningHorizon('TOMORROW');
+                            setSelectedPlanningDate(null);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            planningHorizon === 'TOMORROW'
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                          }`}
+                        >
+                          Demain ({planningDaysSummary.find((d) => d.label === 'Demain')?.count || 0})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlanningHorizon('NEXT_7_DAYS');
+                            setSelectedPlanningDate(null);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            planningHorizon === 'NEXT_7_DAYS'
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+                          }`}
+                        >
+                          7 prochains jours
+                        </button>
+                      </div>
 
-                  {/* Filtre par chauffeur individuel */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Chauffeur :</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDriverFilter('ALL')}
-                      className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
-                        selectedDriverFilter === 'ALL'
-                          ? 'bg-slate-900 text-white shadow-xs'
-                          : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
-                      }`}
-                    >
-                      Tous
-                    </button>
-                    {drivers.map((d) => {
-                      const count = plannedMissions.filter(
-                        (m) =>
-                          m.assignedTransporter?.driverName &&
-                          (m.assignedTransporter.driverName.toLowerCase().includes(d.firstName.toLowerCase()) ||
-                            m.assignedTransporter.driverName.toLowerCase().includes(d.lastName.toLowerCase()))
-                      ).length;
-                      return (
-                        <button
-                          key={d.id}
-                          type="button"
-                          onClick={() => setSelectedDriverFilter(selectedDriverFilter === d.id ? 'ALL' : d.id)}
-                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
-                            selectedDriverFilter === d.id
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-[14px]">badge</span>
-                          <span>{d.firstName}</span>
-                          <span
-                            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                              selectedDriverFilter === d.id ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface'
-                            }`}
+                      {/* Barre de recherche */}
+                      <div className="relative w-full md:w-72 shrink-0">
+                        <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-lg">
+                          search
+                        </span>
+                        <input
+                          type="text"
+                          value={planningSearch}
+                          onChange={(e) => setPlanningSearch(e.target.value)}
+                          placeholder="Filtrer réf, patient, NIR, ville..."
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-container-lowest border border-outline-variant/30 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-hidden focus:border-primary"
+                        />
+                        {planningSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setPlanningSearch('')}
+                            className="absolute right-2.5 top-2.5 text-on-surface-variant hover:text-on-surface text-xs cursor-pointer"
                           >
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDriverFilter(selectedDriverFilter === 'UNASSIGNED' ? 'ALL' : 'UNASSIGNED')}
-                      className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
-                        selectedDriverFilter === 'UNASSIGNED'
-                          ? 'bg-amber-600 text-white shadow-xs'
-                          : 'bg-surface-container-lowest hover:bg-surface-container text-amber-800 border border-amber-300/50'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[14px] text-amber-600">person_off</span>
-                      <span>Sans chauffeur</span>
-                      <span
-                        className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                          selectedDriverFilter === 'UNASSIGNED' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Filtres d'affectation globale */}
+                    <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setPlanningStatusFilter('ALL')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          planningStatusFilter === 'ALL'
+                            ? 'bg-surface-container-high text-on-surface shadow-2xs font-extrabold'
+                            : 'text-on-surface-variant hover:text-on-surface'
                         }`}
                       >
-                        {plannedMissions.filter((m) => !m.assignedTransporter?.driverName).length}
-                      </span>
-                    </button>
+                        Toutes ({plannedMissions.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPlanningStatusFilter('ASSIGNED')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          planningStatusFilter === 'ASSIGNED'
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'text-blue-800 hover:bg-blue-50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                        <span>Chauffeur affecté ({plannedMissions.filter((m) => !!m.assignedTransporter?.driverName).length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPlanningStatusFilter('UNASSIGNED')}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          planningStatusFilter === 'UNASSIGNED'
+                            ? 'bg-amber-600 text-white shadow-2xs'
+                            : 'text-amber-800 hover:bg-amber-50'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                        <span>À affecter ({plannedMissions.filter((m) => !m.assignedTransporter?.driverName).length})</span>
+                      </button>
+                    </div>
+
+                    {/* 3. Bandeau des journées individuelles (Défilement horizontal) & Filtre individuel par Chauffeur */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-outline-variant/15">
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                        <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Par jour :</span>
+                        {planningDaysSummary.map((day) => {
+                          const isSelected = selectedPlanningDate === day.dateKey;
+                          return (
+                            <button
+                              key={day.dateKey}
+                              type="button"
+                              onClick={() => setSelectedPlanningDate(isSelected ? null : day.dateKey)}
+                              className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
+                                isSelected
+                                  ? 'bg-secondary text-white shadow-xs'
+                                  : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
+                              }`}
+                            >
+                              <span>{day.label}</span>
+                              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                                isSelected ? 'bg-white/20 text-white' : 'bg-surface-container-high text-primary font-mono'
+                              }`}>
+                                {day.count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Filtre par chauffeur individuel */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                        <span className="text-[11px] font-bold text-on-surface-variant mr-1 shrink-0">Chauffeur :</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDriverFilter('ALL')}
+                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
+                            selectedDriverFilter === 'ALL'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
+                          }`}
+                        >
+                          Tous
+                        </button>
+                        {drivers.map((d) => {
+                          const count = plannedMissions.filter(
+                            (m) =>
+                              m.assignedTransporter?.driverName &&
+                              (m.assignedTransporter.driverName.toLowerCase().includes(d.firstName.toLowerCase()) ||
+                                m.assignedTransporter.driverName.toLowerCase().includes(d.lastName.toLowerCase()))
+                          ).length;
+                          return (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => setSelectedDriverFilter(selectedDriverFilter === d.id ? 'ALL' : d.id)}
+                              className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
+                                selectedDriverFilter === d.id
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant/20'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">badge</span>
+                              <span>{d.firstName}</span>
+                              <span
+                                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                                  selectedDriverFilter === d.id ? 'bg-white/20 text-white' : 'bg-surface-container-high text-on-surface'
+                                }`}
+                              >
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDriverFilter(selectedDriverFilter === 'UNASSIGNED' ? 'ALL' : 'UNASSIGNED')}
+                          className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer ${
+                            selectedDriverFilter === 'UNASSIGNED'
+                              ? 'bg-amber-600 text-white shadow-xs'
+                              : 'bg-surface-container-lowest hover:bg-surface-container text-amber-800 border border-amber-300/50'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[14px] text-amber-600">person_off</span>
+                          <span>Sans chauffeur</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                              selectedDriverFilter === 'UNASSIGNED' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
+                            }`}
+                          >
+                            {plannedMissions.filter((m) => !m.assignedTransporter?.driverName).length}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Contenu Planning : soit Vue Dispatching Chauffeurs, soit Vue Chronologique groupée par journée */}
-              {planningViewMode === 'DISPATCH_DRIVERS' ? (
+              {/* Contenu Planning : soit Vue Google Agenda, soit Vue Dispatching Chauffeurs, soit Vue Chronologique groupée par journée */}
+              {planningViewMode === 'CALENDAR' ? (
+                <div className="animate-fadeIn">
+                  <TransporterPlanningCalendar
+                    missions={plannedMissions}
+                    drivers={drivers}
+                    fleet={fleet}
+                    transporterName={transporterName}
+                    onSelectMission={(mission) => setSelectedMissionForRecap(mission)}
+                    onCombineMissions={handleCombineMissions}
+                    onUncombineMission={handleUncombineMission}
+                    onReassignDriver={(mission) => setMissionToReassign(mission)}
+                  />
+                </div>
+              ) : planningViewMode === 'DISPATCH_DRIVERS' ? (
                 <div className="flex flex-col gap-6 animate-fadeIn">
                   {/* Bandeau d'en-tête Dispatching */}
                   <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-950/20 via-slate-900/10 to-indigo-950/20 border border-blue-300/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">

@@ -103,6 +103,9 @@ export interface Ride {
   isDirectRequestExpired?: boolean; // Vrai si le délai de 24h00 est expiré
   reassignedToPublicPool?: boolean; // Vrai si la course a été rebasculée dans le pot commun
   reassignedReason?: string; // Raison du rebasculement au pot commun
+  combinedGroupId?: string; // ID unique du groupe de transport partagé (max 3 courses)
+  isSharedTransport?: boolean; // Vrai si la course est combinée en transport partagé
+  combinedRidesCount?: number; // Nombre de courses combinées dans le circuit (2 ou 3)
 }
 
 export interface RidePricing {
