@@ -327,8 +327,9 @@ export const AdminSeoIdeasPage: React.FC = () => {
                   </select>
 
                   <Link
-                    to={`/admin/seo/articles/new?ideaId=${idea.id}`}
+                    to={`/admin/seo/articles/new?ideaId=${idea.id}&auto=1`}
                     className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-primary text-on-primary font-bold text-xs shadow-xs hover:opacity-95 transition-all"
+                    title="Rédiger immédiatement l'article complet avec l'IA"
                   >
                     <span className="material-symbols-outlined text-sm">edit</span>
                     <span>Rédiger</span>

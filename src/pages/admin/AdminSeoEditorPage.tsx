@@ -4,7 +4,7 @@ import { AdminLayout } from '../../components/AdminLayout';
 import { AdminSeoSubnav } from '../../components/admin/AdminSeoSubnav';
 import { AdminRichMarkdownEditor } from '../../components/admin/AdminRichMarkdownEditor';
 import { blogService } from '../../services/blogService';
-import { aiSeoService } from '../../services/aiSeoService';
+import { aiSeoService, ensureClinigoEndingLink, GeneratedArticleData } from '../../services/aiSeoService';
 import {
   BlogPost,
   BlogPostStatus,
@@ -14,6 +14,7 @@ import {
   FaqItem,
   SourceItem,
   AiOutlinePlan,
+  SeoIdea,
 } from '../../types/blog';
 
 export const AdminSeoEditorPage: React.FC = () => {
@@ -78,9 +79,385 @@ export const AdminSeoEditorPage: React.FC = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // Auto-generation overlay states
+  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
+  const [autoGeneratingStatus, setAutoGeneratingStatus] = useState('');
+
+  // Détection automatique de la catégorie selon le sujet et mot-clé
+  const autoDetectCategory = (topic: string, keyword: string, cats: BlogCategory[]): string => {
+    const text = `${topic} ${keyword}`.toLowerCase();
+    if (text.includes('dialyse') || text.includes('chimio') || text.includes('cancer') || text.includes('ald') || text.includes('pathologie') || text.includes('rééducation') || text.includes('soin')) {
+      const cat = cats.find(c => c.slug === 'pathologies-ald' || c.id === 'cat-pathologies');
+      if (cat) return cat.id;
+    }
+    if (text.includes('vsl') || text.includes('ambulance') || text.includes('taxi') || text.includes('différence') || text.includes('difference') || text.includes('véhicule') || text.includes('vehicule') || text.includes('choisir') || text.includes('transport')) {
+      const cat = cats.find(c => c.slug === 'types-de-transport' || c.id === 'cat-types-transport');
+      if (cat) return cat.id;
+    }
+    if (text.includes('remboursement') || text.includes('cpam') || text.includes('pmt') || text.includes('prescription') || text.includes('100%') || text.includes('bon de transport') || text.includes('droits') || text.includes('prise en charge')) {
+      const cat = cats.find(c => c.slug === 'remboursement-cpam' || c.id === 'cat-remboursement');
+      if (cat) return cat.id;
+    }
+    return cats[0]?.id || 'cat-types-transport';
+  };
+
+  // Détection automatique de la photo à la une 16:9 haute définition selon le sujet
+  const autoDetectFeaturedImage = (topic: string, keyword: string) => {
+    const lower = `${topic} ${keyword}`.toLowerCase();
+    if (lower.includes('régulation') || lower.includes('regulation') || lower.includes('dispatch') || lower.includes('standard') || lower.includes('permanence')) {
+      return {
+        url: '/assets/gallery/regulation_ambulance_dispatch.jpg',
+        alt: 'Centre de régulation des transports sanitaires et coordination des ambulances en Martinique'
+      };
+    }
+    if (lower.includes('pmr') || lower.includes('fauteuil') || lower.includes('handicap') || lower.includes('rampe')) {
+      return {
+        url: '/assets/gallery/transport_pmr_fauteuil.jpg',
+        alt: 'Véhicule adapté PMR avec rampe d\'accès et prise en charge bienveillante en Martinique'
+      };
+    }
+    if (lower.includes('dialyse') || lower.includes('néphrologie') || lower.includes('nephrologie') || lower.includes('rein')) {
+      return {
+        url: '/assets/gallery/dialyse_centre_soins.jpg',
+        alt: 'Centre de soins et dialyse avec transport sanitaire conventionné en Martinique'
+      };
+    }
+    if (lower.includes('bébé') || lower.includes('bebe') || lower.includes('enfant') || lower.includes('maternité') || lower.includes('maternite') || lower.includes('pédiatrie') || lower.includes('pediatrie')) {
+      return {
+        url: '/assets/gallery/pediatrie_maternite.jpg',
+        alt: 'Transport médicalisé pédiatrique et maternité en Martinique'
+      };
+    }
+    if (lower.includes('hélicoptère') || lower.includes('helicoptere') || lower.includes('evasan') || lower.includes('dragon')) {
+      return {
+        url: '/assets/gallery/evasan_helicoptere_chu.jpg',
+        alt: 'Évacuation sanitaire héliportée Dragon 972 SAMU en Martinique'
+      };
+    }
+    if (lower.includes('clinique') || lower.includes('accueil') || lower.includes('admission')) {
+      return {
+        url: '/assets/gallery/clinique_accueil_urgences.jpg',
+        alt: 'Accueil et admissions en clinique médicale partenaire en Martinique'
+      };
+    }
+    if (lower.includes('taxi') || lower.includes('conventionné') || lower.includes('conventionne')) {
+      return {
+        url: '/assets/gallery/taxi_conventionne_aidant.jpg',
+        alt: 'Chauffeur de taxi conventionné CPAM bienveillant pour transport médical en Martinique'
+      };
+    }
+    if (lower.includes('vsl') || lower.includes('assis') || lower.includes('véhicule sanitaire') || lower.includes('vehicule sanitaire')) {
+      return {
+        url: '/assets/gallery/vsl_transport_cote.jpg',
+        alt: 'Véhicule Sanitaire Léger (VSL) conventionné longeant la côte en Martinique'
+      };
+    }
+    if (lower.includes('brancard') || lower.includes('allongé') || lower.includes('allonge')) {
+      return {
+        url: '/assets/gallery/brancardiers_soins_hopital.jpg',
+        alt: 'Équipe d\'ambulanciers brancardiers et transfert civière sécurisé'
+      };
+    }
+    if (lower.includes('pmt') || lower.includes('prescription') || lower.includes('médecin') || lower.includes('medecin') || lower.includes('cerfa')) {
+      return {
+        url: '/assets/gallery/medecin_prescription_pmt.jpg',
+        alt: 'Consultation médicale et validation du bon de transport Cerfa PMT'
+      };
+    }
+    return {
+      url: '/assets/gallery/ambulance_martinique_chu.jpg',
+      alt: 'Ambulance moderne conventionnée prête pour une mission en Martinique'
+    };
+  };
+
+  // Détection automatique des tags pour ne jamais laisser le champ vide
+  const autoDetectTagIds = (topic: string, keyword: string, availableTags: BlogTag[]): string[] => {
+    if (!availableTags || availableTags.length === 0) return [];
+    const text = `${topic} ${keyword}`.toLowerCase();
+    const matched = new Set<string>();
+
+    for (const tag of availableTags) {
+      const name = tag.name.toLowerCase();
+      const slug = tag.slug.toLowerCase();
+      if (text.includes(name) || text.includes(slug)) {
+        matched.add(tag.id);
+      }
+    }
+
+    if (text.includes('dialyse') || text.includes('rein')) {
+      const t = availableTags.find(x => x.slug.includes('dialyse') || x.name.toLowerCase().includes('dialyse'));
+      if (t) matched.add(t.id);
+      const tAld = availableTags.find(x => x.slug.includes('ald') || x.name.toLowerCase().includes('ald'));
+      if (tAld) matched.add(tAld.id);
+    }
+
+    if (text.includes('cerfa') || text.includes('prescription') || text.includes('pmt') || text.includes('bon')) {
+      const tPmt = availableTags.find(x => x.slug.includes('pmt') || x.name.toLowerCase().includes('pmt'));
+      if (tPmt) matched.add(tPmt.id);
+      const tBon = availableTags.find(x => x.slug.includes('bon') || x.name.toLowerCase().includes('bon'));
+      if (tBon) matched.add(tBon.id);
+    }
+
+    if (text.includes('taxi') || text.includes('conventionné') || text.includes('conventionne')) {
+      const tTaxi = availableTags.find(x => x.slug.includes('taxi') || x.name.toLowerCase().includes('taxi'));
+      if (tTaxi) matched.add(tTaxi.id);
+    }
+
+    if (text.includes('vsl') || text.includes('léger') || text.includes('leger') || text.includes('assis')) {
+      const tVsl = availableTags.find(x => x.slug.includes('vsl') || x.name.toLowerCase().includes('vsl'));
+      if (tVsl) matched.add(tVsl.id);
+    }
+
+    if (text.includes('ambulance') || text.includes('allongé') || text.includes('allonge') || text.includes('urgence')) {
+      const tAmb = availableTags.find(x => x.slug.includes('ambulance') || x.name.toLowerCase().includes('ambulance'));
+      if (tAmb) matched.add(tAmb.id);
+    }
+
+    if (text.includes('hôpital') || text.includes('hopital') || text.includes('clinique') || text.includes('sortie')) {
+      const tHop = availableTags.find(x => x.slug.includes('hopital') || x.name.toLowerCase().includes('hopital'));
+      if (tHop) matched.add(tHop.id);
+    }
+
+    if (matched.size === 0) {
+      if (availableTags[0]) matched.add(availableTags[0].id);
+      if (availableTags[1]) matched.add(availableTags[1].id);
+    }
+
+    return Array.from(matched);
+  };
+
+  // Génération de contenu de secours riche et complet avec lien de fin obligatoire
+  const generateFallbackArticleContent = (topic: string, keyword: string): string => {
+    const kw = keyword || topic;
+    return `## Introduction
+
+Le recours à un **transport sanitaire** pour **${topic}** est un acte de soin essentiel pour garantir la sécurité et la continuité du parcours de santé du patient. Encadré rigoureusement par le Code de la santé publique et les directives de l'Assurance Maladie, ce mode de déplacement répond à des impératifs médicaux rigoureux.
+
+Ce guide complet vous détaille les critères d'éligibilité, la prescription médicale requise, le niveau de remboursement CPAM et les étapes simples pour réserver votre véhicule adapté.
+
+---
+
+## 1. Cadre légal et Prescription Médicale de Transport (PMT)
+
+Le principe fondamental posé par l'Assurance Maladie est clair : **tout transport sanitaire doit impérativement faire l'objet d'une Prescription Médicale de Transport (PMT, formulaire Cerfa n° 11574) délivrée par votre médecin avant le déplacement**, sauf urgence médicale constatée.
+
+### Les conditions ouvrant droit à une prise en charge
+Pour que les frais de transport liés à *${kw}* soient remboursés, ils doivent correspondre à l'une des situations prévues par la réglementation :
+- **Transports liés à une hospitalisation** (entrée ou sortie, complète ou ambulatoire) ;
+- **Transports liés aux traitements ou examens pour les affections de longue durée (ALD 100%)** si le patient présente une incapacité ou une déficience attestée ;
+- **Transports pour des séances de soins répétées** (dialyse, chimiothérapie, radiothérapie, rééducation fonctionnelle) ;
+- **Transports en série** (au moins 4 trajets de plus de 50 km aller au cours d'une période de 2 mois pour un même traitement) ;
+- **Transports longue distance** (déplacement de plus de 150 km aller).
+
+> **Important** : Pour les transports de longue distance ou en série, un accord préalable du service médical de votre Caisse Primaire d'Assurance Maladie (CPAM) est requis. Pensez à anticiper votre demande au moins 15 jours avant la date du transport.
+
+---
+
+## 2. Quel véhicule choisir : Ambulance, VSL ou Taxi conventionné ?
+
+Le choix du moyen de transport n'appartient ni au patient ni au transporteur : c'est le médecin qui détermine le mode de déplacement le plus adapté à votre autonomie sur la prescription Cerfa.
+
+### L'Ambulance (Transport allongé ou demi-assis sous surveillance)
+L'ambulance est prescrite si votre état de santé nécessite :
+- Une position allongée ou demi-assise obligatoire ;
+- Une surveillance médicale constante par un ambulancier diplômé d'État ;
+- Un brancardage ou portage avec aide technique ;
+- L'administration d'oxygène ou une surveillance des paramètres vitaux.
+
+### Le VSL ou le Taxi Conventionné (Transport assis professionnalisé)
+Si vous pouvez voyager en position assise sans nécessiter d'assistance médicale continue :
+- Le **Véhicule Sanitaire Léger (VSL)** et le **Taxi conventionné CPAM** assurent un transport individualisé et sécurisé vers votre centre hospitalier, cabinet médical ou clinique.
+- Ces véhicules respectent des normes sanitaires strictes et garantissent la dispense d'avance de frais via le tiers payant.
+
+---
+
+## 3. Remboursement et Tiers Payant CPAM : Zéro avance de frais
+
+Dans la grande majorité des cas relevant d'une ALD 100%, d'un accident du travail, d'une maladie professionnelle ou d'une hospitalisation lourde, le transport est pris en charge à **100% par la Sécurité sociale** sans aucune avance de frais (tiers payant intégral).
+
+Dans les autres cas généraux, la prise en charge standard de l'Assurance Maladie est de **65%**, le solde de 35% étant couvert par votre complémentaire santé ou mutuelle santé responsable.
+
+### Documents à présenter au chauffeur ou ambulancier :
+1. La **Prescription Médicale de Transport (PMT)** originale signée et tamponnée par le praticien ;
+2. L'**accord préalable de la CPAM** si la situation l'exigeait (longue distance ou série) ;
+3. Votre **Carte Vitale** à jour des droits ;
+4. Votre **attestation de mutuelle** en cours de validité.
+
+---
+
+## 4. Organisation et conseils pratiques pour vos rendez-vous
+
+Pour garantir la ponctualité de vos soins et limiter le stress du déplacement :
+- **Réservez à l'avance** : dès confirmation de votre date de convocation ou d'hospitalisation, planifiez votre trajet auprès d'un transporteur sanitaire agréé.
+- **Transmettez vos contraintes de mobilité** : précisez si vous disposez d'un fauteuil roulant pliable, d'un déambulateur ou si vous êtes accompagné par un proche.
+- **Gardez vos documents à portée de main** pour faciliter la validation de votre bon de transport dès la prise en charge.
+
+---
+
+### Réservez votre transport conventionné en toute simplicité
+
+Pour planifier sereinement vos déplacements médicaux en ambulance, VSL ou taxi conventionné avec prise en charge Sécurité sociale, réservez directement votre transport sur [www.clinigo.fr](https://www.clinigo.fr).`;
+  };
+
+  // Rédaction complète automatique lors du clic sur "Rédiger"
+  const autoDraftFullArticleForIdea = async (
+    idea: SeoIdea,
+    cats: BlogCategory[],
+    allTags: BlogTag[]
+  ) => {
+    setIsAutoGenerating(true);
+    setAutoGeneratingStatus(`Démarrage de la rédaction automatique pour "${idea.topic}"...`);
+    try {
+      const chosenKw = (idea.primary_keyword || idea.topic).trim();
+      const audience = (idea.target_audience as any) || 'patient';
+
+      setAutoGeneratingStatus("1/3 Génération du plan éditorial SEO...");
+      let plan: any;
+      try {
+        plan = await aiSeoService.generatePlan({
+          topic: idea.topic.trim(),
+          targetKeyword: chosenKw,
+          targetAudience: audience,
+          contentSensitivity: 'GENERAL_INFO',
+        });
+      } catch (planErr) {
+        console.warn('[AutoDraft] Repli plan local :', planErr);
+        plan = {
+          title: idea.topic,
+          slug: idea.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          focusKeyword: chosenKw,
+          headings: [
+            '## 1. Cadre légal et Prescription Médicale de Transport (PMT)',
+            '## 2. Modalités de prise en charge et remboursement Sécurité sociale',
+            '## 3. Choisir le bon véhicule : VSL, Taxi conventionné ou Ambulance',
+            '## 4. Organisation pratique et démarches',
+            '## Réserver votre transport conventionné en ligne'
+          ],
+          suggestedQuestions: [
+            `Comment obtenir le remboursement pour ${chosenKw} ?`,
+            'Faut-il avancer les frais auprès du transporteur ?',
+            'Quelle est la différence entre VSL et taxi conventionné ?'
+          ],
+          sourcesToVerify: ['ameli.fr', 'service-public.fr']
+        };
+      }
+
+      setAutoGeneratingStatus("2/3 Rédaction de l'article complet, chapitres et FAQ...");
+      let generated: GeneratedArticleData;
+      try {
+        generated = await aiSeoService.generateArticle({
+          topic: idea.topic.trim(),
+          targetKeyword: chosenKw,
+          targetAudience: audience,
+          contentSensitivity: 'GENERAL_INFO',
+          approvedPlan: plan,
+        });
+      } catch (artErr) {
+        console.warn('[AutoDraft] Repli article local :', artErr);
+        const fbContent = generateFallbackArticleContent(idea.topic, chosenKw);
+        generated = {
+          title: plan?.title || idea.topic,
+          slug: plan?.slug || idea.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          excerpt: idea.notes || `Guide complet sur ${chosenKw} : prise en charge Sécurité sociale, bon de transport Cerfa et réservation sur Clinigo.fr.`,
+          metaTitle: `${plan?.title || idea.topic} | Clinigo`,
+          metaDescription: `Découvrez tout ce qu'il faut savoir sur ${chosenKw} : règles de remboursement CPAM et réservation en ligne.`,
+          content: fbContent,
+          faq: [
+            {
+              question: `Comment faire prendre en charge un transport pour ${idea.topic} ?`,
+              answer: 'Le transport doit obligatoirement faire l\'objet d\'une Prescription Médicale de Transport (PMT Cerfa) délivrée par votre médecin avant le déplacement.'
+            },
+            {
+              question: 'Le tiers payant est-il appliqué ?',
+              answer: 'Oui, si vous disposez d\'une ALD 100% ou d\'une dispense d\'avance de frais, le transporteur applique directement le tiers payant avec votre caisse CPAM.'
+            }
+          ],
+          suggestedCta: 'Réserver un transport conventionné',
+          suggestedImageAlt: `Illustration transport conventionné pour ${idea.topic}`,
+          sources: [
+            {
+              title: 'Assurance Maladie - Frais de transport',
+              url: 'https://www.ameli.fr/assure/remboursements/rembourse/transport',
+              organization: 'Caisse Nationale d\'Assurance Maladie (Ameli)',
+              verified: true
+            }
+          ]
+        };
+      }
+
+      setAutoGeneratingStatus("3/3 Finalisation des métadonnées, images, tags et maillage...");
+
+      // Garantir le lien de fin obligatoire vers www.clinigo.fr
+      const finalContent = ensureClinigoEndingLink(generated.content);
+
+      // Image à la une & Alt text SEO automatiques
+      const autoImg = autoDetectFeaturedImage(idea.topic, chosenKw);
+
+      // Catégorie thématique automatique
+      const autoCatId = autoDetectCategory(idea.topic, chosenKw, cats);
+
+      // Tags automatiques
+      const autoTagIds = autoDetectTagIds(idea.topic, chosenKw, allTags);
+
+      const computedSlug = (generated.slug || idea.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')).toLowerCase().trim();
+
+      // Remplissage complet de l'ensemble des champs du formulaire
+      setTitle(generated.title || idea.topic);
+      setSlug(computedSlug);
+      setOriginalSlug(computedSlug);
+      setExcerpt(generated.excerpt || idea.notes || '');
+      setContent(finalContent);
+      setMetaTitle(generated.metaTitle || `${generated.title || idea.topic} | Clinigo`);
+      setMetaDescription(generated.metaDescription || generated.excerpt || '');
+      setCanonicalUrl(`https://clinigo.fr/blog/${computedSlug}`);
+      setContentSensitivity('GENERAL_INFO');
+      setTargetKeyword(chosenKw);
+      setCategoryId(autoCatId);
+      setSelectedTagIds(autoTagIds);
+      setFeaturedImage(autoImg.url);
+      setFeaturedImageAlt(generated.suggestedImageAlt || autoImg.alt);
+
+      if (generated.faq && generated.faq.length > 0) {
+        setFaq(generated.faq);
+      }
+      if (generated.sources && generated.sources.length > 0) {
+        setSources(generated.sources);
+      }
+
+      setAiTopic(idea.topic);
+      setAiKeyword(chosenKw);
+      if (idea.target_audience) {
+        setAiAudience(idea.target_audience as any);
+      }
+
+      setStatus('draft');
+
+      // Marquer l'idée comme rédigée (completed) dans la base
+      try {
+        await blogService.updateIdeaStatus(idea.id, 'completed');
+      } catch (updErr) {
+        console.warn('Impossible de mettre à jour le statut de l\'idée:', updErr);
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMessage({
+        type: 'success',
+        text: `🎉 L'article "${generated.title || idea.topic}" a été entièrement rédigé par l'IA ! Tous les champs (titre, contenu complet, méta-balises, tags, image, FAQ et lien vers www.clinigo.fr) sont remplis.`,
+      });
+    } catch (err: any) {
+      console.error('Erreur lors de la rédaction automatique:', err);
+      setMessage({
+        type: 'error',
+        text: err.message || "Erreur lors de la rédaction automatique de l'article.",
+      });
+    } finally {
+      setIsAutoGenerating(false);
+    }
+  };
+
   useEffect(() => {
     loadInitialData();
-  }, [id]);
+  }, [id, searchParams]);
 
   // Recalculer suggestions de liens internes à chaque changement de texte
   useEffect(() => {
@@ -134,17 +511,21 @@ export const AdminSeoEditorPage: React.FC = () => {
           const idea = ideas.find(i => i.id === ideaId);
           if (idea) {
             setTitle(idea.topic);
-            setSlug(idea.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
-            setTargetKeyword(idea.primary_keyword || '');
+            const initialSlug = idea.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            setSlug(initialSlug);
+            setOriginalSlug(initialSlug);
+            setTargetKeyword(idea.primary_keyword || idea.topic);
             setExcerpt(idea.notes || '');
             setAiTopic(idea.topic);
-            setAiKeyword(idea.primary_keyword || '');
+            setAiKeyword(idea.primary_keyword || idea.topic);
             if (idea.target_audience) {
               setAiAudience(idea.target_audience as any);
             }
+
+            // Déclencher immédiatement la rédaction complète automatique de l'article par l'IA
+            await autoDraftFullArticleForIdea(idea, cats, allTags);
           }
-        }
-        if (cats.length > 0 && !categoryId) {
+        } else if (cats.length > 0 && !categoryId) {
           setCategoryId(cats[0].id);
         }
       }
@@ -291,94 +672,6 @@ export const AdminSeoEditorPage: React.FC = () => {
     }
   };
 
-  // GESTION IA : Étape 1 - Générer le Plan
-  // Détection automatique de la catégorie selon le sujet et mot-clé
-  const autoDetectCategory = (topic: string, keyword: string, cats: BlogCategory[]): string => {
-    const text = `${topic} ${keyword}`.toLowerCase();
-    if (text.includes('dialyse') || text.includes('chimio') || text.includes('cancer') || text.includes('ald') || text.includes('pathologie') || text.includes('rééducation') || text.includes('soin')) {
-      const cat = cats.find(c => c.slug === 'pathologies-ald' || c.id === 'cat-pathologies');
-      if (cat) return cat.id;
-    }
-    if (text.includes('vsl') || text.includes('ambulance') || text.includes('taxi') || text.includes('différence') || text.includes('difference') || text.includes('véhicule') || text.includes('vehicule') || text.includes('choisir') || text.includes('transport')) {
-      const cat = cats.find(c => c.slug === 'types-de-transport' || c.id === 'cat-types-transport');
-      if (cat) return cat.id;
-    }
-    if (text.includes('remboursement') || text.includes('cpam') || text.includes('pmt') || text.includes('prescription') || text.includes('100%') || text.includes('bon de transport') || text.includes('droits') || text.includes('prise en charge')) {
-      const cat = cats.find(c => c.slug === 'remboursement-cpam' || c.id === 'cat-remboursement');
-      if (cat) return cat.id;
-    }
-    return cats[0]?.id || 'cat-types-transport';
-  };
-
-  // Détection automatique de la photo à la une 16:9 haute définition selon le sujet
-  const autoDetectFeaturedImage = (topic: string, keyword: string) => {
-    const lower = `${topic} ${keyword}`.toLowerCase();
-    if (lower.includes('régulation') || lower.includes('regulation') || lower.includes('dispatch') || lower.includes('standard') || lower.includes('permanence')) {
-      return {
-        url: '/assets/gallery/regulation_ambulance_dispatch.jpg',
-        alt: 'Centre de régulation des transports sanitaires et coordination des ambulances en Martinique'
-      };
-    }
-    if (lower.includes('pmr') || lower.includes('fauteuil') || lower.includes('handicap') || lower.includes('rampe')) {
-      return {
-        url: '/assets/gallery/transport_pmr_fauteuil.jpg',
-        alt: 'Véhicule adapté PMR avec rampe d\'accès et prise en charge bienveillante en Martinique'
-      };
-    }
-    if (lower.includes('dialyse') || lower.includes('néphrologie') || lower.includes('nephrologie') || lower.includes('rein')) {
-      return {
-        url: '/assets/gallery/dialyse_centre_soins.jpg',
-        alt: 'Centre de soins et dialyse avec transport sanitaire conventionné en Martinique'
-      };
-    }
-    if (lower.includes('bébé') || lower.includes('bebe') || lower.includes('enfant') || lower.includes('maternité') || lower.includes('maternite') || lower.includes('pédiatrie') || lower.includes('pediatrie')) {
-      return {
-        url: '/assets/gallery/pediatrie_maternite.jpg',
-        alt: 'Transport médicalisé pédiatrique et maternité en Martinique'
-      };
-    }
-    if (lower.includes('hélicoptère') || lower.includes('helicoptere') || lower.includes('evasan') || lower.includes('dragon')) {
-      return {
-        url: '/assets/gallery/evasan_helicoptere_chu.jpg',
-        alt: 'Évacuation sanitaire héliportée Dragon 972 SAMU en Martinique'
-      };
-    }
-    if (lower.includes('clinique') || lower.includes('accueil') || lower.includes('admission')) {
-      return {
-        url: '/assets/gallery/clinique_accueil_urgences.jpg',
-        alt: 'Accueil et admissions en clinique médicale partenaire en Martinique'
-      };
-    }
-    if (lower.includes('taxi') || lower.includes('conventionné') || lower.includes('conventionne')) {
-      return {
-        url: '/assets/gallery/taxi_conventionne_aidant.jpg',
-        alt: 'Chauffeur de taxi conventionné CPAM bienveillant pour transport médical en Martinique'
-      };
-    }
-    if (lower.includes('vsl') || lower.includes('assis') || lower.includes('véhicule sanitaire') || lower.includes('vehicule sanitaire')) {
-      return {
-        url: '/assets/gallery/vsl_transport_cote.jpg',
-        alt: 'Véhicule Sanitaire Léger (VSL) conventionné longeant la côte en Martinique'
-      };
-    }
-    if (lower.includes('brancard') || lower.includes('allongé') || lower.includes('allonge')) {
-      return {
-        url: '/assets/gallery/brancardiers_soins_hopital.jpg',
-        alt: 'Équipe d\'ambulanciers brancardiers et transfert civière sécurisé'
-      };
-    }
-    if (lower.includes('pmt') || lower.includes('prescription') || lower.includes('médecin') || lower.includes('medecin') || lower.includes('cerfa')) {
-      return {
-        url: '/assets/gallery/medecin_prescription_pmt.jpg',
-        alt: 'Consultation médicale et validation du bon de transport Cerfa PMT'
-      };
-    }
-    return {
-      url: '/assets/gallery/ambulance_martinique_chu.jpg',
-      alt: 'Ambulance moderne conventionnée prête pour une mission en Martinique'
-    };
-  };
-
   // GESTION IA : Génération Directe en 1 Clic (Article complet + Tous les champs remplis)
   const handleOneClickGenerateArticle = async () => {
     if (!aiTopic.trim()) {
@@ -413,7 +706,8 @@ export const AdminSeoEditorPage: React.FC = () => {
       setSlug(generated.slug);
       setOriginalSlug(generated.slug);
       setExcerpt(generated.excerpt);
-      setContent(generated.content);
+      const finalContent = ensureClinigoEndingLink(generated.content);
+      setContent(finalContent);
       setMetaTitle(generated.metaTitle);
       setMetaDescription(generated.metaDescription);
       setCanonicalUrl(`https://clinigo.fr/blog/${generated.slug.toLowerCase().trim()}`);
@@ -431,6 +725,10 @@ export const AdminSeoEditorPage: React.FC = () => {
         setCategoryId(autoCatId);
       }
 
+      // Tags automatiques
+      const autoTagIds = autoDetectTagIds(aiTopic, chosenKw, tags);
+      setSelectedTagIds(autoTagIds);
+
       // FAQ Schema.org
       if (generated.faq && generated.faq.length > 0) {
         setFaq(generated.faq);
@@ -446,7 +744,7 @@ export const AdminSeoEditorPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setMessage({
         type: 'success',
-        text: '🎉 Article complet rédigé avec succès ! Tous les champs (titre, image à la une, catégorie, contenu Markdown, SEO, FAQ et sources) ont été remplis automatiquement.',
+        text: '🎉 Article complet rédigé avec succès ! Tous les champs (titre, image à la une, catégorie, tags, contenu Markdown, SEO, FAQ et sources) ont été remplis automatiquement avec le lien vers www.clinigo.fr.',
       });
     } catch (err: any) {
       setAiError(err.message || "Erreur lors de la génération automatique de l'article.");
@@ -500,7 +798,8 @@ export const AdminSeoEditorPage: React.FC = () => {
       setSlug(generated.slug);
       setOriginalSlug(generated.slug);
       setExcerpt(generated.excerpt);
-      setContent(generated.content);
+      const finalContent = ensureClinigoEndingLink(generated.content);
+      setContent(finalContent);
       setMetaTitle(generated.metaTitle);
       setMetaDescription(generated.metaDescription);
       setCanonicalUrl(`https://clinigo.fr/blog/${generated.slug.toLowerCase().trim()}`);
@@ -517,6 +816,10 @@ export const AdminSeoEditorPage: React.FC = () => {
       if (autoCatId) {
         setCategoryId(autoCatId);
       }
+
+      // Tags automatiques
+      const autoTagIds = autoDetectTagIds(aiTopic, chosenKw, tags);
+      setSelectedTagIds(autoTagIds);
 
       if (generated.faq && generated.faq.length > 0) {
         setFaq(generated.faq);
@@ -2256,6 +2559,26 @@ export const AdminSeoEditorPage: React.FC = () => {
                 <span>{isDeleting ? 'Suppression...' : 'Supprimer définitivement'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Overlay de Rédaction Automatique IA */}
+      {isAutoGenerating && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest rounded-3xl p-8 max-w-md w-full shadow-2xl border border-primary/20 text-center animate-scaleUp">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center text-primary animate-pulse">
+              <span className="material-symbols-outlined text-3xl">auto_fix_high</span>
+            </div>
+            <h3 className="text-lg font-bold text-on-surface mb-2">Rédaction IA en cours...</h3>
+            <p className="text-xs text-on-surface-variant mb-6 leading-relaxed">
+              {autoGeneratingStatus || "Rédaction complète de l'article, des métadonnées SEO, des tags et de la FAQ..."}
+            </p>
+            <div className="w-full bg-surface-container-high rounded-full h-2 overflow-hidden mb-4">
+              <div className="bg-primary h-full rounded-full w-2/3 animate-pulse"></div>
+            </div>
+            <p className="text-[11px] text-outline">
+              Veuillez patienter quelques instants : l'article est entièrement rédigé avec l'ensemble des balises et le lien de réservation vers www.clinigo.fr.
+            </p>
           </div>
         </div>
       )}

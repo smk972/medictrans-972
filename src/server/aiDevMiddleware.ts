@@ -348,14 +348,19 @@ Plan : ${plan?.headings?.join('\n')}
 FAQ : ${plan?.suggestedQuestions?.join('\n')}
 Articles existants pour maillage : ${existingArticles.map((a: any) => `- [${a.title}](/blog/${a.slug})`).join('\n')}
 
+CONSIGNES DE RÉDACTION STRICTES :
+1. Rédige un article complet, riche, approfondi et directement publiable (au minimum 800 à 1200 mots).
+2. Utilise des balises H2 et H3, des paragraphes pédagogiques, des listes à puces et des encadrés de conseils pour détailler la réglementation (Prescription Médicale de Transport Cerfa, prise en charge CPAM, ALD, tiers payant).
+3. L'article DOIT OBLIGATOIREMENT se terminer par une section de conclusion avec un appel à l'action clair contenant le lien markdown exact : [www.clinigo.fr](https://www.clinigo.fr).
+
 Format JSON attendu :
 {
   "title": "${plan?.title}",
   "slug": "${plan?.slug}",
   "excerpt": "Résumé incitatif de 130 à 160 caractères contenant le mot-clé.",
   "metaTitle": "${plan?.title} | Clinigo",
-  "metaDescription": "Description incitative pour Google.",
-  "content": "Article complet en Markdown avec H2, H3, listes à puces et liens internes.",
+  "metaDescription": "Description incitative pour Google de 140 à 160 caractères.",
+  "content": "Article complet en Markdown avec H2, H3, listes à puces et se terminant obligatoirement par le lien [www.clinigo.fr](https://www.clinigo.fr).",
   "faq": [{"question": "Question 1", "answer": "Réponse sourcée"}],
   "suggestedCta": "Réserver un transport médicalisé",
   "suggestedImageAlt": "Illustration professionnelle",
@@ -379,28 +384,115 @@ Format JSON attendu :
           }
         }
         if (!resultData) {
+          const kw = plan?.focusKeyword || plan?.topic || 'transport sanitaire conventionné';
+          const artTitle = plan?.title || `Guide Pratique : ${kw}`;
+          const artSlug = plan?.slug || kw.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
           resultData = {
-            title: plan?.title || 'Guide Sanitaire',
-            slug: plan?.slug || 'guide-sanitaire',
-            excerpt: `Découvrez notre guide pratique sur ${plan?.focusKeyword || 'le transport médical'} : règles de remboursement, PMT et démarches auprès de la CPAM.`,
-            metaTitle: `${plan?.title} | Clinigo`,
-            metaDescription: `Guide pratique sur ${plan?.focusKeyword} : prise en charge Sécurité sociale, bon de transport et réservation sur Clinigo.fr.`,
-            content: `## Introduction\n\nLe recours à un **${plan?.focusKeyword || 'transport sanitaire'}** est soumis à des dispositions réglementaires strictes pour garantir la sécurité du patient et le bon usage des fonds publics.\n\n## 1. Conditions médicales d'éligibilité\n\nPour être remboursé par l'Assurance Maladie, le transport doit obligatoirement faire l'objet d'une Prescription Médicale de Transport (PMT) délivrée préalablement par votre médecin.\n\n## 2. Démarches et prise en charge\n\nSi vous bénéficiez d'une exonération du ticket modérateur (ALD 100%, Accident du travail), vous n'avez aucune avance de frais à effectuer.\n\n## Réserver votre trajet avec Clinigo\n\nSur **Clinigo.fr**, votre demande est transmise immédiatement aux ambulances, VSL et taxis conventionnés agréés les plus proches.`,
-            faq: (plan?.suggestedQuestions || []).map((q: string) => ({
+            title: artTitle,
+            slug: artSlug,
+            excerpt: `Découvrez notre guide complet sur ${kw} : règles de remboursement, Prescription Médicale de Transport (PMT Cerfa) et réservation en ligne.`,
+            metaTitle: `${artTitle} | Clinigo`,
+            metaDescription: `Guide pratique sur ${kw} : prise en charge Sécurité sociale, bon de transport Cerfa et réservation sur Clinigo.fr.`,
+            content: `## Introduction
+
+Le recours à un **transport sanitaire** pour **${kw}** constitue un maillon essentiel de votre parcours de soins. Encadré rigoureusement par le Code de la santé publique et la Caisse Nationale d'Assurance Maladie (CNAM), ce mode de transport garantit la continuité des soins et la sécurité du patient.
+
+Ce guide pratique réunit l'ensemble des règles administratives, médicales et financières pour bénéficier d'une prise en charge intégrale sans mauvaise surprise.
+
+---
+
+## 1. Cadre réglementaire et Prescription Médicale de Transport (PMT)
+
+Le remboursement des frais de transport n'est pas automatique : il répond à des règles strictes définies par l'Assurance Maladie.
+
+### Le principe de la prescription préalable
+Pour que votre déplacement lié à *${kw}* soit remboursé, il doit faire l'objet d'une **Prescription Médicale de Transport (formulaire Cerfa n° 11574)** établie par votre médecin traitant ou le spécialiste hospitalier **avant** le déplacement, sauf situation d'urgence médicale avérée.
+
+### Les situations médicales ouvrant droit à prise en charge
+L'Assurance Maladie prend en charge les transports dans les situations suivantes :
+- **Entrées et sorties d'hospitalisation** (hospitalisation complète, ambulatoire ou séance de chimiothérapie / radiothérapie) ;
+- **Traitements des Affections de Longue Durée (ALD 100%)** lorsque le patient présente des incapacités de déplacement ;
+- **Traitements des accidents du travail et maladies professionnelles (AT/MP)** ;
+- **Transports en série** : au moins 4 trajets de plus de 50 km sur une période de 2 mois pour un même traitement ;
+- **Transports de longue distance** : trajets de plus de 150 km aller avec accord préalable de la CPAM.
+
+---
+
+## 2. Quel véhicule choisir : Ambulance, VSL ou Taxi conventionné ?
+
+Le mode de transport prescrit ne dépend pas du choix personnel du patient mais de son autonomie physique et de son état clinique, certifiés par le médecin sur le volet Cerfa.
+
+### L'Ambulance (Transport Allongé ou Surveillance Médicale)
+L'ambulance est obligatoire si vous nécessitez :
+- Une position allongée ou demi-assise durant le trajet ;
+- Une surveillance médicale constante par un professionnel de santé diplômé ;
+- Un brancardage ou un portage complexe avec du matériel dédié ;
+- L'administration d'oxygène ou une assistance respiratoire.
+
+### Le VSL ou le Taxi Conventionné CPAM (Transport Assis Professionnalisé)
+Si vous êtes autonome pour vous asseoir mais que vous ne pouvez pas utiliser les transports en commun ou conduire vous-même :
+- Le **Véhicule Sanitaire Léger (VSL)** ou le **Taxi conventionné CPAM** assurent un transport individualisé et sécurisé.
+- Le chauffeur ou l'ambulancier vous aide à monter et descendre du véhicule et assure une transmission fluide avec le personnel soignant.
+
+---
+
+## 3. Prise en charge financière et Tiers Payant CPAM
+
+La prise en charge standard de l'Assurance Maladie s'élève à **65%**, le reste à charge (35%) étant remboursé par votre mutuelle ou complémentaire santé solidaire (CSS).
+
+### Prise en charge à 100% (Dispense totale d'avance de frais)
+Vous bénéficiez du **tiers payant intégral à 100%** (zéro avance de frais) si le transport concerne :
+1. Une **Affection de Longue Durée (ALD)** exonérante ;
+2. Un **Accident du Travail** ou une **Maladie Professionnelle** ;
+3. La maternité (à partir du 6ème mois de grossesse jusqu'au 12ème jour après l'accouchement) ;
+4. Les bénéficiaires de la **Complémentaire Santé Solidaire (CSS)** ou de l'AME.
+
+---
+
+## 4. Conseils pratiques pour organiser votre trajet
+
+- **Anticipez votre réservation** : réservez dès que vous recevez votre convocation hospitalière ou date de consultation.
+- **Préparez vos justificatifs** : munissez-vous de votre bon de transport Cerfa original, de votre Carte Vitale à jour et de votre attestation de mutuelle.
+- **Informez le transporteur** de tout équipement spécifique (fauteuil roulant pliant, déambulateur, oxygène portatif).
+
+---
+
+### Réservez votre transport conventionné en toute simplicité
+
+Pour planifier sereinement vos déplacements médicaux en ambulance, VSL ou taxi conventionné avec prise en charge Sécurité sociale, réservez directement votre transport sur [www.clinigo.fr](https://www.clinigo.fr).`,
+            faq: (plan?.suggestedQuestions || [
+              `Comment obtenir le remboursement pour ${kw} ?`,
+              `Faut-il avancer les frais lors du transport ?`,
+              `Comment faire en cas de trajet de plus de 150 km ?`
+            ]).map((q: string) => ({
               question: q,
-              answer: 'Consultez votre médecin traitant et le portail ameli.fr pour les critères spécifiques à votre caisse.'
+              answer: 'Consultez votre médecin pour obtenir une prescription médicale Cerfa avant le déplacement. Sur Clinigo.fr, le tiers payant CPAM est directement appliqué.'
             })),
-            suggestedCta: 'Réserver un transport sanitaire',
-            suggestedImageAlt: `Illustration sanitaire pour ${plan?.focusKeyword || 'Clinigo'}`,
+            suggestedCta: 'Réserver un transport conventionné',
+            suggestedImageAlt: `Illustration transport conventionné pour ${kw}`,
             sources: [
               {
-                title: 'Assurance Maladie - Frais de transport',
+                title: 'Assurance Maladie - Prise en charge des frais de transport',
                 url: 'https://www.ameli.fr/assure/remboursements/rembourse/transport',
                 organization: 'Caisse Nationale d\'Assurance Maladie (Ameli)',
+                verified: true
+              },
+              {
+                title: 'Service-Public.fr - Prise en charge des frais de transport en santé',
+                url: 'https://www.service-public.fr/particuliers/vosdroits/F2951',
+                organization: 'Direction de l\'information légale et administrative',
                 verified: true
               }
             ]
           };
+        }
+
+        // Sécurité absolue : garantir la présence du lien www.clinigo.fr en fin d'article
+        if (resultData && resultData.content) {
+          const endingRegex = /\[www\.clinigo\.fr\]\(https?:\/\/(www\.)?clinigo\.fr\/?\)\s*$/i;
+          if (!endingRegex.test(resultData.content.trim()) && !resultData.content.slice(-250).includes('[www.clinigo.fr](')) {
+            resultData.content = resultData.content.trim() + `\n\n---\n\n### Réservez votre transport conventionné en toute simplicité\n\nPour planifier sereinement vos déplacements médicaux en ambulance, VSL ou taxi conventionné avec prise en charge Sécurité sociale, réservez directement votre transport sur [www.clinigo.fr](https://www.clinigo.fr).`;
+          }
         }
       } else if (action === 'generateIdeas') {
         resultData = {

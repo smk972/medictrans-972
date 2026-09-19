@@ -156,13 +156,14 @@ export class AiSeoService {
       });
 
       const d = json.data;
+      const finalContent = ensureClinigoEndingLink(d.content);
       return {
         title: d.title,
         slug: d.slug,
         excerpt: d.excerpt,
         metaTitle: d.metaTitle || `${d.title} | Clinigo`,
         metaDescription: d.metaDescription || d.excerpt,
-        content: d.content,
+        content: finalContent,
         faq: d.faq || [],
         suggestedCta: d.suggestedCta,
         suggestedImageAlt: d.suggestedImageAlt,
@@ -337,3 +338,30 @@ export class AiSeoService {
 }
 
 export const aiSeoService = AiSeoService;
+
+/**
+ * Garantit que le contenu d'un article se termine toujours par une section CTA
+ * avec un lien cliquable vers www.clinigo.fr
+ */
+export const ensureClinigoEndingLink = (content: string): string => {
+  if (!content || !content.trim()) {
+    return `## Réserver votre transport conventionné en toute simplicité\n\nPour planifier sereinement vos déplacements médicaux en ambulance, VSL ou taxi conventionné avec prise en charge Sécurité sociale, réservez directement votre transport sur [www.clinigo.fr](https://www.clinigo.fr).`;
+  }
+
+  const trimmed = content.trim();
+
+  // Si le contenu se termine déjà par [www.clinigo.fr](https://www.clinigo.fr)
+  const endingPattern = /\[www\.clinigo\.fr\]\(https?:\/\/(www\.)?clinigo\.fr\/?\)\s*$/i;
+  if (endingPattern.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Si les 250 derniers caractères contiennent déjà le lien exact
+  const lastChunk = trimmed.slice(-250);
+  if (lastChunk.includes('[www.clinigo.fr](')) {
+    return trimmed;
+  }
+
+  // Ajout propre du bloc CTA terminal avec le lien obligatoire
+  return `${trimmed}\n\n---\n\n### Réservez votre transport conventionné en toute simplicité\n\nPour planifier sereinement vos déplacements médicaux en ambulance, VSL ou taxi conventionné avec prise en charge Sécurité sociale, effectuez votre réservation directement sur [www.clinigo.fr](https://www.clinigo.fr).`;
+};

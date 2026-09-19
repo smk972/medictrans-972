@@ -306,8 +306,9 @@ export const AdminSeoOverviewPage: React.FC = () => {
                     <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1.5">
                       <span className="capitalize">{idea.target_audience}</span>
                       <Link
-                        to={`/admin/seo/articles/new?ideaId=${idea.id}`}
+                        to={`/admin/seo/articles/new?ideaId=${idea.id}&auto=1`}
                         className="text-primary font-bold hover:underline inline-flex items-center gap-1"
+                        title="Rédiger immédiatement l'article complet avec l'IA"
                       >
                         <span className="material-symbols-outlined text-xs">edit</span>
                         <span>Rédiger</span>
