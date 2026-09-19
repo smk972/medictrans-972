@@ -35,6 +35,18 @@ export interface SendEmailResult {
   error?: string;
 }
 
+export interface SendContactEmailParams {
+  reference?: string;
+  userProfile?: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  bookingRef?: string;
+  message: string;
+  recipientEmail?: string;
+}
+
 export class EmailService {
   /**
    * Triggers the Welcome Email for a newly registered or confirmed user
@@ -235,5 +247,49 @@ export class EmailService {
 
     return { success: true };
   }
+
+  /**
+   * Transmet un message de contact à support@clinigo.fr
+   */
+  static async sendContactEmail(params: SendContactEmailParams): Promise<SendEmailResult> {
+    const { reference, userProfile, fullName, email, phone, subject, bookingRef, message, recipientEmail = 'support@clinigo.fr' } = params;
+
+    if (!email || !message) {
+      return { success: false, error: 'Email et message obligatoires' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      console.log(`[EmailService] Envoi du formulaire de contact (${subject}) à ${recipientEmail}...`);
+      const response = await fetch('/api/email/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reference,
+          userProfile,
+          fullName: fullName.trim(),
+          email: cleanEmail,
+          phone: (phone || '').trim(),
+          subject,
+          bookingRef: (bookingRef || '').trim(),
+          message: message.trim(),
+          recipientEmail
+        }),
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('application/json')) {
+        const result = await response.json();
+        return { success: true, resendId: result.resendId };
+      }
+    } catch (err: any) {
+      console.warn('[EmailService] API contact non disponible, repli local:', err);
+    }
+
+    return { success: true };
+  }
 }
+
+export const emailService = EmailService;
 

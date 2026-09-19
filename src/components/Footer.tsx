@@ -69,6 +69,12 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/contact" className="hover:text-slate-950 font-medium transition-colors flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs text-teal-700">mail</span>
+                  <span>Contact &amp; Assistance (support@clinigo.fr)</span>
+                </Link>
+              </li>
+              <li>
                 <Link to="/etablissements" className="hover:text-slate-950 transition-colors">
                   Portail Établissements de Santé
                 </Link>
@@ -98,25 +104,44 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 4 */}
+          {/* Col 4 - Support & Contact */}
           <div className="flex flex-col gap-3">
             <span className="text-xs font-bold text-slate-900 tracking-wider uppercase">
-              Assistance &amp; Régulation 972
+              Support &amp; Assistance
             </span>
             <p className="text-xs text-slate-600">
-              Permanence d'accès aux soins et transfert médicalisé 24h/24 et 7j/7.
+              Une question sur une réservation, un devis conventionné ou vos démarches CPAM ?
             </p>
-            <a
-              href="tel:0596720097"
-              className="text-lg text-slate-900 font-extrabold hover:text-teal-700 transition-colors flex items-center gap-1.5"
+
+            <Link
+              to="/contact"
+              className="p-4 rounded-2xl bg-gradient-to-br from-teal-800 to-sky-950 text-white shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all group flex flex-col gap-2 border border-teal-700/40"
+              title="Accéder au formulaire de contact officiel Clinigo"
             >
-              <span className="material-symbols-outlined text-lg text-teal-600">call</span>
-              05 96 72 00 97
-            </a>
-            <span className="text-xs text-slate-500">
-              regulation@medtrans-mq.fr
-            </span>
-            <div className="mt-2 p-3 bg-white rounded-xl border border-rose-100 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-teal-300">
+                    <span className="material-symbols-outlined text-lg">mail</span>
+                  </span>
+                  <span className="text-xs font-bold text-white tracking-tight">Formulaire de Contact</span>
+                </div>
+                <span className="material-symbols-outlined text-base text-teal-300 group-hover:translate-x-1 transition-transform">
+                  arrow_forward
+                </span>
+              </div>
+              <p className="text-[11px] text-teal-100/80 leading-snug">
+                Écrire à notre équipe support avec choix du sujet
+              </p>
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-teal-200">
+                <span className="font-mono font-medium">support@clinigo.fr</span>
+                <span className="font-semibold text-emerald-300 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                  Réponse rapide
+                </span>
+              </div>
+            </Link>
+
+            <div className="mt-1 p-3 bg-white rounded-xl border border-rose-100 shadow-xs">
               <div className="flex items-center gap-1.5 text-rose-600 font-bold text-xs mb-1">
                 <span className="material-symbols-outlined text-sm">emergency</span>
                 Urgence Vitale Immédiate

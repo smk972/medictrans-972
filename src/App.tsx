@@ -48,6 +48,7 @@ import { AdminSeoCategoriesPage } from './pages/admin/AdminSeoCategoriesPage';
 import { AdminSeoTagsPage } from './pages/admin/AdminSeoTagsPage';
 import { AdminSeoSettingsPage } from './pages/admin/AdminSeoSettingsPage';
 import { EmailPreviewPage } from './pages/EmailPreviewPage';
+import { ContactPage } from './pages/ContactPage';
 
 function ScrollToTop() {
   const { pathname } = window.location;
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
           <Route path="/confirmation" element={<ConfirmationPage />} />
           <Route path="/suivi" element={<TrackingPage />} />
           <Route path="/droits-cpam" element={<CpamRightsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           
           {/* Espace Mon Profil (Protégé) */}
           <Route 

@@ -443,10 +443,14 @@ export const Header: React.FC = () => {
             )}
           </nav>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-            <a href="tel:0596720097" className="text-xs font-bold text-slate-600 flex items-center gap-1.5 py-1">
-              <span className="material-symbols-outlined text-xs text-teal-600">call</span>
-              <span>Assistance : 05 96 72 00 97</span>
-            </a>
+            <Link
+              to="/contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-xs font-bold text-teal-800 hover:text-teal-950 flex items-center gap-1.5 py-1"
+            >
+              <span className="material-symbols-outlined text-sm text-teal-600">mail</span>
+              <span>Contact &amp; Support (support@clinigo.fr)</span>
+            </Link>
           </div>
         </div>
       )}

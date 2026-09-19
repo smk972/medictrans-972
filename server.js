@@ -1731,6 +1731,142 @@ function handlePasswordResetEmail(req, res) {
   });
 }
 
+// Handler de transmission du formulaire de contact à support@clinigo.fr
+function handleContactEmail(req, res) {
+  let rawBody = '';
+  req.on('data', chunk => { rawBody += chunk; });
+  req.on('end', async () => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    try {
+      const data = JSON.parse(rawBody || '{}');
+      const { reference, userProfile, fullName, email, phone, subject, bookingRef, message, recipientEmail = 'support@clinigo.fr' } = data;
+
+      if (!email || !message) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Email et message requis' }));
+        return;
+      }
+
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = (fullName || 'Utilisateur Clinigo').trim();
+      const cleanSubject = (subject || 'Demande de contact').trim();
+      const cleanRef = reference || `CLG-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      const htmlContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Nouveau message de contact Clinigo</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1E293B;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:600px;background-color:#FFFFFF;border-radius:20px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 16px rgba(0,0,0,0.04);" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="padding:28px 28px 20px;background:linear-gradient(135deg,#0F766E 0%,#042F2E 100%);color:#FFFFFF;">
+              <span style="display:inline-block;padding:4px 10px;background:rgba(255,255,255,0.2);border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#FFFFFF;margin-bottom:8px;">
+                Support Clinigo Martinique • Ticket #${cleanRef}
+              </span>
+              <h1 style="margin:0;font-size:20px;font-weight:800;color:#FFFFFF;">Nouveau Message de Contact</h1>
+              <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.85);">${cleanSubject}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <table role="presentation" width="100%" style="margin-bottom:20px;background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;" cellspacing="0" cellpadding="4">
+                <tr>
+                  <td style="font-size:12px;color:#64748B;width:120px;font-weight:600;">Expéditeur :</td>
+                  <td style="font-size:13px;font-weight:700;color:#0F172A;">${cleanName}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:12px;color:#64748B;font-weight:600;">Courriel :</td>
+                  <td style="font-size:13px;color:#0F766E;font-weight:700;"><a href="mailto:${cleanEmail}" style="color:#0F766E;text-decoration:none;">${cleanEmail}</a></td>
+                </tr>
+                ${phone ? `<tr><td style="font-size:12px;color:#64748B;font-weight:600;">Téléphone :</td><td style="font-size:13px;font-weight:700;color:#0F172A;">${phone}</td></tr>` : ''}
+                ${userProfile ? `<tr><td style="font-size:12px;color:#64748B;font-weight:600;">Profil :</td><td style="font-size:13px;color:#0F172A;">${userProfile}</td></tr>` : ''}
+                ${bookingRef ? `<tr><td style="font-size:12px;color:#64748B;font-weight:600;">Réf. Course :</td><td style="font-size:13px;font-family:monospace;font-weight:700;color:#0F766E;">${bookingRef}</td></tr>` : ''}
+              </table>
+
+              <h3 style="margin:0 0 10px;font-size:14px;color:#0F172A;font-weight:800;">Message transmis :</h3>
+              <div style="background-color:#F1F5F9;border:1px solid #CBD5E1;border-radius:12px;padding:16px;font-size:14px;line-height:22px;color:#0F172A;white-space:pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+
+              <div style="margin-top:24px;text-align:center;">
+                <a href="mailto:${cleanEmail}?subject=Re:%20[Clinigo%20%23${cleanRef}]%20${encodeURIComponent(cleanSubject)}" style="display:inline-block;padding:12px 24px;background-color:#0F766E;color:#FFFFFF;text-decoration:none;font-size:13px;font-weight:800;border-radius:12px;">
+                  Répondre à ${cleanName} (${cleanEmail})
+                </a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px;background-color:#F8FAFC;border-top:1px solid #E2E8F0;text-align:center;font-size:11px;color:#94A3B8;">
+              Message généré par la plateforme Clinigo (clinigo.fr) • Destiné au support régulation : ${recipientEmail}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+      const payload = JSON.stringify({
+        from: RESEND_FROM_EMAIL || 'Clinigo <bonjour@notifications.clinigo.fr>',
+        to: [recipientEmail],
+        reply_to: cleanEmail,
+        subject: `[Support Clinigo #${cleanRef}] ${cleanSubject} — ${cleanName}`,
+        html: htmlContent,
+        tags: [{ name: 'category', value: 'contact_form' }, { name: 'app', value: 'clinigo' }]
+      });
+
+      const options = {
+        hostname: 'api.resend.com',
+        port: 443,
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        }
+      };
+
+      const resendReq = https.request(options, (resendRes) => {
+        let resendBody = '';
+        resendRes.on('data', chunk => { resendBody += chunk; });
+        resendRes.on('end', () => {
+          try {
+            const parsed = JSON.parse(resendBody);
+            if (resendRes.statusCode >= 200 && resendRes.statusCode < 300) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, resendId: parsed.id }));
+            } else {
+              res.writeHead(resendRes.statusCode || 502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: parsed.message || 'Erreur Resend', details: parsed }));
+            }
+          } catch {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Réponse Resend invalide' }));
+          }
+        });
+      });
+
+      resendReq.on('error', (err) => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+
+      resendReq.write(payload);
+      resendReq.end();
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+  });
+}
+
 // Handler de l'envoi de code OTP par SMS (Twilio Verify / Twilio SMS / Mode test)
 function handleOtpSend(req, res) {
   let body = '';
@@ -2511,6 +2647,12 @@ const server = http.createServer((req, res) => {
   // 5ter. Endpoint API Email Réinitialisation Mot de passe
   if (pathname === '/api/email/password-reset' && req.method === 'POST') {
     handlePasswordResetEmail(req, res);
+    return;
+  }
+
+  // 5quater. Endpoint API Email Formulaire de Contact (support@clinigo.fr)
+  if (pathname === '/api/email/contact' && req.method === 'POST') {
+    handleContactEmail(req, res);
     return;
   }
 
