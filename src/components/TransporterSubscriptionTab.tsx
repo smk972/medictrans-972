@@ -181,43 +181,35 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
       {/* 1. BANDEAU DE STATUT D'ABONNEMENT (STRIPE REAL TIME)                      */}
       {/* ========================================================================= */}
       {isActive ? (
-        <div className="relative overflow-hidden p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 text-white shadow-xl shadow-emerald-900/20 border border-emerald-400/40">
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-black/20">
-                <span className="material-symbols-outlined text-3xl font-bold">verified</span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-slate-950/80 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30">
-                    ✦ Abonnement Clinigo Pro Actif
-                  </span>
-                  <span className="text-xs font-bold text-emerald-100 bg-white/15 px-2.5 py-0.5 rounded-full">
-                    19,90 € HT / mois
-                  </span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                  Accès complet au réseau sanitaire
-                </h2>
-                <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
-                  {cancelAtPeriodEnd
-                    ? `Votre abonnement a été résilié et prendra fin le ${periodEndFormatted}. Votre accès reste 100% opérationnel jusque-là.`
-                    : `Votre forfait se renouvelle automatiquement. Prochaine échéance le ${periodEndFormatted || 'mois prochain'}.`}
-                </p>
-              </div>
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+              Abonnement &amp; Facturation
             </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Formule Clinigo Pro (Active)</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-mono font-bold border border-teal-500/30">
+                19,90 € HT / mois
+              </span>
+            </div>
+            <p className="text-slate-300 text-sm max-w-xl">
+              {cancelAtPeriodEnd
+                ? `Votre abonnement a été résilié et prendra fin le ${periodEndFormatted}. Votre accès reste 100% opérationnel jusque-là.`
+                : `Votre forfait se renouvelle automatiquement. Prochaine échéance le ${periodEndFormatted || 'mois prochain'}.`}
+            </p>
+          </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={handleOpenCustomerPortal}
-                disabled={isRedirectingToStripe}
-                className="px-6 py-3.5 rounded-2xl bg-white hover:bg-emerald-50 text-slate-900 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-black/10 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60"
-              >
-                <span className="material-symbols-outlined text-base text-teal-700">settings</span>
-                <span>{isRedirectingToStripe ? 'Ouverture du portail...' : 'Gérer mon abonnement (Stripe)'}</span>
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleOpenCustomerPortal}
+              disabled={isRedirectingToStripe}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-base">settings</span>
+              <span>{isRedirectingToStripe ? 'Ouverture...' : 'Gérer mon abonnement (Stripe)'}</span>
+            </button>
           </div>
         </div>
       ) : isPastDue ? (
@@ -251,38 +243,34 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
         </div>
       ) : (
         /* Invitation Souscription Stripe */
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white shadow-xl border border-teal-500/40 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-lg">
-              <span className="material-symbols-outlined text-3xl font-black">local_hospital</span>
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+              Offre Professionnelle Sanitaire
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-black uppercase tracking-wider text-teal-300 bg-teal-500/15 px-2.5 py-0.5 rounded-full border border-teal-400/30">
-                  Offre Professionnelle Sanitaire
-                </span>
-                <span className="text-xs font-mono font-bold text-amber-300">
-                  19,90 € HT / mois
-                </span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Activez votre abonnement Clinigo Pro
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Courses hospitalières illimitées, délai prioritaire de 24h sur vos clients réguliers, éditeur de zone d'intervention personnalisé et fiches PMT dématérialisées. Sans engagement.
-              </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Activez votre abonnement Clinigo Pro</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-mono font-bold border border-amber-400/30">
+                19,90 € HT / mois
+              </span>
             </div>
+            <p className="text-slate-300 text-sm max-w-xl">
+              Courses hospitalières illimitées, délai prioritaire de 24h sur vos clients réguliers, éditeur de zone d'intervention personnalisé et fiches PMT dématérialisées. Sans engagement.
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSubscribeStripe}
-            disabled={isRedirectingToStripe}
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-400 hover:from-teal-400 hover:to-emerald-300 text-slate-950 font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-teal-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-xl">lock</span>
-            <span>{isRedirectingToStripe ? 'Redirection vers Stripe...' : 'Souscrire pour 19,90 € / mois'}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleSubscribeStripe}
+              disabled={isRedirectingToStripe}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base">lock</span>
+              <span>{isRedirectingToStripe ? 'Redirection vers Stripe...' : 'Souscrire pour 19,90 € / mois'}</span>
+            </button>
+          </div>
         </div>
       )}
 

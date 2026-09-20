@@ -521,23 +521,20 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
         </div>
       )}
 
-      {/* 1. En-tête Répertoire Contacts avec Dégradé Vert Harmonisé */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
-              <span className="material-symbols-outlined text-2xl">folder_shared</span>
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-900">Répertoire des Clients &amp; Patients</h2>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                Les patients déjà transportés sont synchronisés automatiquement. Gérez vos contacts, créez des fiches, exportez et importez vos listes.
-              </p>
-            </div>
+      {/* 1. Cockpit En-tête : Répertoire des Clients & Patients */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+            Répertoire Patients &amp; Usagers
           </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Répertoire des Clients &amp; Patients</h1>
+          <p className="text-slate-300 text-sm max-w-xl">
+            Les patients déjà transportés sont synchronisés automatiquement. Gérez vos contacts, créez des fiches, exportez et importez vos listes.
+          </p>
         </div>
 
-        {/* Boutons d'Action avec Dégradé Vert Harmonisé */}
+        {/* Boutons d'Action avec Dégradé Vert et Slate */}
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             type="button"
@@ -547,20 +544,20 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
               setImportError(null);
               setIsImportModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
             title="Importer une liste de contacts depuis un fichier CSV"
           >
-            <span className="material-symbols-outlined text-base text-teal-600">upload_file</span>
+            <span className="material-symbols-outlined text-base text-teal-400">upload_file</span>
             <span>Importer (CSV)</span>
           </button>
 
           <button
             type="button"
             onClick={handleExportContactsCSV}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
             title="Exporter tout votre répertoire au format CSV compatible Excel"
           >
-            <span className="material-symbols-outlined text-base text-teal-600">download</span>
+            <span className="material-symbols-outlined text-base text-teal-400">download</span>
             <span>Exporter (CSV)</span>
           </button>
 

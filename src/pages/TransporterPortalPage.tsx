@@ -2279,6 +2279,53 @@ export const TransporterPortalPage: React.FC = () => {
                   ? 'opacity-40 grayscale pointer-events-none select-none filter blur-[0.5px]'
                   : ''
               }`}>
+                {/* 1. Cockpit En-tête : Courses Disponibles */}
+                <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                      Bourse des Transports Sanitaires
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Courses Disponibles</h1>
+                      <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-mono font-bold border border-teal-500/30">
+                        {availableMissions.length} disponible{availableMissions.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-sm max-w-xl">
+                      Consultez et acceptez les demandes de transport sanitaire en temps réel selon vos zones d'intervention et vos agréments.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <button
+                      id="btn-open-zone-modal-top"
+                      type="button"
+                      onClick={() => setIsRadiusModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base">edit_location_alt</span>
+                      <span>Zone d'intervention</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('PLANNING')}
+                      className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base">calendar_month</span>
+                      <span>Planning</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('PATIENTS')}
+                      className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base">folder_shared</span>
+                      <span>Répertoire</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* ========================================================================= */}
                 {/* BARRE DE GESTION OFFICIELLE DES ZONES D'INTERVENTION (POLYGONE + 30KM)     */}
                 {/* ========================================================================= */}
@@ -2840,7 +2887,45 @@ export const TransporterPortalPage: React.FC = () => {
           {/* TAB 2 : MISSIONS EN COURS (SUIVI GPS & ÉTAPES)                           */}
           {/* ========================================================================= */}
           {activeTab === 'ACTIVES' && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6 animate-fadeIn">
+              {/* 1. Cockpit En-tête : Missions en Cours */}
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+                    <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                    Régulation &amp; Télématique
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Missions en Cours</h1>
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-mono font-bold border border-teal-500/30">
+                      {activeMissions.length} active{activeMissions.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-sm max-w-xl">
+                    Suivi télématique en direct, guidage GPS des équipages, pointage des étapes et transmission des statuts en temps réel.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('PLANNING')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">calendar_month</span>
+                    <span>Voir le Planning</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('DISPONIBLES')}
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">local_shipping</span>
+                    <span>Bourse des courses</span>
+                  </button>
+                </div>
+              </div>
+
               {activeMissions.length === 0 ? (
                 <div className="bg-surface-container-lowest rounded-3xl p-8 sm:p-12 text-center border border-outline-variant/20 shadow-xs flex flex-col items-center justify-center">
                   <div className="w-16 h-16 rounded-2xl bg-surface-container text-on-surface-variant flex items-center justify-center mb-3">
@@ -3082,38 +3167,36 @@ export const TransporterPortalPage: React.FC = () => {
           {/* ========================================================================= */}
           {activeTab === 'PLANNING' && (
             <div className="flex flex-col gap-6 animate-fadeIn">
-              {/* En-tête Planning avec KPIs et Boutons d'Exportation */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                      <span className="material-symbols-outlined text-2xl">calendar_month</span>
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-extrabold text-on-surface">Planning & Programmation des Courses</h2>
-                        <span className="px-2.5 py-0.5 rounded-full bg-primary/15 text-primary font-mono text-xs font-bold">
-                          {plannedMissions.length} acceptée{plannedMissions.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <p className="text-xs text-on-surface-variant mt-0.5 max-w-2xl leading-relaxed">
-                        Planning officiel de votre flotte : seules les courses acceptées et confirmées sont programmées ici. Assignez vos chauffeurs et consultez les fiches de mission.
-                      </p>
-                    </div>
+              {/* 1. Cockpit En-tête : Planning & Programmation */}
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+                    <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                    Planning Opérationnel
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-outline-variant/15 text-xs">
-                    <span className="px-2.5 py-1 rounded-xl bg-surface-container text-on-surface-variant font-medium flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm">schedule</span>
-                      <span>Total planning : <strong>{plannedMissions.length} courses acceptées</strong></span>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Planning &amp; Programmation des Courses</h1>
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-mono font-bold border border-teal-500/30">
+                      {plannedMissions.length} acceptée{plannedMissions.length > 1 ? 's' : ''}
                     </span>
-                    <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 font-medium flex items-center gap-1.5 border border-blue-200/60">
-                      <span className="material-symbols-outlined text-sm text-blue-600">verified</span>
+                  </div>
+                  <p className="text-slate-300 text-sm max-w-xl">
+                    Planning officiel de votre flotte : seules les courses acceptées et confirmées sont programmées ici. Assignez vos chauffeurs et consultez les fiches de mission.
+                  </p>
+
+                  {/* Badges statut & disponibilité */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300 font-medium flex items-center gap-1.5 border border-slate-700">
+                      <span className="material-symbols-outlined text-sm text-teal-400">schedule</span>
+                      <span>Total : <strong>{plannedMissions.length} courses</strong></span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-800 text-teal-300 font-medium flex items-center gap-1.5 border border-slate-700">
+                      <span className="material-symbols-outlined text-sm text-teal-400">verified</span>
                       <span>Chauffeurs affectés : <strong>{plannedMissions.filter(m => !!m.assignedTransporter?.driverName).length}</strong></span>
                     </span>
                     {plannedMissions.filter(m => !m.assignedTransporter?.driverName).length > 0 && (
-                      <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 font-medium flex items-center gap-1.5 border border-amber-200/60">
-                        <span className="material-symbols-outlined text-sm text-amber-600">person_alert</span>
+                      <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 font-medium flex items-center gap-1.5 border border-amber-500/30">
+                        <span className="material-symbols-outlined text-sm text-amber-400">person_alert</span>
                         <span>À affecter : <strong>{plannedMissions.filter(m => !m.assignedTransporter?.driverName).length}</strong></span>
                       </span>
                     )}
@@ -3121,11 +3204,11 @@ export const TransporterPortalPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setActiveTab('DISPONIBLES')}
-                        className="px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold flex items-center gap-1.5 border border-emerald-300 transition-colors shadow-2xs cursor-pointer"
+                        className="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold flex items-center gap-1.5 border border-emerald-500/40 transition-colors cursor-pointer"
                         title="Voir les courses non affectées correspondant à votre zone"
                       >
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>{matchingAvailableMissions.length} disponible{matchingAvailableMissions.length > 1 ? 's' : ''} non affectée{matchingAvailableMissions.length > 1 ? 's' : ''}</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>{matchingAvailableMissions.length} disponible{matchingAvailableMissions.length > 1 ? 's' : ''} en bourse</span>
                         <span className="material-symbols-outlined text-xs">arrow_forward</span>
                       </button>
                     )}
@@ -3136,7 +3219,7 @@ export const TransporterPortalPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsManualRideModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-primary text-white hover:opacity-95 text-xs font-black transition-all shadow-xs hover:shadow-md cursor-pointer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
                     title="Ajouter manuellement une course directe reçue par téléphone ou client privé"
                   >
                     <span className="material-symbols-outlined text-base">add_circle</span>
@@ -3147,20 +3230,20 @@ export const TransporterPortalPage: React.FC = () => {
                     type="button"
                     onClick={handleExportPlanningExcel}
                     disabled={filteredPlanningMissions.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Exporter le planning prévisionnel en Excel (.csv)"
                   >
-                    <span className="material-symbols-outlined text-base">file_download</span>
+                    <span className="material-symbols-outlined text-base text-teal-400">file_download</span>
                     <span>Planning Excel</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleExportPlanningPdf}
                     disabled={filteredPlanningMissions.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Exporter le planning prévisionnel officiel en PDF"
                   >
-                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                    <span className="material-symbols-outlined text-base text-teal-400">picture_as_pdf</span>
                     <span>Planning PDF</span>
                   </button>
                 </div>
@@ -4202,15 +4285,21 @@ export const TransporterPortalPage: React.FC = () => {
           {/* ========================================================================= */}
           {activeTab === 'FLOTTE' && (
             <div className="flex flex-col gap-6 animate-fadeIn">
-              {/* En-tête Flotte & Boutons d'Action */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-2xl">garage</span>
-                    <h2 className="text-xl font-extrabold text-on-surface">Véhicules &amp; Équipages Conventionnés</h2>
+              {/* 1. Cockpit En-tête : Flotte & Équipages */}
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+                    <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                    Gestion du Parc &amp; Équipages
                   </div>
-                  <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
-                    Flotte homologuée ARS
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Véhicules &amp; Chauffeurs Conventionnés</h1>
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-mono font-bold border border-teal-500/30">
+                      {fleet.length} véhicule{fleet.length > 1 ? 's' : ''} · {drivers.length} chauffeur{drivers.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-sm max-w-xl">
+                    Flotte homologuée ARS, gestion des cartes professionnelles d'ambulancier, conformité des attestations et suivi des disponibilités.
                   </p>
                 </div>
 
@@ -4223,7 +4312,7 @@ export const TransporterPortalPage: React.FC = () => {
                       setNewVehDriverId('');
                       setIsAddVehicleOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-bold transition-all shadow-xs active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-base">directions_car</span>
                     <span>Ajouter un véhicule</span>
@@ -4238,7 +4327,7 @@ export const TransporterPortalPage: React.FC = () => {
                       setNewDriverPlate('');
                       setIsAddDriverOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-secondary text-white hover:bg-secondary/90 text-xs font-bold transition-all shadow-xs active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-base">person_add</span>
                     <span>Nouveau chauffeur</span>
@@ -4583,17 +4672,20 @@ export const TransporterPortalPage: React.FC = () => {
           {/* ========================================================================= */}
           {activeTab === 'HISTORIQUE' && (
             <div className="flex flex-col gap-6 animate-fadeIn">
-              {/* En-tête Historique avec Exports */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-2xl">history</span>
-                    <h2 className="text-xl font-extrabold text-on-surface">Historique & Registre des Courses</h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-xs font-bold font-mono">
+              {/* 1. Cockpit En-tête : Historique & Registre */}
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
+                    <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                    Registre Réglementaire &amp; Facturation
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Historique des Courses &amp; Archives</h1>
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-xs font-mono font-bold border border-teal-500/30">
                       {archivedMissions.length} archivée{archivedMissions.length > 1 ? 's' : ''}
                     </span>
                   </div>
-                  <p className="text-xs text-on-surface-variant mt-1 max-w-2xl leading-relaxed">
+                  <p className="text-slate-300 text-sm max-w-xl">
                     Consultez l'ensemble des courses passées (courses réalisées ou annulées avec motif), accédez aux fiches de liaison PMT et exportez votre registre d'activité réglementaire.
                   </p>
                 </div>
@@ -4602,7 +4694,7 @@ export const TransporterPortalPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsExportModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
                     title="Exporter avec sélection de dates pour logiciel de facturation"
                   >
                     <span className="material-symbols-outlined text-base">receipt_long</span>
@@ -4612,21 +4704,21 @@ export const TransporterPortalPage: React.FC = () => {
                     type="button"
                     onClick={handleExportExcel}
                     disabled={filteredArchivedMissions.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Exporter le registre au format Excel (.csv)"
                   >
-                    <span className="material-symbols-outlined text-base">file_download</span>
-                    <span>Export Excel</span>
+                    <span className="material-symbols-outlined text-base text-teal-400">file_download</span>
+                    <span>Excel (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleExportPdf}
                     disabled={filteredArchivedMissions.length === 0}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 disabled:opacity-50 text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                     title="Générer le registre PDF officiel"
                   >
-                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                    <span>Export PDF</span>
+                    <span className="material-symbols-outlined text-base text-teal-400">picture_as_pdf</span>
+                    <span>PDF Officiel</span>
                   </button>
                 </div>
               </div>
