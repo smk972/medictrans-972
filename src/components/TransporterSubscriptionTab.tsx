@@ -213,33 +213,34 @@ export const TransporterSubscriptionTab: React.FC<TransporterSubscriptionTabProp
           </div>
         </div>
       ) : isPastDue ? (
-        <div className="p-6 sm:p-7 rounded-3xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-3xl">credit_card_off</span>
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              Paiement en attente
             </div>
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-200/60 px-2.5 py-0.5 rounded-md">
-                Paiement en attente
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Le prélèvement a échoué</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-mono font-bold border border-amber-500/30">
+                Action requise
               </span>
-              <h3 className="text-lg font-black text-amber-950 mt-1">
-                Le prélèvement de votre abonnement a échoué
-              </h3>
-              <p className="text-xs text-amber-800 mt-0.5 max-w-xl">
-                Veuillez mettre à jour vos coordonnées bancaires sur le portail Stripe sécurisé pour continuer à recevoir des courses hospitalières.
-              </p>
             </div>
+            <p className="text-slate-300 text-sm max-w-xl">
+              Veuillez mettre à jour vos coordonnées bancaires sur le portail Stripe sécurisé pour continuer à recevoir et accepter des courses hospitalières.
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleOpenCustomerPortal}
-            disabled={isRedirectingToStripe}
-            className="px-5 py-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-xs shadow-md transition-all cursor-pointer shrink-0 disabled:opacity-60 flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-base">credit_card</span>
-            <span>Mettre à jour ma carte</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleOpenCustomerPortal}
+              disabled={isRedirectingToStripe}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-base">credit_card</span>
+              <span>Mettre à jour ma carte</span>
+            </button>
+          </div>
         </div>
       ) : (
         /* Invitation Souscription Stripe */
