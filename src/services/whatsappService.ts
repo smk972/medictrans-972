@@ -103,7 +103,7 @@ export const whatsappService = {
 
     switch (template) {
       case 'BOOKING_CONFIRMATION':
-        return `🚨 *Clinigo — Confirmation de Réservation*\n\nBonjour *${patient}*,\nVotre demande de transport sanitaire a bien été prise en compte par la Régulation Clinigo.\n\n📋 *Réf. dossier :* ${ref}\n📅 *Date :* ${date} à ${time}\n🚑 *Mode :* ${transport}\n📍 *Départ :* ${pickup}\n🏥 *Destination :* ${dest}\n\n✅ Prise en charge Tiers-Payant subrogatoire CPAM (100% ALD).\n\n📱 *Suivez l'attribution de votre véhicule en direct :*\n${trackingUrl}\n\n_Assistance Régulation Clinigo 24/7 : 05 96 72 00 97_`;
+        return `🚨 *Clinigo — Confirmation de Réservation*\n\nBonjour *${patient}*,\nVotre demande de transport sanitaire a bien été prise en compte par la Régulation Clinigo.\n\n📋 *Réf. dossier :* ${ref}\n📅 *Date :* ${date} à ${time}\n🚑 *Mode :* ${transport}\n📍 *Départ :* ${pickup}\n🏥 *Destination :* ${dest}\n\n✅ Prise en charge Tiers-Payant subrogatoire CPAM (100% ALD).\n\n📱 *Suivez l'attribution de votre véhicule en direct :*\n${trackingUrl}\n\n_Assistance & Support Clinigo : support@clinigo.fr_`;
 
       case 'DISPATCH_CONFIRMED':
         return `✅ *Clinigo — Transporteur Attribué*\n\nBonjour *${patient}*,\nUn transporteur conventionné a verrouillé votre course *${ref}*.\n\n🚑 *Société :* ${params.companyName || 'Ambulances Caraïbes Express'}\n👨‍✈️ *Chauffeur :* ${params.driverName || 'Frantz M.'} (${params.driverPhone || '06 96 88 44 22'})\n🚘 *Véhicule :* ${params.vehiclePlate || 'GK-428-MQ'}\n\nLe bon de transport Cerfa a été télétransmis numériquement.\n\n📍 *Suivi GPS du véhicule :*\n${trackingUrl}`;

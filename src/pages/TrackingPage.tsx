@@ -658,11 +658,11 @@ export const TrackingPage: React.FC = () => {
                       Commander un transport sanitaire
                     </Link>
                     <a
-                      href="tel:0596720097"
+                      href="mailto:support@clinigo.fr?subject=Demande%20d'assistance%20Clinigo"
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-900 font-bold text-sm transition-all border border-slate-200/80 shadow-xs"
                     >
-                      <span className="material-symbols-outlined text-lg text-teal-700">call</span>
-                      Astreinte Régulation (05 96 72 00 97)
+                      <span className="material-symbols-outlined text-lg text-teal-700">mail</span>
+                      Support Clinigo (support@clinigo.fr)
                     </a>
                   </div>
 

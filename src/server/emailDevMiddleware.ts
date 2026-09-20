@@ -379,7 +379,7 @@ export function handleRideStatusEmailMiddleware(req: any, res: any, resendApiKey
               </div>
               ` : `
               <div style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:12px;padding:14px;font-size:12px;color:#475569;line-height:18px;">
-                Besoin d'aide ou de réorganiser votre rendez-vous ? Notre régulation reste à votre écoute au <strong>05 96 72 00 97</strong>.
+                Besoin d'aide ou de réorganiser votre rendez-vous ? Notre équipe reste à votre écoute par e-mail à <a href="mailto:support@clinigo.fr" style="color:#004479;font-weight:700;">support@clinigo.fr</a>.
               </div>
               `}
             </td>
@@ -388,7 +388,7 @@ export function handleRideStatusEmailMiddleware(req: any, res: any, resendApiKey
           <!-- Footer -->
           <tr>
             <td style="background:#F1F5F9;border-top:1px solid #E2E8F0;padding:24px 32px;text-align:center;font-size:12px;color:#64748B;line-height:18px;">
-              Une question ou une modification ? Contactez la régulation au <strong style="color:#0F172A;">05 96 72 00 97</strong> ou répondez à cet e-mail.<br>
+              Une question ou une modification ? Contactez notre support par e-mail à <a href="mailto:support@clinigo.fr" style="color:#0F172A;font-weight:700;text-decoration:underline;">support@clinigo.fr</a> ou répondez directement à cet e-mail.<br>
               © 2026 Clinigo — Le transport sanitaire conventionné simplifié.
             </td>
           </tr>

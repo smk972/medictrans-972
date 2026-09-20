@@ -645,16 +645,16 @@ export const ConfirmationPage: React.FC = () => {
                       Ce transport sanitaire ne sera pas réalisé
                     </h3>
                     <p className="text-xs text-red-800 dark:text-red-300 mt-0.5">
-                      Besoin d'aide ou de réorganiser votre rendez-vous ? Notre régulation reste joignable au <strong>05 96 72 00 97</strong>.
+                      Besoin d'aide ou de réorganiser votre rendez-vous ? Notre équipe reste à votre écoute par e-mail à <strong>support@clinigo.fr</strong>.
                     </p>
                   </div>
                 </div>
                 <a
-                  href="tel:0596720097"
+                  href={`mailto:support@clinigo.fr?subject=${encodeURIComponent(`Assistance transport #${reservationRef}`)}`}
                   className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:bg-red-50 shrink-0"
                 >
-                  <span className="material-symbols-outlined text-base text-red-600">call</span>
-                  <span>05 96 72 00 97</span>
+                  <span className="material-symbols-outlined text-base text-red-600">mail</span>
+                  <span>support@clinigo.fr</span>
                 </a>
               </div>
             ) : matchedRide?.status === 'ACCEPTED' || matchedRide?.status === 'EN_ROUTE' || matchedRide?.status === 'PICKED_UP' || matchedRide?.status === 'COMPLETED' ? (
@@ -1126,17 +1126,17 @@ export const ConfirmationPage: React.FC = () => {
                 <div className="bg-surface-container-low rounded-2xl p-space-md flex flex-col gap-1.5 border border-outline-variant/30">
                   <div className="flex items-center gap-2 text-primary font-bold text-xs">
                     <span className="material-symbols-outlined text-base">support_agent</span>
-                    <span>Assistance téléphonique 24/7</span>
+                    <span>Assistance &amp; Support</span>
                   </div>
                   <p className="text-xs text-on-surface-variant">
                     Besoin de modifier ou d'annuler votre réservation ?
                   </p>
                   <a
-                    href="tel:0596720097"
-                    className="text-primary font-bold text-sm hover:underline flex items-center gap-1"
+                    href={`mailto:support@clinigo.fr?subject=${encodeURIComponent(`Demande réservation #${reservationRef}`)}`}
+                    className="text-primary font-bold text-sm hover:underline flex items-center gap-1.5"
                   >
-                    <span className="material-symbols-outlined text-sm">call</span>
-                    05 96 72 00 97
+                    <span className="material-symbols-outlined text-sm">mail</span>
+                    <span>support@clinigo.fr</span>
                   </a>
                 </div>
               </aside>

@@ -183,11 +183,11 @@ export const AiChatProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setMessages(prev => [...prev, botMsg]);
     } catch (err: any) {
       console.error('[AI Chat Context] Request error:', err);
-      setError('Service momentanément indisponible. Vous pouvez contacter la régulation au 05 96 72 00 97.');
+      setError('Service momentanément indisponible. Vous pouvez contacter le support par e-mail à support@clinigo.fr.');
       const fallbackMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        content: "Désolé, une erreur technique est survenue lors de la communication. Pour toute question urgente, contactez notre équipe au **05 96 72 00 97**.",
+        content: "Désolé, une erreur technique est survenue lors de la communication. Pour toute question, contactez notre équipe par e-mail à **support@clinigo.fr**.",
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, fallbackMsg]);

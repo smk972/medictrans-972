@@ -196,7 +196,7 @@ $htmlContent = '<!DOCTYPE html>
                 Clinigo • Plateforme de Régulation du Transport Sanitaire Conventionné
               </div>
               <div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 11px; color: #64748B; margin-bottom: 6px;">
-                Assistance Régulation 24/7 : 05 96 72 00 97 • Email : contact@clinigo.fr
+                Assistance & Support : <a href="mailto:support@clinigo.fr" style="color: #004479; text-decoration: underline;">support@clinigo.fr</a>
               </div>
               <div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; font-size: 11px; color: #94A3B8;">
                 Vous recevez ce courriel car une demande de transport a été initiée sur Clinigo.fr.<br>
@@ -222,7 +222,7 @@ $textContent = "Bonjour " . $patientName . ",\n\n"
     . "Pour suivre l'arrivée de votre chauffeur en direct, rendez-vous sur :\n"
     . $trackingUrl . "\n\n"
     . "Rappel : Préparez votre Prescription Médicale de Transport (Cerfa S3138) et votre attestation de droits pour le chauffeur.\n"
-    . "Assistance Régulation Clinigo : 05 96 72 00 97.\n"
+    . "Assistance Clinigo : support@clinigo.fr.\n"
     . "Clinigo - Plateforme de régulation sanitaire";
 
 $payload = json_encode([

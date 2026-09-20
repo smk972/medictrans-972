@@ -1727,7 +1727,7 @@ function handleRideAcceptedEmail(req, res) {
               </div>
               ` : `
               <div style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:12px;padding:14px;font-size:12px;color:#475569;line-height:18px;">
-                Besoin d'aide ou de réorganiser votre rendez-vous ? Notre régulation reste à votre écoute au <strong>05 96 72 00 97</strong>.
+                Besoin d'aide ou de réorganiser votre rendez-vous ? Notre équipe reste à votre écoute par e-mail à <a href="mailto:support@clinigo.fr" style="color:#004479;font-weight:700;">support@clinigo.fr</a>.
               </div>
               `}
             </td>
@@ -1736,7 +1736,7 @@ function handleRideAcceptedEmail(req, res) {
           <!-- Footer -->
           <tr>
             <td style="background:#F1F5F9;border-top:1px solid #E2E8F0;padding:24px 32px;text-align:center;font-size:12px;color:#64748B;line-height:18px;">
-              Une question ou une modification ? Contactez la régulation au <strong style="color:#0F172A;">05 96 72 00 97</strong> ou par email à <strong style="color:#0F172A;">contact@clinigo.fr</strong>.<br>
+              Une question ou une modification ? Contactez notre support par e-mail à <a href="mailto:support@clinigo.fr" style="color:#004479;font-weight:700;text-decoration:underline;">support@clinigo.fr</a>.<br>
               © 2026 Clinigo — Le transport sanitaire conventionné simplifié.
             </td>
           </tr>
@@ -1756,13 +1756,13 @@ function handleRideAcceptedEmail(req, res) {
         + (cleanTransport ? `- Véhicule : ${cleanTransport}\n` : '')
         + (!isCancelled && cleanStatus !== 'PENDING' ? `- Chauffeur : ${cleanDriver} (${cleanPlate})\n` : '')
         + `\nPour accéder au suivi de votre commande en direct :\n${trackLink}\n\n`
-        + `Assistance Régulation Clinigo 24/7 : 05 96 72 00 97 • Email : contact@clinigo.fr\n`
+        + `Assistance & Support Clinigo : support@clinigo.fr\n`
         + `Clinigo - Plateforme de régulation du transport sanitaire`;
 
       const payload = JSON.stringify({
         from: RESEND_FROM_EMAIL,
         to: [cleanEmail],
-        reply_to: 'contact@clinigo.fr',
+        reply_to: 'support@clinigo.fr',
         subject: subject,
         html: htmlContent,
         text: textContent,
