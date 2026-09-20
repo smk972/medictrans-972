@@ -25,7 +25,7 @@ Conçue pour les **patients**, les **établissements de soins** (CHU Pierre Zobd
 | `/reserver` | **Réservation - Détails Médicaux** | Formulaire étape 2 complet : NIR (Sécu), ordonnance PMT (volet Cerfa S3138), mobilité (fauteuil, brancard, oxygène, portage escaliers). |
 | `/confirmation/:ref` | **Confirmation de Réservation** | Bon d'admission avec QR Code, référence unique (ex: `MT-972-8821`), véhicule et chauffeur assignés, impression du récapitulatif. |
 | `/suivi` | **Mes Demandes & Suivi Direct** | Carte interactive de la Martinique avec localisation GPS simulée en direct, ETA du chauffeur, chronologie des étapes et historique des courses. |
-| `/droits-cpam` | **Guide & Droits CPAM 972** | Guide officiel Sécurité Sociale / CGSS Martinique, simulateur de remboursement interactif, ALD 30, accords préalables (> 150 km, dialyses). |
+| `/droits-cpam` | **Guide & Droits CPAM France** | Guide officiel Sécurité Sociale / Assurance Maladie, simulateur de remboursement interactif, ALD 30, accords préalables (> 150 km, dialyses, séries). |
 | `/etablissements` | **Portail Établissements & Sorties** | Console soignants (CHU Zobda-Quitman...) : demande de sortie de lit express, départs par service (Néphrologie, Oncologie...), suivi des flottes. |
 | `/transporteurs` | **Espace Transporteurs (Dispatch)** | Console ambulanciers & taxis : opportunités de courses en attente, acceptation en 1 clic, suivi des missions actives et mise à jour de statut. |
 | `/inscription/transporteur` | **Onboarding Transporteurs** | Formulaire d'adhésion pour sociétés de transport avec agrément ARS 972 et convention CPAM. |

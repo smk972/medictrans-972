@@ -11,33 +11,32 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col gap-3">
             <BrandLogo className="mb-1" />
             <p className="text-xs text-slate-600 leading-relaxed">
-              Plateforme d'intermédiation et de régulation du transport sanitaire conventionné pour
-              toute la Martinique (Ambulances, VSL et Taxis Conventionnés).
+              Plateforme d'intermédiation et de régulation du transport sanitaire conventionné en France (Ambulances, VSL et Taxis Conventionnés).
             </p>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200/60 text-xs font-semibold self-start mt-1">
               <span className="material-symbols-outlined text-base text-teal-700">verified</span>
-              <span>Opérateur Agréé ARS &amp; Conventionné CGSS 972</span>
+              <span>Opérateur Agréé ARS &amp; Conventionné Assurance Maladie (CPAM)</span>
             </div>
             <div className="flex flex-col gap-0.5 text-xs text-slate-500 mt-1">
-              <span>Plateau Technique CHU Zobda-Quitman</span>
-              <span>97200 Fort-de-France, Martinique</span>
+              <span>Coordination Sanitaire Nationale</span>
+              <span>France Métropolitaine &amp; Départements d'Outre-Mer</span>
             </div>
           </div>
 
           {/* Col 2 */}
           <div className="flex flex-col gap-3">
             <span className="text-xs font-bold text-slate-900 tracking-wider uppercase">
-              Établissements Desservis
+              Réseau Hospitalier Desservi
             </span>
             <ul className="flex flex-col gap-1.5 text-xs text-slate-600">
-              <li>CHU de Martinique (P. Zobda-Quitman) - Fort-de-France</li>
-              <li>Hôpital Mère-Enfant &amp; Clarac - Fort-de-France</li>
-              <li>Hôpital Louis Domergue - La Trinité</li>
-              <li>Hôpital du Saint-Esprit &amp; EHPAD</li>
-              <li>Centre Hospitalier de Saint-Pierre</li>
-              <li>Hôpital de Proximité - Le Marin</li>
-              <li>Clinique Sainte-Marie - Schoelcher</li>
-              <li>Clinique Saint-Paul - Fort-de-France</li>
+              <li>Centres Hospitaliers Universitaires (CHU &amp; AP-HP)</li>
+              <li>Hôpitaux Publics &amp; Centres Hospitaliers Généraux</li>
+              <li>Cliniques Médico-Chirurgicales Conventionnées</li>
+              <li>Centres de Lutte Contre le Cancer &amp; Radiothérapie</li>
+              <li>Centres d'Hémodialyse &amp; Néphrologie</li>
+              <li>Centres de Soins Médicaux et de Réadaptation (SMR)</li>
+              <li>Établissements d'Hébergement pour Personnes Âgées (EHPAD)</li>
+              <li>Réseaux CHU Outre-Mer (Martinique, Guadeloupe, Guyane, Réunion)</li>
             </ul>
           </div>
 
