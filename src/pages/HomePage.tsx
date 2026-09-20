@@ -869,7 +869,7 @@ export const HomePage: React.FC = () => {
               Flotte Conventionnée
             </span>
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight sm:whitespace-nowrap">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
                 Quel véhicule correspond à votre bon de transport ?
               </h2>
 
@@ -913,8 +913,8 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Active Fleet Showcase Card */}
-          <div className="p-3 rounded-[2.5rem] bg-gradient-to-br from-slate-100 to-slate-200/50 border border-slate-200/80 shadow-sm scroll-reveal delay-150">
-            <div className="rounded-[calc(2.5rem-0.625rem)] bg-white p-8 md:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="p-2 sm:p-3 rounded-[2.5rem] bg-gradient-to-br from-slate-100 to-slate-200/50 border border-slate-200/80 shadow-sm scroll-reveal delay-150">
+            <div className="rounded-[calc(2.5rem-0.625rem)] bg-white p-5 sm:p-8 md:p-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               
               <div className="lg:col-span-7 space-y-6">
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${fleetDetails[activeFleetTab].badgeColor}`}>
@@ -1229,8 +1229,8 @@ export const HomePage: React.FC = () => {
             6. FINAL CALL TO ACTION : Double-Bezel Grand Format
             ========================================================================= */}
         <section className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto scroll-reveal delay-100">
-          <div className="p-3 sm:p-4 rounded-[3rem] bg-gradient-to-r from-teal-900 via-slate-900 to-sky-950 border border-teal-500/20 shadow-2xl relative overflow-hidden">
-            <div className="rounded-[calc(3rem-0.75rem)] p-8 sm:p-12 md:p-16 text-center text-white relative z-10 flex flex-col items-center">
+          <div className="p-2.5 sm:p-4 rounded-[3rem] bg-gradient-to-r from-teal-900 via-slate-900 to-sky-950 border border-teal-500/20 shadow-2xl relative overflow-hidden">
+            <div className="rounded-[calc(3rem-0.75rem)] p-6 sm:p-12 md:p-16 text-center text-white relative z-10 flex flex-col items-center">
               
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-teal-300 text-xs font-bold uppercase tracking-widest mb-6 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5" />

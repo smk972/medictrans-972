@@ -153,12 +153,12 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-slate-200/70 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div className="pt-8 border-t border-slate-200/70 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 text-center md:text-left">
           <span>
             © {new Date().getFullYear()} Clinigo (clinigo.fr) • Transport Médical &amp; Services. Plateforme certifiée HDS /
             ARS. Tous droits réservés.
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <a href="#mentions" className="hover:text-slate-900 transition-colors">
               Mentions légales
             </a>

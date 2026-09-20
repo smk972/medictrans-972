@@ -23,8 +23,10 @@ export const CpamRightsPage: React.FC = () => {
       badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
       description: 'Pour les pathologies chroniques invalidantes (cancer, dialyse rénale, insuffisance cardiaque grave, AVC, diabète sévère, etc.).',
       cpamShare: '100 % (Exonération du ticket modérateur)',
-      mutuelleShare: '0 % nécessaire',
-      patientCost: '0,00 € (Tiers-payant intégral)',
+      mutuelleShare: '0 % nécessaire (Prise en charge CPAM 100%)',
+      patientCost: '0,00 €',
+      patientCostSuffix: '100% ALD',
+      patientCostNote: 'Tiers-payant intégral : aucune avance de frais.',
       conditions: [
         'Prescription Médicale de Transport (PMT) établie en rapport direct avec l\'ALD',
         'Volet médical signé et daté avant la réalisation du trajet',
@@ -36,9 +38,11 @@ export const CpamRightsPage: React.FC = () => {
       badge: 'Prise en charge à 100%',
       badgeColor: 'bg-blue-100 text-blue-900 border-blue-300',
       description: 'Déplacements pour consultations, soins, expertises ou rééducation liés à un accident du travail ou une maladie professionnelle reconnue.',
-      cpamShare: '100 % pris en charge',
-      mutuelleShare: '0 % nécessaire',
-      patientCost: '0,00 € (Aucune avance de frais)',
+      cpamShare: '100 % pris en charge par l\'Assurance Maladie',
+      mutuelleShare: '0 % nécessaire (Couverture intégrale AT/MP)',
+      patientCost: '0,00 €',
+      patientCostSuffix: '100% AT/MP',
+      patientCostNote: 'Exonération légale totale : zéro frais à débourser.',
       conditions: [
         'Prescription Médicale de Transport (PMT) établie par le praticien traitant',
         'Feuille d\'accident du travail ou certificat initial fourni par l\'employeur / la CPAM',
@@ -50,9 +54,11 @@ export const CpamRightsPage: React.FC = () => {
       badge: 'Prise en charge à 100%',
       badgeColor: 'bg-pink-100 text-pink-900 border-pink-300',
       description: 'Déplacements liés à la grossesse à partir du 1er jour du 6e mois et jusqu\'à 12 jours après l\'accouchement.',
-      cpamShare: '100 % Assurance Maladie',
+      cpamShare: '100 % Assurance Maladie (Maternité)',
       mutuelleShare: '0 % nécessaire',
-      patientCost: '0,00 € (Tiers-payant maternité)',
+      patientCost: '0,00 €',
+      patientCostSuffix: '100% Maternité',
+      patientCostNote: 'Tiers-payant maternité sans avance de frais.',
       conditions: [
         'Prescription Médicale de Transport (PMT) délivrée par l\'obstétricien ou la sage-femme',
         'Trajet entre le domicile et la maternité / centre hospitalier conventionné',
@@ -66,7 +72,9 @@ export const CpamRightsPage: React.FC = () => {
       description: 'Pour les bénéficiaires de la Complémentaire Santé Solidaire (avec ou sans participation financière).',
       cpamShare: '65 % Sécurité Sociale + 35 % part CSS',
       mutuelleShare: 'Intégrée automatiquement via la CSS',
-      patientCost: '0,00 € (Dispense totale d\'avance de frais)',
+      patientCost: '0,00 €',
+      patientCostSuffix: 'CSS Solidaire',
+      patientCostNote: 'Dispense totale d\'avance de frais avec télétransmission.',
       conditions: [
         'Prescription Médicale de Transport (PMT) valide',
         'Droits CSS ouverts et inscrits sur la puce de la Carte Vitale',
@@ -79,11 +87,14 @@ export const CpamRightsPage: React.FC = () => {
       badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
       description: 'Déplacements pour hospitalisation (entrée/sortie), soins itératifs ou examens médicaux sans exonération du ticket modérateur.',
       cpamShare: '65 % Assurance Maladie',
-      mutuelleShare: '35 % Mutuelle complémentaire santé (télétransmission ROC/BPEC)',
-      patientCost: '0,00 € avec mutuelle responsable conventionnée (ou ticket modérateur selon contrat)',
+      mutuelleShare: '35 % Mutuelle santé (télétransmission ROC/BPEC)',
+      patientCost: '0,00 €*',
+      patientCostSuffix: 'Avec Mutuelle',
+      patientCostNote: '0 € d\'avance de frais avec votre mutuelle conventionnée.',
+      patientCostAlt: '* Sans mutuelle : ticket modérateur légal de 35% selon contrat.',
       conditions: [
         'Prescription Médicale de Transport (PMT) justifiant l\'incompatibilité avec les transports en commun',
-        'Conventionnement direct avec votre mutuelle santé partenaire',
+        'Conventionnement direct avec votre mutuelle santé partenaire (ROC / BPEC)',
         'Franchise médicale légale de 4 € par trajet (plafonnée à 50 € par an)'
       ]
     }
@@ -249,28 +260,28 @@ export const CpamRightsPage: React.FC = () => {
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4">
-                    <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80">
-                      <span className="font-extrabold text-slate-900 text-xl md:text-2xl">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-4">
+                    <div className="flex flex-col p-2.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 min-w-0">
+                      <span className="font-extrabold text-slate-900 text-lg sm:text-2xl">
                         101 Dép.
                       </span>
-                      <span className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 font-medium leading-tight break-words">
                         Hexagone &amp; DROM
                       </span>
                     </div>
-                    <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80">
-                      <span className="font-extrabold text-teal-600 text-xl md:text-2xl">
+                    <div className="flex flex-col p-2.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 min-w-0">
+                      <span className="font-extrabold text-teal-600 text-lg sm:text-2xl">
                         100%
                       </span>
-                      <span className="text-[11px] text-slate-500 mt-0.5 font-medium">
-                        Tiers-payant ALD / AT / CSS
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 font-medium leading-tight break-words">
+                        Tiers-payant ALD &amp; CSS
                       </span>
                     </div>
-                    <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80">
-                      <span className="font-extrabold text-slate-900 text-xl md:text-2xl">
+                    <div className="flex flex-col p-2.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 min-w-0">
+                      <span className="font-extrabold text-slate-900 text-lg sm:text-2xl">
                         24/7
                       </span>
-                      <span className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 font-medium leading-tight break-words">
                         Régulation Active
                       </span>
                     </div>
@@ -284,21 +295,21 @@ export const CpamRightsPage: React.FC = () => {
                       alt="Ambulancier et patient pris en charge en transport sanitaire conventionné"
                       src="/assets/step3_care.jpg"
                     />
-                    <div className="absolute bottom-4 left-4 right-4 bg-surface-container-lowest/95 backdrop-blur-md p-space-md rounded-xl shadow-lg flex items-center justify-between border border-outline-variant/30">
-                      <div className="flex items-center gap-space-sm">
-                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-                          <span className="material-symbols-outlined">hub</span>
+                    <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 bg-surface-container-lowest/95 backdrop-blur-md p-2.5 sm:p-space-md rounded-xl shadow-lg flex items-center justify-between border border-outline-variant/30 gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+                          <span className="material-symbols-outlined text-lg sm:text-xl">hub</span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-label-md text-label-md text-on-surface font-bold text-xs">
-                            Régulation Sanitaire Nationale
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-label-md text-label-md text-on-surface font-bold text-xs truncate">
+                            Régulation Sanitaire
                           </span>
-                          <span className="font-label-sm text-label-sm text-on-surface-variant text-[11px]">
-                            Télétransmission directe CPAM &amp; Mutuelles
+                          <span className="font-label-sm text-label-sm text-on-surface-variant text-[10px] sm:text-[11px] truncate">
+                            Télétransmission CPAM &amp; Mutuelles
                           </span>
                         </div>
                       </div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-bold text-xs">
+                      <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-bold text-[10px] sm:text-xs shrink-0 whitespace-nowrap">
                         Agréé ARS
                       </span>
                     </div>
@@ -326,88 +337,108 @@ export const CpamRightsPage: React.FC = () => {
               </div>
 
               {/* Onglets de situation */}
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap gap-2 mb-6 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
                 {[
-                  { id: 'ald', label: 'Affection Longue Durée (ALD)', icon: 'heart_check' },
-                  { id: 'atmp', label: 'Accident du Travail (AT/MP)', icon: 'work' },
-                  { id: 'maternite', label: 'Maternité (> 6e mois)', icon: 'pregnant_woman' },
-                  { id: 'css', label: 'Complémentaire Santé Solidaire (CSS)', icon: 'shield_person' },
-                  { id: 'general', label: 'Régime Général (Soins courants)', icon: 'medical_services' },
+                  { id: 'ald', label: 'Affection Longue Durée (ALD)', shortLabel: 'ALD (100%)', icon: 'heart_check' },
+                  { id: 'atmp', label: 'Accident du Travail (AT/MP)', shortLabel: 'AT / MP (100%)', icon: 'work' },
+                  { id: 'maternite', label: 'Maternité (> 6e mois)', shortLabel: 'Maternité (> 6e m.)', icon: 'pregnant_woman' },
+                  { id: 'css', label: 'Complémentaire Santé Solidaire (CSS)', shortLabel: 'CSS Solidaire', icon: 'shield_person' },
+                  { id: 'general', label: 'Régime Général (Soins courants)', shortLabel: 'Régime Général', icon: 'medical_services' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveRegime(tab.id as any)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                       activeRegime === tab.id
                         ? 'bg-slate-900 text-white shadow-md'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-base">{tab.icon}</span>
-                    <span>{tab.label}</span>
+                    <span className="material-symbols-outlined text-base shrink-0">{tab.icon}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.shortLabel}</span>
                   </button>
                 ))}
               </div>
 
               {/* Panneau de détails du régime sélectionné */}
-              <div className="bg-slate-50/90 rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-                  <div>
+              <div className="bg-slate-50/90 rounded-3xl p-5 sm:p-8 border border-slate-200 shadow-sm">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 pb-6 border-b border-slate-200">
+                  <div className="min-w-0 max-w-2xl">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border mb-2 ${regimeDetails[activeRegime].badgeColor}`}>
                       {regimeDetails[activeRegime].badge}
                     </span>
-                    <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                    <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">
                       {regimeDetails[activeRegime].title}
                     </h3>
-                    <p className="text-slate-600 text-xs sm:text-sm mt-1 max-w-2xl">
+                    <p className="text-slate-600 text-xs sm:text-sm mt-2 leading-relaxed">
                       {regimeDetails[activeRegime].description}
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-2 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs shrink-0">
+                  
+                  {/* Boîte de reste à charge patient restructurée et proportionnée */}
+                  <div className="flex flex-col items-start lg:items-end gap-1.5 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs w-full lg:w-auto lg:min-w-[280px] lg:max-w-xs shrink-0">
                     <span className="text-xs text-slate-500 font-medium">Votre reste à charge patient :</span>
-                    <span className="text-2xl font-black text-teal-600">
-                      {regimeDetails[activeRegime].patientCost}
-                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl sm:text-4xl font-black text-teal-600 font-mono">
+                        {regimeDetails[activeRegime].patientCost}
+                      </span>
+                      {regimeDetails[activeRegime].patientCostSuffix && (
+                        <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/60">
+                          {regimeDetails[activeRegime].patientCostSuffix}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-700 font-medium text-left lg:text-right leading-relaxed">
+                      {regimeDetails[activeRegime].patientCostNote}
+                    </p>
+                    {(regimeDetails[activeRegime] as any).patientCostAlt && (
+                      <p className="text-[11px] text-slate-500 text-left lg:text-right leading-tight pt-1.5 border-t border-slate-100 w-full mt-1">
+                        {(regimeDetails[activeRegime] as any).patientCostAlt}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {/* 3 Cartes descriptives bien alignées */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-6">
+                  <div className="flex flex-col gap-1 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs min-w-0">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                       Part Assurance Maladie (CPAM)
                     </span>
-                    <span className="text-base font-bold text-slate-900">
+                    <span className="text-sm sm:text-base font-extrabold text-slate-900 break-words">
                       {regimeDetails[activeRegime].cpamShare}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="flex flex-col gap-1 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs min-w-0">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                       Part Mutuelle Complémentaire
                     </span>
-                    <span className="text-base font-bold text-slate-900">
+                    <span className="text-sm sm:text-base font-extrabold text-slate-900 break-words">
                       {regimeDetails[activeRegime].mutuelleShare}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <div className="flex flex-col gap-1 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs min-w-0">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                       Mode de facturation
                     </span>
-                    <span className="text-base font-bold text-teal-700 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-lg">check_circle</span>
-                      Tiers-Payant Télétransmis
+                    <span className="text-sm sm:text-base font-extrabold text-teal-700 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-lg shrink-0">check_circle</span>
+                      <span className="break-words">Tiers-Payant Télétransmis</span>
                     </span>
                   </div>
                 </div>
 
+                {/* Conditions obligatoires */}
                 <div className="mt-6 pt-6 border-t border-slate-200">
                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
                     Conditions obligatoires pour la dispense totale d'avance de frais :
                   </span>
                   <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {regimeDetails[activeRegime].conditions.map((cond, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200/70">
-                        <span className="material-symbols-outlined text-teal-600 text-base shrink-0">task_alt</span>
-                        <span>{cond}</span>
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200/70 min-w-0">
+                        <span className="material-symbols-outlined text-teal-600 text-base shrink-0 mt-0.5">task_alt</span>
+                        <span className="break-words leading-relaxed">{cond}</span>
                       </li>
                     ))}
                   </ul>
@@ -728,11 +759,11 @@ export const CpamRightsPage: React.FC = () => {
                       height="100%" 
                     />
                   </div>
-                  <div className="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-1 text-xs">
-                    <span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-1 text-xs gap-1.5">
+                    <span className="leading-snug">
                       Réseau conventionné : Ambulances de soins d'urgence • Véhicules Sanitaires Légers (VSL) • Taxis conventionnés CPAM
                     </span>
-                    <span className="text-secondary font-bold shrink-0 ml-2">
+                    <span className="text-secondary font-bold shrink-0 self-start sm:self-auto bg-slate-100 sm:bg-transparent px-2 py-0.5 sm:p-0 rounded-md">
                       {territoryInfo[selectedTerritory].badge}
                     </span>
                   </div>

@@ -1014,8 +1014,8 @@ export const BookingPage: React.FC = () => {
                     <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
                       <span className="material-symbols-outlined">schedule</span>
                     </div>
-                    <div className="flex flex-col">
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold whitespace-nowrap">
+                    <div className="flex flex-col min-w-0">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
                         Rendez-vous Médical &amp; Programmation
                       </h2>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
@@ -1933,13 +1933,13 @@ export const BookingPage: React.FC = () => {
 
               {/* Card 3: Prescription Médicale de Transport (PMT) */}
               <div id="block-pmt" className="bg-surface-container-lowest p-space-lg md:p-space-xl rounded-2xl shadow-sm flex flex-col gap-space-lg border border-outline-variant/30 scroll-mt-28">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-space-sm">
-                    <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-space-sm min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-surface-container-high text-primary flex items-center justify-center shrink-0">
                       <span className="material-symbols-outlined">description</span>
                     </div>
-                    <div className="flex flex-col">
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold whitespace-nowrap">
+                    <div className="flex flex-col min-w-0">
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
                         Prescription Médicale de Transport (PMT)
                       </h2>
                       <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">
@@ -1947,7 +1947,7 @@ export const BookingPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <span className="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded-full font-bold">
+                  <span className="font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded-full font-bold self-start sm:self-auto shrink-0">
                     100% Remboursé
                   </span>
                 </div>
@@ -2198,10 +2198,10 @@ export const BookingPage: React.FC = () => {
 
                 {/* Official CPAM Tariffs & Tiers Payant breakdown */}
                 <div className="p-3 sm:p-4 rounded-2xl bg-surface-container-low/80 flex flex-col gap-1.5 border border-outline-variant/30 text-xs shadow-xs">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-outline-variant/20 gap-1.5 flex-nowrap whitespace-nowrap">
-                    <span className="font-bold text-on-surface flex items-center gap-1 text-[11px] sm:text-xs whitespace-nowrap shrink-0 min-w-0">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-outline-variant/20 gap-1.5 flex-nowrap">
+                    <span className="font-bold text-on-surface flex items-center gap-1 text-[11px] sm:text-xs shrink-0 min-w-0">
                       <span className="material-symbols-outlined text-[15px] text-primary shrink-0">receipt_long</span>
-                      <span className="whitespace-nowrap">Tarif Conventionné Assurance Maladie</span>
+                      <span className="truncate">Tarif Conventionné Assurance Maladie</span>
                     </span>
                     <span className="font-extrabold font-mono text-xs sm:text-sm text-primary whitespace-nowrap shrink-0 ml-auto pl-1">
                       {ridePricing.totalPrestation.toFixed(2)} €
