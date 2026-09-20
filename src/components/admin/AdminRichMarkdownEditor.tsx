@@ -565,7 +565,7 @@ export const AdminRichMarkdownEditor: React.FC<AdminRichMarkdownEditorProps> = (
               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-teal-800 hover:bg-teal-100 rounded-lg transition-colors"
             >
               <TableIcon className="w-3.5 h-3.5 text-teal-700" />
-              <span>+ Tableau</span>
+              <span>Insérer tableau</span>
             </button>
 
             <button

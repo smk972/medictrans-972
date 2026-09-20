@@ -638,7 +638,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               title="Cliquer pour planifier une course sur le calendrier"
             >
               <span className="material-symbols-outlined text-sm">add_circle</span>
-              <span>+ Nouvelle Course</span>
+              <span>Nouvelle Course</span>
             </button>
           </div>
         </div>

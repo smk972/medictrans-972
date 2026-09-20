@@ -14,7 +14,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
   onBookRideForPatient,
 }) => {
   const [clients, setClients] = useState<TransporterClientRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatientForHistory, setSelectedPatientForHistory] = useState<TransporterClientRecord | null>(null);
 
@@ -61,11 +61,87 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
     }
   };
 
+  // 1. Extraction directe et instantanée des patients ayant déjà une course (garantit l'affichage des 7 fiches)
+  const rideClients = useMemo(() => {
+    const map = new Map<string, TransporterClientRecord>();
+    if (!rides || rides.length === 0) return [];
+
+    for (const r of rides) {
+      if (!r.patient?.lastName || !r.patient?.firstName) continue;
+      const key = `${r.patient.lastName.trim().toLowerCase()}_${r.patient.firstName.trim().toLowerCase()}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          id: `ride-${key}`,
+          transporterId: transporterId || 'default',
+          lastName: r.patient.lastName.trim().toUpperCase(),
+          firstName: r.patient.firstName.trim(),
+          phone: r.patient.phone || (r as any).phone || '',
+          email: r.patient.email || '',
+          birthDate: r.patient.birthDate || '1980-01-01',
+          nir: r.patient.nir || '',
+          pickupAddress: r.pickupAddress || r.patient.address || '',
+          pickupCity: r.pickupCity || r.patient.city || '',
+          dropoffAddress: r.dropoffAddress || '',
+          dropoffCity: r.dropoffCity || '',
+          mobilityNeeds:
+            r.transportType === 'AMBULANCE'
+              ? 'Allongé (brancard)'
+              : r.transportType === 'VSL'
+              ? 'Assis'
+              : r.mobility?.wheelchair
+              ? 'Fauteuil roulant'
+              : 'Assis',
+          referringFacility: r.facilityName || '',
+          emergencyContact: (r.patient as any).emergencyContact || '',
+          notes: r.additionalNotes || r.mobility?.notes || '',
+          isArchived: false,
+          createdAt: r.createdAt || r.pickupDateTime || new Date().toISOString(),
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [rides, transporterId]);
+
+  // 2. Fusion des patients des courses et des fiches enregistrées manuellement / en base
+  const allClients = useMemo(() => {
+    const combined = new Map<string, TransporterClientRecord>();
+
+    // D'abord insérer les fiches issues des courses
+    for (const rc of rideClients) {
+      const key = `${rc.lastName.trim().toLowerCase()}_${rc.firstName.trim().toLowerCase()}`;
+      combined.set(key, rc);
+    }
+
+    // Ensuite fusionner / écraser avec les fiches enregistrées
+    for (const c of clients) {
+      const key = `${(c.lastName || '').trim().toLowerCase()}_${(c.firstName || '').trim().toLowerCase()}`;
+      if (!key) continue;
+      if (c.isArchived) {
+        combined.delete(key);
+        continue;
+      }
+      const existing = combined.get(key);
+      combined.set(key, {
+        ...existing,
+        ...c,
+        phone: c.phone || existing?.phone || '',
+        pickupAddress: c.pickupAddress || existing?.pickupAddress || '',
+        pickupCity: c.pickupCity || existing?.pickupCity || '',
+        dropoffAddress: c.dropoffAddress || existing?.dropoffAddress || '',
+        dropoffCity: c.dropoffCity || existing?.dropoffCity || '',
+        mobilityNeeds: c.mobilityNeeds || existing?.mobilityNeeds || 'Assis',
+        referringFacility: c.referringFacility || existing?.referringFacility || '',
+        notes: c.notes || existing?.notes || '',
+      });
+    }
+
+    return Array.from(combined.values()).sort((a, b) => a.lastName.localeCompare(b.lastName));
+  }, [rideClients, clients]);
+
   // Synchronisation automatique des patients depuis les courses effectuées
   useEffect(() => {
     if (transporterId) {
       const init = async () => {
-        setIsLoading(true);
         try {
           if (rides && rides.length > 0) {
             await transporterFleetService.syncClientsFromRides(transporterId, rides);
@@ -73,8 +149,6 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
           await loadClients();
         } catch (err) {
           console.error('Erreur synchronisation répertoire:', err);
-        } finally {
-          setIsLoading(false);
         }
       };
       init();
@@ -83,9 +157,9 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
 
   // Filtrage des patients par recherche
   const filteredClients = useMemo(() => {
-    if (!searchQuery.trim()) return clients;
+    if (!searchQuery.trim()) return allClients;
     const q = searchQuery.toLowerCase().trim();
-    return clients.filter(
+    return allClients.filter(
       (c) =>
         c.lastName.toLowerCase().includes(q) ||
         c.firstName.toLowerCase().includes(q) ||
@@ -93,7 +167,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
         (c.pickupCity && c.pickupCity.toLowerCase().includes(q)) ||
         (c.referringFacility && c.referringFacility.toLowerCase().includes(q))
     );
-  }, [clients, searchQuery]);
+  }, [allClients, searchQuery]);
 
   // Historique des courses du patient sélectionné
   const patientRidesHistory = useMemo(() => {
@@ -149,7 +223,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
 
     // Détection de doublons lors de la création
     if (!editingClientId) {
-      const isDuplicate = clients.some(
+      const isDuplicate = allClients.some(
         (c) =>
           c.lastName.toLowerCase().trim() === formLastName.toLowerCase().trim() &&
           c.firstName.toLowerCase().trim() === formFirstName.toLowerCase().trim()
@@ -164,7 +238,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
 
     setIsSaving(true);
     try {
-      if (editingClientId) {
+      if (editingClientId && !editingClientId.startsWith('ride-')) {
         await transporterFleetService.updateClient(editingClientId, {
           lastName: formLastName,
           firstName: formFirstName,
@@ -197,7 +271,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
           mobilityNeeds: formMobility,
           notes: formNotes,
         });
-        showFeedback('success', `Nouveau contact ${formLastName} ${formFirstName} ajouté au répertoire.`);
+        showFeedback('success', editingClientId ? `Fiche de ${formLastName} ${formFirstName} enregistrée.` : `Nouveau contact ${formLastName} ${formFirstName} ajouté au répertoire.`);
       }
       await loadClients();
       setIsModalOpen(false);
@@ -217,6 +291,15 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
     ) {
       try {
         await transporterFleetService.archiveClient(clientId);
+        if (clientId.startsWith('ride-')) {
+          const clientObj = allClients.find((c) => c.id === clientId);
+          if (clientObj) {
+            await transporterFleetService.saveClient(transporterId, {
+              ...clientObj,
+              isArchived: true,
+            });
+          }
+        }
         await loadClients();
         showFeedback('success', `Contact ${name} archivé.`);
       } catch (err) {
@@ -229,7 +312,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
   // EXPORT CSV DU RÉPERTOIRE CONTACTS (UTF-8 avec BOM)
   // =========================================================================
   const handleExportContactsCSV = () => {
-    if (clients.length === 0) {
+    if (allClients.length === 0) {
       alert('Votre répertoire ne contient aucun contact à exporter.');
       return;
     }
@@ -257,7 +340,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
       return `"${clean}"`;
     };
 
-    const rows = clients.map((c) => [
+    const rows = allClients.map((c) => [
       escapeCsv(c.lastName),
       escapeCsv(c.firstName),
       escapeCsv(c.phone),
@@ -284,7 +367,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showFeedback('success', `${clients.length} contact(s) exporté(s) au format CSV compatible Excel.`);
+    showFeedback('success', `${allClients.length} contact(s) exporté(s) au format CSV compatible Excel.`);
   };
 
   // Téléchargement d'un fichier modèle CSV type pour l'import
@@ -487,7 +570,7 @@ export const TransporterPatientsTab: React.FC<TransporterPatientsTabProps> = ({
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">person_add</span>
-            <span>+ Ajouter une fiche</span>
+            <span>Ajouter une fiche</span>
           </button>
         </div>
       </div>

@@ -143,13 +143,13 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
   return (
     <div className="flex flex-col gap-6 animate-fadeIn">
       {/* 1. Cockpit En-tête : Salutations & Raccourcis Rapides */}
-      <div className="p-6 rounded-3xl bg-linear-to-br from-slate-900 via-slate-800 to-teal-950 text-white shadow-xl border border-slate-700/50 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-semibold border border-teal-500/30">
             <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
             Tableau de Bord Exécutif
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{transporterName}</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{transporterName}</h1>
           <p className="text-slate-300 text-sm max-w-xl">
             Gestion quotidienne de vos transports sanitaires, affectations des équipages et suivi des disponibilités en temps réel.
           </p>
@@ -163,7 +163,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all transform active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">add_circle</span>
-            <span>+ Créer une course</span>
+            <span>Créer une course</span>
           </button>
 
           <button
@@ -190,7 +190,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
             className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">person_add</span>
-            <span>+ Chauffeur</span>
+            <span>Chauffeur</span>
           </button>
 
           <button
@@ -199,7 +199,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
             className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">directions_car</span>
-            <span>+ Véhicule</span>
+            <span>Véhicule</span>
           </button>
         </div>
       </div>

@@ -4226,7 +4226,7 @@ export const TransporterPortalPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-bold transition-all shadow-xs active:scale-[0.98]"
                   >
                     <span className="material-symbols-outlined text-base">directions_car</span>
-                    <span>+ Ajouter un véhicule</span>
+                    <span>Ajouter un véhicule</span>
                   </button>
 
                   <button
@@ -4241,7 +4241,7 @@ export const TransporterPortalPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-secondary text-white hover:bg-secondary/90 text-xs font-bold transition-all shadow-xs active:scale-[0.98]"
                   >
                     <span className="material-symbols-outlined text-base">person_add</span>
-                    <span>+ Nouveau chauffeur</span>
+                    <span>Nouveau chauffeur</span>
                   </button>
                 </div>
               </div>

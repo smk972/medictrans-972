@@ -287,7 +287,7 @@ export const AdminFacilitiesPage: React.FC = () => {
             className="px-3.5 py-2 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-xs cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">add_business</span>
-            <span>+ Nouvel Établissement</span>
+            <span>Nouvel Établissement</span>
           </button>
           <button
             onClick={loadData}

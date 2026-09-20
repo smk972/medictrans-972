@@ -362,7 +362,31 @@ export const transporterFleetService = {
   // CLIENTS / PATIENTS (RÉPERTOIRE DE L'ENTREPRISE)
   // =========================================================================
   async getClients(transporterId: string, search?: string): Promise<TransporterClientRecord[]> {
-    if (isSupabaseConfigured() && supabase) {
+    const isValidUUID = (str?: string): boolean => {
+      if (!str) return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    };
+
+    const getLocalClients = (): TransporterClientRecord[] => {
+      try {
+        const raw = localStorage.getItem(`medictrans_transporter_clients_${transporterId}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+      return [];
+    };
+
+    const saveLocalClients = (list: TransporterClientRecord[]) => {
+      try {
+        localStorage.setItem(`medictrans_transporter_clients_${transporterId}`, JSON.stringify(list));
+      } catch {}
+    };
+
+    let localList = getLocalClients();
+
+    if (isSupabaseConfigured() && supabase && isValidUUID(transporterId)) {
       try {
         let query = supabase
           .from('transporter_clients')
@@ -378,7 +402,7 @@ export const transporterFleetService = {
 
         const { data, error } = await query;
         if (!error && data) {
-          return data.map((c: any) => ({
+          const remoteList: TransporterClientRecord[] = data.map((c: any) => ({
             id: c.id,
             transporterId: c.transporter_id,
             firstName: c.first_name,
@@ -398,21 +422,94 @@ export const transporterFleetService = {
             isArchived: c.is_archived,
             createdAt: c.created_at,
           }));
+
+          const mergedMap = new Map<string, TransporterClientRecord>();
+          for (const l of localList) {
+            const key = `${(l.lastName || '').trim().toLowerCase()}_${(l.firstName || '').trim().toLowerCase()}`;
+            mergedMap.set(key, l);
+          }
+          for (const r of remoteList) {
+            const key = `${(r.lastName || '').trim().toLowerCase()}_${(r.firstName || '').trim().toLowerCase()}`;
+            mergedMap.set(key, r);
+          }
+          const merged = Array.from(mergedMap.values()).filter((c) => !c.isArchived);
+          saveLocalClients(merged);
+          return merged;
         }
       } catch (err) {
         console.error('[transporterFleetService] getClients error:', err);
       }
     }
-    return [];
+
+    if (search && search.trim().length > 0) {
+      const s = search.trim().toLowerCase();
+      return localList.filter(
+        (c) =>
+          !c.isArchived &&
+          ((c.lastName && c.lastName.toLowerCase().includes(s)) ||
+            (c.firstName && c.firstName.toLowerCase().includes(s)) ||
+            (c.phone && c.phone.includes(s)))
+      );
+    }
+
+    return localList.filter((c) => !c.isArchived);
   },
 
   async saveClient(
     transporterId: string,
     client: Omit<TransporterClientRecord, 'id' | 'transporterId'>
   ): Promise<TransporterClientRecord | null> {
-    if (isSupabaseConfigured() && supabase) {
+    const isValidUUID = (str?: string): boolean => {
+      if (!str) return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    };
+
+    let localList: TransporterClientRecord[] = [];
+    try {
+      const raw = localStorage.getItem(`medictrans_transporter_clients_${transporterId}`);
+      if (raw) localList = JSON.parse(raw) || [];
+    } catch {}
+
+    const existingIndex = localList.findIndex(
+      (c) =>
+        c.lastName.trim().toLowerCase() === client.lastName.trim().toLowerCase() &&
+        c.firstName.trim().toLowerCase() === client.firstName.trim().toLowerCase()
+    );
+
+    let savedRecord: TransporterClientRecord;
+
+    if (existingIndex >= 0) {
+      savedRecord = {
+        ...localList[existingIndex],
+        ...client,
+        phone: client.phone || localList[existingIndex].phone,
+        pickupAddress: client.pickupAddress || localList[existingIndex].pickupAddress,
+        pickupCity: client.pickupCity || localList[existingIndex].pickupCity,
+        dropoffAddress: client.dropoffAddress || localList[existingIndex].dropoffAddress,
+        dropoffCity: client.dropoffCity || localList[existingIndex].dropoffCity,
+        mobilityNeeds: client.mobilityNeeds || localList[existingIndex].mobilityNeeds,
+        referringFacility: client.referringFacility || localList[existingIndex].referringFacility,
+        notes: client.notes || localList[existingIndex].notes,
+        isArchived: false,
+      };
+      localList[existingIndex] = savedRecord;
+    } else {
+      savedRecord = {
+        ...client,
+        id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        transporterId,
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+      };
+      localList.push(savedRecord);
+    }
+
+    try {
+      localStorage.setItem(`medictrans_transporter_clients_${transporterId}`, JSON.stringify(localList));
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase && isValidUUID(transporterId)) {
       try {
-        // Détection de doublons : vérifier si un patient avec le même nom, prénom et date de naissance existe déjà
         const { data: existing } = await supabase
           .from('transporter_clients')
           .select('id')
@@ -422,7 +519,6 @@ export const transporterFleetService = {
           .limit(1);
 
         if (existing && existing.length > 0) {
-          // Mettre à jour la fiche existante avec les nouvelles coordonnées
           const existingId = existing[0].id;
           await supabase
             .from('transporter_clients')
@@ -435,65 +531,70 @@ export const transporterFleetService = {
               updated_at: new Date().toISOString(),
             })
             .eq('id', existingId);
+          savedRecord.id = existingId;
+        } else {
+          const { data, error } = await supabase
+            .from('transporter_clients')
+            .insert({
+              transporter_id: transporterId,
+              first_name: client.firstName.trim(),
+              last_name: client.lastName.trim(),
+              phone: client.phone || null,
+              email: client.email || null,
+              birth_date: client.birthDate || null,
+              nir: client.nir ? client.nir.trim() : null,
+              pickup_address: client.pickupAddress || null,
+              pickup_city: client.pickupCity || null,
+              dropoff_address: client.dropoffAddress || null,
+              dropoff_city: client.dropoffCity || null,
+              mobility_needs: client.mobilityNeeds || null,
+              referring_facility: client.referringFacility || null,
+              emergency_contact: client.emergencyContact || null,
+              notes: client.notes || null,
+            })
+            .select('*')
+            .single();
 
-          return { ...client, id: existingId, transporterId };
-        }
-
-        const { data, error } = await supabase
-          .from('transporter_clients')
-          .insert({
-            transporter_id: transporterId,
-            first_name: client.firstName.trim(),
-            last_name: client.lastName.trim(),
-            phone: client.phone || null,
-            email: client.email || null,
-            birth_date: client.birthDate || null,
-            nir: client.nir ? client.nir.trim() : null,
-            pickup_address: client.pickupAddress || null,
-            pickup_city: client.pickupCity || null,
-            dropoff_address: client.dropoffAddress || null,
-            dropoff_city: client.dropoffCity || null,
-            mobility_needs: client.mobilityNeeds || null,
-            referring_facility: client.referringFacility || null,
-            emergency_contact: client.emergencyContact || null,
-            notes: client.notes || null,
-          })
-          .select('*')
-          .single();
-
-        if (!error && data) {
-          return {
-            id: data.id,
-            transporterId: data.transporter_id,
-            firstName: data.first_name,
-            lastName: data.last_name,
-            phone: data.phone || '',
-            email: data.email || '',
-            birthDate: data.birth_date || '',
-            nir: data.nir || '',
-            pickupAddress: data.pickup_address || '',
-            pickupCity: data.pickup_city || '',
-            dropoffAddress: data.dropoff_address || '',
-            dropoffCity: data.dropoff_city || '',
-            mobilityNeeds: data.mobility_needs || '',
-            referringFacility: data.referring_facility || '',
-            emergencyContact: data.emergency_contact || '',
-            notes: data.notes || '',
-            createdAt: data.created_at,
-          };
+          if (!error && data) {
+            savedRecord.id = data.id;
+          }
         }
       } catch (err) {
         console.error('[transporterFleetService] saveClient error:', err);
       }
     }
-    return null;
+
+    return savedRecord;
   },
 
   async updateClient(
     clientId: string,
     updates: Partial<Omit<TransporterClientRecord, 'id' | 'transporterId'>>
   ): Promise<void> {
-    if (isSupabaseConfigured() && supabase) {
+    const isValidUUID = (str?: string): boolean => {
+      if (!str) return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    };
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('medictrans_transporter_clients_')) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const list: TransporterClientRecord[] = JSON.parse(raw);
+            const idx = list.findIndex((c) => c.id === clientId);
+            if (idx >= 0) {
+              list[idx] = { ...list[idx], ...updates };
+              localStorage.setItem(key, JSON.stringify(list));
+              break;
+            }
+          }
+        }
+      }
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase && isValidUUID(clientId)) {
       try {
         const payload: any = { updated_at: new Date().toISOString() };
         if (updates.firstName !== undefined) payload.first_name = updates.firstName.trim();
@@ -519,7 +620,30 @@ export const transporterFleetService = {
   },
 
   async archiveClient(clientId: string): Promise<void> {
-    if (isSupabaseConfigured() && supabase) {
+    const isValidUUID = (str?: string): boolean => {
+      if (!str) return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    };
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('medictrans_transporter_clients_')) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const list: TransporterClientRecord[] = JSON.parse(raw);
+            const idx = list.findIndex((c) => c.id === clientId);
+            if (idx >= 0) {
+              list[idx].isArchived = true;
+              localStorage.setItem(key, JSON.stringify(list));
+              break;
+            }
+          }
+        }
+      }
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase && isValidUUID(clientId)) {
       try {
         await supabase
           .from('transporter_clients')
@@ -532,69 +656,86 @@ export const transporterFleetService = {
   },
 
   async syncClientsFromRides(transporterId: string, rides: Ride[]): Promise<void> {
-    if (!isSupabaseConfigured() || !supabase || !rides || rides.length === 0) return;
+    if (!rides || rides.length === 0) return;
     try {
-      const uniquePatients = new Map<string, {
-        firstName: string;
-        lastName: string;
-        phone?: string;
-        pickupAddress?: string;
-        pickupCity?: string;
-        dropoffAddress?: string;
-        dropoffCity?: string;
-        mobilityNeeds?: string;
-        notes?: string;
-      }>();
+      const isValidUUID = (str?: string): boolean => {
+        if (!str) return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      };
+
+      let localList: TransporterClientRecord[] = [];
+      try {
+        const raw = localStorage.getItem(`medictrans_transporter_clients_${transporterId}`);
+        if (raw) localList = JSON.parse(raw) || [];
+      } catch {}
+
+      const existingKeys = new Set(
+        localList.map((c) => `${(c.lastName || '').trim().toLowerCase()}_${(c.firstName || '').trim().toLowerCase()}`)
+      );
 
       for (const r of rides) {
         if (!r.patient?.lastName || !r.patient?.firstName) continue;
         const key = `${r.patient.lastName.trim().toLowerCase()}_${r.patient.firstName.trim().toLowerCase()}`;
-        if (!uniquePatients.has(key)) {
-          uniquePatients.set(key, {
+        if (!existingKeys.has(key)) {
+          existingKeys.add(key);
+          localList.push({
+            id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            transporterId,
             lastName: r.patient.lastName.trim().toUpperCase(),
             firstName: r.patient.firstName.trim(),
             phone: r.patient.phone || undefined,
+            birthDate: r.patient.birthDate || '1980-01-01',
+            nir: r.patient.nir || undefined,
             pickupAddress: r.pickupAddress || r.patient.address || undefined,
             pickupCity: r.pickupCity || r.patient.city || undefined,
             dropoffAddress: r.dropoffAddress || undefined,
             dropoffCity: r.dropoffCity || undefined,
             mobilityNeeds: r.transportType === 'AMBULANCE' ? 'Allongé (brancard)' : r.transportType === 'VSL' ? 'Assis' : undefined,
+            referringFacility: r.facilityName || undefined,
             notes: r.additionalNotes || r.mobility?.notes || undefined,
+            isArchived: false,
+            createdAt: r.createdAt || r.pickupDateTime || new Date().toISOString(),
           });
         }
       }
 
-      if (uniquePatients.size === 0) return;
+      try {
+        localStorage.setItem(`medictrans_transporter_clients_${transporterId}`, JSON.stringify(localList));
+      } catch {}
 
-      const { data: existingClients } = await supabase
-        .from('transporter_clients')
-        .select('last_name, first_name')
-        .eq('transporter_id', transporterId);
+      if (isSupabaseConfigured() && supabase && isValidUUID(transporterId)) {
+        const { data: existingClients } = await supabase
+          .from('transporter_clients')
+          .select('last_name, first_name')
+          .eq('transporter_id', transporterId);
 
-      const existingKeys = new Set(
-        (existingClients || []).map((c: any) => `${(c.last_name || '').trim().toLowerCase()}_${(c.first_name || '').trim().toLowerCase()}`)
-      );
+        const remoteKeys = new Set(
+          (existingClients || []).map((c: any) => `${(c.last_name || '').trim().toLowerCase()}_${(c.first_name || '').trim().toLowerCase()}`)
+        );
 
-      const toInsert: any[] = [];
-      for (const [key, p] of uniquePatients.entries()) {
-        if (!existingKeys.has(key)) {
-          toInsert.push({
-            transporter_id: transporterId,
-            last_name: p.lastName,
-            first_name: p.firstName,
-            phone: p.phone || null,
-            pickup_address: p.pickupAddress || null,
-            pickup_city: p.pickupCity || null,
-            dropoff_address: p.dropoffAddress || null,
-            dropoff_city: p.dropoffCity || null,
-            mobility_needs: p.mobilityNeeds || null,
-            notes: p.notes || null,
-          });
+        const toInsert: any[] = [];
+        for (const l of localList) {
+          const key = `${(l.lastName || '').trim().toLowerCase()}_${(l.firstName || '').trim().toLowerCase()}`;
+          if (!remoteKeys.has(key)) {
+            toInsert.push({
+              transporter_id: transporterId,
+              last_name: l.lastName,
+              first_name: l.firstName,
+              phone: l.phone || null,
+              pickup_address: l.pickupAddress || null,
+              pickup_city: l.pickupCity || null,
+              dropoff_address: l.dropoffAddress || null,
+              dropoff_city: l.dropoffCity || null,
+              mobility_needs: l.mobilityNeeds || null,
+              referring_facility: l.referringFacility || null,
+              notes: l.notes || null,
+            });
+          }
         }
-      }
 
-      if (toInsert.length > 0) {
-        await supabase.from('transporter_clients').insert(toInsert);
+        if (toInsert.length > 0) {
+          await supabase.from('transporter_clients').insert(toInsert);
+        }
       }
     } catch (err) {
       console.error('[transporterFleetService] syncClientsFromRides error:', err);
@@ -607,7 +748,7 @@ export const transporterFleetService = {
   ): Promise<{ imported: number; updated: number }> {
     let imported = 0;
     let updated = 0;
-    if (!isSupabaseConfigured() || !supabase || !clientsList || clientsList.length === 0) {
+    if (!clientsList || clientsList.length === 0) {
       return { imported: 0, updated: 0 };
     }
 
