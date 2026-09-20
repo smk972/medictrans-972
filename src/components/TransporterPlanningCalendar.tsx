@@ -44,9 +44,10 @@ export interface TransporterPlanningCalendarProps {
   onReassignDriver?: (mission: Ride) => void;
   onAddQuickRide?: (newRide: Ride) => void;
   onRequestOpenFullModal?: (dateTimeISO: string, driverId?: string) => void;
+  onDuplicateMission?: (mission: Ride) => void;
 }
 
-type CalendarViewMode = 'WEEK' | 'DAY' | 'DRIVERS';
+type CalendarViewMode = 'WEEK' | 'DAY' | 'DRIVERS' | 'MONTH';
 
 const START_HOUR = 6; // 06:00
 const END_HOUR = 21; // 21:00
@@ -75,6 +76,7 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
   onReassignDriver,
   onAddQuickRide,
   onRequestOpenFullModal,
+  onDuplicateMission,
 }) => {
   // Navigation & Mode d'affichage
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
@@ -284,7 +286,9 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
   // Actions de navigation
   const handlePrev = () => {
     const d = new Date(currentDate);
-    if (viewMode === 'WEEK') {
+    if (viewMode === 'MONTH') {
+      d.setMonth(d.getMonth() - 1);
+    } else if (viewMode === 'WEEK') {
       d.setDate(d.getDate() - 7);
     } else {
       d.setDate(d.getDate() - 1);
@@ -294,7 +298,9 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
 
   const handleNext = () => {
     const d = new Date(currentDate);
-    if (viewMode === 'WEEK') {
+    if (viewMode === 'MONTH') {
+      d.setMonth(d.getMonth() + 1);
+    } else if (viewMode === 'WEEK') {
       d.setDate(d.getDate() + 7);
     } else {
       d.setDate(d.getDate() + 1);
@@ -515,7 +521,10 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
   // =========================================================================
   const renderCalendarHeader = () => {
     let titleStr = '';
-    if (viewMode === 'WEEK') {
+    if (viewMode === 'MONTH') {
+      titleStr = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      titleStr = titleStr.charAt(0).toUpperCase() + titleStr.slice(1);
+    } else if (viewMode === 'WEEK') {
       const start = weekDays[0];
       const end = weekDays[6];
       titleStr = `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
@@ -568,9 +577,21 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
             </h2>
           </div>
 
-          {/* Contrôle Segmenté des 3 Vues (Style macOS / iOS) + Bouton Nouvelle course */}
+          {/* Contrôle Segmenté des Vues (Mois / Semaine / Jour / Chauffeurs) + Bouton Nouvelle course */}
           <div className="flex items-center gap-2.5 self-start lg:self-auto flex-wrap">
             <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60">
+              <button
+                type="button"
+                onClick={() => setViewMode('MONTH')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'MONTH'
+                    ? 'bg-white text-slate-950 shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">calendar_month</span>
+                <span>Mois</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setViewMode('WEEK')}
@@ -863,7 +884,22 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
               </span>
             )}
           </span>
-          <span className="font-mono text-[9px] opacity-60">#{mission.reference.slice(-4)}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onDuplicateMission && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicateMission(mission);
+                }}
+                className="opacity-60 hover:opacity-100 hover:text-blue-700 transition-all p-0.5"
+                title="Dupliquer cette course"
+              >
+                <span className="material-symbols-outlined text-[13px]">content_copy</span>
+              </button>
+            )}
+            <span className="font-mono text-[9px] opacity-60">#{mission.reference.slice(-4)}</span>
+          </div>
         </div>
       </div>
     );
@@ -1671,12 +1707,173 @@ export const TransporterPlanningCalendar: React.FC<TransporterPlanningCalendarPr
     );
   };
 
+  // =========================================================================
+  // 5. VUE MENSUELLE (MONTH VIEW)
+  // =========================================================================
+  const renderMonthView = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    let startDayOfWeek = firstDay.getDay();
+    if (startDayOfWeek === 0) startDayOfWeek = 7; // Dimanche = 7
+    const padStart = startDayOfWeek - 1;
+
+    const days: { date: Date; dateKey: string; isCurrentMonth: boolean; isToday: boolean }[] = [];
+    const todayStr = formatDateKey(new Date());
+
+    for (let i = padStart; i > 0; i--) {
+      const d = new Date(year, month, 1 - i);
+      days.push({
+        date: d,
+        dateKey: formatDateKey(d),
+        isCurrentMonth: false,
+        isToday: formatDateKey(d) === todayStr,
+      });
+    }
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const d = new Date(year, month, day);
+      days.push({
+        date: d,
+        dateKey: formatDateKey(d),
+        isCurrentMonth: true,
+        isToday: formatDateKey(d) === todayStr,
+      });
+    }
+
+    const totalCells = Math.ceil(days.length / 7) * 7;
+    const remaining = totalCells - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({
+        date: d,
+        dateKey: formatDateKey(d),
+        isCurrentMonth: false,
+        isToday: formatDateKey(d) === todayStr,
+      });
+    }
+
+    // Regrouper les missions par jour
+    const missionsByDay = new Map<string, Ride[]>();
+    filteredMissions.forEach((m) => {
+      const k = formatDateKey(new Date(m.pickupDateTime));
+      if (!missionsByDay.has(k)) missionsByDay.set(k, []);
+      missionsByDay.get(k)!.push(m);
+    });
+
+    const dayHeaders = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+    return (
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+        {/* Entête des jours de la semaine */}
+        <div className="grid grid-cols-7 border-b border-slate-200/80 bg-slate-50/80 text-center text-xs font-bold text-slate-600 py-3">
+          {dayHeaders.map((dh) => (
+            <div key={dh} className="truncate px-1">
+              <span className="hidden sm:inline">{dh}</span>
+              <span className="sm:hidden">{dh.slice(0, 3)}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Grille des cellules du mois */}
+        <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100 bg-slate-100/40">
+          {days.map((dayItem) => {
+            const dayMissions = missionsByDay.get(dayItem.dateKey) || [];
+            return (
+              <div
+                key={dayItem.dateKey}
+                onClick={() => {
+                  setCurrentDate(dayItem.date);
+                  setViewMode('DAY');
+                }}
+                className={`min-h-[110px] sm:min-h-[130px] p-2 flex flex-col justify-between transition-colors cursor-pointer group hover:bg-blue-50/40 ${
+                  dayItem.isCurrentMonth ? 'bg-white' : 'bg-slate-50/60 text-slate-400'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        dayItem.isToday
+                          ? 'bg-blue-600 text-white font-black shadow-xs'
+                          : dayItem.isCurrentMonth
+                          ? 'text-slate-800'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {dayItem.date.getDate()}
+                    </span>
+
+                    {dayMissions.length > 0 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600">
+                        {dayMissions.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Liste des courses du jour (max 3 pills affichées) */}
+                  <div className="space-y-1">
+                    {dayMissions.slice(0, 3).map((m) => {
+                      const timeStr = m.pickupDateTime
+                        ? new Date(m.pickupDateTime).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '';
+                      const isAmb = m.transportType === 'AMBULANCE';
+                      const isTaxi = m.transportType === 'TAXI_CONVENTIONNE';
+                      const pillBg = isAmb
+                        ? 'bg-amber-100 text-amber-900 border-l-2 border-l-amber-600'
+                        : isTaxi
+                        ? 'bg-emerald-100 text-emerald-900 border-l-2 border-l-emerald-600'
+                        : 'bg-blue-100 text-blue-900 border-l-2 border-l-blue-600';
+
+                      return (
+                        <div
+                          key={m.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectMission(m);
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[10px] truncate font-medium flex items-center justify-between gap-1 shadow-2xs hover:opacity-90 ${pillBg}`}
+                          title={`${timeStr} • ${m.patient.firstName} ${m.patient.lastName}`}
+                        >
+                          <span className="font-bold shrink-0">{timeStr}</span>
+                          <span className="truncate">{m.patient.lastName || 'Patient'}</span>
+                        </div>
+                      );
+                    })}
+
+                    {dayMissions.length > 3 && (
+                      <div className="text-[10px] font-bold text-blue-600 text-center">
+                        +{dayMissions.length - 3} autre{dayMissions.length - 3 > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between text-[10px] text-blue-600 font-bold">
+                  <span>Voir le jour</span>
+                  <span className="material-symbols-outlined text-[12px]">chevron_right</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* 1. Header Google Agenda */}
       {renderCalendarHeader()}
 
       {/* 2. Vue Principale */}
+      {viewMode === 'MONTH' && renderMonthView()}
       {viewMode === 'WEEK' && renderWeekView()}
       {viewMode === 'DAY' && renderDayView()}
       {viewMode === 'DRIVERS' && renderDriversView()}

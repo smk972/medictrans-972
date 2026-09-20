@@ -6,6 +6,7 @@ import { Driver, VehicleFleet } from '../pages/TransporterPortalPage';
 import { Ride, TransportType } from '../types';
 import { rideService } from '../services/rideService';
 import { calculateNationalRoadDistance, calculateMedicalRidePricing } from '../services/pricingService';
+import { transporterFleetService, TransporterClientRecord } from '../services/transporterFleetService';
 
 interface TransporterManualRideModalProps {
   isOpen: boolean;
@@ -14,10 +15,12 @@ interface TransporterManualRideModalProps {
   drivers: Driver[];
   fleet: VehicleFleet[];
   transporterName: string;
+  transporterId?: string;
   defaultCity?: string;
   defaultTerritory?: string;
   initialDateTime?: string;
   initialDriverId?: string;
+  initialRide?: Partial<Ride>;
 }
 
 export const TransporterManualRideModal: React.FC<TransporterManualRideModalProps> = ({
@@ -27,10 +30,12 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
   drivers,
   fleet,
   transporterName,
+  transporterId,
   defaultCity = 'Fort-de-France',
   defaultTerritory = '972',
   initialDateTime,
-  initialDriverId
+  initialDriverId,
+  initialRide,
 }) => {
   // 1. Patient
   const [firstName, setFirstName] = useState('');
@@ -38,6 +43,8 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('1980-01-01');
   const [nir, setNir] = useState('');
+  const [clientDirectory, setClientDirectory] = useState<TransporterClientRecord[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isAld, setIsAld] = useState(true);
 
   // 2. Trajet & Date/Heure
@@ -95,6 +102,59 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
       if (matchVehicle) setSelectedPlate(matchVehicle.plate);
     }
   };
+
+  // Chargement du répertoire de patients de l'entreprise
+  useEffect(() => {
+    if (isOpen && transporterId) {
+      transporterFleetService.getClients(transporterId).then((list) => {
+        setClientDirectory(list);
+      }).catch(() => {});
+    }
+  }, [isOpen, transporterId]);
+
+  // Pré-remplissage en cas de duplication de course
+  useEffect(() => {
+    if (initialRide && isOpen) {
+      if (initialRide.patient?.firstName) setFirstName(initialRide.patient.firstName);
+      if (initialRide.patient?.lastName) setLastName(initialRide.patient.lastName);
+      if (initialRide.patient?.phone) setPhone(initialRide.patient.phone);
+      if (initialRide.patient?.birthDate) setBirthDate(initialRide.patient.birthDate);
+      if (initialRide.patient?.nir) setNir(initialRide.patient.nir);
+      if (initialRide.patient?.isAld !== undefined) setIsAld(initialRide.patient.isAld);
+      if (initialRide.pickupAddress) setPickupAddress(initialRide.pickupAddress);
+      if (initialRide.pickupCity) setPickupCity(initialRide.pickupCity);
+      if (initialRide.dropoffAddress) setDropoffAddress(initialRide.dropoffAddress);
+      if (initialRide.dropoffCity) setDropoffCity(initialRide.dropoffCity);
+      if (initialRide.facilityName) setFacilityName(initialRide.facilityName);
+      if (initialRide.transportType) setTransportType(initialRide.transportType);
+      if (initialRide.mobility?.wheelchair) setWheelchair(true);
+      if (initialRide.mobility?.stretcher) setStretcher(true);
+      if (initialRide.mobility?.oxygen) setOxygen(true);
+      if (initialRide.mobility?.stairsWithoutElevator) setStairsWithoutElevator(true);
+      if (initialRide.mobility?.notes) setInternalNotes(initialRide.mobility.notes);
+    }
+  }, [initialRide, isOpen]);
+
+  const handleSelectPatient = (p: TransporterClientRecord) => {
+    setFirstName(p.firstName || '');
+    setLastName(p.lastName || '');
+    if (p.phone) setPhone(p.phone);
+    if (p.birthDate) setBirthDate(p.birthDate);
+    if (p.nir) setNir(p.nir);
+    if (p.pickupAddress) setPickupAddress(p.pickupAddress);
+    if (p.pickupCity) setPickupCity(p.pickupCity);
+    if (p.dropoffAddress) setDropoffAddress(p.dropoffAddress);
+    if (p.dropoffCity) setDropoffCity(p.dropoffCity);
+    if (p.referringFacility) setFacilityName(p.referringFacility);
+    setShowSuggestions(false);
+  };
+
+  const patientSuggestions = (lastName.trim() || firstName.trim())
+    ? clientDirectory.filter((c) =>
+        c.lastName.toLowerCase().includes(lastName.trim().toLowerCase()) ||
+        c.firstName.toLowerCase().includes(firstName.trim().toLowerCase())
+      )
+    : [];
 
   useEffect(() => {
     if (initialDateTime && isOpen) {
@@ -205,6 +265,23 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
       };
 
       const created = await rideService.createRide(newRidePayload);
+
+      // Enregistrement au répertoire patient de l'entreprise si configuré
+      if (transporterId) {
+        transporterFleetService.saveClient(transporterId, {
+          firstName,
+          lastName,
+          phone,
+          birthDate,
+          nir,
+          pickupAddress,
+          pickupCity,
+          dropoffAddress,
+          dropoffCity,
+          referringFacility: facilityName,
+        }).catch(() => {});
+      }
+
       onSuccess(created);
       onClose();
     } catch (err: any) {
@@ -228,13 +305,17 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
             </span>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black">Saisir une Course Interne / Directe</h2>
+                <h2 className="text-lg sm:text-xl font-black">
+                  {initialRide ? 'Dupliquer une Course' : 'Saisir une Course Interne / Directe'}
+                </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-teal-400/20 text-teal-200 border border-teal-400/30 text-[11px] font-bold">
-                  📞 Client Privé / Téléphonique
+                  {initialRide ? '📋 Copie Récurrente' : '📞 Client Privé / Téléphonique'}
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Enregistrez vos propres courses pour les intégrer directement dans votre planning flotte et l'agenda de vos chauffeurs.
+                {initialRide
+                  ? 'Ajustez la date et l\'horaire pour créer cette nouvelle course dans votre planning.'
+                  : 'Enregistrez vos propres courses pour les intégrer directement dans votre planning flotte et l\'agenda de vos chauffeurs.'}
               </p>
             </div>
           </div>
@@ -259,13 +340,20 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
 
           {/* SECTION 1 : PATIENT */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-on-surface uppercase tracking-wider">
-              <span className="material-symbols-outlined text-primary text-base">person</span>
-              <span>1. Informations du Patient</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-extrabold text-on-surface uppercase tracking-wider">
+                <span className="material-symbols-outlined text-primary text-base">person</span>
+                <span>1. Informations du Patient</span>
+              </div>
+              {clientDirectory.length > 0 && (
+                <span className="text-[11px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-semibold">
+                  📂 {clientDirectory.length} patient{clientDirectory.length > 1 ? 's' : ''} en répertoire
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div>
+              <div className="relative">
                 <label className="block text-[11px] font-bold text-on-surface-variant mb-1">
                   Nom du patient *
                 </label>
@@ -273,10 +361,40 @@ export const TransporterManualRideModal: React.FC<TransporterManualRideModalProp
                   type="text"
                   required
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    setLastName(e.target.value.toUpperCase());
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
                   placeholder="Ex: DUPONT"
                   className="w-full px-3.5 py-2 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs font-bold text-on-surface focus:outline-hidden focus:border-primary"
                 />
+
+                {/* Suggestions du répertoire patient */}
+                {showSuggestions && patientSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 max-h-48 overflow-y-auto divide-y divide-slate-100">
+                    <div className="p-2 bg-slate-50 text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                      Patients existants (cliquer pour préremplir)
+                    </div>
+                    {patientSuggestions.map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => handleSelectPatient(p)}
+                        className="p-2.5 hover:bg-teal-50/60 cursor-pointer flex items-center justify-between text-xs transition-colors"
+                      >
+                        <div>
+                          <div className="font-extrabold text-slate-900">
+                            {p.lastName} {p.firstName}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            {p.pickupCity || 'Ville non définie'} • {p.phone || 'Pas de tél'}
+                          </div>
+                        </div>
+                        <span className="text-[11px] font-bold text-teal-600">Sélectionner ➔</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

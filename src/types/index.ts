@@ -106,6 +106,10 @@ export interface Ride {
   combinedGroupId?: string; // ID unique du groupe de transport partagé (max 3 courses)
   isSharedTransport?: boolean; // Vrai si la course est combinée en transport partagé
   combinedRidesCount?: number; // Nombre de courses combinées dans le circuit (2 ou 3)
+  assignedDriverId?: string; // ID du chauffeur affecté (SaaS gestion)
+  assignedVehiclePlate?: string; // Immatriculation du véhicule affecté (SaaS gestion)
+  clientId?: string; // ID fiche patient / client entreprise
+  exportedAt?: string; // Date d'export facturation
 }
 
 export interface RidePricing {

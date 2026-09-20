@@ -20,7 +20,13 @@ import { reverseGeocode } from '../services/nationalGeoDatabase';
 import { TransporterManualRideModal } from '../components/TransporterManualRideModal';
 import { TransporterPlanningCalendar } from '../components/TransporterPlanningCalendar';
 import { checkRideCompleteness } from '../utils/rideCompleteness';
+import { TransporterDashboardTab } from '../components/TransporterDashboardTab';
+import { TransporterExportModal } from '../components/TransporterExportModal';
+import { TransporterPatientsTab } from '../components/TransporterPatientsTab';
+import { TransporterNotificationCenter } from '../components/TransporterNotificationCenter';
+import { transporterFleetService } from '../services/transporterFleetService';
 
+export type TransporterTab = 'DASHBOARD' | 'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'PATIENTS' | 'HISTORIQUE' | 'ABONNEMENT';
 
 export interface Driver {
   id: string;
@@ -30,6 +36,8 @@ export interface Driver {
   phone: string; // Numéro de mobile direct
   status: 'DISPONIBLE' | 'EN_MISSION' | 'EN_REPOS';
   assignedVehiclePlate?: string;
+  cardExpiryDate?: string;
+  medicalCertificateExpiry?: string;
 }
 
 export interface VehicleFleet {
@@ -40,6 +48,8 @@ export interface VehicleFleet {
   driver: string;
   phone: string;
   status: 'DISPONIBLE' | 'EN_MISSION' | 'EN_PAUSE';
+  technicalInspectionDate?: string;
+  sanitaryApprovalExpiry?: string;
 }
 
 export const FLEET_STORAGE_KEY = 'medictrans_transporter_fleet_v2';
@@ -100,7 +110,7 @@ export const TransporterPortalPage: React.FC = () => {
   // State
   const [rides, setRides] = useState<Ride[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'DISPONIBLES' | 'ACTIVES' | 'PLANNING' | 'FLOTTE' | 'HISTORIQUE' | 'ABONNEMENT'>('DISPONIBLES');
+  const [activeTab, setActiveTab] = useState<TransporterTab>('DASHBOARD');
   const [historySubFilter, setHistorySubFilter] = useState<'ALL' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [historySearch, setHistorySearch] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState<'ALL' | 'AMBULANCE' | 'VSL' | 'TAXI'>('ALL');
@@ -116,6 +126,8 @@ export const TransporterPortalPage: React.FC = () => {
   const [manualRideInitialDriverId, setManualRideInitialDriverId] = useState<string | undefined>(undefined);
   const [planningViewMode, setPlanningViewMode] = useState<'CALENDAR' | 'CHRONO' | 'DISPATCH_DRIVERS'>('CALENDAR');
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('ALL');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [missionToDuplicate, setMissionToDuplicate] = useState<Ride | null>(null);
 
   const [selectedMissionForRecap, setSelectedMissionForRecap] = useState<Ride | null>(null);
   const [missionToAccept, setMissionToAccept] = useState<Ride | null>(null);
@@ -157,18 +169,20 @@ export const TransporterPortalPage: React.FC = () => {
     return DEFAULT_DRIVERS;
   });
 
-  // Sauvegarde automatique Flotte & Chauffeurs dans le stockage local
-  useEffect(() => {
-    try {
-      localStorage.setItem(FLEET_STORAGE_KEY, JSON.stringify(fleet));
-    } catch (e) {}
-  }, [fleet]);
+  // Synchronisation contrôlée et progressive avec Supabase (PostgreSQL)
+  const effectiveTransporterId = user?.transporterId || user?.id || 'transporter-main';
 
   useEffect(() => {
-    try {
-      localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
-    } catch (e) {}
-  }, [drivers]);
+    if (effectiveTransporterId) {
+      transporterFleetService.getDrivers(effectiveTransporterId).then((fetched) => {
+        if (fetched && fetched.length > 0) setDrivers(fetched);
+      }).catch(() => {});
+
+      transporterFleetService.getVehicles(effectiveTransporterId).then((fetched) => {
+        if (fetched && fetched.length > 0) setFleet(fetched);
+      }).catch(() => {});
+    }
+  }, [effectiveTransporterId]);
 
   // Rayon d'action géographique & Cercle d'intervention (distance en km)
   const [actionRadiusKm, setActionRadiusKm] = useState<number>(() => {
@@ -866,7 +880,7 @@ export const TransporterPortalPage: React.FC = () => {
   // ==========================================
   // GESTION DU PARC DE VÉHICULES (CRUD)
   // ==========================================
-  const handleAddVehicle = (e: React.FormEvent) => {
+  const handleAddVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVehName.trim() || !newVehPlate.trim()) {
       setToastMessage({
@@ -891,28 +905,29 @@ export const TransporterPortalPage: React.FC = () => {
     const driverName = assignedDr ? `${assignedDr.firstName} ${assignedDr.lastName} (${assignedDr.role})` : 'Non assigné';
     const driverPhone = assignedDr?.phone || transporterPhone;
 
-    const newVehicle: VehicleFleet = {
-      id: `fl-${Date.now()}`,
+    const newVehiclePayload = {
       name: newVehName.trim(),
       type: newVehType,
       plate: cleanPlate,
       driver: driverName,
       phone: driverPhone,
-      status: 'DISPONIBLE'
+      status: 'DISPONIBLE' as const
     };
 
-    setFleet((prev) => [...prev, newVehicle]);
+    const created = await transporterFleetService.addVehicle(effectiveTransporterId, newVehiclePayload);
+    setFleet((prev) => [...prev, created]);
 
     // Lier le véhicule au chauffeur sélectionné
     if (assignedDr) {
       setDrivers((prev) =>
         prev.map((d) => (d.id === assignedDr.id ? { ...d, assignedVehiclePlate: cleanPlate } : d))
       );
+      transporterFleetService.updateDriver(assignedDr.id, { assignedVehiclePlate: cleanPlate }).catch(() => {});
     }
 
     setToastMessage({
       title: 'Véhicule ajouté avec succès',
-      desc: `${newVehicle.name} (${newVehicle.plate}) a été intégré à votre flotte opérationnelle.`,
+      desc: `${created.name} (${created.plate}) a été intégré à votre flotte opérationnelle.`,
       type: 'success'
     });
 
@@ -925,6 +940,7 @@ export const TransporterPortalPage: React.FC = () => {
   const confirmDeleteVehicle = () => {
     if (!vehicleToDelete) return;
     const plate = vehicleToDelete.plate;
+    transporterFleetService.deleteVehicle(vehicleToDelete.id).catch(() => {});
 
     setFleet((prev) => prev.filter((v) => v.id !== vehicleToDelete.id));
 
@@ -943,10 +959,14 @@ export const TransporterPortalPage: React.FC = () => {
   };
 
   const toggleVehiclePause = (vehId: string) => {
+    const targetVeh = fleet.find((v) => v.id === vehId);
+    const newStatus = targetVeh?.status === 'DISPONIBLE' ? 'EN_PAUSE' : 'DISPONIBLE';
+    transporterFleetService.updateVehicle(vehId, { status: newStatus }).catch(() => {});
+
     setFleet((prev) =>
       prev.map((v) =>
         v.id === vehId
-          ? { ...v, status: v.status === 'DISPONIBLE' ? 'EN_PAUSE' : 'DISPONIBLE' }
+          ? { ...v, status: newStatus }
           : v
       )
     );
@@ -955,7 +975,7 @@ export const TransporterPortalPage: React.FC = () => {
   // ==========================================
   // GESTION DES CHAUFFEURS & MOBILES (CRUD)
   // ==========================================
-  const handleAddDriver = (e: React.FormEvent) => {
+  const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDriverFirstName.trim() || !newDriverLastName.trim() || !newDriverPhone.trim()) {
       setToastMessage({
@@ -967,17 +987,17 @@ export const TransporterPortalPage: React.FC = () => {
     }
 
     const cleanPhone = newDriverPhone.trim();
-    const newDr: Driver = {
-      id: `dr-${Date.now()}`,
+    const newDrPayload = {
       firstName: newDriverFirstName.trim(),
       lastName: newDriverLastName.trim(),
       role: newDriverRole,
       phone: cleanPhone,
-      status: 'DISPONIBLE',
+      status: 'DISPONIBLE' as const,
       assignedVehiclePlate: newDriverPlate || undefined
     };
 
-    setDrivers((prev) => [...prev, newDr]);
+    const created = await transporterFleetService.addDriver(effectiveTransporterId, newDrPayload);
+    setDrivers((prev) => [...prev, created]);
 
     // Si un véhicule est assigné immédiatement, synchroniser le véhicule
     if (newDriverPlate) {
@@ -986,17 +1006,24 @@ export const TransporterPortalPage: React.FC = () => {
           v.plate === newDriverPlate
             ? {
                 ...v,
-                driver: `${newDr.firstName} ${newDr.lastName} (${newDr.role})`,
+                driver: `${created.firstName} ${created.lastName} (${created.role})`,
                 phone: cleanPhone
               }
             : v
         )
       );
+      const matchedVeh = fleet.find((v) => v.plate === newDriverPlate);
+      if (matchedVeh) {
+        transporterFleetService.updateVehicle(matchedVeh.id, {
+          driver: `${created.firstName} ${created.lastName} (${created.role})`,
+          phone: cleanPhone
+        }).catch(() => {});
+      }
     }
 
     setToastMessage({
       title: 'Chauffeur enregistré',
-      desc: `${newDr.firstName} ${newDr.lastName} a été ajouté avec son mobile direct (${cleanPhone}).`,
+      desc: `${created.firstName} ${created.lastName} a été ajouté avec son mobile direct (${cleanPhone}).`,
       type: 'success'
     });
 
@@ -1034,6 +1061,15 @@ export const TransporterPortalPage: React.FC = () => {
       return;
     }
 
+    transporterFleetService.updateDriver(driverToEdit.id, {
+      firstName: updatedFirstName,
+      lastName: updatedLastName,
+      role: editDriverRole,
+      phone: updatedPhone,
+      assignedVehiclePlate: editDriverPlate || undefined,
+      status: editDriverStatus
+    }).catch(() => {});
+
     setDrivers((prev) =>
       prev.map((d) =>
         d.id === driverToEdit.id
@@ -1043,8 +1079,8 @@ export const TransporterPortalPage: React.FC = () => {
               lastName: updatedLastName,
               role: editDriverRole,
               phone: updatedPhone,
-              status: editDriverStatus,
-              assignedVehiclePlate: editDriverPlate || undefined
+              assignedVehiclePlate: editDriverPlate || undefined,
+              status: editDriverStatus
             }
           : d
       )
@@ -1078,6 +1114,7 @@ export const TransporterPortalPage: React.FC = () => {
 
   const confirmDeleteDriver = () => {
     if (!driverToDelete) return;
+    transporterFleetService.deleteDriver(driverToDelete.id).catch(() => {});
 
     setDrivers((prev) => prev.filter((d) => d.id !== driverToDelete.id));
 
@@ -1674,6 +1711,22 @@ export const TransporterPortalPage: React.FC = () => {
         <nav className="flex-1 px-3 py-2 flex flex-col gap-1 text-xs">
           <button
             type="button"
+            onClick={() => setActiveTab('DASHBOARD')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
+              activeTab === 'DASHBOARD'
+                ? 'bg-gradient-to-r from-teal-600 to-sky-600 text-white font-bold shadow-lg shadow-teal-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-lg">dashboard</span>
+              <span>Tableau de bord</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('DISPONIBLES')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'DISPONIBLES'
@@ -1762,6 +1815,21 @@ export const TransporterPortalPage: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('PATIENTS')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
+              activeTab === 'PATIENTS'
+                ? 'bg-gradient-to-r from-teal-600 to-sky-600 text-white font-bold shadow-lg shadow-teal-950/40 ring-1 ring-white/20'
+                : 'text-teal-100/75 hover:bg-white/10 hover:text-white font-medium'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-lg">folder_shared</span>
+              <span>Patients &amp; Usagers</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('HISTORIQUE')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
               activeTab === 'HISTORIQUE'
@@ -1799,6 +1867,18 @@ export const TransporterPortalPage: React.FC = () => {
               {user?.subscription?.status === 'TRIAL' ? `${user.subscription.trialDaysRemaining ?? 30}j` : 'Pro'}
             </span>
           </button>
+
+          {/* Bouton Exporter pour Facturation */}
+          <div className="pt-2 mt-2 border-t border-teal-800/30">
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 font-bold text-xs transition-all shadow-xs"
+            >
+              <span className="material-symbols-outlined text-base">file_download</span>
+              <span>Exporter pour facturation</span>
+            </button>
+          </div>
         </nav>
 
         {/* Liens Retour Site & Déconnexion */}
@@ -1863,6 +1943,14 @@ export const TransporterPortalPage: React.FC = () => {
               <span className="hidden sm:inline">Synchroniser</span>
             </button>
 
+            {/* Centre de Notifications & Alertes Opérationnelles (Chapitre 8) */}
+            <TransporterNotificationCenter
+              rides={rides}
+              drivers={drivers}
+              fleet={fleet}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+
             <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
             <Link
@@ -1901,12 +1989,22 @@ export const TransporterPortalPage: React.FC = () => {
         <div className="md:hidden flex border-b border-slate-200/80 bg-white px-2 py-1.5 overflow-x-auto text-xs font-medium gap-1">
           <button
             type="button"
+            onClick={() => setActiveTab('DASHBOARD')}
+            className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'DASHBOARD' ? 'bg-slate-900 text-white font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">dashboard</span>
+            <span>Tableau de bord</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('DISPONIBLES')}
             className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 ${
               activeTab === 'DISPONIBLES' ? 'bg-slate-900 text-white font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <span>Courses disponibles ({availableMissions.length})</span>
+            <span>Disponibles ({availableMissions.length})</span>
             {pendingDirectRequestsCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse flex items-center gap-0.5">
                 <span className="material-symbols-outlined text-[11px] leading-none">bolt</span>
@@ -1940,6 +2038,15 @@ export const TransporterPortalPage: React.FC = () => {
             }`}
           >
             Flotte ({fleet.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('PATIENTS')}
+            className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all ${
+              activeTab === 'PATIENTS' ? 'bg-slate-900 text-white font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            Patients
           </button>
           <button
             type="button"
@@ -2108,6 +2215,26 @@ export const TransporterPortalPage: React.FC = () => {
               </div>
             </button>
           </div>
+
+          {/* ========================================================================= */}
+          {/* TAB 0 : TABLEAU DE BORD EXÉCUTIF DU RESPONSABLE (CHAPITRE 1)               */}
+          {/* ========================================================================= */}
+          {activeTab === 'DASHBOARD' && (
+            <TransporterDashboardTab
+              rides={rides}
+              drivers={drivers}
+              fleet={fleet}
+              transporterName={transporterName}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onOpenNewRideModal={() => {
+                setMissionToDuplicate(null);
+                setIsManualRideModalOpen(true);
+              }}
+              onOpenAddVehicleModal={() => setIsAddVehicleOpen(true)}
+              onOpenAddDriverModal={() => setIsAddDriverOpen(true)}
+              onSelectRide={(r) => setSelectedMissionForDetails(r)}
+            />
+          )}
 
           {/* ========================================================================= */}
           {/* TAB 1 : COURSES DISPONIBLES                                               */}
@@ -3508,6 +3635,10 @@ export const TransporterPortalPage: React.FC = () => {
                         type: 'success'
                       });
                     }}
+                    onDuplicateMission={(mission) => {
+                      setMissionToDuplicate(mission);
+                      setIsManualRideModalOpen(true);
+                    }}
                     onRequestOpenFullModal={(dateTimeISO, driverId) => {
                       setManualRideInitialDateTime(dateTimeISO);
                       setManualRideInitialDriverId(driverId);
@@ -4419,6 +4550,35 @@ export const TransporterPortalPage: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
+          {/* TAB 4.5 : RÉPERTOIRE PATIENTS & USAGERS (CHAPITRE 3)                      */}
+          {/* ========================================================================= */}
+          {activeTab === 'PATIENTS' && (
+            <TransporterPatientsTab
+              transporterId={effectiveTransporterId}
+              rides={rides}
+              onBookRideForPatient={(patient) => {
+                setMissionToDuplicate({
+                  patient: {
+                    firstName: patient.firstName || '',
+                    lastName: patient.lastName || '',
+                    phone: patient.phone || '',
+                    birthDate: patient.birthDate || '1980-01-01',
+                    nir: patient.nir || '',
+                    address: patient.pickupAddress || '',
+                    city: patient.pickupCity || '',
+                  },
+                  pickupAddress: patient.pickupAddress || '',
+                  pickupCity: patient.pickupCity || '',
+                  dropoffAddress: patient.dropoffAddress || '',
+                  dropoffCity: patient.dropoffCity || '',
+                  facilityName: patient.referringFacility || '',
+                } as any);
+                setIsManualRideModalOpen(true);
+              }}
+            />
+          )}
+
+          {/* ========================================================================= */}
           {/* VUE 4 : HISTORIQUE COMPLET DES COURSES & ARCHIVES (INCLUANT ANNULÉES)     */}
           {/* ========================================================================= */}
           {activeTab === 'HISTORIQUE' && (
@@ -4438,7 +4598,16 @@ export const TransporterPortalPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsExportModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-bold transition-all shadow-xs"
+                    title="Exporter avec sélection de dates pour logiciel de facturation"
+                  >
+                    <span className="material-symbols-outlined text-base">receipt_long</span>
+                    <span>Export Facturation</span>
+                  </button>
                   <button
                     type="button"
                     onClick={handleExportExcel}
@@ -6670,7 +6839,10 @@ export const TransporterPortalPage: React.FC = () => {
           setIsManualRideModalOpen(false);
           setManualRideInitialDateTime(undefined);
           setManualRideInitialDriverId(undefined);
+          setMissionToDuplicate(null);
         }}
+        transporterId={effectiveTransporterId}
+        initialRide={missionToDuplicate || undefined}
         onSuccess={(newRide) => {
           setRides((prev) => {
             const filtered = prev.filter((r) => r.reference !== newRide.reference);
@@ -6678,6 +6850,7 @@ export const TransporterPortalPage: React.FC = () => {
           });
           setManualRideInitialDateTime(undefined);
           setManualRideInitialDriverId(undefined);
+          setMissionToDuplicate(null);
           // Réinitialisation immédiate des filtres pour affichage sans friction
           setPlanningHorizon('ALL');
           setSelectedPlanningDate(null);
@@ -6698,6 +6871,18 @@ export const TransporterPortalPage: React.FC = () => {
         defaultTerritory={baseTerritory}
         initialDateTime={manualRideInitialDateTime}
         initialDriverId={manualRideInitialDriverId}
+      />
+
+      {/* ========================================================================= */}
+      {/* MODAL D'EXPORT DES COURSES ET FACTURATION (CHAPITRE 7)                     */}
+      {/* ========================================================================= */}
+      <TransporterExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        rides={rides}
+        drivers={drivers}
+        fleet={fleet}
+        transporterName={transporterName}
       />
 
       {/* ========================================================================= */}
