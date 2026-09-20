@@ -429,7 +429,7 @@ export const HomePageDemo: React.FC = () => {
                         <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                           <div className="flex items-center gap-2">
                             <img 
-                              src="/assets/logo-clinigo-patient.jpg" 
+                              src="/assets/clinigo-icon.png" 
                               alt="Clinigo Patient" 
                               className="w-8 h-8 rounded-xl object-cover shadow-xs border border-white/20" 
                             />
@@ -625,7 +625,7 @@ export const HomePageDemo: React.FC = () => {
                         <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                           <div className="flex items-center gap-2">
                             <img 
-                              src="/assets/logo-clinigo-ambulance.jpg" 
+                              src="/assets/clinigo-icon.png" 
                               alt="Clinigo Ambulance" 
                               className="w-8 h-8 rounded-xl object-cover shadow-xs border border-white/20" 
                             />

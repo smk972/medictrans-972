@@ -1,7 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" className="w-full h-full">
-  <rect width="48" height="48" rx="12" fill="#004479"/>
-  <!-- Cross -->
-  <path d="M24 10V38M10 24H38" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
-  <!-- Turquoise dynamism wave -->
-  <path d="M12 32C18 29 24 37 36 30" stroke="#006A61" stroke-width="3.5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <image href="/assets/clinigo-icon.png" width="512" height="512" />
 </svg>

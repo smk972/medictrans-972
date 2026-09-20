@@ -20,30 +20,44 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   badgeAlwaysVisible = false,
   dark = false,
 }) => {
-  // Mode compact / icône
-  if (variant === 'compact' || variant === 'icon-only') {
+  const logoSrc = dark ? '/assets/clinigo-logo-white.png' : '/assets/clinigo-logo.png';
+
+  // Mode icône seule
+  if (variant === 'icon-only') {
     return (
       <Link to={to} className={`flex items-center group shrink-0 ${className}`} title="clinigo.fr">
         <img
-          src="/assets/clinigo-logo.png"
+          src="/assets/clinigo-icon.png"
           alt="Clinigo"
-          className="h-8 sm:h-9 w-auto max-w-[120px] object-contain shrink-0 group-hover:scale-105 transition-transform"
+          className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-xl shrink-0 group-hover:scale-105 transition-transform shadow-xs"
         />
       </Link>
     );
   }
 
-  // Logo officiel authentique clinigo.fr (croix médicale avec route + texte + sous-titre)
-  // Parfaitement proportionné pour le header sans aucune modification graphique
+  // Mode compact (barre mobile / en-têtes réduits)
+  if (variant === 'compact') {
+    return (
+      <Link to={to} className={`flex items-center group shrink-0 ${className}`} title="clinigo.fr">
+        <img
+          src={logoSrc}
+          alt="Clinigo"
+          className="h-8 sm:h-9 w-auto max-w-[140px] object-contain shrink-0 group-hover:scale-105 transition-transform"
+        />
+      </Link>
+    );
+  }
+
+  // Logo officiel complet clinigo.fr
   return (
     <div className={`flex items-center shrink-0 ${className}`}>
       <Link
         to={to}
-        className="flex items-center gap-2 group shrink-0"
+        className="flex items-center gap-2.5 group shrink-0"
         title="clinigo.fr - Transport Médical & Services"
       >
         <img
-          src="/assets/clinigo-logo.png"
+          src={logoSrc}
           alt="clinigo.fr - Transport Médical & Services"
           className="h-10 sm:h-11 md:h-12 w-auto max-h-[48px] object-contain shrink-0 group-hover:opacity-95 transition-opacity"
         />
