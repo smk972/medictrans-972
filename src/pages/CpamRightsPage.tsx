@@ -91,8 +91,8 @@ export const CpamRightsPage: React.FC = () => {
 
   const territoryInfo = {
     national: {
-      name: 'France Métropolitaine & Réseau National',
-      desc: 'Couverture intégrale des 96 départements métropolitains et des 5 départements d\'outre-mer. Conventionnement avec toutes les CPAM de France (Assurance Maladie).',
+      name: 'Hexagone & Réseau National',
+      desc: 'Couverture intégrale des 96 départements de l\'Hexagone et des départements d\'outre-mer. Conventionnement avec toutes les CPAM de France (Assurance Maladie).',
       hubs: [
         'Réseau AP-HP (Paris & Île-de-France) : Pitié-Salpêtrière, Necker, Georges-Pompidou, Saint-Louis, Bicêtre',
         'Grands CHU Régionaux : Hospices Civils de Lyon (HCL), CHU Bordeaux, Marseille (AP-HM), Lille, Toulouse, Nantes',
@@ -188,7 +188,7 @@ export const CpamRightsPage: React.FC = () => {
               name: 'Quels établissements et territoires sont couverts par Clinigo en France ?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Clinigo couvre l\'ensemble du territoire national français (France métropolitaine et départements d\'outre-mer : Martinique, Guadeloupe, Guyane, La Réunion). Le réseau dessert l\'ensemble des Centres Hospitaliers Universitaires (CHU), hôpitaux publics, cliniques conventionnées, centres d\'hémodialyse et instituts de cancérologie.'
+                text: 'Clinigo couvre l\'ensemble du territoire national français (Hexagone et départements d\'outre-mer : Martinique, Guadeloupe, Guyane, La Réunion). Le réseau dessert l\'ensemble des Centres Hospitaliers Universitaires (CHU), hôpitaux publics, cliniques conventionnées, centres d\'hémodialyse et instituts de cancérologie.'
               }
             },
             {
@@ -229,7 +229,7 @@ export const CpamRightsPage: React.FC = () => {
 
                   <p className="text-slate-600 max-w-2xl text-base leading-relaxed">
                     Coordination et régulation médicale de vos transports conventionnés en <strong>Taxi conventionné CPAM</strong>, <strong>VSL</strong> et <strong>Ambulance</strong>. 
-                    Bénéficiez du <strong>tiers-payant direct sans avance de frais</strong> avec votre Prescription Médicale de Transport (PMT), en liaison avec tous les hôpitaux, cliniques et centres de dialyse en France métropolitaine et Outre-mer.
+                    Bénéficiez du <strong>tiers-payant direct sans avance de frais</strong> avec votre Prescription Médicale de Transport (PMT), en liaison avec tous les hôpitaux, cliniques et centres de dialyse dans l'Hexagone et en Outre-mer.
                   </p>
 
                   <div className="flex flex-wrap items-center gap-space-md pt-space-xs">
@@ -255,7 +255,7 @@ export const CpamRightsPage: React.FC = () => {
                         101 Dép.
                       </span>
                       <span className="text-[11px] text-slate-500 mt-0.5 font-medium">
-                        France Métropole &amp; DROM
+                        Hexagone &amp; DROM
                       </span>
                     </div>
                     <div className="flex flex-col p-3.5 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200/80">
@@ -322,10 +322,6 @@ export const CpamRightsPage: React.FC = () => {
                   <p className="text-slate-600 text-sm mt-1 max-w-2xl">
                     Sélectionnez votre situation médicale pour connaître immédiatement votre taux de remboursement, les pièces requises et confirmer l'absence d'avance de frais.
                   </p>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold shrink-0 self-start md:self-auto">
-                  <span className="material-symbols-outlined text-base text-teal-600">verified</span>
-                  <span>Code de la Sécurité Sociale (Art. R. 322-10)</span>
                 </div>
               </div>
 
@@ -665,7 +661,7 @@ export const CpamRightsPage: React.FC = () => {
                     Réseau Hospitalier &amp; Territoires Desservis
                   </span>
                   <h2 className="font-headline-lg text-headline-lg text-on-surface font-bold text-2xl md:text-3xl">
-                    Maillage sanitaire national : Métropole &amp; Outre-Mer
+                    Maillage sanitaire national : Hexagone &amp; Outre-Mer
                   </h2>
                   <p className="font-body-md text-body-md text-on-surface-variant text-sm">
                     Clinigo connecte les patients aux flottes sanitaires conventionnées à l'échelle nationale, en partenariat avec les Groupements Hospitaliers de Territoire (GHT) et les caisses d'Assurance Maladie.
@@ -674,7 +670,7 @@ export const CpamRightsPage: React.FC = () => {
                   {/* Sélecteur de territoire */}
                   <div className="flex flex-wrap gap-1.5 pt-2">
                     {[
-                      { id: 'national', label: 'France Métropole' },
+                      { id: 'national', label: 'Hexagone' },
                       { id: '972', label: 'Martinique' },
                       { id: '971', label: 'Guadeloupe' },
                       { id: '973', label: 'Guyane' },
@@ -727,6 +723,7 @@ export const CpamRightsPage: React.FC = () => {
                   <div className="w-full h-96 rounded-2xl shadow-lg overflow-hidden relative border border-outline-variant/30">
                     <GoogleMapView 
                       mode="fleet" 
+                      territory={selectedTerritory}
                       destination={territoryInfo[selectedTerritory].mapCenter}
                       height="100%" 
                     />

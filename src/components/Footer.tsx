@@ -19,7 +19,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="flex flex-col gap-0.5 text-xs text-slate-500 mt-1">
               <span>Coordination Sanitaire Nationale</span>
-              <span>France Métropolitaine &amp; Départements d'Outre-Mer</span>
+              <span>Hexagone &amp; Départements d'Outre-Mer</span>
             </div>
           </div>
 

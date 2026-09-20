@@ -14,6 +14,7 @@ export interface GoogleMapViewProps {
   origin?: string;
   destination?: string;
   facilityName?: string;
+  territory?: string;
   height?: string;
   className?: string;
   interactive?: boolean;
@@ -26,11 +27,47 @@ export interface GoogleMapViewProps {
   onRouteComputed?: (distKm: number, durMin: number) => void;
 }
 
+const HEXAGONE_HUBS = [
+  { lat: 48.8392, lng: 2.3653, name: 'AP-HP Pitié-Salpêtrière (Paris)' },
+  { lat: 48.8395, lng: 2.2741, name: 'AP-HP Georges-Pompidou (Paris)' },
+  { lat: 45.7441, lng: 4.8814, name: 'HCL Édouard Herriot (Lyon)' },
+  { lat: 43.2891, lng: 5.4025, name: 'AP-HM La Timone (Marseille)' },
+  { lat: 44.8306, lng: -0.6033, name: 'CHU de Bordeaux (Pellegrin)' },
+  { lat: 43.6089, lng: 1.4014, name: 'CHU de Toulouse (Purpan)' },
+  { lat: 50.6105, lng: 3.0336, name: 'CHU de Lille (Huriez)' },
+  { lat: 47.2119, lng: -1.5528, name: 'CHU de Nantes (Hôtel-Dieu)' },
+  { lat: 48.5917, lng: 7.7028, name: 'CHU de Strasbourg (Hautepierre)' },
+  { lat: 43.6318, lng: 3.8587, name: 'CHU de Montpellier (Lapeyronie)' },
+  { lat: 48.1219, lng: -1.6961, name: 'CHU de Rennes (Pontchaillou)' },
+  { lat: 43.7258, lng: 7.2831, name: 'CHU de Nice (Pasteur)' },
+  { lat: 49.4402, lng: 1.1091, name: 'CHU de Rouen (Charles-Nicolle)' },
+  { lat: 47.3216, lng: 5.0683, name: 'CHU de Dijon (Bourgogne)' },
+];
+
+const GUADELOUPE_HUBS = [
+  { lat: 16.2650, lng: -61.5160, name: 'CHU de Guadeloupe (Les Abymes)' },
+  { lat: 15.9960, lng: -61.7300, name: 'Centre Hospitalier de Basse-Terre' },
+  { lat: 16.2160, lng: -61.5830, name: 'Clinique des Eaux Claires' },
+];
+
+const GUYANE_HUBS = [
+  { lat: 4.9372, lng: -52.3260, name: 'Centre Hospitalier de Cayenne (CHAR)' },
+  { lat: 5.1580, lng: -52.6480, name: 'Centre Hospitalier de Kourou' },
+  { lat: 5.5010, lng: -54.0290, name: 'CH de l\'Ouest Guyanais' },
+];
+
+const REUNION_HUBS = [
+  { lat: -20.8980, lng: 55.4590, name: 'CHU Félix Guyon (Saint-Denis)' },
+  { lat: -21.3390, lng: 55.4780, name: 'CHU Sud Réunion (Saint-Pierre)' },
+  { lat: -20.9990, lng: 55.2950, name: 'CH Ouest Réunion' },
+];
+
 export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
   mode = 'fleet',
   origin = 'Fort-de-France',
   destination = 'CHU Pierre Zobda-Quitman, Fort-de-France',
   facilityName,
+  territory,
   height = '320px',
   className = '',
   interactive = true,
@@ -51,9 +88,28 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Détection et priorité de territoire
+  const activeTerritory = useMemo(() => {
+    if (territory) {
+      const t = territory.toUpperCase();
+      if (t === 'NATIONAL' || t === 'METROPOLE' || t === 'HEXAGONE') return 'METROPOLE';
+      if (t === '972' || t === 'MARTINIQUE') return 'MARTINIQUE';
+      if (t === '971' || t === 'GUADELOUPE') return 'GUADELOUPE';
+      if (t === '973' || t === 'GUYANE') return 'GUYANE';
+      if (t === '974' || t === 'REUNION') return 'REUNION';
+    }
+    const destLower = (destination || '').toLowerCase();
+    const origLower = (origin || '').toLowerCase();
+    if (destLower.includes('paris') || destLower.includes('france') || destLower.includes('hexagone') || origLower.includes('paris') || origLower.includes('france') || origLower.includes('hexagone')) {
+      return 'METROPOLE';
+    }
+    const terr = detectTerritoryFromAddress(origin) || detectTerritoryFromAddress(destination);
+    return terr;
+  }, [territory, origin, destination]);
+
   // Calcul des coordonnées GPS réelles et distance routière officielle
   const routeData = useMemo(() => {
-    const terr = detectTerritoryFromAddress(origin) || detectTerritoryFromAddress(destination);
+    const terr = activeTerritory;
     const originCoords = resolveCoordinates(origin, terr);
     const destCoords = resolveCoordinates(destination, terr);
     const roadCalc = calculateNationalRoadDistance(origin, destination, terr);
@@ -64,19 +120,15 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
       distanceKm: roadCalc.distanceKm,
       durationMinutes: roadCalc.durationMinutes,
     };
-  }, [origin, destination]);
+  }, [origin, destination, activeTerritory]);
 
   const mapTerritoryBadge = useMemo(() => {
-    const terr = detectTerritoryFromAddress(origin) || detectTerritoryFromAddress(destination);
-    if (terr === 'GUADELOUPE') return '971 GP';
-    if (terr === 'GUYANE') return '973 GF';
-    if (terr === 'REUNION') return '974 RE';
-    if (terr === 'METROPOLE') {
-      const deptMatch = (origin + ' ' + destination).match(/\b(0[1-9]|[1-8]\d|9[0-5]|2[abAB])\d{3}\b/);
-      return deptMatch ? `${deptMatch[1]} FR` : 'France FR';
-    }
+    if (activeTerritory === 'GUADELOUPE') return '971 GP';
+    if (activeTerritory === 'GUYANE') return '973 GF';
+    if (activeTerritory === 'REUNION') return '974 RE';
+    if (activeTerritory === 'METROPOLE') return 'Hexagone FR';
     return '972 MQ';
-  }, [origin, destination]);
+  }, [activeTerritory]);
 
   useEffect(() => {
     if (onRouteComputed) {
@@ -103,10 +155,27 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
         const googleMaps = await getGoogleMapsApi();
         if (!isMounted || !mapContainerRef.current) return;
 
-        let center = { lat: 14.6415, lng: -61.0242 }; // Centre Martinique
-        let zoom = 11;
+        let center = { lat: 46.603354, lng: 2.213749 }; // Centre Hexagone (France) par défaut
+        let zoom = 6;
 
-        if (mode === 'route') {
+        if (mode === 'fleet') {
+          if (activeTerritory === 'METROPOLE') {
+            center = { lat: 46.603354, lng: 2.213749 };
+            zoom = 6;
+          } else if (activeTerritory === 'GUADELOUPE') {
+            center = { lat: 16.2650, lng: -61.5510 };
+            zoom = 11;
+          } else if (activeTerritory === 'GUYANE') {
+            center = { lat: 4.9372, lng: -52.3260 };
+            zoom = 9;
+          } else if (activeTerritory === 'REUNION') {
+            center = { lat: -21.1151, lng: 55.5364 };
+            zoom = 10;
+          } else {
+            center = { lat: 14.6415, lng: -61.0242 };
+            zoom = 11;
+          }
+        } else if (mode === 'route') {
           center = {
             lat: (routeData.originCoords.lat + routeData.destCoords.lat) / 2,
             lng: (routeData.originCoords.lng + routeData.destCoords.lng) / 2,
@@ -116,7 +185,7 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
           center = routeData.destCoords;
           zoom = 13;
         } else if (mode === 'facility' && facilityName) {
-          const fCoords = resolveCoordinates(facilityName);
+          const fCoords = resolveCoordinates(facilityName, activeTerritory);
           center = { lat: fCoords.lat, lng: fCoords.lng };
           zoom = 14;
         }
@@ -199,8 +268,21 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
           routePath.setMap(map);
           polylineRef.current = routePath;
         } else if (mode === 'fleet') {
-          // Marqueurs Hôpitaux
-          Object.values(HEALTHCARE_FACILITY_COORDINATES).forEach((f) => {
+          // Marqueurs Hôpitaux selon le territoire actif
+          let facilitiesToPlot: Array<{ lat: number; lng: number; name: string }> = [];
+          if (activeTerritory === 'METROPOLE') {
+            facilitiesToPlot = HEXAGONE_HUBS;
+          } else if (activeTerritory === 'GUADELOUPE') {
+            facilitiesToPlot = GUADELOUPE_HUBS;
+          } else if (activeTerritory === 'GUYANE') {
+            facilitiesToPlot = GUYANE_HUBS;
+          } else if (activeTerritory === 'REUNION') {
+            facilitiesToPlot = REUNION_HUBS;
+          } else {
+            facilitiesToPlot = Object.values(HEALTHCARE_FACILITY_COORDINATES);
+          }
+
+          facilitiesToPlot.forEach((f) => {
             const hMarker = new googleMaps.Marker({
               map,
               position: { lat: f.lat, lng: f.lng },
@@ -266,7 +348,7 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [mode, origin, destination, facilityName, routeData, showControls, interactive, driverLat, driverLng, driverName]);
+  }, [mode, origin, destination, facilityName, territory, activeTerritory, routeData, showControls, interactive, driverLat, driverLng, driverName]);
 
   return (
     <div
