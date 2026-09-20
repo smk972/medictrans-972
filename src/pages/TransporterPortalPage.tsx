@@ -1824,7 +1824,7 @@ export const TransporterPortalPage: React.FC = () => {
           >
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-lg">folder_shared</span>
-              <span>Patients &amp; Usagers</span>
+              <span>Répertoire Clients</span>
             </div>
           </button>
 
@@ -1924,7 +1924,7 @@ export const TransporterPortalPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsManualRideModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-primary hover:from-teal-700 hover:to-primary/90 text-white text-xs font-bold shadow-xs hover:shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
               title="Saisir manuellement une course directe reçue de votre côté (client privé ou appel téléphonique)"
             >
               <span className="material-symbols-outlined text-base">add_circle</span>
@@ -2046,7 +2046,7 @@ export const TransporterPortalPage: React.FC = () => {
               activeTab === 'PATIENTS' ? 'bg-slate-900 text-white font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            Patients
+            Répertoire
           </button>
           <button
             type="button"

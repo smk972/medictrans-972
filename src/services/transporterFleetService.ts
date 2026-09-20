@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Driver, VehicleFleet, FLEET_STORAGE_KEY, DRIVERS_STORAGE_KEY, DEFAULT_DRIVERS, DEFAULT_FLEET } from '../pages/TransporterPortalPage';
-import { TransportType } from '../types';
+import { TransportType, Ride } from '../types';
 
 export interface TransporterClientRecord {
   id: string;
@@ -529,5 +529,100 @@ export const transporterFleetService = {
         console.error('[transporterFleetService] archiveClient error:', err);
       }
     }
+  },
+
+  async syncClientsFromRides(transporterId: string, rides: Ride[]): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase || !rides || rides.length === 0) return;
+    try {
+      const uniquePatients = new Map<string, {
+        firstName: string;
+        lastName: string;
+        phone?: string;
+        pickupAddress?: string;
+        pickupCity?: string;
+        dropoffAddress?: string;
+        dropoffCity?: string;
+        mobilityNeeds?: string;
+        notes?: string;
+      }>();
+
+      for (const r of rides) {
+        if (!r.patient?.lastName || !r.patient?.firstName) continue;
+        const key = `${r.patient.lastName.trim().toLowerCase()}_${r.patient.firstName.trim().toLowerCase()}`;
+        if (!uniquePatients.has(key)) {
+          uniquePatients.set(key, {
+            lastName: r.patient.lastName.trim().toUpperCase(),
+            firstName: r.patient.firstName.trim(),
+            phone: r.patient.phone || undefined,
+            pickupAddress: r.pickupAddress || r.patient.address || undefined,
+            pickupCity: r.pickupCity || r.patient.city || undefined,
+            dropoffAddress: r.dropoffAddress || undefined,
+            dropoffCity: r.dropoffCity || undefined,
+            mobilityNeeds: r.transportType === 'AMBULANCE' ? 'Allongé (brancard)' : r.transportType === 'VSL' ? 'Assis' : undefined,
+            notes: r.additionalNotes || r.mobility?.notes || undefined,
+          });
+        }
+      }
+
+      if (uniquePatients.size === 0) return;
+
+      const { data: existingClients } = await supabase
+        .from('transporter_clients')
+        .select('last_name, first_name')
+        .eq('transporter_id', transporterId);
+
+      const existingKeys = new Set(
+        (existingClients || []).map((c: any) => `${(c.last_name || '').trim().toLowerCase()}_${(c.first_name || '').trim().toLowerCase()}`)
+      );
+
+      const toInsert: any[] = [];
+      for (const [key, p] of uniquePatients.entries()) {
+        if (!existingKeys.has(key)) {
+          toInsert.push({
+            transporter_id: transporterId,
+            last_name: p.lastName,
+            first_name: p.firstName,
+            phone: p.phone || null,
+            pickup_address: p.pickupAddress || null,
+            pickup_city: p.pickupCity || null,
+            dropoff_address: p.dropoffAddress || null,
+            dropoff_city: p.dropoffCity || null,
+            mobility_needs: p.mobilityNeeds || null,
+            notes: p.notes || null,
+          });
+        }
+      }
+
+      if (toInsert.length > 0) {
+        await supabase.from('transporter_clients').insert(toInsert);
+      }
+    } catch (err) {
+      console.error('[transporterFleetService] syncClientsFromRides error:', err);
+    }
+  },
+
+  async batchImportClients(
+    transporterId: string,
+    clientsList: Omit<TransporterClientRecord, 'id' | 'transporterId'>[]
+  ): Promise<{ imported: number; updated: number }> {
+    let imported = 0;
+    let updated = 0;
+    if (!isSupabaseConfigured() || !supabase || !clientsList || clientsList.length === 0) {
+      return { imported: 0, updated: 0 };
+    }
+
+    try {
+      for (const c of clientsList) {
+        if (!c.lastName || !c.firstName) continue;
+        const res = await this.saveClient(transporterId, c);
+        if (res) {
+          imported++;
+        }
+      }
+    } catch (err) {
+      console.error('[transporterFleetService] batchImportClients error:', err);
+    }
+
+    return { imported, updated };
   },
 };

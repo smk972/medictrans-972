@@ -118,6 +118,17 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
     [fleet]
   );
 
+  // Nombre de patients uniques ayant déjà été transportés
+  const uniquePatientsCount = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rides) {
+      if (r.patient?.lastName && r.patient?.firstName) {
+        set.add(`${r.patient.lastName.toLowerCase()}_${r.patient.firstName.toLowerCase()}`);
+      }
+    }
+    return set.size;
+  }, [rides]);
+
   // Activité récente (les 6 dernières courses enregistrées)
   const recentRides = useMemo(() => {
     return [...rides]
@@ -149,7 +160,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
           <button
             type="button"
             onClick={onOpenNewRideModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs shadow-md hover:shadow-teal-500/25 transition-all transform active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all transform active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">add_circle</span>
             <span>+ Créer une course</span>
@@ -158,7 +169,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
           <button
             type="button"
             onClick={() => onNavigateTab('PLANNING')}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">calendar_month</span>
             <span>Planning</span>
@@ -166,8 +177,17 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
 
           <button
             type="button"
+            onClick={() => onNavigateTab('PATIENTS')}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">folder_shared</span>
+            <span>Répertoire</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onOpenAddDriverModal}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">person_add</span>
             <span>+ Chauffeur</span>
@@ -176,7 +196,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
           <button
             type="button"
             onClick={onOpenAddVehicleModal}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs border border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">directions_car</span>
             <span>+ Véhicule</span>
@@ -296,8 +316,8 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
         </div>
       </div>
 
-      {/* 4. Statut des Ressources & Flotte Disponible (Points 8 & 9) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 4. Statut des Ressources, Flotte & Répertoire (Points 8 & 9) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Chauffeurs */}
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -314,7 +334,7 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
           <button
             type="button"
             onClick={() => onNavigateTab('FLOTTE')}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
           >
             Gérer
           </button>
@@ -336,9 +356,31 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
           <button
             type="button"
             onClick={() => onNavigateTab('FLOTTE')}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
           >
             Gérer
+          </button>
+        </div>
+
+        {/* Répertoire Contacts */}
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+              <span className="material-symbols-outlined text-2xl">folder_shared</span>
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Répertoire Patients</div>
+              <div className="text-xl font-extrabold text-slate-900 mt-0.5">
+                <span className="text-emerald-600">{uniquePatientsCount}</span> fiches
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('PATIENTS')}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+          >
+            Consulter
           </button>
         </div>
       </div>

@@ -386,7 +386,7 @@ export const TransporterExportModal: React.FC<TransporterExportModalProps> = ({
             type="button"
             onClick={handleDownloadCsv}
             disabled={filteredRides.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">download</span>
             <span>Télécharger l'export ({filteredRides.length} courses)</span>
