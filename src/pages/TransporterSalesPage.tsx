@@ -221,7 +221,7 @@ export const TransporterSalesPage: React.FC = () => {
                 }`}
               >
                 <span className="material-symbols-outlined text-base">smartphone</span>
-                <span>Site Mobile Chauffeur</span>
+                <span>App Mobile Ambulancier</span>
               </button>
             </div>
           </div>
@@ -238,73 +238,32 @@ export const TransporterSalesPage: React.FC = () => {
                 /* Simulation animée de la console bureau avec déplacement de souris */
                 <TransporterSimulatedConsole />
               ) : (
-                /* Vue Smartphone Chauffeur */
+                /* Vue Smartphone Chauffeur / Ambulancier Réel */
                 <div className="flex flex-col items-center py-4 animate-fadeIn">
-                  <div className="w-full max-w-sm rounded-[2.5rem] bg-slate-950 border-[8px] border-slate-800 shadow-2xl p-4 relative overflow-hidden text-white">
-                    {/* Smartphone Notch / Dynamic Island */}
-                    <div className="w-32 h-4 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-slate-950 mr-2" />
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    </div>
-
-                    {/* App Header Mobile */}
-                    <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">Chauffeur en route</span>
-                        <div className="text-sm font-black text-white">Patrick (Ambulance 01)</div>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-                        En ligne
-                      </span>
-                    </div>
-
-                    {/* Course active sur mobile */}
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-teal-500/20 via-emerald-500/15 to-transparent border border-teal-500/30 space-y-3 mb-4">
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded-full bg-teal-400 text-slate-950 font-black text-[10px]">
-                          MISSION EN COURS
-                        </span>
-                        <span className="text-xs font-mono font-bold text-teal-300">RDV 14:30</span>
-                      </div>
-
-                      <div>
-                        <div className="text-xs text-slate-400">Prise en charge :</div>
-                        <div className="text-sm font-extrabold text-white">CHU Zobda-Quitman (Bât. C)</div>
-                      </div>
-
-                      <div>
-                        <div className="text-xs text-slate-400">Destination :</div>
-                        <div className="text-sm font-extrabold text-teal-300">Quartier Petit-Bourg, Rivière-Salée</div>
-                      </div>
-
-                      <div className="pt-2 flex gap-2">
-                        <button
-                          type="button"
-                          className="flex-1 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md"
-                        >
-                          <span className="material-symbols-outlined text-base">navigation</span>
-                          <span>Waze / GPS</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center"
-                        >
-                          <span className="material-symbols-outlined text-base">call</span>
-                        </button>
+                  <div className="w-full max-w-[320px] sm:max-w-sm rounded-[3rem] bg-slate-950 border-[8px] sm:border-[10px] border-slate-800 shadow-[0_25px_60px_-15px_rgba(2,132,199,0.35)] relative overflow-hidden text-white">
+                    {/* Smartphone Dynamic Island */}
+                    <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-between px-2.5 shadow-sm">
+                      <div className="w-2 h-2 rounded-full bg-slate-900 ring-1 ring-white/10" />
+                      <div className="flex items-center gap-1">
+                        <span className="text-[8px] font-bold text-sky-400">AMB-402</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       </div>
                     </div>
 
-                    {/* Bouton de confirmation */}
-                    <button
-                      type="button"
-                      className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/30"
-                    >
-                      <span className="material-symbols-outlined text-base">check_circle</span>
-                      <span>Confirmer Arrivée Patient</span>
-                    </button>
+                    {/* Screenshot Container */}
+                    <div className="relative w-full aspect-[9/19.5] overflow-hidden bg-slate-950">
+                      <img 
+                        src="/assets/capture-cockpit-ambulancier.png" 
+                        alt="Application Clinigo Mobile Ambulancier — Cockpit Chauffeur Réel" 
+                        className="w-full h-full object-cover object-top hover:scale-[1.02] transition-transform duration-500"
+                      />
+                      {/* Ambient edge shadow */}
+                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/50 rounded-full z-20 pointer-events-none" />
+                    </div>
                   </div>
-                  <span className="text-xs text-slate-500 mt-4 text-center">
-                    Fonctionne instantanément sur Safari, Chrome, iOS et Android sans aucun téléchargement sur les stores.
+                  <span className="text-xs text-slate-500 mt-4 text-center max-w-md">
+                    Application mobile dédiée aux équipages d'ambulance : gestion de disponibilité en temps réel, courses prioritaires SAMU 15, contraintes médicales et guidage GPS intégré.
                   </span>
                 </div>
               )}

@@ -619,80 +619,20 @@ export const HomePageDemo: React.FC = () => {
                         <span className="text-white">🚨 #402</span>
                       </div>
 
-                      {/* Screen Content : Fidèle à clinigo-mobile (DriverHomeScreen) */}
-                      <div className="flex-1 flex flex-col p-3 pt-1.5 text-left justify-between overflow-hidden">
-                        
-                        {/* HeaderHUD Mobile en Verre Blanc Translucide */}
-                        <div className="rounded-2xl p-2 bg-white/10 backdrop-blur-md border border-white/20 shadow-xs flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <img 
-                              src="/assets/clinigo-icon.png" 
-                              alt="Clinigo Ambulance" 
-                              className="w-7 h-7 rounded-lg object-cover shadow-xs border border-white/20" 
-                            />
-                            <div>
-                              <p className="text-[10px] font-black leading-none text-white">Cockpit Chauffeur</p>
-                              <p className="text-[8px] font-bold text-sky-400">Véhicule GF-452-LK</p>
-                            </div>
-                          </div>
-                          <span className="text-[8px] font-black text-sky-300 bg-sky-950/80 border border-sky-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <span className="w-1 h-1 rounded-full bg-sky-400 animate-pulse" />
-                            CONNECTÉ
-                          </span>
-                        </div>
+                      {/* Screen Content : Capture réelle de l'application CLINIGO MOBILE AMBULANCE */}
+                      <div className="flex-1 overflow-hidden relative group/phone">
+                        <img 
+                          src="/assets/capture-cockpit-ambulancier.png" 
+                          alt="Cockpit Clinigo Mobile Ambulancier — Mission Prioritaire et Statut Disponible" 
+                          className="w-full h-full object-cover object-top transition-transform duration-500 group-hover/phone:scale-[1.03]"
+                        />
 
-                        {/* StatusSwitch : Bloc DISPONIBLE Blanc Transparent Liquide */}
-                        <div className="rounded-2xl p-2.5 bg-white/15 backdrop-blur-md border border-white/30 shadow-xs space-y-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/40 animate-pulse" />
-                              <span className="text-[10px] font-black text-emerald-300 tracking-wide">🟢 DISPONIBLE</span>
-                            </div>
-                            <span className="text-[8px] font-extrabold text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                              Rayon 25 km
-                            </span>
-                          </div>
-                          <p className="text-[8px] text-slate-200 leading-tight">
-                            Urgences SAMU 15 & régulations directes transmises en temps réel.
-                          </p>
-                        </div>
-
-                        {/* PriorityMissionCard : Course Régulée Prioritaire */}
-                        <div className="p-2.5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-800/90 border border-sky-500/30 shadow-xs space-y-1.5">
-                          <div className="flex items-center justify-between text-[9px]">
-                            <span className="font-black uppercase text-sky-400 tracking-wider">Mission Régulée #AMB-972</span>
-                            <span className="font-extrabold bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded text-[8px]">Ambulance DEA</span>
-                          </div>
-                          <p className="text-[11px] font-black text-white">M. Henri B. (82 ans) • ALD 100%</p>
-                          <div className="text-[9px] text-slate-300 space-y-0.5 pt-1 border-t border-slate-700/60">
-                            <p className="flex items-center gap-1.5 truncate">
-                              <MapPin className="w-2.5 h-2.5 text-sky-400 shrink-0" />
-                              <span>Clinique Sainte-Marie</span>
-                            </p>
-                            <p className="flex items-center gap-1.5 truncate">
-                              <Building2 className="w-2.5 h-2.5 text-teal-400 shrink-0" />
-                              <span>CHU Zobda (Néphrologie)</span>
-                            </p>
-                          </div>
-                          {/* Badges contraintes médicales autorisées */}
-                          <div className="flex items-center gap-1 pt-0.5 text-[8px]">
-                            <span className="bg-slate-700/60 px-1.5 py-0.5 rounded text-slate-300">✓ Brancard</span>
-                            <span className="bg-red-950/60 border border-red-500/30 px-1.5 py-0.5 rounded text-red-300">O₂ 3L/min</span>
-                            <span className="bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded text-emerald-300">Bon Cerfa OK</span>
-                          </div>
-                        </div>
-
-                        {/* CTA Démarrage Guidage Waze / Maps */}
-                        <button 
-                          type="button"
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-teal-500 hover:brightness-110 text-white text-[10px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-sky-950/50 transition-all cursor-pointer"
-                        >
-                          <Navigation className="w-3 h-3" />
-                          <span>Voir la course & Démarrer</span>
-                        </button>
+                        {/* Subtle top/bottom edge gradients for phone immersion */}
+                        <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-[#0e1726]/40 to-transparent pointer-events-none" />
+                        <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#0e1726]/80 to-transparent pointer-events-none" />
 
                         {/* Bottom Home Indicator */}
-                        <div className="w-20 h-1 bg-white/40 rounded-full mx-auto mt-0.5" />
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/50 rounded-full z-20 pointer-events-none" />
                       </div>
                     </div>
                   </div>
