@@ -103,53 +103,62 @@ export const AdminSeoEditorPage: React.FC = () => {
 
   // Détection automatique de la photo à la une 16:9 haute définition selon le sujet
   const autoDetectFeaturedImage = (topic: string, keyword: string) => {
-    const lower = `${topic} ${keyword}`.toLowerCase();
+    const text = `${topic} ${keyword}`;
+    const lower = text.toLowerCase();
+    const isAntilles = /martinique|guadeloupe|antilles|caraïbes|caraibes|972|971|chum|fort-de-france|pointe-à-pitre|pointe-a-pitre|trinité|lamentin/i.test(text);
+
     if (lower.includes('régulation') || lower.includes('regulation') || lower.includes('dispatch') || lower.includes('standard') || lower.includes('permanence')) {
       return {
         url: '/assets/gallery/regulation_ambulance_dispatch.jpg',
-        alt: 'Centre de régulation des transports sanitaires et coordination des ambulances en Martinique'
+        alt: 'Centre de régulation des transports sanitaires et coordination des ambulances'
       };
     }
     if (lower.includes('pmr') || lower.includes('fauteuil') || lower.includes('handicap') || lower.includes('rampe')) {
       return {
         url: '/assets/gallery/transport_pmr_fauteuil.jpg',
-        alt: 'Véhicule adapté PMR avec rampe d\'accès et prise en charge bienveillante en Martinique'
+        alt: 'Véhicule adapté PMR avec rampe d\'accès et prise en charge sécurisée'
       };
     }
     if (lower.includes('dialyse') || lower.includes('néphrologie') || lower.includes('nephrologie') || lower.includes('rein')) {
       return {
         url: '/assets/gallery/dialyse_centre_soins.jpg',
-        alt: 'Centre de soins et dialyse avec transport sanitaire conventionné en Martinique'
+        alt: 'Centre de soins et dialyse avec transport sanitaire conventionné'
       };
     }
     if (lower.includes('bébé') || lower.includes('bebe') || lower.includes('enfant') || lower.includes('maternité') || lower.includes('maternite') || lower.includes('pédiatrie') || lower.includes('pediatrie')) {
       return {
         url: '/assets/gallery/pediatrie_maternite.jpg',
-        alt: 'Transport médicalisé pédiatrique et maternité en Martinique'
+        alt: 'Transport médicalisé pédiatrique et maternité'
       };
     }
     if (lower.includes('hélicoptère') || lower.includes('helicoptere') || lower.includes('evasan') || lower.includes('dragon')) {
       return {
         url: '/assets/gallery/evasan_helicoptere_chu.jpg',
-        alt: 'Évacuation sanitaire héliportée Dragon 972 SAMU en Martinique'
+        alt: 'Évacuation sanitaire héliportée SAMU'
       };
     }
     if (lower.includes('clinique') || lower.includes('accueil') || lower.includes('admission')) {
       return {
         url: '/assets/gallery/clinique_accueil_urgences.jpg',
-        alt: 'Accueil et admissions en clinique médicale partenaire en Martinique'
+        alt: 'Accueil et admissions en établissement de santé conventionné'
       };
     }
     if (lower.includes('taxi') || lower.includes('conventionné') || lower.includes('conventionne')) {
       return {
         url: '/assets/gallery/taxi_conventionne_aidant.jpg',
-        alt: 'Chauffeur de taxi conventionné CPAM bienveillant pour transport médical en Martinique'
+        alt: 'Chauffeur de taxi conventionné CPAM bienveillant pour transport médical'
       };
     }
     if (lower.includes('vsl') || lower.includes('assis') || lower.includes('véhicule sanitaire') || lower.includes('vehicule sanitaire')) {
+      if (isAntilles) {
+        return {
+          url: '/assets/gallery/vsl_transport_cote.jpg',
+          alt: 'Véhicule Sanitaire Léger (VSL) conventionné en zone littorale'
+        };
+      }
       return {
-        url: '/assets/gallery/vsl_transport_cote.jpg',
-        alt: 'Véhicule Sanitaire Léger (VSL) conventionné longeant la côte en Martinique'
+        url: '/assets/gallery/vsl_transport_france.jpg',
+        alt: 'Véhicule Sanitaire Léger (VSL) conventionné devant un centre hospitalier'
       };
     }
     if (lower.includes('brancard') || lower.includes('allongé') || lower.includes('allonge')) {
@@ -164,9 +173,15 @@ export const AdminSeoEditorPage: React.FC = () => {
         alt: 'Consultation médicale et validation du bon de transport Cerfa PMT'
       };
     }
+    if (isAntilles) {
+      return {
+        url: '/assets/gallery/ambulance_martinique_chu.jpg',
+        alt: 'Ambulance moderne conventionnée prête pour une mission aux Antilles'
+      };
+    }
     return {
-      url: '/assets/gallery/ambulance_martinique_chu.jpg',
-      alt: 'Ambulance moderne conventionnée prête pour une mission en Martinique'
+      url: '/assets/gallery/ambulance_france_urgence.jpg',
+      alt: 'Ambulance moderne conventionnée SAMU / SMUR devant un hôpital en France'
     };
   };
 
@@ -928,16 +943,28 @@ Pour planifier sereinement vos déplacements médicaux en ambulance, VSL ou taxi
       description: "Carte et couverture des 34 communes de l'île"
     },
     {
-      title: "Ambulance SAMU 972 CHUM",
+      title: "Ambulance SAMU France",
       category: "Urgence",
-      url: "/assets/gallery/ambulance_martinique_chu.jpg",
-      description: "Ambulance d'urgence devant le CHUM sous les tropiques"
+      url: "/assets/gallery/ambulance_france_urgence.jpg",
+      description: "Ambulance d'urgence SAMU / SMUR devant un hôpital moderne en France métropolitaine"
     },
     {
-      title: "VSL Transport Médicalisé",
+      title: "Ambulance SAMU 972 CHUM",
+      category: "Antilles",
+      url: "/assets/gallery/ambulance_martinique_chu.jpg",
+      description: "Ambulance d'urgence devant le CHUM aux Antilles"
+    },
+    {
+      title: "VSL France Métropole",
+      category: "Véhicules",
+      url: "/assets/gallery/vsl_transport_france.jpg",
+      description: "Véhicule Sanitaire Léger conventionné devant un centre hospitalier régional"
+    },
+    {
+      title: "VSL Zone Côtière",
       category: "Véhicules",
       url: "/assets/gallery/vsl_transport_cote.jpg",
-      description: "Véhicule Sanitaire Léger en bord de mer en Martinique"
+      description: "Véhicule Sanitaire Léger en zone littorale"
     },
     {
       title: "Taxi Conventionné CPAM",

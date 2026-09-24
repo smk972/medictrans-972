@@ -657,38 +657,54 @@ Consignes strictes :
         };
 
         // 1. Traduction & enrichissement sémantique du prompt pour l'IA
+        const lowerPrompt = cleanPrompt.toLowerCase();
+        const isAntillesRequested = /martinique|guadeloupe|antilles|caraïbes|caraibes|972|971|chum|fort-de-france|pointe-à-pitre|pointe-a-pitre|trinité|lamentin/i.test(cleanPrompt);
+        const isParisRequested = /paris|île-de-france|ile-de-france|75|necker|pompidou|pitie|pitié|salpetriere|salpêtrière|cochin|bichat|saint-louis/i.test(cleanPrompt);
+        const isMetropoleCity = /lyon|marseille|toulouse|bordeaux|lille|nantes|strasbourg|rennes|nice|montpellier/i.test(cleanPrompt);
+
         const frReplacements: Array<[RegExp, string]> = [
-          [/ambulance/gi, 'modern medical emergency ambulance vehicle'],
-          [/vsl|véhicule sanitaire léger|vehicule sanitaire leger/gi, 'white medical patient transport car'],
+          [/ambulance/gi, 'French medical emergency ambulance vehicle SAMU'],
+          [/vsl|véhicule sanitaire léger|vehicule sanitaire leger/gi, 'white medical patient transport vehicle VSL with blue caduceus'],
           [/taxi conventionné|taxi conventionne/gi, 'certified healthcare medical taxi'],
-          [/brancard(ier)?|civière/gi, 'paramedic stretcher transport'],
-          [/fauteuil roulant|pmr|handicap|rampe/gi, 'wheelchair accessible medical transport van with ramp lift'],
-          [/dialyse|hémodialyse|nephrologie/gi, 'hemodialysis medical care center transport'],
+          [/brancard(ier)?|civière/gi, 'paramedic stretcher transport hospital corridor'],
+          [/fauteuil roulant|pmr|handicap|rampe/gi, 'wheelchair accessible medical transport van with hydraulic lift ramp'],
+          [/dialyse|hémodialyse|nephrologie/gi, 'hemodialysis specialized care hospital transport'],
           [/maternité|maternite|enceinte|bébé|nourrisson|pédiatrie|pediatrie/gi, 'pediatric and maternity hospital transport caring'],
           [/hélicoptère|helicoptere|dragon 972|évasan|evasan/gi, 'medical evacuation emergency helicopter SAMU helipad'],
           [/clinique|accueil|secrétaire/gi, 'modern medical clinic reception welcoming'],
           [/patient(e)?/gi, 'patient'],
           [/personne âgée|senior/gi, 'elderly patient'],
-          [/médecin|docteur/gi, 'doctor with stethoscope'],
+          [/médecin|docteur/gi, 'doctor with stethoscope and medical transport prescription'],
           [/soignant(e)?|infirmi(er|ère)/gi, 'nurse healthcare professional'],
-          [/hôpital|hopital|chu|clinique/gi, 'modern medical clinic hospital'],
-          [/martinique|guadeloupe|antilles|caraïbes/gi, 'tropical caribbean island with palm trees sunny'],
-          [/ensoleillé(e)?|soleil/gi, 'bright sunny daylight'],
-          [/jaune et blanche|blanche et jaune/gi, 'yellow and white medical livery'],
-          [/blanche?|blanc/gi, 'white medical livery'],
+          [/hôpital|hopital|chu|clinique/gi, 'modern French hospital building'],
+          [/martinique|guadeloupe|antilles|caraïbes/gi, 'tropical caribbean island sunny'],
+          [/ensoleillé(e)?|soleil/gi, 'bright daylight'],
+          [/jaune et blanche|blanche et jaune/gi, 'yellow and white French medical livery'],
+          [/blanche?|blanc/gi, 'white medical livery with blue and yellow accents'],
           [/jaune/gi, 'yellow medical livery'],
           [/bleue?|bleu/gi, 'blue medical livery'],
-          [/route/gi, 'scenic coastal road'],
+          [/route/gi, 'asphalt road'],
           [/devant/gi, 'parked in front of'],
           [/aide|aidant/gi, 'kindly assisting'],
-          [/urgence/gi, 'emergency medical care']
+          [/urgence/gi, 'emergency medical department hospital']
         ];
 
         let englishPrompt = cleanPrompt;
         for (const [re, en] of frReplacements) {
           englishPrompt = englishPrompt.replace(re, en);
         }
-        const enrichedPrompt = `${englishPrompt}, professional realistic photography, 4k, cinematic daylight, high quality`;
+
+        // Détermination du contexte géographique national vs régional
+        let locationModifier = 'in France, modern French healthcare architecture, European street and hospital';
+        if (isAntillesRequested) {
+          locationModifier = 'in French West Indies Caribbean, sunny tropical setting';
+        } else if (isParisRequested) {
+          locationModifier = 'in Paris France, Parisian Haussmannian and modern French hospital architecture';
+        } else if (isMetropoleCity) {
+          locationModifier = 'in modern metropolitan French city hospital';
+        }
+
+        const enrichedPrompt = `${englishPrompt}, ${locationModifier}, authentic French medical transport regulations, professional realistic photography, 4k, natural daylight, high resolution, shot on 35mm lens`;
 
         let finalImageUrl: string | null = null;
 
@@ -743,13 +759,13 @@ Consignes strictes :
           }
         }
 
-        // Étape C : Sélection sémantique intelligente parmi les 10 catégories 4K
+        // Étape C : Sélection sémantique intelligente parmi les catégories 4K nationales et régionales
         if (!finalImageUrl) {
           const lower = cleanPrompt.toLowerCase();
           const categories = [
             {
               file: 'regulation_ambulance_dispatch.jpg',
-              keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'centre de regulation', 'standard', 'permanence', 'opérateur', 'operateur', 'coordination', 'écran', 'ecran', 'samu 972', 'centre de contrôle'],
+              keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'centre de regulation', 'standard', 'permanence', 'opérateur', 'operateur', 'coordination', 'écran', 'ecran', 'centre de contrôle'],
               weight: 3.0
             },
             {
@@ -774,7 +790,7 @@ Consignes strictes :
             },
             {
               file: 'clinique_accueil_urgences.jpg',
-              keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet', 'sainte-marie', 'saint-paul', 'centre médical', 'centre medical'],
+              keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet', 'centre médical', 'centre medical'],
               weight: 2.0
             },
             {
@@ -783,13 +799,18 @@ Consignes strictes :
               weight: 2.0
             },
             {
+              file: 'vsl_transport_france.jpg',
+              keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'lyon', 'paris', 'bordeaux', 'marseille', 'france', 'assis', 'berline'],
+              weight: 2.4
+            },
+            {
               file: 'vsl_transport_cote.jpg',
-              keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'assis', 'berline', 'voiture', 'côte', 'cote', 'route', 'littoral', 'bord de mer'],
+              keywords: ['côte', 'cote', 'littoral', 'bord de mer', 'plage', 'martinique', 'guadeloupe'],
               weight: 2.0
             },
             {
               file: 'brancardiers_soins_hopital.jpg',
-              keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert'],
+              keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert', 'couloir'],
               weight: 2.0
             },
             {
@@ -798,13 +819,23 @@ Consignes strictes :
               weight: 2.0
             },
             {
+              file: 'ambulance_france_urgence.jpg',
+              keywords: ['paris', 'pompidou', 'necker', 'ile-de-france', 'île-de-france', 'france', 'metropole', 'métropole', 'samu 75', 'smur', 'hopital paris'],
+              weight: 3.5
+            },
+            {
               file: 'ambulance_martinique_chu.jpg',
-              keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'chum', 'hôpital', 'hopital', 'trinité', 'trinite', 'fort-de-france', 'lamentin', 'garde'],
+              keywords: ['martinique', 'chum', '972', 'antilles', 'caraïbes', 'caraibes', 'fort-de-france', 'lamentin', 'trinité', 'trinite'],
+              weight: 3.0
+            },
+            {
+              file: 'ambulance_france_urgence.jpg',
+              keywords: ['ambulance', 'samu', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'garde', 'hopital', 'hôpital'],
               weight: 1.5
             }
           ];
 
-          let bestFile = 'ambulance_martinique_chu.jpg';
+          let bestFile = 'ambulance_france_urgence.jpg';
           let highestScore = 0;
 
           for (const cat of categories) {
@@ -820,14 +851,16 @@ Consignes strictes :
             }
           }
 
-          // Si le prompt contient "voiture", "transport" sans précision
+          // Si le prompt contient des termes génériques
           if (highestScore === 0) {
-            if (lower.includes('voiture') || lower.includes('assis')) {
-              bestFile = 'vsl_transport_cote.jpg';
+            if (lower.includes('voiture') || lower.includes('assis') || lower.includes('vsl')) {
+              bestFile = 'vsl_transport_france.jpg';
             } else if (lower.includes('médecin') || lower.includes('papier') || lower.includes('droit')) {
               bestFile = 'medecin_prescription_pmt.jpg';
-            } else {
+            } else if (isAntillesRequested) {
               bestFile = 'ambulance_martinique_chu.jpg';
+            } else {
+              bestFile = 'ambulance_france_urgence.jpg';
             }
           }
 

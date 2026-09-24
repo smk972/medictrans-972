@@ -306,6 +306,7 @@ export class AiSeoService {
     } catch (err: any) {
       console.warn('[AiSeoService] Repli local pour image :', err);
       const lower = (params.prompt || '').toLowerCase();
+      const isAntillesRequested = /martinique|guadeloupe|antilles|caraïbes|caraibes|972|971|chum|fort-de-france|pointe-à-pitre|pointe-a-pitre|trinité|lamentin/i.test(params.prompt || '');
       const categories = [
         { file: '/assets/gallery/regulation_ambulance_dispatch.jpg', keywords: ['régulation', 'regulation', 'salle de régulation', 'salle de regulation', 'dispatch', 'centre de régulation', 'standard', 'permanence', 'opérateur', 'coordination', 'écran'], weight: 3.0 },
         { file: '/assets/gallery/transport_pmr_fauteuil.jpg', keywords: ['pmr', 'fauteuil', 'roulant', 'handicap', 'rampe', 'ufr', 'mobilité', 'mobilite'], weight: 2.5 },
@@ -314,13 +315,16 @@ export class AiSeoService {
         { file: '/assets/gallery/evasan_helicoptere_chu.jpg', keywords: ['hélicoptère', 'helicoptere', 'dragon', 'évasan', 'évacuation', 'héliport', 'aérien'], weight: 2.5 },
         { file: '/assets/gallery/clinique_accueil_urgences.jpg', keywords: ['clinique', 'accueil', 'secrétaire', 'admission', 'rendez-vous', 'rdv'], weight: 2.0 },
         { file: '/assets/gallery/taxi_conventionne_aidant.jpg', keywords: ['taxi', 'conventionné', 'cpam', 'chauffeur', 'senior', 'personne âgée', 'aide', 'aidant'], weight: 2.0 },
-        { file: '/assets/gallery/vsl_transport_cote.jpg', keywords: ['vsl', 'véhicule sanitaire', 'assis', 'berline', 'voiture', 'côte', 'route'], weight: 2.0 },
-        { file: '/assets/gallery/brancardiers_soins_hopital.jpg', keywords: ['brancard', 'brancardier', 'civière', 'allongé', 'couché', 'soins', 'transfert'], weight: 2.0 },
+        { file: '/assets/gallery/vsl_transport_france.jpg', keywords: ['vsl', 'véhicule sanitaire', 'paris', 'lyon', 'bordeaux', 'marseille', 'france', 'assis', 'berline'], weight: 2.4 },
+        { file: '/assets/gallery/vsl_transport_cote.jpg', keywords: ['côte', 'littoral', 'bord de mer', 'plage', 'martinique', 'guadeloupe'], weight: 2.0 },
+        { file: '/assets/gallery/brancardiers_soins_hopital.jpg', keywords: ['brancard', 'brancardier', 'civière', 'allongé', 'couché', 'soins', 'transfert', 'couloir'], weight: 2.0 },
         { file: '/assets/gallery/medecin_prescription_pmt.jpg', keywords: ['pmt', 'cerfa', 'prescription', 'bon de transport', 'médecin', 'ordonnance', '100%'], weight: 2.0 },
-        { file: '/assets/gallery/ambulance_martinique_chu.jpg', keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'chum', 'hôpital', 'hopital'], weight: 1.5 }
+        { file: '/assets/gallery/ambulance_france_urgence.jpg', keywords: ['paris', 'pompidou', 'necker', 'ile-de-france', 'île-de-france', 'france', 'metropole', 'métropole', 'samu 75'], weight: 3.5 },
+        { file: '/assets/gallery/ambulance_martinique_chu.jpg', keywords: ['martinique', 'chum', '972', 'antilles', 'caraïbes', 'caraibes', 'fort-de-france'], weight: 3.0 },
+        { file: '/assets/gallery/ambulance_france_urgence.jpg', keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'hôpital', 'hopital'], weight: 1.5 }
       ];
 
-      let fallback = '/assets/gallery/ambulance_martinique_chu.jpg';
+      let fallback = isAntillesRequested ? '/assets/gallery/ambulance_martinique_chu.jpg' : '/assets/gallery/ambulance_france_urgence.jpg';
       let highestScore = 0;
       for (const cat of categories) {
         let catScore = 0;

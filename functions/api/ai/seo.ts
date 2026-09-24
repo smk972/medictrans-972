@@ -74,6 +74,8 @@ export async function onRequestPost(context: any): Promise<Response> {
     } else if (action === 'generateImage') {
       const prompt = (payload?.prompt || (body as any)?.prompt || '').trim();
       const lower = prompt.toLowerCase();
+      const isAntillesRequested = /martinique|guadeloupe|antilles|caraïbes|caraibes|972|971|chum|fort-de-france|pointe-à-pitre|pointe-a-pitre|trinité|lamentin/i.test(prompt);
+
       const categories = [
         {
           file: '/assets/gallery/regulation_ambulance_dispatch.jpg',
@@ -102,7 +104,7 @@ export async function onRequestPost(context: any): Promise<Response> {
         },
         {
           file: '/assets/gallery/clinique_accueil_urgences.jpg',
-          keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet', 'sainte-marie', 'saint-paul'],
+          keywords: ['clinique', 'accueil', 'secrétaire', 'secretaire', 'admission', 'rendez-vous', 'rdv', 'bureau', 'guichet'],
           weight: 2.0
         },
         {
@@ -111,13 +113,18 @@ export async function onRequestPost(context: any): Promise<Response> {
           weight: 2.0
         },
         {
+          file: '/assets/gallery/vsl_transport_france.jpg',
+          keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'lyon', 'paris', 'bordeaux', 'marseille', 'france', 'assis', 'berline'],
+          weight: 2.4
+        },
+        {
           file: '/assets/gallery/vsl_transport_cote.jpg',
-          keywords: ['vsl', 'véhicule sanitaire léger', 'vehicule sanitaire leger', 'assis', 'berline', 'voiture', 'côte', 'cote', 'route', 'littoral'],
+          keywords: ['côte', 'cote', 'littoral', 'bord de mer', 'plage', 'martinique', 'guadeloupe'],
           weight: 2.0
         },
         {
           file: '/assets/gallery/brancardiers_soins_hopital.jpg',
-          keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert'],
+          keywords: ['brancard', 'brancardier', 'civière', 'civiere', 'allongé', 'allonge', 'couché', 'couche', 'perfusion', 'soins', 'transfert', 'couloir'],
           weight: 2.0
         },
         {
@@ -126,13 +133,23 @@ export async function onRequestPost(context: any): Promise<Response> {
           weight: 2.0
         },
         {
+          file: '/assets/gallery/ambulance_france_urgence.jpg',
+          keywords: ['paris', 'pompidou', 'necker', 'ile-de-france', 'île-de-france', 'france', 'metropole', 'métropole', 'samu 75', 'smur', 'hopital paris'],
+          weight: 3.5
+        },
+        {
           file: '/assets/gallery/ambulance_martinique_chu.jpg',
-          keywords: ['ambulance', 'samu', 'smur', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'chum', 'hôpital', 'hopital', 'trinité', 'fort-de-france', 'lamentin'],
+          keywords: ['martinique', 'chum', '972', 'antilles', 'caraïbes', 'caraibes', 'fort-de-france', 'lamentin', 'trinité', 'trinite'],
+          weight: 3.0
+        },
+        {
+          file: '/assets/gallery/ambulance_france_urgence.jpg',
+          keywords: ['ambulance', 'samu', 'urgence', '15', 'sirène', 'sirene', 'gyrophare', 'garde', 'hopital', 'hôpital'],
           weight: 1.5
         }
       ];
 
-      let bestFile = '/assets/gallery/ambulance_martinique_chu.jpg';
+      let bestFile = '/assets/gallery/ambulance_france_urgence.jpg';
       let highestScore = 0;
 
       for (const cat of categories) {
@@ -149,12 +166,14 @@ export async function onRequestPost(context: any): Promise<Response> {
       }
 
       if (highestScore === 0) {
-        if (lower.includes('voiture') || lower.includes('assis')) {
-          bestFile = '/assets/gallery/vsl_transport_cote.jpg';
+        if (lower.includes('voiture') || lower.includes('assis') || lower.includes('vsl')) {
+          bestFile = '/assets/gallery/vsl_transport_france.jpg';
         } else if (lower.includes('médecin') || lower.includes('papier') || lower.includes('droit')) {
           bestFile = '/assets/gallery/medecin_prescription_pmt.jpg';
-        } else {
+        } else if (isAntillesRequested) {
           bestFile = '/assets/gallery/ambulance_martinique_chu.jpg';
+        } else {
+          bestFile = '/assets/gallery/ambulance_france_urgence.jpg';
         }
       }
 
