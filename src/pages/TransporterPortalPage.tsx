@@ -94,6 +94,45 @@ export const getPatientDisplayName = (
   return `${firstName} ${initial}`.trim() || 'Patient';
 };
 
+
+interface ReportedIncident {
+  text: string;
+  raw: string;
+}
+
+const extractIncident = (notes?: string): ReportedIncident | null => {
+  if (!notes) return null;
+  const match = notes.match(/\[INCIDENT(?: CHAUFFEUR)?\]:\s*([^\n\r]+)/i);
+  if (!match) return null;
+  return {
+    text: match[1].trim(),
+    raw: match[0].trim(),
+  };
+};
+
+const hasActiveIncident = (ride: Ride): boolean => {
+  return Boolean(extractIncident(ride.mobility?.notes));
+};
+
+const playTransporterChime = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {}
+};
+
 export const TransporterPortalPage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -505,29 +544,46 @@ export const TransporterPortalPage: React.FC = () => {
     }
   };
 
-  // Synchronisation initiale & écoute temps réel Supabase
+  // Synchronisation initiale & écoute temps réel Supabase & BroadcastChannel
   useEffect(() => {
     window.scrollTo(0, 0);
     loadMissions();
 
+    let channel: any = null;
     const sb = supabase;
     if (isSupabaseConfigured() && sb) {
-      const channel = sb
-        .channel('realtime-transporter-rides')
+      channel = sb
+        .channel('realtime-transporter-rides_' + Date.now())
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'rides' },
           (payload) => {
-            console.log('📡 Événement temps réel Supabase reçu (Rides):', payload.eventType);
+            console.log('📡 [Transporteur] Événement temps réel Supabase reçu (Rides):', payload.eventType);
             loadMissions();
+            if (payload.new && (payload.new as any).mobility_notes?.includes('[INCIDENT')) {
+              playTransporterChime();
+            }
           }
         )
         .subscribe();
-
-      return () => {
-        sb.removeChannel(channel);
-      };
     }
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('clinigo_rides_channel');
+      bc.onmessage = () => {
+        loadMissions();
+      };
+    } catch {}
+
+    return () => {
+      if (channel && sb) {
+        sb.removeChannel(channel);
+      }
+      if (bc) {
+        bc.close();
+      }
+    };
   }, [loadMissions]);
 
   // Toutes les courses en attente (non déclinées, hors demandes directes exclusives d'autres confrères)
@@ -628,6 +684,58 @@ export const TransporterPortalPage: React.FC = () => {
       (r) => r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP'
     );
   }, [rides]);
+
+  // Incidents signalés par les chauffeurs sur les missions actives
+  const incidentMissions = useMemo(() => {
+    return activeMissions.filter(hasActiveIncident);
+  }, [activeMissions]);
+
+  const handleResolveTransporterIncident = async (mission: Ride) => {
+    if (!mission) return;
+    const confirmResolve = window.confirm(
+      `Confirmez-vous la résolution de l'incident pour la course #${mission.reference} ?\n\nL'alerte sera retirée de votre portail et de la console de régulation.`
+    );
+    if (!confirmResolve) return;
+
+    try {
+      const sb = supabase;
+      let cleanedNotes = '';
+      if (isSupabaseConfigured() && sb) {
+        const { data: rows } = await sb
+          .from('rides')
+          .select('mobility_notes')
+          .eq('reference', mission.reference)
+          .limit(1);
+
+        const rawNotes = (rows && rows[0]?.mobility_notes) || mission.mobility?.notes || '';
+        cleanedNotes = rawNotes.replace(/\[INCIDENT(?: CHAUFFEUR)?\]:[^\n\r]+(\r?\n)?/gi, '').trim();
+
+        const { error: upErr } = await sb
+          .from('rides')
+          .update({
+            mobility_notes: cleanedNotes || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('reference', mission.reference);
+
+        if (upErr) throw upErr;
+
+        try {
+          await sb.from('ride_events').insert({
+            ride_id: mission.id,
+            actor_role: 'TRANSPORTER',
+            event_type: 'TRANSPORTER_RESOLVED_INCIDENT',
+            notes: `Incident pris en charge et résolu par l'entreprise ${transporterName}`,
+          });
+        } catch {}
+      }
+
+      await loadMissions();
+      alert(`Incident de la course #${mission.reference} résolu avec succès.`);
+    } catch (err: any) {
+      alert(`Erreur lors de la résolution : ${err?.message || err}`);
+    }
+  };
 
   // Missions clôturées / terminées
   const completedMissions = useMemo(() => {
@@ -1768,13 +1876,20 @@ export const TransporterPortalPage: React.FC = () => {
               <span className="material-symbols-outlined text-lg">ambulance</span>
               <span>Missions en cours</span>
             </div>
-            {activeMissions.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                activeTab === 'ACTIVES' ? 'bg-white text-amber-950' : 'bg-amber-500/20 text-amber-300'
-              }`}>
-                {activeMissions.length}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {incidentMissions.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                  🚨 {incidentMissions.length}
+                </span>
+              )}
+              {activeMissions.length > 0 && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  activeTab === 'ACTIVES' ? 'bg-white text-amber-950' : 'bg-amber-500/20 text-amber-300'
+                }`}>
+                  {activeMissions.length}
+                </span>
+              )}
+            </div>
           </button>
 
           <button
@@ -2015,11 +2130,16 @@ export const TransporterPortalPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('ACTIVES')}
-            className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all ${
+            className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 ${
               activeTab === 'ACTIVES' ? 'bg-slate-900 text-white font-bold shadow-xs' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            Missions en cours ({activeMissions.length})
+            <span>Missions en cours ({activeMissions.length})</span>
+            {incidentMissions.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-black animate-pulse">
+                🚨 {incidentMissions.length}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -2888,6 +3008,37 @@ export const TransporterPortalPage: React.FC = () => {
           {/* ========================================================================= */}
           {activeTab === 'ACTIVES' && (
             <div className="flex flex-col gap-6 animate-fadeIn">
+              {/* Bannière Flash Alerte Incident Chauffeur */}
+              {incidentMissions.length > 0 && (
+                <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white shadow-xl border-2 border-rose-300 animate-pulse">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner border border-white/30">
+                        <span className="material-symbols-outlined text-3xl text-white">emergency</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-xs uppercase tracking-wider bg-white/30 px-3 py-0.5 rounded-full text-white border border-white/40">
+                            🚨 {incidentMissions.length} {incidentMissions.length > 1 ? 'INCIDENTS SIGNALÉS SUR VOS COURSES' : 'INCIDENT SIGNALÉ SUR VOTRE COURSE'}
+                          </span>
+                          <span className="text-xs text-rose-100 font-medium">
+                            Signalement transmis par l'ambulancier depuis le mobile
+                          </span>
+                        </div>
+                        <div className="text-sm font-extrabold mt-1 text-white">
+                          Course <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded underline">#{incidentMissions[0].reference}</span> ({incidentMissions[0].patient.firstName} {incidentMissions[0].patient.lastName}) : « {extractIncident(incidentMissions[0].mobility?.notes)?.text} »
+                          {incidentMissions[0].assignedTransporter?.driverName && (
+                            <span className="text-rose-100 font-normal ml-2">
+                              (Chauffeur : <strong className="text-white">{incidentMissions[0].assignedTransporter.driverName}</strong>)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* 1. Cockpit En-tête : Missions en Cours */}
               <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-1.5">
@@ -2954,6 +3105,50 @@ export const TransporterPortalPage: React.FC = () => {
                         key={mission.id}
                         className="bg-surface-container-lowest rounded-3xl p-5 sm:p-6 border border-secondary/30 shadow-md flex flex-col gap-5"
                       >
+                        {/* Alerte Incident Chauffeur sur cette Course en Cours */}
+                        {extractIncident(mission.mobility?.notes) && (
+                          <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-500/15 via-red-500/10 to-rose-500/15 border-2 border-rose-500 text-slate-900 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                                <span className="material-symbols-outlined text-2xl">emergency</span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-black text-xs uppercase tracking-wider bg-rose-600 text-white px-2.5 py-0.5 rounded-full">
+                                    🚨 SIGNALEMENT CHAUFFEUR EN COURS
+                                  </span>
+                                  <span className="text-xs text-rose-700 font-bold">
+                                    {mission.assignedTransporter?.driverName ? `Chauffeur : ${mission.assignedTransporter.driverName}` : 'Équipage'}
+                                  </span>
+                                </div>
+                                <div className="text-sm font-black text-rose-950 mt-1">
+                                  « {extractIncident(mission.mobility?.notes)?.text} »
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                              {mission.assignedTransporter?.driverPhone && (
+                                <a
+                                  href={`tel:${mission.assignedTransporter.driverPhone.replace(/\s+/g, '')}`}
+                                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-base">call</span>
+                                  <span>Appeler chauffeur</span>
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleResolveTransporterIncident(mission)}
+                                className="px-3.5 py-2 rounded-xl bg-white border border-rose-300 hover:bg-rose-50 text-rose-800 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-base text-emerald-600">check_circle</span>
+                                <span>Marquer résolu</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Header Mission */}
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/20 pb-4">
                           <div className="flex items-center gap-3">

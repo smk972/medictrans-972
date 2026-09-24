@@ -93,17 +93,17 @@ export const HomePageDemo: React.FC = () => {
     },
     {
       id: 1,
-      badge: 'Site Internet & Console Web',
+      badge: 'Panel Transporteur & Dispatch Web',
       badgeColor: 'bg-sky-50 text-sky-800 border-sky-200/80',
-      title: 'Un site internet simple et intuitif.',
-      description: 'Il n\'a jamais été aussi simple de commander un transport près de chez vous.',
+      title: 'Un cockpit de régulation complet pour les transporteurs.',
+      description: 'Gérez vos disponibilités, zones d\'intervention et recevez directement vos courses prioritaires nominatives.',
     },
     {
       id: 2,
-      badge: 'Application Mobile Professionnels',
+      badge: 'Application Mobile Ambulanciers & Chauffeurs',
       badgeColor: 'bg-cyan-50 text-cyan-800 border-cyan-200/80',
-      title: 'Une application mobile dédiée aux professionnels de transport.',
-      description: 'Recevez en temps réel des demandes de transport dans un périmètre défini par vos soins.',
+      title: 'L\'application mobile pensée pour les ambulanciers sur le terrain.',
+      description: 'Prise de service instantanée, alertes d\'urgence SAMU 15, fiches médicales et guidage GPS en un clic.',
     },
   ];
 
@@ -495,7 +495,7 @@ export const HomePageDemo: React.FC = () => {
                 </div>
 
                 {/* =========================================================================
-                    DEVICE 1 : COMMANDE WEB SUR LE SITE (MacBook Pro Mockup)
+                    DEVICE 1 : CONSOLE TRANSPORTEUR WEB (MacBook Pro Mockup)
                     ========================================================================= */}
                 <div
                   style={getDeviceStyle(1)}
@@ -503,7 +503,7 @@ export const HomePageDemo: React.FC = () => {
                     if ((1 - carouselSlide + 3) % 3 !== 0) {
                       handleSelectSlide(1);
                     } else {
-                      navigate('/reserver');
+                      navigate('/transporteurs');
                     }
                   }}
                   className={`absolute top-1/2 left-1/2 will-change-transform ${isSideDeviceHiddenOnMobile(1)}`}
@@ -524,10 +524,10 @@ export const HomePageDemo: React.FC = () => {
                       </div>
 
                       {/* Screen Glass Area */}
-                      <div className="relative w-full h-full bg-[#f8fafc] rounded-t-[12px] sm:rounded-t-[14px] overflow-hidden flex flex-col border border-slate-300/40">
+                      <div className="relative w-full h-full bg-[#0a121e] rounded-t-[12px] sm:rounded-t-[14px] overflow-hidden flex flex-col border border-slate-700/40">
                         
                         {/* Safari Browser Chrome */}
-                        <div className="h-7 sm:h-8 bg-gradient-to-b from-slate-100 to-slate-200/85 flex items-center px-2.5 sm:px-3 border-b border-slate-200/90 gap-2 shrink-0">
+                        <div className="h-7 sm:h-8 bg-gradient-to-b from-slate-900 to-slate-950 flex items-center px-2.5 sm:px-3 border-b border-slate-800 gap-2 shrink-0 text-slate-300">
                           {/* Traffic Lights */}
                           <div className="flex gap-1.5 shrink-0">
                             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57] shadow-inner" />
@@ -536,39 +536,39 @@ export const HomePageDemo: React.FC = () => {
                           </div>
 
                           {/* Navigation Arrows */}
-                          <div className="hidden sm:flex items-center gap-1 text-slate-400 ml-1">
+                          <div className="hidden sm:flex items-center gap-1 text-slate-500 ml-1">
                             <ChevronLeft className="w-3.5 h-3.5" />
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
                           </div>
 
                           {/* Safari URL Bar */}
                           <div className="flex-1 mx-1 sm:mx-2 max-w-sm mx-auto">
-                            <div className="h-5 sm:h-5.5 bg-white/95 rounded-md px-2 text-[9px] sm:text-[11px] text-slate-600 flex items-center gap-1.5 border border-slate-300/70 shadow-inner">
-                              <Lock className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                              <span className="text-slate-400">https://</span>
-                              <span className="text-slate-800 font-bold truncate">clinigo.fr/reserver</span>
+                            <div className="h-5 sm:h-5.5 bg-slate-800/90 rounded-md px-2 text-[9px] sm:text-[11px] text-slate-300 flex items-center gap-1.5 border border-slate-700 shadow-inner">
+                              <Lock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                              <span className="text-slate-500">https://</span>
+                              <span className="text-slate-200 font-bold truncate">clinigo.fr/pro/dispatch</span>
                             </div>
                           </div>
 
                           {/* Platform Badge */}
-                          <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-black text-teal-800 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
-                            Site Officiel
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-black text-cyan-300 bg-cyan-950/80 border border-cyan-700/50 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                            Panel Transporteur
                           </span>
                         </div>
 
-                        {/* Screen Viewport with capture-commande-site.png */}
-                        <div className="flex-1 overflow-hidden bg-slate-100 relative">
+                        {/* Screen Viewport with dashboard_transporteur_real.png */}
+                        <div className="flex-1 overflow-hidden bg-slate-950 relative">
                           <img 
-                            src="/assets/capture-commande-site.png" 
-                            alt="Capture de la phase de commande sur le site Clinigo" 
+                            src="/assets/dashboard_transporteur_real.png" 
+                            alt="Panel Transporteur Clinigo — Cockpit de régulation et dispatch télématique" 
                             className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
                           />
 
                           {/* Hover Action Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3 sm:p-5">
-                            <span className="px-4 py-2 rounded-full bg-white text-slate-900 text-xs sm:text-sm font-black shadow-xl flex items-center gap-2 transform group-hover:translate-y-0 translate-y-2 transition-transform">
-                              <span>Commander en direct sur le site</span>
-                              <ArrowRight className="w-4 h-4 text-teal-600" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3 sm:p-5">
+                            <span className="px-4 py-2 rounded-full bg-teal-500 text-white text-xs sm:text-sm font-black shadow-xl flex items-center gap-2 transform group-hover:translate-y-0 translate-y-2 transition-transform">
+                              <span>Accéder à l'espace transporteurs</span>
+                              <ArrowRight className="w-4 h-4 text-white" />
                             </span>
                           </div>
                         </div>
@@ -592,7 +592,7 @@ export const HomePageDemo: React.FC = () => {
                 </div>
 
                 {/* =========================================================================
-                    DEVICE 2 : APPLICATION MOBILE AMBULANCE PRO (iPhone Cockpit Sombre)
+                    DEVICE 2 : APPLICATION MOBILE CLINIGO AMBULANCIER (Cockpit Chauffeur Réel)
                     ========================================================================= */}
                 <div
                   style={getDeviceStyle(2)}
@@ -611,7 +611,7 @@ export const HomePageDemo: React.FC = () => {
                     <div className="absolute -right-[3px] top-[135px] w-[3px] h-[55px] bg-[#3a3a3a] rounded-r-sm" />
 
                     {/* Screen Frame Dark Cockpit */}
-                    <div className="relative w-full h-full bg-[#0a0f1d] rounded-[42px] overflow-hidden flex flex-col text-white select-none">
+                    <div className="relative w-full h-full bg-[#0a1220] rounded-[42px] overflow-hidden flex flex-col text-white select-none">
                       {/* Dynamic Island with Emergency Beacon */}
                       <div className="w-[100px] h-[24px] bg-black rounded-full mx-auto mt-2 flex items-center justify-between px-2 text-[8px] text-cyan-400 font-bold z-30 shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
@@ -619,67 +619,80 @@ export const HomePageDemo: React.FC = () => {
                         <span className="text-white">🚨 #402</span>
                       </div>
 
-                      {/* Screen Content */}
-                      <div className="flex-1 flex flex-col p-3.5 pt-2 text-left justify-between overflow-hidden">
-                        {/* App Top Bar */}
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                      {/* Screen Content : Fidèle à clinigo-mobile (DriverHomeScreen) */}
+                      <div className="flex-1 flex flex-col p-3 pt-1.5 text-left justify-between overflow-hidden">
+                        
+                        {/* HeaderHUD Mobile en Verre Blanc Translucide */}
+                        <div className="rounded-2xl p-2 bg-white/10 backdrop-blur-md border border-white/20 shadow-xs flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <img 
                               src="/assets/clinigo-icon.png" 
                               alt="Clinigo Ambulance" 
-                              className="w-8 h-8 rounded-xl object-cover shadow-xs border border-white/20" 
+                              className="w-7 h-7 rounded-lg object-cover shadow-xs border border-white/20" 
                             />
                             <div>
-                              <p className="text-[11px] font-black leading-none text-white">clinigo.fr</p>
-                              <p className="text-[9px] font-bold text-cyan-400">Ambulance PRO</p>
+                              <p className="text-[10px] font-black leading-none text-white">Cockpit Chauffeur</p>
+                              <p className="text-[8px] font-bold text-sky-400">Véhicule GF-452-LK</p>
                             </div>
                           </div>
-                          <span className="text-[9px] font-black text-emerald-300 bg-emerald-950/80 border border-emerald-600/50 px-2 py-0.5 rounded-full">
-                            ● En Service
+                          <span className="text-[8px] font-black text-sky-300 bg-sky-950/80 border border-sky-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-sky-400 animate-pulse" />
+                            CONNECTÉ
                           </span>
                         </div>
 
-                        {/* Mission Card PRO */}
-                        <div className="p-3 rounded-2xl bg-slate-800/90 border border-cyan-500/30 shadow-xs space-y-1.5">
-                          <div className="flex items-center justify-between text-[10px]">
-                            <span className="font-black uppercase text-cyan-400 tracking-wider">Mission Régulée #AMB-972</span>
-                            <span className="font-extrabold bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded text-[9px]">Ambulance</span>
+                        {/* StatusSwitch : Bloc DISPONIBLE Blanc Transparent Liquide */}
+                        <div className="rounded-2xl p-2.5 bg-white/15 backdrop-blur-md border border-white/30 shadow-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/40 animate-pulse" />
+                              <span className="text-[10px] font-black text-emerald-300 tracking-wide">🟢 DISPONIBLE</span>
+                            </div>
+                            <span className="text-[8px] font-extrabold text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                              Rayon 25 km
+                            </span>
                           </div>
-                          <p className="text-xs font-black text-white">M. Henri B. (82 ans) • ALD 100%</p>
-                          <div className="text-[10px] text-slate-300 space-y-0.5 pt-1 border-t border-slate-700/60">
+                          <p className="text-[8px] text-slate-200 leading-tight">
+                            Urgences SAMU 15 & régulations directes transmises en temps réel.
+                          </p>
+                        </div>
+
+                        {/* PriorityMissionCard : Course Régulée Prioritaire */}
+                        <div className="p-2.5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-800/90 border border-sky-500/30 shadow-xs space-y-1.5">
+                          <div className="flex items-center justify-between text-[9px]">
+                            <span className="font-black uppercase text-sky-400 tracking-wider">Mission Régulée #AMB-972</span>
+                            <span className="font-extrabold bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded text-[8px]">Ambulance DEA</span>
+                          </div>
+                          <p className="text-[11px] font-black text-white">M. Henri B. (82 ans) • ALD 100%</p>
+                          <div className="text-[9px] text-slate-300 space-y-0.5 pt-1 border-t border-slate-700/60">
                             <p className="flex items-center gap-1.5 truncate">
-                              <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
+                              <MapPin className="w-2.5 h-2.5 text-sky-400 shrink-0" />
                               <span>Clinique Sainte-Marie</span>
                             </p>
                             <p className="flex items-center gap-1.5 truncate">
-                              <Building2 className="w-3 h-3 text-sky-400 shrink-0" />
+                              <Building2 className="w-2.5 h-2.5 text-teal-400 shrink-0" />
                               <span>CHU Zobda (Néphrologie)</span>
                             </p>
                           </div>
-                        </div>
-
-                        {/* Clinical Checklist */}
-                        <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-[9px] space-y-1">
-                          <p className="font-bold uppercase tracking-wider text-slate-400 text-[8px]">Exigences Médicales</p>
-                          <div className="grid grid-cols-2 gap-1 font-semibold text-slate-200">
-                            <span>✓ Brancardage</span>
-                            <span>✓ Oxygène prêt</span>
-                            <span>✓ Équipage DEA</span>
-                            <span>✓ Bon Cerfa validé</span>
+                          {/* Badges contraintes médicales autorisées */}
+                          <div className="flex items-center gap-1 pt-0.5 text-[8px]">
+                            <span className="bg-slate-700/60 px-1.5 py-0.5 rounded text-slate-300">✓ Brancard</span>
+                            <span className="bg-red-950/60 border border-red-500/30 px-1.5 py-0.5 rounded text-red-300">O₂ 3L/min</span>
+                            <span className="bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded text-emerald-300">Bon Cerfa OK</span>
                           </div>
                         </div>
 
-                        {/* GPS Button */}
+                        {/* CTA Démarrage Guidage Waze / Maps */}
                         <button 
                           type="button"
-                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:brightness-110 text-white text-[11px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-cyan-900/40 transition-all cursor-pointer"
+                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-teal-500 hover:brightness-110 text-white text-[10px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-sky-950/50 transition-all cursor-pointer"
                         >
-                          <Navigation className="w-3.5 h-3.5" />
-                          <span>Lancer le guidage Waze / Maps</span>
+                          <Navigation className="w-3 h-3" />
+                          <span>Voir la course & Démarrer</span>
                         </button>
 
                         {/* Bottom Home Indicator */}
-                        <div className="w-20 h-1 bg-white/40 rounded-full mx-auto mt-1" />
+                        <div className="w-20 h-1 bg-white/40 rounded-full mx-auto mt-0.5" />
                       </div>
                     </div>
                   </div>

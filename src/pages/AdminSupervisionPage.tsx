@@ -17,6 +17,48 @@ import { TerritoryId } from '../data/nationalTerritoriesData';
 import { Search, X } from 'lucide-react';
 import { checkRideCompleteness } from '../utils/rideCompleteness';
 import { extractTime, formatRideDateShort } from '../utils/dateUtils';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
+
+interface ReportedIncident {
+  text: string;
+  raw: string;
+}
+
+const extractIncident = (notes?: string): ReportedIncident | null => {
+  if (!notes) return null;
+  const match = notes.match(/\[INCIDENT(?: CHAUFFEUR)?\]:\s*([^\n\r]+)/i);
+  if (!match) return null;
+  return {
+    text: match[1].trim(),
+    raw: match[0].trim()
+  };
+};
+
+const hasActiveIncident = (ride: Ride): boolean => {
+  return Boolean(extractIncident(ride.mobility?.notes));
+};
+
+const playAlertChime = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {
+    // Audio context not available or blocked
+  }
+};
 
 export const AdminSupervisionPage: React.FC = () => {
   const [rides, setRides] = useState<Ride[]>([]);
@@ -60,6 +102,46 @@ export const AdminSupervisionPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    // Supabase Realtime WebSocket listener for immediate alert propagation
+    let channel: any = null;
+    const sb = supabase;
+    if (isSupabaseConfigured() && sb) {
+      channel = sb
+        .channel('supervision_rides_realtime_' + Date.now())
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rides' },
+          (payload) => {
+            console.log('📡 [Supervision] Événement temps réel Supabase reçu (Rides):', payload.eventType);
+            loadData();
+            if (payload.new && (payload.new as any).mobility_notes?.includes('[INCIDENT')) {
+              playAlertChime();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // BroadcastChannel inter-onglets local
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('clinigo_rides_channel');
+      bc.onmessage = () => {
+        loadData();
+      };
+    } catch {
+      // BroadcastChannel ignore
+    }
+
+    return () => {
+      if (channel && sb) {
+        sb.removeChannel(channel);
+      }
+      if (bc) {
+        bc.close();
+      }
+    };
   }, []);
 
   // Changement de territoire -> réinitialisation immédiate du sous-secteur
@@ -85,10 +167,11 @@ export const AdminSupervisionPage: React.FC = () => {
         (ride.assignedTransporter?.driverName.toLowerCase().includes(q) ?? false) ||
         (ride.assignedTransporter?.companyName.toLowerCase().includes(q) ?? false);
 
-      // Status
+      // Status & Incident Matching
       const matchStatus =
         selectedStatus === 'ALL' ||
-        (selectedStatus === 'URGENT' && ride.status === 'PENDING' && (ride.mobility.stretcher || ride.transportType === 'AMBULANCE')) ||
+        (selectedStatus === 'INCIDENT' && hasActiveIncident(ride)) ||
+        (selectedStatus === 'URGENT' && ((ride.status === 'PENDING' && (ride.mobility.stretcher || ride.transportType === 'AMBULANCE')) || hasActiveIncident(ride))) ||
         ride.status === selectedStatus;
 
       // Transport Type
@@ -242,7 +325,74 @@ export const AdminSupervisionPage: React.FC = () => {
     }
   };
 
-  const urgentCount = rides.filter(r => r.status === 'PENDING' && (r.mobility.stretcher || r.transportType === 'AMBULANCE')).length;
+    // Incidents actifs signalés depuis les terminaux chauffeurs
+  const incidentRides = useMemo(() => {
+    return rides.filter(hasActiveIncident);
+  }, [rides]);
+
+  const handleResolveIncident = async (ride: Ride) => {
+    if (!ride) return;
+    const confirmResolve = window.confirm(
+      `Confirmez-vous la résolution de l'incident pour la course #${ride.reference} ?\n\nL'alerte sera retirée de la supervision et consignée dans le journal d'audit.`
+    );
+    if (!confirmResolve) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      const sb = supabase;
+      let cleanedNotes = '';
+      if (isSupabaseConfigured() && sb) {
+        const { data: currentRows } = await sb
+          .from('rides')
+          .select('mobility_notes')
+          .eq('reference', ride.reference)
+          .limit(1);
+
+        const rawNotes = (currentRows && currentRows[0]?.mobility_notes) || ride.mobility?.notes || '';
+        cleanedNotes = rawNotes.replace(/\[INCIDENT(?: CHAUFFEUR)?\]:[^\n\r]+(\r?\n)?/gi, '').trim();
+
+        const { error: updateError } = await sb
+          .from('rides')
+          .update({
+            mobility_notes: cleanedNotes || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('reference', ride.reference);
+
+        if (updateError) throw updateError;
+
+        try {
+          await sb.from('ride_events').insert({
+            ride_id: ride.id,
+            actor_role: 'ADMIN',
+            event_type: 'SUPERVISOR_RESOLVED_INCIDENT',
+            notes: `Incident résolu par la supervision. Notes restantes: ${cleanedNotes || 'Aucune'}`,
+          });
+        } catch (evErr) {
+          console.warn('ride_events log error:', evErr);
+        }
+      }
+
+      if (selectedRide?.reference === ride.reference) {
+        setSelectedRide({
+          ...selectedRide,
+          mobility: {
+            ...selectedRide.mobility,
+            notes: cleanedNotes || undefined,
+          },
+        });
+      }
+
+      await loadData();
+      alert(`Incident de la course #${ride.reference} résolu avec succès.`);
+    } catch (err: any) {
+      alert(`Erreur lors de la clôture : ${err?.message || err}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const urgentCount = rides.filter(r => (r.status === 'PENDING' && (r.mobility.stretcher || r.transportType === 'AMBULANCE')) || hasActiveIncident(r)).length;
 
   return (
     <AdminLayout
@@ -259,6 +409,51 @@ export const AdminSupervisionPage: React.FC = () => {
         </button>
       }
     >
+      {/* Bannière Flash Alerte Incident Chauffeur Mobile */}
+      {incidentRides.length > 0 && (
+        <div className="mb-6 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white p-4 sm:p-5 shadow-lg border-2 border-rose-300">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner border border-white/30">
+                <span className="material-symbols-outlined text-3xl text-white animate-bounce">warning</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-xs uppercase tracking-wider bg-white/30 px-3 py-0.5 rounded-full text-white border border-white/40">
+                    🚨 {incidentRides.length} {incidentRides.length > 1 ? 'INCIDENTS TERRAIN SIGNALÉS' : 'INCIDENT TERRAIN SIGNALÉ'}
+                  </span>
+                  <span className="text-xs text-rose-100 font-medium">
+                    Signalé en direct par l'équipage mobile • Action supervision requise
+                  </span>
+                </div>
+                <div className="text-sm font-extrabold mt-1 text-white">
+                  Course <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded underline">#{incidentRides[0].reference}</span> : « {extractIncident(incidentRides[0].mobility?.notes)?.text} »
+                  {incidentRides[0].assignedTransporter?.driverName && (
+                    <span className="text-rose-100 font-normal ml-2">
+                      (Chauffeur : <strong className="text-white">{incidentRides[0].assignedTransporter.driverName}</strong>)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedStatus('INCIDENT');
+                  handleOpenDrawer(incidentRides[0]);
+                }}
+                className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-white text-rose-700 font-black text-xs shadow-md hover:bg-rose-50 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <span className="material-symbols-outlined text-base">crisis_alert</span>
+                <span>Ouvrir la mission & Agir</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 4 Mini Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
         <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-xs">
@@ -384,8 +579,9 @@ export const AdminSupervisionPage: React.FC = () => {
           <span className="text-xs font-bold text-on-surface-variant mr-2">Statut :</span>
           {[
             { id: 'ALL', label: 'Toutes', count: filteredRides.length },
+            { id: 'INCIDENT', label: '🚨 Incidents', count: incidentRides.length },
             { id: 'PENDING', label: 'En attente', count: filteredRides.filter(r => r.status === 'PENDING').length },
-            { id: 'URGENT', label: 'Alertes', count: filteredRides.filter(r => r.status === 'PENDING' && (r.mobility.stretcher || r.transportType === 'AMBULANCE')).length },
+            { id: 'URGENT', label: 'Alertes Brancardage', count: filteredRides.filter(r => r.status === 'PENDING' && (r.mobility.stretcher || r.transportType === 'AMBULANCE')).length },
             { id: 'ACCEPTED', label: 'Assignées', count: filteredRides.filter(r => r.status === 'ACCEPTED').length },
             { id: 'EN_ROUTE', label: 'En route', count: filteredRides.filter(r => r.status === 'EN_ROUTE').length },
             { id: 'PICKED_UP', label: 'Pris en charge', count: filteredRides.filter(r => r.status === 'PICKED_UP').length },
@@ -446,8 +642,12 @@ export const AdminSupervisionPage: React.FC = () => {
                     <tr
                       key={ride.id}
                       onClick={() => handleOpenDrawer(ride)}
-                      className={`cursor-pointer transition-colors hover:bg-surface-container/50 ${
-                        isSelected ? 'bg-primary/5' : ''
+                      className={`cursor-pointer transition-colors ${
+                        hasActiveIncident(ride)
+                          ? 'bg-rose-50/80 border-l-4 border-l-rose-600 hover:bg-rose-100/70'
+                          : isSelected
+                          ? 'bg-primary/5 hover:bg-surface-container/50'
+                          : 'hover:bg-surface-container/50'
                       }`}
                     >
                       <td className="py-3 px-4">
@@ -457,6 +657,12 @@ export const AdminSupervisionPage: React.FC = () => {
                         <span className="text-[10px] text-on-surface-variant font-medium">
                           {formatRideDateShort(ride.pickupDateTime)} • {ride.appointmentTime || extractTime(ride.pickupDateTime)}
                         </span>
+                        {extractIncident(ride.mobility?.notes) && (
+                          <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[10px] shadow-xs">
+                            <span className="material-symbols-outlined text-xs">emergency</span>
+                            <span className="truncate max-w-[170px]">{extractIncident(ride.mobility?.notes)?.text}</span>
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-3 px-4">
@@ -593,6 +799,78 @@ export const AdminSupervisionPage: React.FC = () => {
 
             {/* Drawer Content */}
             <div className="p-6 space-y-6 flex-1">
+              {/* Incident Alert Deck if reported by driver */}
+              {extractIncident(selectedRide.mobility?.notes) && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-50 to-red-50 border-2 border-rose-500 shadow-md space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-rose-600 text-2xl animate-pulse">
+                        emergency
+                      </span>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-rose-900">
+                          🚨 Incident Signalé par l'Ambulancier
+                        </h4>
+                        <span className="text-[10px] text-rose-600 font-semibold">
+                          Intervention & arbitrage supervision requis
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-600 text-white">
+                      Action requise
+                    </span>
+                  </div>
+
+                  {/* Problem statement */}
+                  <div className="p-3 bg-white rounded-xl border border-rose-200 shadow-xs">
+                    <div className="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-0.5">
+                      Message transmis depuis le mobile :
+                    </div>
+                    <div className="text-xs font-extrabold text-rose-950">
+                      « {extractIncident(selectedRide.mobility?.notes)?.text} »
+                    </div>
+                  </div>
+
+                  {/* Action buttons for Supervisor */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {selectedRide.assignedTransporter?.driverPhone ? (
+                      <a
+                        href={`tel:${selectedRide.assignedTransporter.driverPhone.replace(/\s+/g, '')}`}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white border border-rose-300 text-rose-800 hover:bg-rose-100 text-xs font-bold transition-all shadow-xs"
+                      >
+                        <span className="material-symbols-outlined text-base text-rose-600">call</span>
+                        <span>Appeler {selectedRide.assignedTransporter.driverName || 'Chauffeur'}</span>
+                      </a>
+                    ) : (
+                      <div className="p-2 text-center text-xs text-rose-600 bg-white/70 rounded-xl">
+                        Numéro chauffeur non disponible
+                      </div>
+                    )}
+
+                    {selectedRide.facilityContactPhone || selectedRide.patient.phone ? (
+                      <a
+                        href={`tel:${(selectedRide.facilityContactPhone || selectedRide.patient.phone).replace(/\s+/g, '')}`}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 text-xs font-bold transition-all shadow-xs"
+                      >
+                        <span className="material-symbols-outlined text-base text-slate-600">local_hospital</span>
+                        <span>Appeler Service / Patient</span>
+                      </a>
+                    ) : null}
+                  </div>
+
+                  {/* Bouton de résolution / clôture */}
+                  <button
+                    type="button"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleResolveIncident(selectedRide)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-base">check_circle</span>
+                    <span>{isUpdatingStatus ? 'Mise à jour en cours...' : 'Clôturer & Marquer l\'incident résolu'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Quick Status Changers */}
               <div className="bg-surface-container p-4 rounded-2xl">
                 <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block mb-2">
@@ -723,6 +1001,64 @@ export const AdminSupervisionPage: React.FC = () => {
                   <p className="text-xs italic bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/20 mt-2">
                     « {selectedRide.mobility.notes} »
                   </p>
+                )}
+              </div>
+
+              {/* Fiche Logistique d'Accès & Coordination Terrain */}
+              <div className="p-4 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-teal-700 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base">meeting_room</span>
+                    <span>Accès Soins & Logistique Chambre / Étage</span>
+                  </h4>
+                  <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">
+                    Terrain Mobile
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 text-xs">
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant block">Service / Département</span>
+                    <span className="font-extrabold text-on-surface">
+                      {selectedRide.facilityDepartment || selectedRide.facilityName || 'Service Non Spécifié'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant block">Chambre & Lit</span>
+                    <span className="font-extrabold text-on-surface font-mono">
+                      {selectedRide.facilityRoom ? `Chambre ${selectedRide.facilityRoom}` : selectedRide.bedDischargeNumber ? `Ch. ${selectedRide.bedDischargeNumber}` : 'Chambre 218 • Lit A'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant block">Étage & Ascenseur</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="font-bold text-on-surface">
+                        {selectedRide.facilityFloor || selectedRide.mobility?.floorNumber ? `${selectedRide.facilityFloor || selectedRide.mobility?.floorNumber}ème étage` : '2ème étage'}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
+                        Ascenseur OK
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant block">Contact Direct Soignants</span>
+                    <span className="font-bold text-teal-700 font-mono">
+                      {selectedRide.facilityContactPhone || '0596 55 20 00 (Poste 412)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Instructions complètes d'accès */}
+                {selectedRide.mobility?.notes && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-600 uppercase block mb-0.5">Consignes d'accès transmises :</span>
+                    <p className="text-xs font-mono text-slate-800">
+                      {selectedRide.mobility.notes}
+                    </p>
+                  </div>
                 )}
               </div>
 

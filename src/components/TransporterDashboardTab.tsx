@@ -129,6 +129,21 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
     return set.size;
   }, [rides]);
 
+
+  const extractIncident = (notes?: string) => {
+    if (!notes) return null;
+    const match = notes.match(/\[INCIDENT(?: CHAUFFEUR)?\]:\s*([^\n\r]+)/i);
+    if (!match) return null;
+    return match[1].trim();
+  };
+
+  const incidentRides = useMemo(() => {
+    return rides.filter((r) => {
+      const isProgress = r.status === 'ACCEPTED' || r.status === 'EN_ROUTE' || r.status === 'PICKED_UP';
+      return isProgress && Boolean(extractIncident(r.mobility?.notes));
+    });
+  }, [rides]);
+
   // Activité récente (les 6 dernières courses enregistrées)
   const recentRides = useMemo(() => {
     return [...rides]
@@ -142,6 +157,48 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
 
   return (
     <div className="flex flex-col gap-6 animate-fadeIn">
+      {/* Alerte Incident Chauffeur sur course en cours */}
+      {incidentRides.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white shadow-xl border-2 border-rose-300 animate-pulse">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner border border-white/30">
+                <span className="material-symbols-outlined text-3xl text-white">emergency</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-xs uppercase tracking-wider bg-white/30 px-3 py-0.5 rounded-full text-white border border-white/40">
+                    🚨 {incidentRides.length} {incidentRides.length > 1 ? 'INCIDENTS CHAUFFEUR EN COURS' : 'INCIDENT CHAUFFEUR EN COURS'}
+                  </span>
+                  <span className="text-xs text-rose-100 font-medium">
+                    Signalé depuis l'application mobile de l'équipage
+                  </span>
+                </div>
+                <div className="text-sm font-extrabold mt-1 text-white">
+                  Course <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded underline">#{incidentRides[0].reference}</span> ({incidentRides[0].patient.firstName} {incidentRides[0].patient.lastName}) : « {extractIncident(incidentRides[0].mobility?.notes)} »
+                  {incidentRides[0].assignedTransporter?.driverName && (
+                    <span className="text-rose-100 font-normal ml-2">
+                      (Chauffeur : <strong className="text-white">{incidentRides[0].assignedTransporter.driverName}</strong>)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => onNavigateTab('ACTIVES')}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-rose-700 font-black text-xs shadow-md hover:bg-rose-50 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <span className="material-symbols-outlined text-base">near_me</span>
+                <span>Gérer la course en cours</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. Cockpit En-tête : Salutations & Raccourcis Rapides */}
       <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-teal-950 text-white shadow-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1.5">
@@ -288,14 +345,31 @@ export const TransporterDashboardTab: React.FC<TransporterDashboardTabProps> = (
         {/* En cours de transport */}
         <div
           onClick={() => onNavigateTab('ACTIVES')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between cursor-pointer hover:border-emerald-300 transition-colors"
+          className={`p-4 rounded-2xl border shadow-xs flex flex-col justify-between cursor-pointer transition-colors ${
+            incidentRides.length > 0
+              ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/30'
+              : 'bg-white border-slate-200/80 hover:border-emerald-300'
+          }`}
         >
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>En cours</span>
-            <span className="material-symbols-outlined text-emerald-600 text-lg">near_me</span>
+            <span className={incidentRides.length > 0 ? 'text-rose-700 font-extrabold' : ''}>En cours</span>
+            {incidentRides.length > 0 ? (
+              <span className="material-symbols-outlined text-rose-600 text-lg animate-ping">warning</span>
+            ) : (
+              <span className="material-symbols-outlined text-emerald-600 text-lg">near_me</span>
+            )}
           </div>
           <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-emerald-600">{stats.inProgressCount}</span>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-2xl sm:text-3xl font-black ${incidentRides.length > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {stats.inProgressCount}
+              </span>
+              {incidentRides.length > 0 && (
+                <span className="text-[10px] font-black text-white bg-rose-600 px-1.5 py-0.2 rounded-full animate-pulse">
+                  {incidentRides.length} incident{incidentRides.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
             <span className="text-[11px] text-slate-500 block mt-0.5">sur la route</span>
           </div>
         </div>
